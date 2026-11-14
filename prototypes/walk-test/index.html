@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Far Beacon Walk Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Same surveyor's-desk world as the 2D prototype: slate panels, lamp-amber accent. Full-screen view, HUD at the top edge, thumbs at the bottom. */
+  --ground: #161c26; --panel: rgba(22, 28, 38, .78); --line: #3a4757; --ink: #ece6d8; --ink-dim: #b3bcc5; --accent: #e0a84a; --water: #5aa9d6; --bad: #ea6a62;
+  --font-display: 'Bitter', Georgia, serif; --font-body: 'IBM Plex Sans', system-ui, sans-serif; --font-num: 'IBM Plex Mono', ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ground); color: var(--ink); font: 400 14px/1.4 var(--font-body); }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#veil { position: fixed; inset: 0; background: #05070b; opacity: 0; pointer-events: none; }
+#hud { position: fixed; top: 0; left: 0; right: 0; padding: 10px 16px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.top { display: flex; align-items: center; gap: 10px; }
+.meter { flex: 1; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.track { height: 10px; background: #0f141b; border-radius: 5px; overflow: hidden; }
+#wbar { height: 100%; width: 100%; background: var(--water); }
+#wval, #head, #seed { font: 600 13px var(--font-num); font-variant-numeric: tabular-nums; }
+.meter.low #wval { color: var(--bad); } .meter.low #wbar { background: var(--bad); }
+.pill { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+#msg { align-self: center; max-width: 34em; text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; text-wrap: balance; }
+#msg.bad { border-color: var(--bad); color: #ffd9d6; } #msg.good { border-color: var(--accent); }
+#foot { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px; display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; pointer-events: none; }
+#hint { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--ink-dim); max-width: 26em; }
+button { pointer-events: auto; font: 500 13px var(--font-body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-height: 40px; padding: 6px 12px; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #1a1205; font-weight: 600; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#stick { position: fixed; width: 110px; height: 110px; margin: -55px 0 0 -55px; border: 2px solid rgba(236, 230, 216, .45); border-radius: 50%; pointer-events: none; display: none; }
+#knob { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(236, 230, 216, .6); }
+#end { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(8, 11, 16, .7); }
+#end[hidden] { display: none; }
+.sheet { max-width: 420px; background: #1f2733; border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.sheet h2 { font: 700 20px/1.2 var(--font-display); margin: 0 0 6px; }
+.sheet p { margin: 6px 0; } .sheet .note { color: var(--ink-dim); font-size: 13px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="First-person view of the terrain"></canvas>
+<div id="veil"></div>
+<div id="hud">
+  <div class="top">
+    <div class="meter" id="meter"><span>Water</span><div class="track"><div id="wbar"></div></div><span id="wval">100</span></div>
+    <div class="pill" id="head">N 000</div>
+  </div>
+  <div id="msg">Reach the amber light. One load of water will not get you there, so find springs in the low ground. The smoke column marks your camp and its well.</div>
+</div>
+<div id="foot">
+  <div id="hint">Computer: drag or click to look, W A S D to walk. Phone: left thumb walks, right thumb looks.</div>
+  <div style="display:flex;gap:8px;align-items:center"><span class="pill" id="seed">seed</span><button type="button" id="again">New world</button></div>
+</div>
+<div id="stick"><div id="knob"></div></div>
+<div id="end" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="end-title"><h2 id="end-title"></h2><p id="end-text"></p><p class="note" id="end-note"></p><div class="row"><button type="button" class="primary" id="end-new">New world</button><button type="button" id="end-same">Same world again</button></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  if (!window.THREE) { $('msg').textContent = 'The 3D library did not load. Check your connection and reload the page.'; $('msg').className = 'bad'; return; }
+  const SIZE = 1000, N = 200, CELL = SIZE / N, HALF = SIZE / 2, EYE = 1.7;
+  /* Tunables: the numbers worth playing with */
+  const T = { speed: 5.2, drainMoving: 0.85, drainIdle: 0.08, uphillDrain: 2.5, uphillSlow: 1.4, refillRate: 40, reach: 8, collapseSeconds: 22, dayMinutes: 14 };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
+  function mulberry(a) { return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), a | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  /* ---------- world: plain data, no drawing ---------- */
+  function makeWorld(seed) {
+    const r = mulberry(seed), P = new Float32Array(4096); for (let i = 0; i < 4096; i++) P[i] = r();
+    const at = (ix, iz) => P[((ix * 73856093) ^ (iz * 19349663)) & 4095];
+    const noise = (x, z) => { const x0 = Math.floor(x), z0 = Math.floor(z); let tx = x - x0, tz = z - z0; tx = tx * tx * (3 - 2 * tx); tz = tz * tz * (3 - 2 * tz); return (at(x0, z0) * (1 - tx) + at(x0 + 1, z0) * tx) * (1 - tz) + (at(x0, z0 + 1) * (1 - tx) + at(x0 + 1, z0 + 1) * tx) * tz; };
+    const hgt = new Float32Array((N + 1) * (N + 1)), wx = i => -HALF + i * CELL;
+    for (let iz = 0; iz <= N; iz++) for (let ix = 0; ix <= N; ix++) { const x = wx(ix), z = wx(iz); hgt[iz * (N + 1) + ix] = 55 * noise(x / 300 + 10, z / 300 + 10) + 22 * noise(x / 120 + 50, z / 120 + 50) + 8 * noise(x / 45 + 90, z / 45 + 90) + 2.5 * noise(x / 15 + 130, z / 15 + 130); }
+    const H = (ix, iz) => hgt[iz * (N + 1) + ix];
+    function best(test, score) { let b = null, bs = -Infinity; for (let iz = 12; iz <= N - 12; iz++) for (let ix = 12; ix <= N - 12; ix++) { const x = wx(ix), z = wx(iz); if (!test(x, z)) continue; const s = score(ix, iz, x, z); if (s > bs) { bs = s; b = { x, z, ix, iz }; } } return b; }
+    const rough = (ix, iz) => { let m = 0; for (const [a, c] of [[3, 0], [-3, 0], [0, 3], [0, -3], [6, 0], [-6, 0], [0, 6], [0, -6]]) m = Math.max(m, Math.abs(H(ix + a, iz + c) - H(ix, iz))); return m; };
+    const camp = best((x, z) => x > -390 && x < -260 && Math.abs(z) < 220, (ix, iz) => -rough(ix, iz));
+    const dist = (a, x, z) => Math.hypot(a.x - x, a.z - z);
+    const beacon = best((x, z) => { const d = dist(camp, x, z); return d > 720 && d < 900; }, (ix, iz) => H(ix, iz));
+    const ang = Math.atan2(beacon.z - camp.z, beacon.x - camp.x), off = (x, z) => { let a = Math.atan2(z - camp.z, x - camp.x) - ang; while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return Math.abs(a); };
+    const s1 = best((x, z) => { const d = dist(camp, x, z); return d > 270 && d < 400 && off(x, z) < 1.1; }, (ix, iz) => -H(ix, iz));
+    const s2 = best((x, z) => { const d = dist(camp, x, z), b = dist(beacon, x, z); return d > 500 && b > 230 && b < 420 && dist(s1, x, z) > 220 && dist(s1, x, z) < 470; }, (ix, iz) => -H(ix, iz))
+      || best((x, z) => dist(beacon, x, z) > 230 && dist(beacon, x, z) < 420 && dist(s1, x, z) > 200, (ix, iz) => -H(ix, iz));
+    const springs = [s1, s2].filter(Boolean);
+    function flatten(p, rad, drop) { const h0 = H(p.ix, p.iz) - drop, n = Math.ceil(rad / CELL); for (let j = -n; j <= n; j++) for (let i = -n; i <= n; i++) { const d = Math.hypot(i, j) * CELL; if (d >= rad) continue; let t = 1 - d / rad; t = t * t * (3 - 2 * t); const k = (p.iz + j) * (N + 1) + p.ix + i; hgt[k] = lerp(hgt[k], h0, t); } }
+    flatten(camp, 30, 0); springs.forEach(s => flatten(s, 16, 1.5)); flatten(beacon, 14, 0);
+    function height(x, z) { const fx = clamp((x + HALF) / CELL, 0, N - 0.001), fz = clamp((z + HALF) / CELL, 0, N - 0.001), ix = Math.floor(fx), iz = Math.floor(fz), tx = fx - ix, tz = fz - iz; return (H(ix, iz) * (1 - tx) + H(ix + 1, iz) * tx) * (1 - tz) + (H(ix, iz + 1) * (1 - tx) + H(ix + 1, iz + 1) * tx) * tz; }
+    return { seed, hgt, height, camp, beacon, springs, rand: r, wx };
+  }
+
+  /* ---------- drawing ---------- */
+  const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(70, 1, 0.3, 2500); camera.rotation.order = 'YXZ';
+  const hemi = new THREE.HemisphereLight(0xdfe7ee, 0x5a554c, 0.75), sun = new THREE.DirectionalLight(0xfff1dc, 0.9); scene.add(hemi, sun);
+  scene.fog = new THREE.Fog(0xb9c7d1, 60, 520); scene.background = new THREE.Color(0xb9c7d1);
+  let group = null, W = null, st = null;
+  function buildScene(w) {
+    if (group) { scene.remove(group); group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); }
+    group = new THREE.Group(); scene.add(group);
+    const geo = new THREE.PlaneGeometry(SIZE, SIZE, N, N); geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), lo = new THREE.Color(0x6a655c), hi = new THREE.Color(0xaaa597), green = new THREE.Color(0x6f8f55), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = pos.getZ(i), h = w.height(x, z); pos.setY(i, h); c.copy(lo).lerp(hi, clamp(h / 80, 0, 1));
+      for (const s of w.springs) { const d = Math.hypot(s.x - x, s.z - z); if (d < 48) c.lerp(green, (1 - d / 48) * 0.85); } col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.computeVertexNormals();
+    group.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 })));
+    const r = w.rand, rocks = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x77736b, flatShading: true, roughness: 1 }), 900), m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+    for (let i = 0; i < 900; i++) { const x = (r() - 0.5) * (SIZE - 20), z = (r() - 0.5) * (SIZE - 20), tall = i < 14, s = tall ? 2 + r() * 1.5 : 0.3 + r() * r() * 2.2; e.set(r() * 3, r() * 3, r() * 3); if (tall) e.set(r() * 0.2, r() * 3, r() * 0.2); q.setFromEuler(e); sc.set(s, tall ? s * (3 + r() * 2) : s * (0.6 + r() * 0.6), s); v.set(x, w.height(x, z) + (tall ? sc.y * 0.5 : s * 0.2), z); m.compose(v, q, sc); rocks.setMatrixAt(i, m); }
+    group.add(rocks);
+    const std = (color, extra) => new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
+    const put = (mesh, x, y, z) => { mesh.position.set(x, y, z); group.add(mesh); return mesh; };
+    const ch = w.height(w.camp.x, w.camp.z);
+    put(new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(0xd9a24a)), w.camp.x + 5, ch + 1.8, w.camp.z + 2);
+    put(new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 1, 10), std(0x5d5a55)), w.camp.x, ch + 0.5, w.camp.z);
+    put(new THREE.Mesh(new THREE.CircleGeometry(1.3, 12).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x3f8fc0 })), w.camp.x, ch + 1.02, w.camp.z);
+    put(new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.4, 140, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0xf2f2ee, transparent: true, opacity: 0.4, fog: false, depthWrite: false, side: THREE.DoubleSide })), w.camp.x + 8, ch + 71, w.camp.z - 3);
+    const bh = w.height(w.beacon.x, w.beacon.z);
+    put(new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3.4, 30, 6), std(0x4b4843)), w.beacon.x, bh + 15, w.beacon.z);
+    put(new THREE.Mesh(new THREE.SphereGeometry(3.5, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffb84a, fog: false })), w.beacon.x, bh + 33, w.beacon.z);
+    put(new THREE.Mesh(new THREE.SphereGeometry(9, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffa730, transparent: true, opacity: 0.3, fog: false, depthWrite: false })), w.beacon.x, bh + 33, w.beacon.z);
+    for (const s of w.springs) { const h = w.height(s.x, s.z); put(new THREE.Mesh(new THREE.CircleGeometry(5.5, 16).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x3f8fc0 })), s.x, h + 0.25, s.z);
+      for (let i = 0; i < 9; i++) { const a = r() * 6.28, d = 6 + r() * 5, x = s.x + Math.cos(a) * d, z = s.z + Math.sin(a) * d; put(new THREE.Mesh(new THREE.ConeGeometry(0.5, 2 + r() * 2, 5), std(0x587a40)), x, w.height(x, z) + 1, z); } }
+  }
+  function resize() { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+
+  /* ---------- game state and rules ---------- */
+  const DIRN = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  function start(seed) {
+    W = makeWorld(seed); buildScene(W);
+    st = { x: W.camp.x + 4, z: W.camp.z + 8, yaw: Math.atan2(-(W.beacon.x - W.camp.x), -(W.beacon.z - W.camp.z)), pitch: 0, water: 100, fade: 0, walked: 0, time: 0, over: false, found: {}, warned: {}, y: 0, leftCamp: false };
+    st.y = W.height(st.x, st.z) + EYE; $('seed').textContent = 'seed ' + seed; $('end').hidden = true;
+    const bd = ((Math.atan2(W.beacon.x - W.camp.x, -(W.beacon.z - W.camp.z)) * 180 / Math.PI) + 360) % 360;
+    say('Reach the amber light, ' + DIRN[Math.round(bd / 45) % 8] + ' of camp. If a ridge hides it, climb. One load of water will not get you there: look for green in the low ground. The smoke column marks your camp and its well.', '', 16);
+  }
+  let msgUntil = 0; function say(t, tone, secs) { $('msg').textContent = t; $('msg').className = tone || ''; $('msg').style.visibility = 'visible'; msgUntil = st ? st.time + (secs || 9) : 9; }
+  const input = { fx: 0, fy: 0, keys: {} };
+  function tick(dt) {
+    if (st.over) return; st.time += dt;
+    let fx = input.fx, fy = input.fy; const k = input.keys;
+    if (k.w || k.arrowup) fy += 1; if (k.s || k.arrowdown) fy -= 1; if (k.d) fx += 1; if (k.a) fx -= 1; if (k.arrowleft) st.yaw += 1.8 * dt; if (k.arrowright) st.yaw -= 1.8 * dt;
+    let mag = Math.hypot(fx, fy); if (mag > 1) { fx /= mag; fy /= mag; mag = 1; }
+    const sn = Math.sin(st.yaw), cs = Math.cos(st.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx;
+    let grade = 0, moved = 0;
+    if (mag > 0.05) { const h0 = W.height(st.x, st.z), h1 = W.height(st.x + dx / mag * 2, st.z + dz / mag * 2); grade = (h1 - h0) / 2;
+      let f = grade > 0 ? clamp(1 - grade * T.uphillSlow, 0.22, 1) : clamp(1 - grade * 0.3, 1, 1.15); if (grade > 1) f = 0;
+      const sp = T.speed * f * (1 - 0.6 * st.fade); const nx = clamp(st.x + dx * sp * dt, -HALF + 8, HALF - 8), nz = clamp(st.z + dz * sp * dt, -HALF + 8, HALF - 8); moved = Math.hypot(nx - st.x, nz - st.z); st.x = nx; st.z = nz; st.walked += moved; }
+    const near = p => Math.hypot(p.x - st.x, p.z - st.z);
+    let filling = false; const sources = [{ p: W.camp, name: 'the well', id: 'well' }].concat(W.springs.map((p, i) => ({ p, name: 'a spring', id: 's' + i })));
+    for (const s of sources) if (near(s.p) < T.reach) { filling = true; if (s.id !== 'well' && !st.found[s.id]) { st.found[s.id] = true; say('Water. You found a spring.', 'good'); } }
+    if (near(W.camp) > 40) st.leftCamp = true;
+    if (filling) { if (st.water < 99.5) { st.water = Math.min(100, st.water + T.refillRate * dt); if (st.water >= 99.5 && st.leftCamp) say('Waterskins full.', 'good', 4); } st.fade = Math.max(0, st.fade - dt / 4); st.warned = {}; }
+    else { st.water = Math.max(0, st.water - (mag > 0.05 ? T.drainMoving * mag * (1 + Math.max(0, grade) * T.uphillDrain) : T.drainIdle) * dt);
+      if (st.water <= 50 && !st.warned.h) { st.warned.h = true; say('Half your water is gone. Turn back, or push on?', ''); }
+      if (st.water <= 20 && !st.warned.l) { st.warned.l = true; say('Water is nearly gone.', 'bad'); }
+      if (st.water <= 0) { if (!st.warned.z) { st.warned.z = true; say('You are out of water. Find some now.', 'bad', 30); } st.fade += dt / T.collapseSeconds; } }
+    if (st.fade >= 1) return finish(false); if (near(W.beacon) < 11) return finish(true);
+    if (st.time > msgUntil) $('msg').style.visibility = 'hidden';
+  }
+  function finish(won) { st.over = true; const m = Math.floor(st.time / 60), s = Math.floor(st.time % 60); $('end-title').textContent = won ? 'You reached the beacon' : 'You died of thirst';
+    $('end-text').textContent = 'You walked ' + Math.round(st.walked) + ' m in ' + m + ' min ' + s + ' s' + (won ? '.' : ', and fell ' + Math.round(Math.hypot(W.beacon.x - st.x, W.beacon.z - st.z)) + ' m short.');
+    $('end-note').textContent = 'Springs found: ' + Object.keys(st.found).length + ' of ' + W.springs.length + '. Seed ' + W.seed + '.'; $('end').hidden = false; if (document.exitPointerLock) try { document.exitPointerLock(); } catch (e) { } }
+
+  const sky = { day: new THREE.Color(0xb9c7d1), dusk: new THREE.Color(0xd8a078), night: new THREE.Color(0x1c2334) }, skyC = new THREE.Color(), still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function frame() {
+    const t = clamp(st.time / (T.dayMinutes * 60), 0, 1);
+    if (t < 0.6) skyC.copy(sky.day).lerp(sky.dusk, t / 0.6 * 0.5); else if (t < 0.8) skyC.copy(sky.day).lerp(sky.dusk, 0.5 + (t - 0.6) / 0.2 * 0.5); else skyC.copy(sky.dusk).lerp(sky.night, (t - 0.8) / 0.2);
+    scene.background.copy(skyC); scene.fog.color.copy(skyC); scene.fog.far = lerp(520, 300, clamp((t - 0.8) / 0.2, 0, 1)); hemi.intensity = lerp(0.75, 0.3, clamp((t - 0.7) / 0.3, 0, 1)); sun.intensity = lerp(0.9, 0.05, clamp((t - 0.6) / 0.4, 0, 1));
+    const sa = lerp(1.0, 0.06, t); sun.position.set(Math.cos(sa) * -300, Math.sin(sa) * 300, 120);
+    const target = W.height(st.x, st.z) + EYE + (still ? 0 : Math.sin(st.walked * 1.9) * 0.05); st.y = lerp(st.y, target, 0.35);
+    camera.position.set(st.x, st.y, st.z); camera.rotation.set(st.pitch, st.yaw, 0);
+    $('wbar').style.width = st.water + '%'; $('wval').textContent = Math.round(st.water); $('meter').classList.toggle('low', st.water <= 20);
+    const deg = ((-st.yaw * 180 / Math.PI) % 360 + 360) % 360; $('head').textContent = DIRN[Math.round(deg / 45) % 8] + ' ' + String(Math.round(deg) % 360).padStart(3, '0');
+    $('veil').style.opacity = String(clamp(st.fade * 0.9, 0, 0.9));
+    renderer.render(scene, camera);
+  }
+  let last = performance.now(); function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; tick(dt); frame(); requestAnimationFrame(loop); }
+
+  /* ---------- input ---------- */
+  const cv = $('c'), look = (mx, my, k) => { st.yaw -= mx * k; st.pitch = clamp(st.pitch - my * k, -1.2, 1.2); };
+  document.addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { input.keys[k] = true; e.preventDefault(); } });
+  document.addEventListener('keyup', e => { input.keys[e.key.toLowerCase()] = false; });
+  window.addEventListener('blur', () => { input.keys = {}; });
+  let dragging = false, lx = 0, ly = 0, downAt = 0;
+  cv.addEventListener('mousedown', e => { dragging = true; lx = e.clientX; ly = e.clientY; downAt = performance.now(); });
+  window.addEventListener('mouseup', e => { if (dragging && performance.now() - downAt < 200 && document.pointerLockElement !== cv && cv.requestPointerLock) { try { const p = cv.requestPointerLock(); if (p && p.catch) p.catch(() => { }); } catch (err) { } } dragging = false; });
+  window.addEventListener('mousemove', e => { if (document.pointerLockElement === cv) look(e.movementX, e.movementY, 0.0024); else if (dragging) { look(e.clientX - lx, e.clientY - ly, 0.005); lx = e.clientX; ly = e.clientY; } });
+  let moveId = null, lookId = null, ox = 0, oy = 0, tlx = 0, tly = 0; const stick = $('stick'), knob = $('knob');
+  cv.addEventListener('touchstart', e => { e.preventDefault(); for (const t of e.changedTouches) { if (t.clientX < window.innerWidth * 0.45 && moveId === null) { moveId = t.identifier; ox = t.clientX; oy = t.clientY; stick.style.display = 'block'; stick.style.left = ox + 'px'; stick.style.top = oy + 'px'; knob.style.transform = ''; } else if (lookId === null) { lookId = t.identifier; tlx = t.clientX; tly = t.clientY; } } }, { passive: false });
+  cv.addEventListener('touchmove', e => { e.preventDefault(); for (const t of e.changedTouches) { if (t.identifier === moveId) { let dx = t.clientX - ox, dy = t.clientY - oy; const d = Math.hypot(dx, dy), R = 50; if (d > R) { dx *= R / d; dy *= R / d; } input.fx = dx / R; input.fy = -dy / R; knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; } else if (t.identifier === lookId) { look(t.clientX - tlx, t.clientY - tly, 0.006); tlx = t.clientX; tly = t.clientY; } } }, { passive: false });
+  const endTouch = e => { for (const t of e.changedTouches) { if (t.identifier === moveId) { moveId = null; input.fx = input.fy = 0; stick.style.display = 'none'; } if (t.identifier === lookId) lookId = null; } };
+  cv.addEventListener('touchend', endTouch); cv.addEventListener('touchcancel', endTouch);
+  const randomSeed = () => 10000 + Math.floor(Math.random() * 90000);
+  $('again').addEventListener('click', () => start(randomSeed())); $('end-new').addEventListener('click', () => start(randomSeed())); $('end-same').addEventListener('click', () => start(W.seed));
+  window.addEventListener('resize', resize); resize(); start(randomSeed()); window.__walk = { get st() { return st; }, get W() { return W; }, T, input };
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

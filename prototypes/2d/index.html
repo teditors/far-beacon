@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Far Beacon Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* One visual world: a surveyor's night desk. Slate ground, lamp-amber accent, map in the middle, controls under the thumb. */
+  --ground: #161c26; --panel: #1f2733; --line: #33404f; --ink: #ece6d8; --ink-dim: #9da8b3; --accent: #e0a84a;
+  --water: #5aa9d6; --warm: #e58555; --stam: #93c26c; --bad: #ea6a62;
+  --font-display: 'Bitter', Georgia, serif; --font-body: 'IBM Plex Sans', system-ui, sans-serif; --font-num: 'IBM Plex Mono', ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--ground); color: var(--ink); font: 400 15px/1.45 var(--font-body); }
+main { max-width: 520px; margin: 0 auto; padding: 12px 16px 28px; display: flex; flex-direction: column; gap: 10px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 { font: 700 20px/1.1 var(--font-display); margin: 0; letter-spacing: .01em; }
+h1 small { font: 400 12px var(--font-num); color: var(--ink-dim); margin-left: 8px; }
+h2, h3 { font: 600 16px/1.2 var(--font-display); margin: 0; text-wrap: balance; }
+h3 { margin-top: 14px; font-size: 14px; color: var(--accent); }
+p { margin: 6px 0; }
+button { font: 500 14px var(--font-body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-height: 44px; padding: 6px 12px; cursor: pointer; }
+button:active { background: #2a3545; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #1a1205; font-weight: 600; }
+button.small { min-height: 38px; padding: 4px 10px; font-size: 13px; }
+.status { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font: 400 13px var(--font-num); }
+.chip { border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; }
+.chip.warn { border-color: var(--accent); color: var(--accent); }
+.chip.bad { border-color: var(--bad); color: var(--bad); }
+#bearing { color: var(--ink-dim); }
+.meters { display: grid; gap: 5px; }
+.meter { display: grid; grid-template-columns: 62px 1fr 78px; align-items: center; gap: 8px; font-size: 13px; }
+.meter .track { height: 10px; background: #0f141b; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+.meter .bar { height: 100%; width: 50%; }
+#m-water .bar { background: var(--water); } #m-warm .bar { background: var(--warm); } #m-stam .bar { background: var(--stam); }
+.meter .val { font: 600 13px var(--font-num); text-align: right; font-variant-numeric: tabular-nums; }
+.meter.low .val, .bad { color: var(--bad); }
+.sub { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 400 12px var(--font-num); color: var(--ink-dim); }
+canvas { width: 100%; aspect-ratio: 1; display: block; border: 1px solid var(--line); border-radius: 8px; background: #10151d; touch-action: manipulation; }
+#place { font-size: 13px; color: var(--ink-dim); }
+.controls { display: grid; grid-template-columns: 148px 1fr; gap: 12px; align-items: start; }
+.dpad { display: grid; grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(3, 46px); gap: 5px; }
+.dpad button { padding: 0; font-size: 18px; }
+#d-up { grid-area: 1 / 2; } #d-left { grid-area: 2 / 1; } #d-right { grid-area: 2 / 3; } #d-down { grid-area: 3 / 2; }
+#actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.act { display: flex; flex-direction: column; align-items: flex-start; text-align: left; flex: 1 1 120px; }
+.act small { font: 400 11px var(--font-num); color: var(--ink-dim); }
+.bar-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#log { list-style: none; margin: 0; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 6px; font-size: 13.5px; }
+#log li { color: var(--ink-dim); } #log li.new { color: var(--ink); } #log li.good.new { color: var(--stam); } #log li.bad { color: var(--bad); }
+#modal { position: fixed; inset: 0; background: rgba(8, 11, 16, .78); display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; z-index: 5; }
+#modal[hidden] { display: none; }
+.sheet { width: 100%; max-width: 500px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 18px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.items { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; background: #19212c; border: 1px solid var(--line); border-radius: 8px; flex-wrap: wrap; }
+.item p { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-dim); }
+.item.cursed strong { color: var(--bad); }
+.item.tune input { flex: 1 1 100%; }
+.wt { font: 400 12px var(--font-num); color: var(--ink-dim); margin-left: 8px; }
+.row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.note { font-size: 12.5px; color: var(--ink-dim); }
+input[type=number] { font: 400 14px var(--font-num); width: 96px; min-height: 38px; background: #0f141b; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); }
+input[type=range] { accent-color: var(--accent); }
+@media (max-width: 380px) { .controls { grid-template-columns: 1fr; } .dpad { margin: 0 auto; } }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>Far Beacon<small id="seed">seed</small></h1><button type="button" id="btn-menu" class="small">Menu and help</button></header>
+  <div class="status"><span id="when">Day 1</span><span id="sky" class="chip">Clear</span><span id="bearing"></span></div>
+  <div class="meters">
+    <div class="meter" id="m-water"><span>Water</span><div class="track"><div class="bar" id="m-water-bar"></div></div><span class="val" id="m-water-val"></span></div>
+    <div class="meter" id="m-warm"><span>Warmth</span><div class="track"><div class="bar" id="m-warm-bar"></div></div><span class="val" id="m-warm-val"></span></div>
+    <div class="meter" id="m-stam"><span>Stamina</span><div class="track"><div class="bar" id="m-stam-bar"></div></div><span class="val" id="m-stam-val"></span></div>
+  </div>
+  <div class="sub"><span id="load"></span><span id="fuel"></span></div>
+  <canvas id="map" aria-label="Map. Tap a tile next to you to walk there."></canvas>
+  <div id="place"></div>
+  <div class="controls">
+    <div class="dpad" aria-label="Walk">
+      <button type="button" id="d-up" aria-label="North">&#9650;</button><button type="button" id="d-left" aria-label="West">&#9664;</button>
+      <button type="button" id="d-right" aria-label="East">&#9654;</button><button type="button" id="d-down" aria-label="South">&#9660;</button>
+    </div>
+    <div id="actions"></div>
+  </div>
+  <div class="bar-row"><button type="button" id="btn-pack">Pack</button><button type="button" id="btn-view">Whole map</button></div>
+  <ul id="log" aria-live="polite"></ul>
+</main>
+<div id="modal" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="sheet-head"><h2 id="modal-title"></h2><button type="button" id="modal-close" class="small">Close</button></div><div id="modal-body"></div></div></div>
+<script>
+/* CONTENT: every biome, civilization, god, item base and affix is data. Adding an entry needs no code change. */
+const CONTENT = {
+  tun: {
+    waterPerHour: 0.8, restWaterFactor: 0.5, staminaScale: 1, coldScale: 1, stormGap: 1,
+    carryCap: 16, lanternFuelPerHour: 0.25, autoIdHours: 10,
+    moveMin: { plain: 15, hill: 30, mountain: 60 },
+    moveSta: { plain: 2, hill: 4, mountain: 8 }
+  },
+  biomes: [
+    { id: 'salt', name: 'Salt Flats', blurb: 'Hot days, thin water, dust on the wind.',
+      hills: 0.18, mountains: 0.05, springs: 4, foul: 0.15,
+      day: { cold: 0, warm: 6, mods: [{ stat: 'waterDrain', op: 'mul', value: 1.4 }] },
+      night: { cold: 6, warm: 0, mods: [] },
+      storm: { name: 'dust storm', cold: 0, mods: [{ stat: 'moveTime', op: 'mul', value: 1.6 }, { stat: 'waterDrain', op: 'mul', value: 1.3 }] },
+      colors: ['#cdbf9c', '#b0966a', '#7a6650'] },
+    { id: 'moor', name: 'High Moor', blurb: 'Water everywhere, much of it foul. Rain and cold nights.',
+      hills: 0.30, mountains: 0.06, springs: 7, foul: 0.4,
+      day: { cold: 3, warm: 2, mods: [] },
+      night: { cold: 8, warm: 0, mods: [] },
+      storm: { name: 'rainstorm', cold: 10, mods: [{ stat: 'moveTime', op: 'mul', value: 1.25 }] },
+      colors: ['#7c9463', '#5f7653', '#55585e'] },
+    { id: 'taiga', name: 'Snowbound Taiga', blurb: 'Always cold. Snow can be melted for water if you have fuel.',
+      hills: 0.25, mountains: 0.10, springs: 2, foul: 0.1, melt: 3,
+      day: { cold: 6, warm: 2, mods: [] },
+      night: { cold: 12, warm: 0, mods: [] },
+      storm: { name: 'blizzard', cold: 14, mods: [{ stat: 'moveTime', op: 'mul', value: 1.5 }] },
+      colors: ['#dfe6e8', '#a3b7b3', '#6c7b85'] }
+  ],
+  civs: [
+    { id: 'cistern', name: 'the Cistern-Keepers', ruin: 'cistern-house',
+      lore: 'The Cistern-Keepers always built over stored water.',
+      search: { hours: 1, items: 1, water: 5 } },
+    { id: 'way', name: 'the Waymakers', ruin: 'watchtower', onHills: true,
+      lore: 'The Waymakers built towers where the land could be read.',
+      search: { hours: 1, items: 1, reveal: 6 } },
+    { id: 'tomb', name: 'the Tomb-Carvers', ruin: 'sealed tomb',
+      lore: 'The Tomb-Carvers buried their goods deep. Opening a tomb is hard work.',
+      search: { hours: 2, stamina: 20, items: 3 } }
+  ],
+  gods: [
+    { id: 'thirst', name: 'Ushet, the Dry Mother',
+      terms: 'You need half the water. You can never carry more than 4.',
+      mods: [{ stat: 'waterDrain', op: 'mul', value: 0.5 }, { stat: 'waterCap', op: 'max', value: 4 }] },
+    { id: 'climber', name: 'Karn of the High Places',
+      terms: 'Hills and mountains cost you far less time. Flat ground costs more.',
+      mods: [{ stat: 'moveTime.hill', op: 'mul', value: 0.6 }, { stat: 'moveTime.mountain', op: 'mul', value: 0.6 }, { stat: 'moveTime.plain', op: 'mul', value: 1.3 }] },
+    { id: 'night', name: 'Nym, the Lidless',
+      terms: 'You see in the dark and the night cold bites less. By day you need much more water.',
+      mods: [{ stat: 'nightSight', op: 'add', value: 1, when: 'night' }, { stat: 'cold', op: 'mul', value: 0.6, when: 'night' }, { stat: 'waterDrain', op: 'mul', value: 1.4, when: 'day' }] }
+  ],
+  bases: [
+    { id: 'waterskin', name: 'Waterskin', wt: 0.5, w: 3, mods: [{ stat: 'waterCap', op: 'add', value: 3 }] },
+    { id: 'cloak', name: 'Cloak', wt: 2, w: 3, mods: [{ stat: 'cold', op: 'mul', value: 0.7 }] },
+    { id: 'boots', name: 'Boots', wt: 1, w: 2, mods: [{ stat: 'staminaCost', op: 'mul', value: 0.9 }] },
+    { id: 'lantern', name: 'Lantern', wt: 1, w: 2, mods: [{ stat: 'nightSight', op: 'add', value: 1, needsFuel: true }] },
+    { id: 'spyglass', name: 'Spyglass', wt: 1, w: 2, mods: [{ stat: 'surveyRadius', op: 'add', value: 2 }] },
+    { id: 'framepack', name: 'Frame Pack', wt: 1, w: 2, mods: [{ stat: 'carryCap', op: 'add', value: 8 }] },
+    { id: 'staff', name: 'Staff', wt: 1, w: 2, mods: [{ stat: 'staminaCost', op: 'mul', value: 0.85 }] },
+    { id: 'rope', name: 'Rope', wt: 2, w: 2, mods: [{ stat: 'moveTime.mountain', op: 'mul', value: 0.5 }] },
+    { id: 'compass', name: 'Compass', wt: 0.2, w: 2, mods: [{ stat: 'goalDistance', op: 'add', value: 1 }] },
+    { id: 'tonic', name: 'Tonic', wt: 0.3, w: 3, consumable: true, plain: true, use: { stamina: 40 } },
+    { id: 'draught', name: 'Warming Draught', wt: 0.3, w: 3, consumable: true, plain: true, use: { warmth: 40 } },
+    { id: 'flask', name: 'Flask', wt: 0.3, w: 4, consumable: true, mystery: true },
+    { id: 'campkit', name: 'Camp Kit', wt: 5, w: 0, plain: true, mods: [] }
+  ],
+  flasks: [
+    { name: 'Flask of Springwater', use: { water: 2 } },
+    { name: 'Flask of Brine', use: { stamina: -20 } },
+    { name: 'Flask of Firewine', use: { warmth: 35, stamina: -5 } },
+    { name: 'Flask of Vigor', use: { stamina: 50 } }
+  ],
+  affixes: [
+    { id: 'leaky', pos: 'pre', name: 'Leaky', for: ['waterskin'], cursed: true, mods: [{ stat: 'leak', op: 'add', value: 0.4 }] },
+    { id: 'deep', pos: 'pre', name: 'Deep', for: ['waterskin'], mods: [{ stat: 'waterCap', op: 'add', value: 2 }] },
+    { id: 'oilskin', pos: 'pre', name: 'Oilskin', for: ['cloak'], mods: [{ stat: 'stormCold', op: 'mul', value: 0 }] },
+    { id: 'threadbare', pos: 'pre', name: 'Threadbare', for: ['cloak'], cursed: true, mods: [{ stat: 'cold', op: 'mul', value: 1.3 }] },
+    { id: 'feather', pos: 'pre', name: 'Featherweight', for: 'gear', wtMul: 0, mods: [] },
+    { id: 'leaden', pos: 'pre', name: 'Leaden', for: 'gear', cursed: true, wtMul: 3, mods: [] },
+    { id: 'miser', pos: 'pre', name: "Miser's", for: ['lantern'], mods: [{ stat: 'fuelUse', op: 'mul', value: 0.5 }] },
+    { id: 'sturdy', pos: 'pre', name: 'Sturdy', for: ['boots', 'staff'], mods: [{ stat: 'staminaCost', op: 'mul', value: 0.9 }] },
+    { id: 'blister', pos: 'pre', name: 'Blistering', for: ['boots'], cursed: true, mods: [{ stat: 'staminaCost', op: 'mul', value: 1.25 }] },
+    { id: 'broad', pos: 'pre', name: 'Broad', for: ['framepack'], mods: [{ stat: 'carryCap', op: 'add', value: 4 }] },
+    { id: 'fogged', pos: 'pre', name: 'Fogged', for: ['spyglass'], cursed: true, mods: [{ stat: 'surveyRadius', op: 'add', value: -3 }] },
+    { id: 'camel', pos: 'suf', name: 'of the Camel', for: 'gear', mods: [{ stat: 'waterDrain', op: 'mul', value: 0.75 }] },
+    { id: 'goat', pos: 'suf', name: 'of the Goat', for: ['boots', 'staff', 'rope'], mods: [{ stat: 'moveTime.hill', op: 'mul', value: 0.7 }] },
+    { id: 'surveyor', pos: 'suf', name: 'of the Surveyor', for: ['spyglass', 'compass'], mods: [{ stat: 'surveyRadius', op: 'add', value: 2 }] },
+    { id: 'hearth', pos: 'suf', name: 'of the Hearth', for: ['cloak', 'lantern'], mods: [{ stat: 'cold', op: 'mul', value: 0.8 }] },
+    { id: 'vigor', pos: 'suf', name: 'of Vigor', for: 'gear', mods: [{ stat: 'restGain', op: 'mul', value: 1.3 }] },
+    { id: 'well', pos: 'suf', name: 'of the Wellfinder', for: ['compass', 'spyglass', 'staff'], mods: [{ stat: 'wellfinder', op: 'add', value: 1 }] },
+    { id: 'swift', pos: 'suf', name: 'of Swiftness', for: ['boots'], mods: [{ stat: 'moveTime', op: 'mul', value: 0.85 }] },
+    { id: 'owl', pos: 'suf', name: 'of the Owl', for: ['lantern', 'cloak'], mods: [{ stat: 'nightSight', op: 'add', value: 1 }] },
+    { id: 'thirsty', pos: 'suf', name: 'of Thirst', for: 'gear', cursed: true, mods: [{ stat: 'waterDrain', op: 'mul', value: 1.25 }] }
+  ]
+};
+
+/* RULES: pure game logic. No drawing, no DOM. State is plain data, so it can be saved, replayed and tested. */
+const Rules = (() => {
+  const C = CONTENT, W = 36, H = 36, VERSION = 1, START = 6 * 60;
+  const TERR = ['plain', 'hill', 'mountain'];
+  const byId = (list, id) => list.find(e => e.id === id);
+  const idx = (x, y) => y * W + x;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  function mulberry(seed) {
+    let a = seed | 0;
+    return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), a | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function srand(s) { s.rng = (s.rng + 0x6D2B79F5) | 0; let t = Math.imul(s.rng ^ (s.rng >>> 15), s.rng | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+
+  /* Rule 1: systems talk through events and shared state, never to each other. */
+  const listeners = {};
+  function on(type, fn) { (listeners[type] = listeners[type] || []).push(fn); }
+  function emit(s, type, data) { (listeners[type] || []).forEach(fn => fn(s, data)); }
+  on('log', (s, d) => { s.log.push({ t: s.time, msg: d.msg, tone: d.tone || '' }); if (s.log.length > 80) s.log.shift(); });
+  const say = (s, msg, tone) => emit(s, 'log', { msg, tone });
+
+  function clock(s) { const m = START + s.time; const mod = m % 1440; const hour = Math.floor(mod / 60); return { day: Math.floor(m / 1440) + 1, hour, min: Math.floor(mod % 60), isDay: hour >= 6 && hour < 20 }; }
+  const biomeOf = s => byId(C.biomes, s.biome), civOf = s => byId(C.civs, s.civ), godOf = s => byId(C.gods, s.god);
+  const phase = s => clock(s).isDay ? biomeOf(s).day : biomeOf(s).night;
+  const here = s => idx(s.player.x, s.player.y);
+  const siteHere = s => s.sites[here(s)] || null;
+  const isShelter = site => !!site && (site.kind === 'cave' || site.kind === 'ruin' || site.kind === 'well');
+  const inShelter = s => isShelter(siteHere(s));
+  const atCamp = s => s.camp === here(s);
+
+  /* Items */
+  function makeItem(s, baseId, pre, suf, known) {
+    const b = byId(C.bases, baseId);
+    const it = { id: s.nextId++, base: baseId, pre: pre || null, suf: suf || null, known: !!known || !!b.plain, carried: 0 };
+    if (b.mystery) it.effect = Math.floor(srand(s) * C.flasks.length);
+    return it;
+  }
+  function genItem(s) {
+    const pool = C.bases.filter(b => b.w > 0); let tot = pool.reduce((a, b) => a + b.w, 0), r = srand(s) * tot, base = pool[0];
+    for (const b of pool) { r -= b.w; if (r <= 0) { base = b; break; } }
+    let pre = null, suf = null;
+    if (!base.consumable) {
+      const fits = pos => C.affixes.filter(a => a.pos === pos && (a.for === 'gear' || a.for.includes(base.id)));
+      const pick = a => a[Math.floor(srand(s) * a.length)];
+      if (srand(s) < 0.45) pre = pick(fits('pre')).id;
+      if (srand(s) < 0.45) suf = pick(fits('suf')).id;
+    }
+    return makeItem(s, base.id, pre, suf, false);
+  }
+  function itemName(it) {
+    const b = byId(C.bases, it.base);
+    if (!it.known) return b.name + ' (unstudied)';
+    if (b.mystery) return C.flasks[it.effect].name;
+    const p = it.pre ? byId(C.affixes, it.pre).name + ' ' : '', f = it.suf ? ' ' + byId(C.affixes, it.suf).name : '';
+    return (p || f) ? p + b.name + f : (b.plain ? b.name : 'Plain ' + b.name);
+  }
+  function itemAffixes(it) { return [it.pre, it.suf].filter(Boolean).map(id => byId(C.affixes, id)); }
+  function itemWeight(s, it) { let w = byId(C.bases, it.base).wt; if (!s.off.affixes) for (const a of itemAffixes(it)) if (a.wtMul !== undefined) w *= a.wtMul; return w; }
+  function weight(s) { return s.player.water + s.player.fuel * 0.5 + s.player.items.reduce((a, it) => a + itemWeight(s, it), 0); }
+
+  /* Rule 3: every number passes through one modifier stack. A new feature is a new source. */
+  const SOURCES = [
+    { id: 'gear', fn(s, out) { for (const it of s.player.items) for (const m of (byId(C.bases, it.base).mods || [])) if (!m.needsFuel || s.player.fuel > 0) out.push(m); } },
+    { id: 'affixes', fn(s, out) { for (const it of s.player.items) for (const a of itemAffixes(it)) for (const m of a.mods) out.push(m); } },
+    { id: 'biome', fn(s, out) { for (const m of phase(s).mods) out.push(m); } },
+    { id: 'weather', fn(s, out) { if (s.weather.storm) for (const m of biomeOf(s).storm.mods) out.push(m); } },
+    { id: 'gods', fn(s, out) { if (!s.pact) return; const d = clock(s).isDay ? 'day' : 'night'; for (const m of byId(C.gods, s.pact).mods) if (!m.when || m.when === d) out.push(m); } },
+    { id: 'shelter', fn(s, out) { if (inShelter(s)) { out.push({ stat: 'cold', op: 'mul', value: 0.25 }); out.push({ stat: 'stormCold', op: 'mul', value: 0 }); } if (atCamp(s)) out.push({ stat: 'warm', op: 'add', value: 25 }); } },
+    { id: 'load', fn(s, out, ctx) { if (ctx.noLoad) return; const over = Math.max(0, weight(s) / carryCap(s) - 0.5); if (over > 0) { out.push({ stat: 'moveTime', op: 'mul', value: 1 + over }); out.push({ stat: 'staminaCost', op: 'mul', value: 1 + over }); } } }
+  ];
+  function stat(s, name, base, ctx) {
+    ctx = ctx || {}; let add = 0, mul = 1, max = Infinity;
+    for (const src of SOURCES) { if (s.off[src.id]) continue; const out = []; src.fn(s, out, ctx);
+      for (const m of out) if (m.stat === name) { if (m.op === 'add') add += m.value; else if (m.op === 'mul') mul *= m.value; else if (m.op === 'max') max = Math.min(max, m.value); } }
+    return Math.min((base + add) * mul, max);
+  }
+  const carryCap = s => Math.max(1, stat(s, 'carryCap', s.tun.carryCap, { noLoad: true }));
+  const waterCap = s => Math.max(0, stat(s, 'waterCap', 0, { noLoad: true }));
+
+  /* Systems: each reads state, changes its own part, and can be switched off (rule 4). */
+  const SYSTEMS = [
+    { id: 'weather', fn(s) {
+        if (s.off.weather) { s.weather.storm = false; return; }
+        if (s.time >= s.weather.changeAt) {
+          s.weather.storm = !s.weather.storm;
+          s.weather.changeAt = s.time + (s.weather.storm ? 180 + srand(s) * 240 : (480 + srand(s) * 720) * s.tun.stormGap);
+          say(s, s.weather.storm ? 'A ' + biomeOf(s).storm.name + ' breaks over you.' : 'The ' + biomeOf(s).storm.name + ' passes.', s.weather.storm ? 'bad' : 'good');
+        } } },
+    { id: 'thirst', fn(s, dt, ctx) {
+        let rate = stat(s, 'waterDrain', s.tun.waterPerHour); if (ctx.activity !== 'move') rate *= s.tun.restWaterFactor;
+        if (s.player.water > 0) rate += stat(s, 'leak', 0);
+        s.player.water = Math.max(0, s.player.water - rate * dt);
+        if (s.player.water <= 0) { s.player.stamina -= 15 * dt; s.cause = 'thirst'; } } },
+    { id: 'warmth', fn(s, dt) {
+        const cold = stat(s, 'cold', phase(s).cold * s.tun.coldScale) + (s.weather.storm ? stat(s, 'stormCold', biomeOf(s).storm.cold * s.tun.coldScale) : 0);
+        const warm = stat(s, 'warm', phase(s).warm);
+        s.player.warmth = clamp(s.player.warmth + (warm - cold) * dt, 0, 100);
+        if (s.player.warmth <= 0) { s.player.stamina -= 12 * dt; s.cause = 'cold'; } } },
+    { id: 'lantern', fn(s, dt, ctx) {
+        if (clock(s).isDay || ctx.activity !== 'move' || s.player.fuel <= 0) return;
+        if (!s.player.items.some(it => it.base === 'lantern')) return;
+        s.player.fuel = Math.max(0, s.player.fuel - s.tun.lanternFuelPerHour * stat(s, 'fuelUse', 1) * dt);
+        if (s.player.fuel <= 0) say(s, 'Your lantern gutters out. No fuel left.', 'bad'); } },
+    { id: 'identify', fn(s, dt) {
+        for (const it of s.player.items) if (!it.known) { it.carried += dt; if (it.carried >= s.tun.autoIdHours) { it.known = true; say(s, 'After long use you understand it: ' + itemName(it) + '.', isCursed(it) ? 'bad' : 'good'); } } } },
+    { id: 'vitals', fn(s) {
+        const p = s.player, w = s.warn;
+        if (p.water <= 1 && !w.water) { w.water = true; say(s, p.water <= 0 ? 'You are out of water.' : 'You are nearly out of water.', 'bad'); } else if (p.water > 1.5) w.water = false;
+        if (p.warmth <= 25 && !w.warmth) { w.warmth = true; say(s, 'You are shivering badly.', 'bad'); } else if (p.warmth > 35) w.warmth = false;
+        if (p.stamina <= 0) { p.stamina = 0; if ((p.water <= 0 && !s.off.thirst) || (p.warmth <= 0 && !s.off.warmth)) { s.over = { won: false, cause: p.water <= 0 ? 'thirst' : 'cold' }; say(s, p.water <= 0 ? 'You collapse, dry as the ground. The land keeps you.' : 'The cold takes you in your sleep.', 'bad'); } } } }
+  ];
+  const isCursed = it => itemAffixes(it).some(a => a.cursed);
+
+  function advance(s, minutes, activity) {
+    let left = minutes;
+    while (left > 0 && !s.over) {
+      const step = Math.min(15, left); left -= step; s.time += step;
+      for (const sys of SYSTEMS) if (!s.off[sys.id]) sys.fn(s, step / 60, { activity });
+    }
+  }
+
+  /* World generation */
+  function newGame(seed) {
+    seed = (seed >>> 0) || 1; const r = mulberry(seed), pick = a => a[Math.floor(r() * a.length)];
+    const biome = pick(C.biomes), civ = pick(C.civs), god = pick(C.gods);
+    const layer = cells => { const g = []; for (let i = 0; i < (cells + 1) * (cells + 1); i++) g.push(r());
+      return (x, y) => { const fx = x / W * cells, fy = y / H * cells, x0 = Math.floor(fx), y0 = Math.floor(fy); let tx = fx - x0, ty = fy - y0; tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+        const v = (i, j) => g[j * (cells + 1) + i]; return (v(x0, y0) * (1 - tx) + v(x0 + 1, y0) * tx) * (1 - ty) + (v(x0, y0 + 1) * (1 - tx) + v(x0 + 1, y0 + 1) * tx) * ty; }; };
+    const n1 = layer(5), n2 = layer(11), hts = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) hts.push(n1(x, y) * 0.65 + n2(x, y) * 0.3 + r() * 0.05);
+    const sorted = hts.slice().sort((a, b) => a - b), q = f => sorted[Math.min(sorted.length - 1, Math.floor(f * sorted.length))];
+    const mT = q(1 - biome.mountains), hT = q(1 - biome.mountains - biome.hills);
+    const terrain = hts.map(h => h >= mT ? 2 : h >= hT ? 1 : 0);
+    const sx = 1, sy = 6 + Math.floor(r() * (H - 12)), gx = W - 2, gy = 6 + Math.floor(r() * (H - 12));
+    terrain[idx(sx, sy)] = 0; terrain[idx(gx, gy)] = 0;
+    const sites = {}; sites[idx(sx, sy)] = { kind: 'well', seen: true }; sites[idx(gx, gy)] = { kind: 'beacon' };
+    const free = (x, y) => { for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) { const xx = x + i, yy = y + j; if (xx >= 0 && yy >= 0 && xx < W && yy < H && sites[idx(xx, yy)]) return false; } return true; };
+    function place(n, mk, want, spread) { spread = spread || H; // stratified across west-to-east bands so no stretch of the map is empty
+      for (let k = 0; k < n; k++) { const x0 = 3 + Math.floor(k * (W - 6) / n), x1 = 3 + Math.floor((k + 1) * (W - 6) / n);
+        for (let tries = 0; tries < 300; tries++) { const x = x0 + Math.floor(r() * Math.max(1, x1 - x0)), ly = sy + (gy - sy) * (x - sx) / (gx - sx), y = clamp(Math.round(ly + (r() * 2 - 1) * spread), 1, H - 2), t = terrain[idx(x, y)];
+          if (t === 2 || !free(x, y)) continue; if (want !== undefined && t !== want && tries < 150) continue; sites[idx(x, y)] = mk(); break; } } }
+    place(biome.springs, () => ({ kind: 'spring', foul: r() < biome.foul, known: false }), 0, 6);
+    place(5, () => ({ kind: 'ruin', searched: false }), civ.onHills ? 1 : 0);
+    place(4, () => ({ kind: 'cave', searched: false, loot: r() < 0.4 }), 1);
+    place(3, () => ({ kind: 'cache', searched: false, loot: r() < 0.5, fuel: 1 + Math.floor(r() * 3), water: 1 + Math.floor(r() * 3) }));
+    place(1, () => ({ kind: 'shrine' }));
+    const s = { v: VERSION, seed, rng: Math.floor(r() * 4294967296) | 0, w: W, h: H, terrain, seen: new Array(W * H).fill(0), sites, depots: {},
+      biome: biome.id, civ: civ.id, god: god.id, known: { civ: false, god: false }, pact: null, camp: idx(sx, sy), goal: { x: gx, y: gy },
+      player: { x: sx, y: sy, water: 6, warmth: 100, stamina: 100, fuel: 2, items: [] },
+      time: 0, weather: { storm: false, changeAt: 0 }, log: [], warn: {}, over: null, cause: null, nextId: 1,
+      tun: JSON.parse(JSON.stringify(C.tun)), off: {}, stats: { moves: 0, trips: 0 } };
+    s.weather.changeAt = (360 + r() * 600) * s.tun.stormGap;
+    s.player.items.push(makeItem(s, 'waterskin', null, null, true), makeItem(s, 'waterskin', null, null, true));
+    s.depots[s.camp] = { water: 0, fuel: 3, items: [makeItem(s, 'cloak', null, null, true), makeItem(s, 'lantern', null, null, true)] };
+    reveal(s, sx, sy, 2, true);
+    say(s, 'Dawn, day 1. ' + biome.name + '. ' + biome.blurb);
+    say(s, 'A beacon burns far to the ' + bearing(s) + '. Reach it. No single load of water will get you there.');
+    say(s, 'Your camp has a well. A cloak, a lantern and fuel are stored here: open Pack to take them.');
+    return s;
+  }
+
+  const DIRS = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east'];
+  function dirTo(s, x, y) { const dx = x - s.player.x, dy = y - s.player.y; if (!dx && !dy) return 'here'; return DIRS[((Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8) + 8) % 8]; }
+  const bearing = s => dirTo(s, s.goal.x, s.goal.y);
+  const SITE_NAME = { spring: 'spring', cave: 'cave', cache: 'old cache', shrine: 'shrine', well: 'well', beacon: 'beacon' };
+  const siteName = (s, site) => site.kind === 'ruin' ? (s.known.civ ? civOf(s).ruin : 'ruin') : SITE_NAME[site.kind];
+
+  function reveal(s, cx, cy, rad, quiet) {
+    const found = [];
+    for (let y = Math.max(0, Math.floor(cy - rad)); y <= Math.min(H - 1, Math.ceil(cy + rad)); y++) for (let x = Math.max(0, Math.floor(cx - rad)); x <= Math.min(W - 1, Math.ceil(cx + rad)); x++) {
+      if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > rad * rad + 0.5) continue; const i = idx(x, y);
+      if (!s.seen[i]) { s.seen[i] = 1; const st = s.sites[i]; if (st && !st.seen) { st.seen = true; found.push(siteName(s, st) + ' to the ' + dirTo(s, x, y)); } } }
+    if (found.length && !quiet) say(s, 'You sight: ' + found.slice(0, 4).join('; ') + (found.length > 4 ? '; and more' : '') + '.', 'good');
+    return found.length;
+  }
+  function sightRadius(s) { if (s.weather.storm) return 0.5; if (!clock(s).isDay) return stat(s, 'nightSight', 0) > 0 ? 1 : 0.5; return 2; }
+
+  /* Actions */
+  function move(s, dx, dy) {
+    if (s.over) return false; const nx = s.player.x + dx, ny = s.player.y + dy;
+    if (nx < 0 || ny < 0 || nx >= W || ny >= H) { say(s, 'The map ends here.'); return false; }
+    if (weight(s) > carryCap(s) + 1e-9) { say(s, 'You are carrying too much to move. Leave something here.', 'bad'); return false; }
+    const tn = TERR[s.terrain[idx(nx, ny)]];
+    let mins = s.tun.moveMin[tn] * stat(s, 'moveTime', 1) * stat(s, 'moveTime.' + tn, 1);
+    if (!clock(s).isDay && stat(s, 'nightSight', 0) <= 0) mins *= 2;
+    const cost = s.tun.moveSta[tn] * s.tun.staminaScale * stat(s, 'staminaCost', 1);
+    if (s.player.stamina < cost) { say(s, 'You are too exhausted to go on. Rest first.', 'bad'); return false; }
+    if (atCamp(s)) s.stats.trips++;
+    s.player.stamina -= cost; s.player.x = nx; s.player.y = ny; s.stats.moves++;
+    advance(s, mins, 'move'); if (s.over) return true;
+    reveal(s, nx, ny, sightRadius(s)); arrive(s); return true;
+  }
+  function arrive(s) {
+    const st = siteHere(s); if (!st) return; st.seen = true;
+    if (st.kind === 'beacon') { s.over = { won: true }; say(s, 'You climb to the beacon as its fire turns. You have crossed the ' + biomeOf(s).name + '.', 'good'); return; }
+    if (st.kind === 'shrine') s.known.god = true;
+    if (!st.visited) { st.visited = true;
+      const txt = { spring: 'A spring. You cannot tell if it is sweet until you taste it.', cave: 'A cave: shelter from wind and weather.', ruin: 'A ruin of ' + (s.known.civ ? civOf(s).name : 'some lost people') + '. Shelter, and perhaps more inside.', cache: 'Someone left a cache here under stones.', shrine: 'A shrine to ' + godOf(s).name + '.', well: 'The well at your first camp.' }[st.kind];
+      say(s, txt); }
+  }
+  function survey(s) {
+    if (s.over) return false; if (s.weather.storm) { say(s, 'You can see nothing through the ' + biomeOf(s).storm.name + '.'); return false; }
+    const t = s.terrain[here(s)]; let rad = [3, 5, 7][t] + stat(s, 'surveyRadius', 0);
+    if (!clock(s).isDay && stat(s, 'nightSight', 0) <= 0) rad = Math.min(rad, 1.5);
+    rad = Math.max(1.5, rad); advance(s, 30, 'rest'); if (s.over) return true;
+    const n = reveal(s, s.player.x, s.player.y, rad); if (!n) say(s, 'You study the land' + (t === 0 ? '. Higher ground would show more.' : ' and add it to your map.'));
+    return true;
+  }
+  function restHour(s) {
+    const gain = (atCamp(s) ? 22 : inShelter(s) ? 14 : 8) * stat(s, 'restGain', 1);
+    advance(s, 60, 'rest'); if (!s.over && s.player.water > 0) s.player.stamina = Math.min(100, s.player.stamina + gain);
+  }
+  function rest(s) { if (s.over) return false; restHour(s); if (!s.over) say(s, 'You rest for an hour.'); return true; }
+  function sleep(s) {
+    if (s.over) return false; let h = 0;
+    while (h < 16 && !s.over) { restHour(s); h++; if (s.player.water <= 0.5 || s.player.warmth <= 10) break; if (clock(s).isDay && s.player.stamina >= 90) break; }
+    if (!s.over) say(s, s.player.water <= 0.5 ? 'Thirst wakes you after ' + h + ' hours.' : s.player.warmth <= 10 ? 'Cold wakes you after ' + h + ' hours.' : 'You sleep ' + h + ' hours and wake rested.');
+    return true;
+  }
+  function fire(s) {
+    if (s.over) return false; if (s.player.fuel < 1) { say(s, 'You need 1 fuel to light a fire.'); return false; }
+    if (s.weather.storm && !inShelter(s)) { say(s, 'No fire will hold in this ' + biomeOf(s).storm.name + ' without shelter.'); return false; }
+    s.player.fuel -= 1; advance(s, 30, 'rest'); if (!s.over) { s.player.warmth = Math.min(100, s.player.warmth + 35); say(s, 'You warm yourself at a small fire.'); } return true;
+  }
+  function topUp(s, limit) { const room = Math.max(0, waterCap(s) - s.player.water), got = Math.min(room, limit === undefined ? room : limit); s.player.water += got; return got; }
+  function fill(s) {
+    if (s.over) return false; const st = siteHere(s); if (!st) return false;
+    if (st.kind === 'well') { advance(s, 15, 'rest'); topUp(s); say(s, 'You fill up at the well.'); return true; }
+    if (st.kind === 'ruin' && st.water > 0) { advance(s, 15, 'rest'); const g = topUp(s, st.water); st.water -= g; say(s, 'You draw ' + g.toFixed(1) + ' from the cistern. ' + (st.water > 0.05 ? st.water.toFixed(1) + ' remains.' : 'It is dry now.')); return true; }
+    if (st.kind !== 'spring') return false;
+    if (!st.known) { st.known = true; advance(s, 15, 'rest');
+      if (st.foul) { s.player.stamina = Math.max(0, s.player.stamina - 5); say(s, 'You taste it and gag. This spring is foul. Boil it, or drink and pay for it.', 'bad'); return true; }
+      topUp(s); say(s, 'Sweet water. You fill up.', 'good'); return true; }
+    advance(s, 15, 'rest'); if (st.foul) { s.player.stamina = Math.max(0, s.player.stamina - 15); say(s, 'You fill up with foul water and feel it at once.', 'bad'); } else say(s, 'You fill up at the spring.');
+    topUp(s); return true;
+  }
+  function boil(s) { const st = siteHere(s); if (s.over || !st || st.kind !== 'spring' || !st.foul || !st.known) return false; if (s.player.fuel < 1) { say(s, 'You need 1 fuel to boil water.'); return false; }
+    s.player.fuel -= 1; advance(s, 30, 'rest'); topUp(s); say(s, 'You boil the foul water clean and fill up.'); return true; }
+  function melt(s) { const b = biomeOf(s); if (s.over || !b.melt) return false; if (s.player.fuel < 1) { say(s, 'You need 1 fuel to melt snow.'); return false; }
+    if (waterCap(s) - s.player.water < 0.05) { say(s, 'You have nothing to hold more water.'); return false; }
+    s.player.fuel -= 1; advance(s, 30, 'rest'); const g = topUp(s, b.melt); say(s, 'You melt snow for ' + g.toFixed(1) + ' water.'); return true; }
+  const depotHere = (s, make) => { const i = here(s); if (!s.depots[i] && make) s.depots[i] = { water: 0, fuel: 0, items: [] }; return s.depots[i] || null; };
+  function tidy(s) { const i = here(s), d = s.depots[i]; if (d && d.water < 0.05 && d.fuel < 0.05 && !d.items.length) delete s.depots[i]; }
+  function search(s) {
+    if (s.over) return false; const st = siteHere(s); if (!st || st.searched || !['ruin', 'cave', 'cache'].includes(st.kind)) return false;
+    const d = () => depotHere(s, true), found = [];
+    if (st.kind === 'ruin') { const sr = civOf(s).search;
+      if (sr.stamina && s.player.stamina < sr.stamina) { say(s, 'Breaking in needs ' + sr.stamina + ' stamina. Rest first.'); return false; }
+      if (sr.stamina) s.player.stamina -= sr.stamina; advance(s, sr.hours * 60, 'rest'); if (s.over) return true;
+      st.searched = true; if (!s.known.civ) { s.known.civ = true; say(s, 'These are ruins of ' + civOf(s).name + '. ' + civOf(s).lore, 'good'); }
+      for (let i = 0; i < sr.items; i++) { const it = genItem(s); d().items.push(it); found.push(itemName(it)); }
+      if (sr.water) { st.water = sr.water; found.push('a cistern holding ' + sr.water + ' water'); }
+      if (sr.reveal) reveal(s, s.player.x, s.player.y, sr.reveal);
+    } else if (st.kind === 'cave') { advance(s, 30, 'rest'); if (s.over) return true; st.searched = true; if (st.loot) { const it = genItem(s); d().items.push(it); found.push(itemName(it)); }
+    } else { advance(s, 15, 'rest'); if (s.over) return true; st.searched = true; d().fuel += st.fuel; d().water += st.water; found.push(st.fuel + ' fuel', st.water + ' water'); if (st.loot) { const it = genItem(s); d().items.push(it); found.push(itemName(it)); } }
+    say(s, found.length ? 'You find: ' + found.join(', ') + '. Open Pack to take what you want.' : 'You find nothing of use.', found.length ? 'good' : '');
+    return true;
+  }
+  function pact(s) { const st = siteHere(s); if (s.over || !st || st.kind !== 'shrine' || s.pact) return false; s.pact = s.god; say(s, 'You swear to ' + godOf(s).name + '. ' + godOf(s).terms, 'good');
+    if (s.player.water > waterCap(s)) s.player.water = waterCap(s); return true; }
+  function packCamp(s) { if (s.over || !atCamp(s)) return false; advance(s, 60, 'rest'); if (s.over) return true; s.camp = null; s.player.items.push(makeItem(s, 'campkit', null, null, true)); say(s, 'You strike camp. The kit is on your back: 5 weight until you pitch it again.'); return true; }
+  function makeCamp(s) { if (s.over || s.camp !== null) return false; const i = s.player.items.findIndex(it => it.base === 'campkit'); if (i < 0) return false;
+    if (!inShelter(s)) { say(s, 'A camp needs shelter: a cave, a ruin or the well.'); return false; }
+    advance(s, 120, 'rest'); if (s.over) return true; s.player.items.splice(i, 1); s.camp = here(s); say(s, 'You pitch camp. This is home now.', 'good'); return true; }
+  function study(s, id) { if (s.over || !atCamp(s)) return false; const it = s.player.items.find(i => i.id === id); if (!it || it.known) return false;
+    advance(s, 120, 'rest'); if (s.over) return true; it.known = true; say(s, 'You study it by the fire: ' + itemName(it) + '.', isCursed(it) ? 'bad' : 'good'); return true; }
+  function useItem(s, id) { if (s.over) return false; const i = s.player.items.findIndex(x => x.id === id); if (i < 0) return false; const it = s.player.items[i], b = byId(C.bases, it.base); if (!b.consumable) return false;
+    const use = b.mystery ? C.flasks[it.effect].use : b.use; it.known = true; const p = s.player;
+    if (use.stamina) p.stamina = clamp(p.stamina + use.stamina, 0, 100); if (use.warmth) p.warmth = clamp(p.warmth + use.warmth, 0, 100); if (use.water) p.water = Math.min(Math.max(waterCap(s), p.water), p.water + use.water);
+    say(s, 'You drink the ' + itemName(it) + '.', (use.stamina || 0) < -5 ? 'bad' : 'good'); p.items.splice(i, 1); return true; }
+  function transfer(s, kind, n) { if (s.over || (kind !== 'water' && kind !== 'fuel')) return false; const p = s.player;
+    if (n > 0) { const a = Math.min(n, p[kind]); if (a <= 0) return false; depotHere(s, true)[kind] += a; p[kind] -= a; }
+    else { const d = depotHere(s); if (!d) return false; let a = Math.min(-n, d[kind]); if (kind === 'water') a = Math.min(a, Math.max(0, waterCap(s) - p.water)); if (a <= 0) return false; d[kind] -= a; p[kind] += a; tidy(s); }
+    return true; }
+  function leaveItem(s, id) { if (s.over) return false; const i = s.player.items.findIndex(x => x.id === id); if (i < 0) return false; depotHere(s, true).items.push(s.player.items.splice(i, 1)[0]); if (s.player.water > waterCap(s)) { const spill = s.player.water - waterCap(s); s.player.water = waterCap(s); depotHere(s, true).water += spill; } return true; }
+  function takeItem(s, id) { if (s.over) return false; const d = depotHere(s); if (!d) return false; const i = d.items.findIndex(x => x.id === id); if (i < 0) return false; s.player.items.push(d.items.splice(i, 1)[0]); tidy(s); return true; }
+
+  function actions(s) {
+    if (s.over) return []; const a = [], st = siteHere(s), p = s.player, cap = waterCap(s);
+    a.push({ id: 'survey', label: 'Survey', hint: '30 min' });
+    if (st) {
+      if (st.kind === 'well' || (st.kind === 'ruin' && st.water > 0.05) || (st.kind === 'spring' && (!st.known || !st.foul))) a.push({ id: 'fill', label: st.kind === 'spring' && !st.known ? 'Taste the spring' : 'Fill water', hint: '15 min' });
+      if (st.kind === 'spring' && st.known && st.foul) { a.push({ id: 'boil', label: 'Boil and fill', hint: '1 fuel' }); a.push({ id: 'fill', label: 'Fill with foul water', hint: '-15 stamina' }); }
+      if (['ruin', 'cave', 'cache'].includes(st.kind) && !st.searched) { const sr = st.kind === 'ruin' ? civOf(s).search : null; a.push({ id: 'search', label: st.kind === 'cache' ? 'Open the cache' : 'Search the ' + siteName(s, st), hint: st.kind === 'ruin' ? (s.known.civ ? sr.hours + ' h' + (sr.stamina ? ', -' + sr.stamina + ' stamina' : '') : 'time unknown') : st.kind === 'cave' ? '30 min' : '15 min' }); }
+      if (st.kind === 'shrine' && !s.pact) a.push({ id: 'pactAsk', label: 'Approach the shrine', hint: 'hear the terms' });
+    }
+    if (biomeOf(s).melt && cap - p.water >= 0.05) a.push({ id: 'melt', label: 'Melt snow', hint: '1 fuel' });
+    a.push({ id: 'rest', label: 'Rest', hint: '1 h' });
+    if (inShelter(s)) a.push({ id: 'sleep', label: atCamp(s) ? 'Sleep at camp' : 'Sleep in shelter', hint: 'until rested' });
+    if (p.warmth < 95) a.push({ id: 'fire', label: 'Light a fire', hint: '1 fuel' });
+    if (atCamp(s)) a.push({ id: 'packCamp', label: 'Strike camp', hint: '1 h' });
+    else if (s.camp === null && inShelter(s) && p.items.some(i => i.base === 'campkit')) a.push({ id: 'makeCamp', label: 'Pitch camp here', hint: '2 h' });
+    return a;
+  }
+  function forecast(s) { const n = biomeOf(s).storm.name; if (s.off.weather) return 'Clear'; if (s.weather.storm) return n.charAt(0).toUpperCase() + n.slice(1); if (!clock(s).isDay) return 'Night sky'; const h = (s.weather.changeAt - s.time) / 60; return h > 6 ? 'Clear' : h > 2.5 ? 'Clouds building' : 'Storm close'; }
+  function wellfinder(s) { if (stat(s, 'wellfinder', 0) <= 0) return null; let best = null, bd = 1e9; for (const k in s.sites) { const st = s.sites[k]; if (st.kind !== 'spring' || (st.known && st.foul)) continue; const x = k % W, y = Math.floor(k / W), d = Math.abs(x - s.player.x) + Math.abs(y - s.player.y); if (d < bd && d > 0) { bd = d; best = dirTo(s, x, y); } } return best; }
+  function describeMods(mods) {
+    const N = { waterDrain: 'water use', cold: 'cold', stormCold: 'storm cold', staminaCost: 'effort', moveTime: 'travel time', 'moveTime.hill': 'time on hills', 'moveTime.mountain': 'time on mountains', 'moveTime.plain': 'time on flat ground', restGain: 'rest', fuelUse: 'fuel use' };
+    return mods.map(m => { if (m.op === 'mul') { if (m.value === 0) return 'no ' + (N[m.stat] || m.stat); const p = Math.round((m.value - 1) * 100); return (N[m.stat] || m.stat) + ' ' + (p > 0 ? '+' : '') + p + '%'; }
+      if (m.stat === 'waterCap') return m.op === 'max' ? 'water limit ' + m.value : 'holds ' + m.value + ' water'; if (m.stat === 'carryCap') return 'carry +' + m.value; if (m.stat === 'surveyRadius') return 'survey range ' + (m.value > 0 ? '+' : '') + m.value;
+      if (m.stat === 'nightSight') return m.needsFuel ? 'lights the night (burns fuel)' : 'see in the dark'; if (m.stat === 'leak') return 'leaks ' + m.value + ' water an hour'; if (m.stat === 'goalDistance') return 'shows distance to the beacon'; if (m.stat === 'wellfinder') return 'points to the nearest spring'; return m.stat; }).join(', ');
+  }
+  function describeItem(s, it) { const b = byId(C.bases, it.base); if (!it.known) return 'Unstudied. Whatever it does, it is already doing.'; if (b.mystery) return describeUse(C.flasks[it.effect].use); if (b.consumable) return describeUse(b.use); if (b.id === 'campkit') return 'Pitch it in any shelter to make camp.';
+    let mods = (b.mods || []).slice(); const ax = itemAffixes(it); for (const a of ax) mods = mods.concat(a.mods); let t = describeMods(mods); for (const a of ax) if (a.wtMul !== undefined) t += (t ? ', ' : '') + (a.wtMul === 0 ? 'weighs nothing' : 'weighs ' + a.wtMul + ' times normal'); return t; }
+  const describeUse = u => Object.keys(u).map(k => (u[k] > 0 ? '+' : '') + u[k] + ' ' + k).join(', ');
+
+  return { VERSION, W, H, C, newGame, move, survey, rest, sleep, fire, fill, boil, melt, search, pact, packCamp, makeCamp, study, useItem, transfer, leaveItem, takeItem,
+    actions, clock, forecast, bearing, wellfinder, stat, weight, carryCap, waterCap, itemName, itemWeight, describeItem, isCursed, siteName, siteHere, depotHere, atCamp, inShelter, biomeOf, civOf, godOf, reveal, byId,
+    SWITCHES: [['weather', 'Weather'], ['warmth', 'Cold and warmth'], ['thirst', 'Thirst'], ['affixes', 'Item affixes'], ['gods', 'God pacts']] };
+})();
+
+/* UI: draws the state and sends input to Rules. It holds no game logic. */
+(function () {
+  const R = Rules, $ = id => document.getElementById(id), KEY = 'farbeacon.run.v1';
+  let S = null, view = 'local';
+  const el = (tag, props, kids) => { const e = document.createElement(tag); if (props) for (const k in props) { if (k === 'text') e.textContent = props[k]; else if (k === 'on') e.addEventListener('click', props[k]); else if (k === 'cls') e.className = props[k]; else e.setAttribute(k, props[k]); } (kids || []).forEach(c => c && e.appendChild(c)); return e; };
+  const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
+  function save() { try { if (!S || S.over) localStorage.removeItem(KEY); else localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage is optional */ } }
+  function load() { try { const t = localStorage.getItem(KEY); if (t) { const s = JSON.parse(t); if (s && s.v === R.VERSION && !s.over) return s; } } catch (e) { } return null; }
+  function start(seed) { S = R.newGame(seed); view = 'local'; closeModal(); render(); save(); }
+  function act(fn) { if (!S || S.over) return; fn(); render(); save(); if (S.over) showEnd(); }
+  const randomSeed = () => 10000 + Math.floor(Math.random() * 90000);
+
+  /* ---------- drawing ---------- */
+  const SITE_GLYPH = { spring: 'S', cave: 'C', ruin: 'R', cache: 'X', shrine: 'G', well: 'W', beacon: 'B' };
+  const SITE_COLOR = { spring: '#2f7fb5', cave: '#4a3f36', ruin: '#7b4a8c', cache: '#8a6a1f', shrine: '#b8443c', well: '#2f7fb5', beacon: '#d98a1c' };
+  function draw() {
+    const cv = $('map'), css = cv.clientWidth, dpr = window.devicePixelRatio || 1; if (cv.width !== Math.round(css * dpr)) { cv.width = cv.height = Math.round(css * dpr); }
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = view === 'local' ? 13 : R.W, ts = css / n, half = Math.floor(n / 2);
+    const ox = view === 'local' ? Math.max(0, Math.min(R.W - n, S.player.x - half)) : 0, oy = view === 'local' ? Math.max(0, Math.min(R.H - n, S.player.y - half)) : 0;
+    draw.geom = { n, ts, ox, oy };
+    const cols = R.biomeOf(S).colors; g.fillStyle = '#10151d'; g.fillRect(0, 0, css, css);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const wx = ox + x, wy = oy + y, i = wy * R.W + wx, px = x * ts, py = y * ts;
+      if (!S.seen[i]) { if (view === 'local') { g.fillStyle = '#161d28'; g.fillRect(px + 0.5, py + 0.5, ts - 1, ts - 1); } continue; }
+      const t = S.terrain[i]; g.fillStyle = cols[t]; g.fillRect(px, py, ts + 0.5, ts + 0.5);
+      if (view === 'local') { g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 1.5; g.lineCap = 'round';
+        if (t === 1) { g.beginPath(); g.arc(px + ts * 0.5, py + ts * 0.7, ts * 0.28, Math.PI, 0); g.stroke(); }
+        if (t === 2) { g.beginPath(); g.moveTo(px + ts * 0.18, py + ts * 0.78); g.lineTo(px + ts * 0.5, py + ts * 0.22); g.lineTo(px + ts * 0.82, py + ts * 0.78); g.stroke(); } }
+      const st = S.sites[i], dp = S.depots[i];
+      if (st) { g.fillStyle = SITE_COLOR[st.kind]; const m = view === 'local' ? ts * 0.16 : 0; g.beginPath(); if (g.roundRect) g.roundRect(px + m, py + m, ts - 2 * m, ts - 2 * m, ts * 0.18); else g.rect(px + m, py + m, ts - 2 * m, ts - 2 * m); g.fill();
+        if (view === 'local') { g.fillStyle = '#fff'; g.font = '600 ' + Math.round(ts * 0.42) + 'px "IBM Plex Mono", monospace'; g.fillText(st.kind === 'spring' && st.known && st.foul ? 'F' : SITE_GLYPH[st.kind], px + ts / 2, py + ts / 2 + 1); } }
+      if (dp && !(st && view !== 'local')) { g.fillStyle = '#1a1a1a'; g.strokeStyle = '#fff'; g.lineWidth = 1; const d = Math.max(3, ts * 0.2); g.fillRect(px + ts - d - 2, py + 2, d, d); g.strokeRect(px + ts - d - 2, py + 2, d, d); }
+      if (S.camp === i) { g.fillStyle = '#e0a84a'; g.strokeStyle = '#1a1205'; g.lineWidth = 1.5; const c = px + ts / 2, b = py + ts * (view === 'local' ? 0.98 : 0.95), hgt = view === 'local' ? ts * 0.3 : ts * 0.9, wd = view === 'local' ? ts * 0.22 : ts * 0.5; g.beginPath(); g.moveTo(c - wd, b); g.lineTo(c, b - hgt); g.lineTo(c + wd, b); g.closePath(); g.fill(); g.stroke(); }
+    }
+    const c = R.clock(S); if (!c.isDay) { g.fillStyle = 'rgba(8,12,34,.42)'; g.fillRect(0, 0, css, css); }
+    if (S.weather.storm) { g.fillStyle = 'rgba(200,205,215,.22)'; g.fillRect(0, 0, css, css); }
+    const ppx = (S.player.x - ox + 0.5) * ts, ppy = (S.player.y - oy + 0.5) * ts, pr = Math.max(4, ts * 0.26);
+    g.beginPath(); g.arc(ppx, ppy, pr, 0, 7); g.fillStyle = '#fff'; g.fill(); g.lineWidth = Math.max(2, ts * 0.08); g.strokeStyle = '#141a22'; g.stroke();
+    if (view !== 'local') { g.beginPath(); g.arc(ppx, ppy, pr + 4, 0, 7); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke(); }
+  }
+
+  /* ---------- panels ---------- */
+  function meter(id, v, max, txt) { $(id + '-bar').style.width = Math.max(0, Math.min(100, v / max * 100)) + '%'; $(id + '-val').textContent = txt; $(id).classList.toggle('low', v / max <= 0.25); }
+  function render() {
+    if (!S) return; const c = R.clock(S), p = S.player, cap = R.waterCap(S), wt = R.weight(S), cc = R.carryCap(S);
+    $('when').textContent = 'Day ' + c.day + ', ' + String(c.hour).padStart(2, '0') + ':' + String(c.min).padStart(2, '0');
+    $('sky').textContent = R.forecast(S); $('sky').className = 'chip' + (S.weather.storm ? ' bad' : R.forecast(S) === 'Storm close' ? ' warn' : '');
+    let b = 'Beacon: ' + R.bearing(S); if (R.stat(S, 'goalDistance', 0) > 0) b += ', ' + (Math.abs(S.goal.x - p.x) + Math.abs(S.goal.y - p.y)) + ' tiles'; const wf = R.wellfinder(S); if (wf) b += ' · Spring: ' + wf; $('bearing').textContent = b;
+    meter('m-water', p.water, Math.max(cap, 1), f1(p.water) + ' / ' + f1(cap)); meter('m-warm', p.warmth, 100, Math.round(p.warmth)); meter('m-stam', p.stamina, 100, Math.round(p.stamina));
+    $('load').textContent = 'Load ' + f1(wt) + ' / ' + f1(cc) + (wt > cc ? ' (too heavy to move)' : wt / cc > 0.5 ? ' (slowing you)' : ''); $('load').classList.toggle('bad', wt > cc);
+    $('fuel').textContent = 'Fuel ' + f1(p.fuel); $('seed').textContent = 'seed ' + S.seed;
+    const st = R.siteHere(S), tn = ['flat ground', 'hills', 'mountains'][S.terrain[p.y * R.W + p.x]];
+    $('place').textContent = (st ? 'At a ' + R.siteName(S, st) : 'On ' + tn) + (R.atCamp(S) ? ' (your camp)' : '') + (S.pact ? ' · Sworn to ' + R.godOf(S).name.split(',')[0].split(' ')[0] : '');
+    const box = $('actions'); box.textContent = '';
+    R.actions(S).forEach(a => box.appendChild(el('button', { cls: 'act', type: 'button', on: () => a.id === 'pactAsk' ? openPact() : act(() => R[a.id](S)) }, [el('span', { text: a.label }), el('small', { text: a.hint })])));
+    const here = R.depotHere(S); $('btn-pack').textContent = here ? 'Pack and stores here' : 'Pack';
+    $('btn-view').textContent = view === 'local' ? 'Whole map' : 'Close view';
+    const lg = $('log'); lg.textContent = ''; S.log.slice(-6).reverse().forEach((l, i) => lg.appendChild(el('li', { cls: (l.tone || '') + (i === 0 ? ' new' : ''), text: l.msg })));
+    draw();
+  }
+  function openModal(title, body) { $('modal-title').textContent = title; const b = $('modal-body'); b.textContent = ''; body.forEach(n => n && b.appendChild(n)); $('modal').hidden = false; }
+  function closeModal() { $('modal').hidden = true; }
+  const btn = (label, fn, cls) => el('button', { type: 'button', cls: cls || 'small', on: fn, text: label });
+  function itemRow(it, side) {
+    const b = R.byId(R.C.bases, it.base), acts = [];
+    if (side === 'me') { if (b.consumable) acts.push(btn('Drink', () => { act(() => R.useItem(S, it.id)); if (!S.over) openPack(); })); if (!it.known && R.atCamp(S)) acts.push(btn('Study 2 h', () => { act(() => R.study(S, it.id)); if (!S.over) openPack(); })); acts.push(btn('Leave', () => { act(() => R.leaveItem(S, it.id)); openPack(); })); }
+    else acts.push(btn('Take', () => { act(() => R.takeItem(S, it.id)); openPack(); }));
+    return el('li', { cls: 'item' + (it.known && R.isCursed(it) ? ' cursed' : '') }, [el('div', null, [el('strong', { text: R.itemName(it) }), el('span', { cls: 'wt', text: f1(R.itemWeight(S, it)) + ' wt' }), el('p', { text: R.describeItem(S, it) })]), el('div', { cls: 'row' }, acts)]);
+  }
+  function resRow(kind, label) { const d = R.depotHere(S); return el('li', { cls: 'item' }, [el('div', null, [el('strong', { text: label }), el('p', { text: 'Carrying ' + f1(S.player[kind]) + (kind === 'water' ? ' of ' + f1(R.waterCap(S)) : '') + ' · stored here ' + f1(d ? d[kind] : 0) })]), el('div', { cls: 'row' }, [btn('Leave 1', () => { act(() => R.transfer(S, kind, 1)); openPack(); }), btn('Take 1', () => { act(() => R.transfer(S, kind, -1)); openPack(); }), btn('Take all', () => { act(() => R.transfer(S, kind, -99)); openPack(); })])]); }
+  function openPack() {
+    const d = R.depotHere(S), mine = el('ul', { cls: 'items' }, S.player.items.map(it => itemRow(it, 'me'))), theirs = el('ul', { cls: 'items' }, (d ? d.items : []).map(it => itemRow(it, 'here')));
+    openModal('Pack', [el('p', { cls: 'note', text: 'Load ' + f1(R.weight(S)) + ' of ' + f1(R.carryCap(S)) + '. Past half, every step costs more time and effort. Anything you leave stays on this tile as a depot.' }),
+      el('ul', { cls: 'items' }, [resRow('water', 'Water (1 wt each)'), resRow('fuel', 'Fuel (0.5 wt each)')]), el('h3', { text: 'Carrying' }), S.player.items.length ? mine : el('p', { cls: 'note', text: 'Nothing.' }), el('h3', { text: 'Stored on this tile' }), d && d.items.length ? theirs : el('p', { cls: 'note', text: 'Nothing.' })]);
+  }
+  function openPact() { const g = R.godOf(S); openModal('The shrine of ' + g.name, [el('p', { text: g.terms }), el('p', { cls: 'note', text: 'A pact lasts until you die. It cannot be undone.' }), el('div', { cls: 'row' }, [btn('Swear the pact', () => { closeModal(); act(() => R.pact(S)); }, 'primary'), btn('Walk away', closeModal)])]); }
+  function showEnd() { const c = R.clock(S), won = S.over.won;
+    openModal(won ? 'You reached the beacon' : S.over.cause === 'thirst' ? 'You died of thirst' : 'You froze', [el('p', { text: (won ? 'Arrived' : 'Lost') + ' on day ' + c.day + ' after ' + S.stats.moves + ' tiles walked, ' + (Math.abs(S.goal.x - S.player.x) + Math.abs(S.goal.y - S.player.y)) + ' tiles from the beacon.' }),
+      el('p', { cls: 'note', text: 'This world: ' + R.biomeOf(S).name + ', ruins of ' + R.civOf(S).name + ', shrine of ' + R.godOf(S).name + '. Seed ' + S.seed + '.' }),
+      el('div', { cls: 'row' }, [btn('New world', () => start(randomSeed()), 'primary'), btn('Same world again', () => start(S.seed))])]); }
+  function openMenu() {
+    const sw = el('ul', { cls: 'items' }, R.SWITCHES.map(([id, label]) => { const cb = el('input', { type: 'checkbox', id: 'sw-' + id }); cb.checked = !S.off[id]; cb.addEventListener('change', () => { S.off[id] = !cb.checked; render(); save(); }); return el('li', { cls: 'item' }, [el('label', { for: 'sw-' + id, text: label }), cb]); }));
+    const tune = (key, label, min, max, step) => { const out = el('span', { cls: 'wt', text: String(S.tun[key]) }), r = el('input', { type: 'range', id: 'tn-' + key, min, max, step, value: S.tun[key] }); r.addEventListener('input', () => { S.tun[key] = parseFloat(r.value); out.textContent = r.value; render(); save(); }); return el('li', { cls: 'item tune' }, [el('label', { for: 'tn-' + key, text: label }), out, r]); };
+    const seedIn = el('input', { type: 'number', id: 'seed-in', value: S.seed, inputmode: 'numeric' });
+    openModal('Menu', [
+      el('h3', { text: 'How to play' }),
+      el('p', { text: 'Reach the beacon. Tap a tile next to you, or use the arrows, to walk. Water drains as you travel, cold drains warmth at night and in storms, and stamina is what keeps you alive when either runs out.' }),
+      el('p', { text: 'You cannot carry enough water to cross in one go. Survey from high ground to find springs, leave water and fuel on tiles as depots, and move your camp forward to a cave or ruin when you have supplied it.' }),
+      el('p', { cls: 'note', text: 'Map letters: W well, S spring, F foul spring, C cave, R ruin, X cache, G shrine, B beacon. Gold tent: your camp. Small box: a depot.' }),
+      el('h3', { text: 'This world' }),
+      el('p', { text: R.biomeOf(S).name + '. Ruins of ' + (S.known.civ ? R.civOf(S).name : 'an unknown people') + '. ' + (S.known.god ? 'Shrine of ' + R.godOf(S).name + '.' : 'A god is worshipped somewhere here.') }),
+      el('div', { cls: 'row' }, [btn('New world', () => start(randomSeed()), 'primary'), seedIn, btn('Play this seed', () => start(parseInt(seedIn.value, 10) || 1))]),
+      el('h3', { text: 'Tinker' }), el('p', { cls: 'note', text: 'Switch whole systems off, or change the numbers while you play.' }), sw,
+      el('ul', { cls: 'items' }, [tune('waterPerHour', 'Water used per hour', 0.2, 2, 0.1), tune('coldScale', 'Cold strength', 0, 2, 0.1), tune('staminaScale', 'Effort per step', 0.2, 2, 0.1), tune('stormGap', 'Time between storms', 0.2, 3, 0.1), tune('carryCap', 'Carry limit', 8, 40, 1)]),
+      el('div', { cls: 'row' }, [btn('Reveal the whole map', () => { R.reveal(S, 18, 18, 60, true); render(); save(); })])]);
+  }
+
+  /* ---------- input ---------- */
+  function step(dx, dy) { act(() => R.move(S, dx, dy)); }
+  $('map').addEventListener('click', e => { if (!S || S.over) return; const g = draw.geom, r = e.currentTarget.getBoundingClientRect(), tx = g.ox + Math.floor((e.clientX - r.left) / g.ts), ty = g.oy + Math.floor((e.clientY - r.top) / g.ts), dx = tx - S.player.x, dy = ty - S.player.y; if (!dx && !dy) return; if (Math.abs(dx) >= Math.abs(dy)) step(Math.sign(dx), 0); else step(0, Math.sign(dy)); });
+  [['up', 0, -1], ['down', 0, 1], ['left', -1, 0], ['right', 1, 0]].forEach(([id, dx, dy]) => $('d-' + id).addEventListener('click', () => step(dx, dy)));
+  document.addEventListener('keydown', e => { if (!$('modal').hidden) { if (e.key === 'Escape') closeModal(); return; } const k = { ArrowUp: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], ArrowRight: [1, 0], d: [1, 0] }[e.key]; if (k) { e.preventDefault(); step(k[0], k[1]); } });
+  $('btn-pack').addEventListener('click', () => S && !S.over && openPack());
+  $('btn-view').addEventListener('click', () => { view = view === 'local' ? 'full' : 'local'; render(); });
+  $('btn-menu').addEventListener('click', () => S && openMenu());
+  $('modal-close').addEventListener('click', () => { closeModal(); });
+  window.addEventListener('resize', () => S && draw());
+  S = load(); if (S) render(); else start(randomSeed());
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => S && draw());
+})();
+
+</script>
+</body>
+</html>

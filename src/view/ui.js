@@ -779,6 +779,7 @@ function openMenu() {
         openMap();
       }),
     ]),
+    el('p', { cls: 'note', text: 'Far Beacon ' + (typeof GAME_VERSION === 'string' ? GAME_VERSION : '') }),
   ]);
 }
 
