@@ -33,8 +33,6 @@ const dispose = (g) => {
     if (o.material) o.material.dispose();
   });
 };
-const SKY = { salt: 0xd3d2c2, moor: 0xaab7bb, taiga: 0xc6d3db },
-  GOD = { thirst: 0xd9973a, climber: 0xbfe3ff, night: 0x9a6be0 };
 const BUILD = {
   well() {
     const g = new THREE.Group(),
@@ -72,7 +70,7 @@ const BUILD = {
       const a = i * 2.094;
       g.add(box(0.7, 6, 0.7, st, Math.cos(a) * 3, 3, Math.sin(a) * 3));
     }
-    const o = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 8), glow(GOD[s.god], 1));
+    const o = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 8), glow(R.godOf(s).color, 1));
     o.position.y = 4.4;
     g.add(o);
     return g;
@@ -380,12 +378,11 @@ function buildDynamic() {
     const [x, y, z] = at(+k, 3.5, 2.5);
     dynGroup.add(box(1.2, 1, 1.2, std(0x8a5a2b), x, y + 0.5, z));
   }
-  const TINT = { salt: 0x6e4a2a, moor: 0x3a2f2a, taiga: 0x3b4a5c };
   for (const c of V.S.creatures) {
     if (c.bound && !(V.S.combat && V.S.combat.cid === c.id)) continue;
     const sp = R.spOf(V.S, c),
       g = new THREE.Group(),
-      col = sp.rare === 'gilded' ? 0xd9a520 : sp.rare === 'docile' ? 0x7fae7a : TINT[V.S.biome],
+      col = sp.rare === 'gilded' ? 0xd9a520 : sp.rare === 'docile' ? 0x7fae7a : R.biomeOf(V.S).creatureTint,
       mat = std(col),
       k = (sp.rare === 'elder' ? 1.45 : 1) * (0.9 + c.tier * 0.12),
       eye = new THREE.MeshBasicMaterial({ color: 0xff3b2f, fog: false });
@@ -469,8 +466,6 @@ export {
   glow,
   box,
   dispose,
-  SKY,
-  GOD,
   BUILD,
   buildStatic,
   buildDynamic,

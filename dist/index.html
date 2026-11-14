@@ -55,6 +55,7 @@ h2 { font: 700 18px/1.2 var(--font-display); margin: 0; text-wrap: balance; } h3
 .journal li { font-size: 12.5px; color: var(--ink-dim); padding: 2px 0; border-bottom: 1px solid var(--line); } .journal li.bad { color: #ffd0cc; }
 #mapcv { width: 100%; aspect-ratio: 1; display: block; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
 input[type=number] { font: 400 14px var(--font-num); width: 96px; min-height: 38px; background: #0f141b; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+textarea { width: 100%; margin-top: 6px; font: 400 12px var(--font-num); background: #0f141b; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
 input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); } input[type=range] { accent-color: var(--accent); }
 </style>
 </head>
@@ -297,6 +298,10 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     biomes: [
       {
         id: "salt",
+        sky: 13882050,
+        // daytime sky and fog colour
+        creatureTint: 7227946,
+        // must stand out against the ground colours
         name: "Salt Flats",
         blurb: "Hot days, thin water, dust on the wind.",
         hills: 0.18,
@@ -328,6 +333,10 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       },
       {
         id: "moor",
+        sky: 11188155,
+        // daytime sky and fog colour
+        creatureTint: 3813162,
+        // must stand out against the ground colours
         name: "High Moor",
         blurb: "Water everywhere, much of it foul. Rain and cold nights.",
         hills: 0.3,
@@ -356,6 +365,10 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       },
       {
         id: "taiga",
+        sky: 13030363,
+        // daytime sky and fog colour
+        creatureTint: 3885660,
+        // must stand out against the ground colours
         name: "Snowbound Taiga",
         blurb: "Always cold. Snow can be melted for water if you have fuel.",
         hills: 0.25,
@@ -391,6 +404,8 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     gods: [
       {
         id: "thirst",
+        color: 14260026,
+        // the glow above its shrine
         name: "Ushet, the Dry Mother",
         terms: "You need half the water. You can never carry more than 4.",
         mods: [
@@ -400,6 +415,8 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       },
       {
         id: "climber",
+        color: 12575743,
+        // the glow above its shrine
         name: "Karn of the High Places",
         terms: "Hills and mountains cost you far less time. Flat ground costs more.",
         mods: [
@@ -410,6 +427,8 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       },
       {
         id: "night",
+        color: 10120160,
+        // the glow above its shrine
         name: "Nym, the Lidless",
         terms: "You see in the dark and the night cold bites less. By day you need much more water.",
         mods: [
@@ -929,6 +948,11 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
   }
+  function stream(seed, name) {
+    let h = 2166136261 ^ seed >>> 0;
+    for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 16777619);
+    return mulberry(h >>> 0);
+  }
   function srand(s) {
     s.rng = s.rng + 1831565813 | 0;
     let t = Math.imul(s.rng ^ s.rng >>> 15, s.rng | 1);
@@ -947,6 +971,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     if (s.log.length > 80) s.log.shift();
   });
   var say = (s, msg, tone) => emit(s, "log", { msg, tone });
+  var aOrAn = (word, cap) => ((/^[aeiou]/i.test(word) ? "an " : "a ") + word).replace(/^a/, cap ? "A" : "a");
   function clock(s) {
     const m = START + s.time;
     const mod = m % 1440;
@@ -1490,7 +1515,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
           s.weather.changeAt = s.time + (s.weather.storm ? 180 + srand(s) * 240 : (480 + srand(s) * 720) * s.tun.stormGap);
           say(
             s,
-            s.weather.storm ? "A " + biomeOf(s).storm.name + " breaks over you." : "The " + biomeOf(s).storm.name + " passes.",
+            s.weather.storm ? aOrAn(biomeOf(s).storm.name, true) + " breaks over you." : "The " + biomeOf(s).storm.name + " passes.",
             s.weather.storm ? "bad" : "good"
           );
         }
@@ -1976,7 +2001,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     c.seen = true;
     clog(
       s,
-      (enemyFirst ? "A " + sp.name + " is on you! " : "A " + sp.name + " bars your way. ") + (sp.met ? "" : formOf(s, c).text),
+      (enemyFirst ? aOrAn(sp.name, true) + " is on you! " : aOrAn(sp.name, true) + " bars your way. ") + (sp.met ? "" : formOf(s, c).text),
       "bad"
     );
     sp.met = true;
@@ -2180,7 +2205,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         c.seen = true;
         say(
           s,
-          (dirTo(s, c.x, c.y) === "here" ? "Something moves right beside you" : "Something moves to the " + dirTo(s, c.x, c.y)) + ": a " + sp.name + ". " + (sp.rare === "docile" ? "It watches you without interest." : byId(C.creature.tempers, sp.temper).text),
+          (dirTo(s, c.x, c.y) === "here" ? "Something moves right beside you" : "Something moves to the " + dirTo(s, c.x, c.y)) + ": " + aOrAn(sp.name) + ". " + (sp.rare === "docile" ? "It watches you without interest." : byId(C.creature.tempers, sp.temper).text),
           sp.rare === "docile" ? "" : "bad"
         );
       }
@@ -2828,17 +2853,18 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   // src/rules/worldgen.js
   function newGame(seed) {
     seed = seed >>> 0 || 1;
-    const r = mulberry(seed), pick = (a) => a[Math.floor(r() * a.length)];
-    const biome = pick(C.biomes), god = pick(C.gods), civ = {};
-    for (const ax of AXES) civ[ax] = pick(C.civ[ax]).id;
+    const rnd = (name) => stream(seed, name), rT = rnd("terrain"), rL = rnd("layout"), rV = rnd("vault"), rS = rnd("sites"), rR = rnd("roads"), rRun = rnd("run"), rW = rnd("weather"), rO = rnd("offer"), pickWith = (rng) => (a) => a[Math.floor(rng() * a.length)];
+    const biome = pickWith(rnd("biome"))(C.biomes), god = pickWith(rnd("god"))(C.gods), civ = {};
     {
+      const pick = pickWith(rnd("people"));
+      for (const ax of AXES) civ[ax] = pick(C.civ[ax]).id;
       const st = byId(C.civ.style, civ.style);
       civ.name = pick(st.a) + pick(st.b) + pick(st.c);
     }
     const habit = byId(C.civ.habit, civ.habit), age = byId(C.civ.age, civ.age), doom = byId(C.civ.doom, civ.doom);
     const layer = (cells) => {
       const g = [];
-      for (let i = 0; i < (cells + 1) * (cells + 1); i++) g.push(r());
+      for (let i = 0; i < (cells + 1) * (cells + 1); i++) g.push(rT());
       return (x, y) => {
         const fx = x / W * cells, fy = y / H * cells, x0 = Math.floor(fx), y0 = Math.floor(fy);
         let tx = fx - x0, ty = fy - y0;
@@ -2849,7 +2875,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       };
     };
     const n1 = layer(5), n2 = layer(11), hts = [];
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) hts.push(n1(x, y) * 0.65 + n2(x, y) * 0.3 + r() * 0.05);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) hts.push(n1(x, y) * 0.65 + n2(x, y) * 0.3 + rT() * 0.05);
     const sorted = hts.slice().sort((a, b) => a - b), q = (f) => sorted[Math.min(sorted.length - 1, Math.floor(f * sorted.length))];
     const mT = q(1 - biome.mountains), hT = q(1 - biome.mountains - biome.hills);
     const terrain = hts.map((h) => h >= mT ? 2 : h >= hT ? 1 : 0), elev = terrain.slice();
@@ -2865,7 +2891,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     for (let k = 0; k < biome.river.count; k++) {
       let best = -1, bh = -1;
       for (let tries = 0; tries < 40; tries++) {
-        const x = 4 + Math.floor(r() * (W - 8)), y = 2 + Math.floor(r() * (H - 4)), i = idx(x, y);
+        const x = 4 + Math.floor(rT() * (W - 8)), y = 2 + Math.floor(rT() * (H - 4)), i = idx(x, y);
         if (hts[i] > bh && terrain[i] !== 4) {
           bh = hts[i];
           best = i;
@@ -2896,7 +2922,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
           }
           const j = idx(xx, yy);
           if (seenR[j]) continue;
-          const hh = hts[j] + r() * 0.035;
+          const hh = hts[j] + rT() * 0.035;
           if (hh < nh) {
             nh = hh;
             nb = [xx, yy];
@@ -2907,12 +2933,12 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         cy = nb[1];
       }
     }
-    const sx = 17 + Math.floor(r() * 3), sy = 17 + Math.floor(r() * 3), a0 = r() * 6.283;
+    const sx = 17 + Math.floor(rL() * 3), sy = 17 + Math.floor(rL() * 3), a0 = rL() * 6.283;
     const polar = (ang, rad) => ({
       x: clamp(Math.round(sx + Math.cos(ang) * rad), 2, W - 3),
       y: clamp(Math.round(sy + Math.sin(ang) * rad), 2, H - 3)
     });
-    const townP = polar(a0, 6 + r() * 2), vaultP = polar(a0 + 1.9 + (r() - 0.5) * 0.5, 10 + r() * 2), goalP = polar(a0 + 3.9 + (r() - 0.5) * 0.5, 11 + r() * 2), gx = goalP.x, gy = goalP.y;
+    const townP = polar(a0, 6 + rL() * 2), vaultP = polar(a0 + 1.9 + (rL() - 0.5) * 0.5, 10 + rL() * 2), goalP = polar(a0 + 3.9 + (rL() - 0.5) * 0.5, 11 + rL() * 2), gx = goalP.x, gy = goalP.y;
     for (const pt of [{ x: sx, y: sy }, townP, vaultP, goalP]) {
       const i = idx(pt.x, pt.y);
       terrain[i] = 0;
@@ -2929,7 +2955,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         open: false,
         depth: 0,
         guard: null,
-        floors: [F[Math.floor(r() * F.length)], F[Math.floor(r() * F.length)], "guard"]
+        floors: [F[Math.floor(rV() * F.length)], F[Math.floor(rV() * F.length)], "guard"]
       };
     }
     const free = (x, y) => {
@@ -2945,7 +2971,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       for (let k = 0; k < n; k++) {
         const x0 = 3 + Math.floor(k * (W - 6) / n), x1 = 3 + Math.floor((k + 1) * (W - 6) / n);
         for (let tries = 0; tries < 300; tries++) {
-          const x = x0 + Math.floor(r() * Math.max(1, x1 - x0)), y = clamp(1 + Math.floor((k % 2 + r()) * (H - 2) / 2), 1, H - 2), t = terrain[idx(x, y)];
+          const x = x0 + Math.floor(rS() * Math.max(1, x1 - x0)), y = clamp(1 + Math.floor((k % 2 + rS()) * (H - 2) / 2), 1, H - 2), t = terrain[idx(x, y)];
           if (t === 2 || t >= 4 || !free(x, y)) continue;
           if (want !== void 0 && t !== want && tries < 150) continue;
           sites[idx(x, y)] = mk();
@@ -2971,15 +2997,15 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         if (done) break;
       }
     }
-    place(biome.springs + 1, () => ({ kind: "spring", foul: r() < biome.foul, known: false }), 0);
+    place(biome.springs + 1, () => ({ kind: "spring", foul: rS() < biome.foul, known: false }), 0);
     place(age.ruins, () => ({ kind: "ruin", searched: false }), habit.onHills ? 1 : 0);
-    place(4, () => ({ kind: "cave", searched: false, loot: r() < 0.4 }), 1);
+    place(4, () => ({ kind: "cave", searched: false, loot: rS() < 0.4 }), 1);
     place(4, () => ({
       kind: "cache",
       searched: false,
-      loot: r() < 0.5,
-      fuel: 1 + Math.floor(r() * 3),
-      water: 1 + Math.floor(r() * 3)
+      loot: rS() < 0.5,
+      fuel: 1 + Math.floor(rS() * 3),
+      water: 1 + Math.floor(rS() * 3)
     }));
     place(1, () => ({ kind: "shrine" }));
     const ruinTiles = Object.keys(sites).filter((k) => sites[k].kind === "ruin").map(Number).sort((a, b) => a % W - b % W), road = {};
@@ -2989,7 +3015,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         const tx = ruinTiles[k + 1] % W, ty = Math.floor(ruinTiles[k + 1] / W);
         road[idx(x, y)] = 1;
         while (x !== tx || y !== ty) {
-          if (x !== tx && (y === ty || r() < Math.abs(tx - x) / (Math.abs(tx - x) + Math.abs(ty - y)))) x += Math.sign(tx - x);
+          if (x !== tx && (y === ty || rR() < Math.abs(tx - x) / (Math.abs(tx - x) + Math.abs(ty - y)))) x += Math.sign(tx - x);
           else y += Math.sign(ty - y);
           road[idx(x, y)] = 1;
         }
@@ -3010,7 +3036,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     const s = {
       v: VERSION,
       seed,
-      rng: Math.floor(r() * 4294967296) | 0,
+      rng: Math.floor(rRun() * 4294967296) | 0,
       w: W,
       h: H,
       terrain,
@@ -3045,21 +3071,21 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       off: {},
       stats: { moves: 0, trips: 0 }
     };
-    s.weather.changeAt = (360 + r() * 600) * s.tun.stormGap;
+    s.weather.changeAt = (360 + rW() * 600) * s.tun.stormGap;
     const draw = (list, n) => {
       const a = list.map((e) => e.id);
       for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(r() * (i + 1));
+        const j = Math.floor(rO() * (i + 1));
         [a[i], a[j]] = [a[j], a[i]];
       }
       return a.slice(0, n);
     };
     s.offer = { races: draw(C.races, C.offer.races), classes: draw(C.classes, C.offer.classes) };
-    s.species = makeSpecies(s, r);
+    s.species = makeSpecies(s, rnd("species"));
     s.creatures = [];
-    makeQuest(s, r, townP, vaultP, a0, goalP);
-    placeCreatures(s, r);
-    spawn(s, makeChar(r, s));
+    makeQuest(s, rnd("quest"), townP, vaultP, a0, goalP);
+    placeCreatures(s, rnd("creatures"));
+    spawn(s, makeChar(rnd("character"), s));
     s.depots[s.camp] = {
       water: 0,
       fuel: 3,
@@ -3075,8 +3101,37 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     return s;
   }
 
+  // src/rules/save.js
+  var MIGRATIONS = {
+    // Example: 6: (s) => { s.newField = defaultValue; },   // upgrades a version-6 save to version 7
+  };
+  function serialize(s) {
+    return JSON.stringify(s);
+  }
+  function deserialize(text) {
+    let s;
+    try {
+      s = JSON.parse(text);
+    } catch (e) {
+      return { error: "That text is not a saved game." };
+    }
+    if (!s || typeof s !== "object" || typeof s.v !== "number" || !s.player || !s.terrain)
+      return { error: "That text is not a saved game." };
+    if (s.v > VERSION) return { error: "That save comes from a newer version of the game." };
+    while (s.v < VERSION) {
+      const up = MIGRATIONS[s.v];
+      if (!up) return { error: "That save is from version " + s.v + ", which this version can no longer read." };
+      up(s);
+      s.v++;
+    }
+    return { state: s };
+  }
+
   // src/rules/index.js
   var api = {
+    aOrAn,
+    serialize,
+    deserialize,
     VERSION,
     W,
     H,
@@ -3227,7 +3282,8 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   var P = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, walked: 0 };
   var R = Rules;
   var $ = (id) => document.getElementById(id);
-  var KEY = "farbeacon3d.run.v6";
+  var KEY = "farbeacon.run";
+  var OLD_KEYS = ["farbeacon3d.run.v6"];
   var CODEX = "farbeacon3d.codex.v1";
   var TS = 28;
   var WORLD = R.W * TS;
@@ -3357,8 +3413,6 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       if (o.material) o.material.dispose();
     });
   };
-  var SKY = { salt: 13882050, moor: 11188155, taiga: 13030363 };
-  var GOD = { thirst: 14260026, climber: 12575743, night: 10120160 };
   var BUILD = {
     well() {
       const g = new THREE.Group(), m = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 1, 10), std(6117973));
@@ -3392,7 +3446,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         const a = i * 2.094;
         g.add(box(0.7, 6, 0.7, st, Math.cos(a) * 3, 3, Math.sin(a) * 3));
       }
-      const o = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 8), glow(GOD[s.god], 1));
+      const o = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 8), glow(R.godOf(s).color, 1));
       o.position.y = 4.4;
       g.add(o);
       return g;
@@ -3659,10 +3713,9 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       const [x, y, z] = at(+k, 3.5, 2.5);
       dynGroup.add(box(1.2, 1, 1.2, std(9067051), x, y + 0.5, z));
     }
-    const TINT = { salt: 7227946, moor: 3813162, taiga: 3885660 };
     for (const c of V.S.creatures) {
       if (c.bound && !(V.S.combat && V.S.combat.cid === c.id)) continue;
-      const sp = R.spOf(V.S, c), g = new THREE.Group(), col = sp.rare === "gilded" ? 14263584 : sp.rare === "docile" ? 8367738 : TINT[V.S.biome], mat = std(col), k = (sp.rare === "elder" ? 1.45 : 1) * (0.9 + c.tier * 0.12), eye = new THREE.MeshBasicMaterial({ color: 16726831, fog: false });
+      const sp = R.spOf(V.S, c), g = new THREE.Group(), col = sp.rare === "gilded" ? 14263584 : sp.rare === "docile" ? 8367738 : R.biomeOf(V.S).creatureTint, mat = std(col), k = (sp.rare === "elder" ? 1.45 : 1) * (0.9 + c.tier * 0.12), eye = new THREE.MeshBasicMaterial({ color: 16726831, fog: false });
       if (sp.form === "hound")
         g.add(
           box(0.6, 0.7, 1.7, mat, 0, 0.8, 0),
@@ -3747,18 +3800,20 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   function save() {
     try {
       if (!V.S || V.S.over && (V.S.over.won || R.livesLeft(V.S) <= 0)) localStorage.removeItem(KEY);
-      else localStorage.setItem(KEY, JSON.stringify(V.S));
+      else localStorage.setItem(KEY, R.serialize(V.S));
     } catch (e) {
     }
   }
   function load() {
-    try {
-      const t = localStorage.getItem(KEY);
-      if (t) {
-        const s = JSON.parse(t);
-        if (s && s.v === R.VERSION) return s;
+    for (const k of [KEY].concat(OLD_KEYS)) {
+      let t = null;
+      try {
+        t = localStorage.getItem(k);
+      } catch (e) {
       }
-    } catch (e) {
+      if (!t) continue;
+      const res = R.deserialize(t);
+      if (res.state) return res.state;
     }
     return null;
   }
@@ -3850,7 +3905,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   function frame() {
     shown.t = lerp(shown.t, V.S.time, 0.06);
     const h = (360 + shown.t) / 60 % 24, b = R.biomeOf(V.S), day = smooth(clamp2((h - 5) / 2, 0, 1)) * (1 - smooth(clamp2((h - 18.5) / 2, 0, 1))), dusk = Math.max(0, 1 - Math.abs(h - 6) / 1.3, 1 - Math.abs(h - 19.4) / 1.5);
-    dayC.setHex(SKY[b.id]);
+    dayC.setHex(b.sky);
     skyC.copy(nightC).lerp(dayC, day).lerp(duskC, dusk * 0.55);
     const storm = V.S.weather.storm;
     if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
@@ -3925,7 +3980,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     $("load").classList.toggle("bad", wt > cc);
     $("fuel").textContent = "Fuel " + f1(p.fuel) + " \xB7 Armor " + R.playerAC(V.S) + " \xB7 Coin " + p.coin;
     const st = R.siteHere(V.S);
-    $("place").textContent = (st ? "At a " + R.siteName(V.S, st) : ((n) => n.charAt(0).toUpperCase() + n.slice(1))(R.groundHere(V.S).name)) + (R.atCamp(V.S) ? " (camp)" : "");
+    $("place").textContent = (st ? "At " + R.aOrAn(R.siteName(V.S, st)) : ((n) => n.charAt(0).toUpperCase() + n.slice(1))(R.groundHere(V.S).name)) + (R.atCamp(V.S) ? " (camp)" : "");
     const box2 = $("actions");
     box2.textContent = "";
     R.actions(V.S).forEach(
@@ -4214,7 +4269,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       ])
     );
     openModal("The town of " + t.name, [
-      el("p", { cls: "note", text: "A " + race + " town with a well. You have " + p.coin + " coin." }),
+      el("p", { cls: "note", text: R.aOrAn(race, true) + " town with a well. You have " + p.coin + " coin." }),
       el("h3", { text: t.elder + ", the elder" }),
       ...t.speech.length ? t.speech.map((l) => el("p", { text: l })) : [el("p", { cls: "note", text: "An old " + race + " watches you from a bench by the well." })],
       el("div", { cls: "row" }, [
@@ -4263,7 +4318,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       ]);
     else if (left > 0)
       openModal(
-        V.S.over.cause === "slain" ? "Slain by a " + V.S.over.by : V.S.over.cause === "thirst" ? "Dead of thirst" : "Frozen",
+        V.S.over.cause === "slain" ? "Slain by " + R.aOrAn(V.S.over.by) : V.S.over.cause === "thirst" ? "Dead of thirst" : "Frozen",
         [
           el("p", { text: who + " died on day " + c.day + ", " + dist + "." }),
           el("p", {
@@ -4481,6 +4536,41 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         { cls: "items journal" },
         V.S.log.slice(-12).reverse().map((l) => el("li", { cls: l.tone || "", text: l.msg }))
       ),
+      el("h3", { text: "Saved game" }),
+      el("p", {
+        cls: "note",
+        text: "Your run saves itself in this browser. To move it to another device, copy it here and load it there."
+      }),
+      (() => {
+        const box2 = el("textarea", {
+          id: "save-text",
+          rows: "3",
+          placeholder: "Paste a saved game here",
+          "aria-label": "Saved game text"
+        }), msg = el("p", { cls: "note", id: "save-msg" });
+        const copy = btn("Copy this run", () => {
+          const txt = R.serialize(V.S);
+          box2.value = txt;
+          try {
+            navigator.clipboard.writeText(txt).then(
+              () => msg.textContent = "Copied. Paste it into Menu on the other device.",
+              () => msg.textContent = "Copy the text in the box by hand."
+            );
+          } catch (e) {
+            msg.textContent = "Copy the text in the box by hand.";
+          }
+        });
+        const loadIt = btn("Load the pasted run", () => {
+          const res = R.deserialize(box2.value.trim());
+          if (res.error) {
+            msg.textContent = res.error;
+            return;
+          }
+          enter(res.state);
+          if (V.S.over) showEnd();
+        });
+        return el("div", null, [box2, el("div", { cls: "row" }, [copy, loadIt]), msg]);
+      })(),
       el("h3", { text: "Tinker" }),
       el("p", { cls: "note", text: "Switch whole systems off, or change the numbers while you play." }),
       sw,

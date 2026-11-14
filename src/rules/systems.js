@@ -1,5 +1,6 @@
 /* Systems that run as time passes (Lego rule 4: each can be switched off). */
 import { biomeOf, clamp, clock, say, srand } from './core.js';
+import { aOrAn } from './core.js';
 import { active } from './equipment.js';
 import { isCursed, itemName } from './items.js';
 import { phase } from './map.js';
@@ -19,7 +20,7 @@ const SYSTEMS = [
         s.weather.changeAt = s.time + (s.weather.storm ? 180 + srand(s) * 240 : (480 + srand(s) * 720) * s.tun.stormGap);
         say(
           s,
-          s.weather.storm ? 'A ' + biomeOf(s).storm.name + ' breaks over you.' : 'The ' + biomeOf(s).storm.name + ' passes.',
+          s.weather.storm ? aOrAn(biomeOf(s).storm.name, true) + ' breaks over you.' : 'The ' + biomeOf(s).storm.name + ' passes.',
           s.weather.storm ? 'bad' : 'good',
         );
       }

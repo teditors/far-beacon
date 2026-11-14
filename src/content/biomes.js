@@ -3,6 +3,8 @@ export default {
   biomes: [
     {
       id: 'salt',
+      sky: 0xd3d2c2, // daytime sky and fog colour
+      creatureTint: 0x6e4a2a, // must stand out against the ground colours
       name: 'Salt Flats',
       blurb: 'Hot days, thin water, dust on the wind.',
       hills: 0.18,
@@ -34,6 +36,8 @@ export default {
     },
     {
       id: 'moor',
+      sky: 0xaab7bb, // daytime sky and fog colour
+      creatureTint: 0x3a2f2a, // must stand out against the ground colours
       name: 'High Moor',
       blurb: 'Water everywhere, much of it foul. Rain and cold nights.',
       hills: 0.3,
@@ -62,6 +66,8 @@ export default {
     },
     {
       id: 'taiga',
+      sky: 0xc6d3db, // daytime sky and fog colour
+      creatureTint: 0x3b4a5c, // must stand out against the ground colours
       name: 'Snowbound Taiga',
       blurb: 'Always cold. Snow can be melted for water if you have fuel.',
       hills: 0.25,

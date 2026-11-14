@@ -1,0 +1,42 @@
+{
+ "1": {
+  "terrain": "aa04ff0e8e85",
+  "people": "ae80191d1661",
+  "sites": "6e352aced614",
+  "quest": "659144399198",
+  "creatures": "7544b01ac35e",
+  "all": "90bb57312c15"
+ },
+ "2": {
+  "terrain": "8f61334675c0",
+  "people": "ba048a4f0dba",
+  "sites": "deced54f37ed",
+  "quest": "f37da307c129",
+  "creatures": "04a0d780ecb1",
+  "all": "16939e0e8d60"
+ },
+ "3": {
+  "terrain": "d014a79077a0",
+  "people": "be2841b1ba42",
+  "sites": "26d985d13185",
+  "quest": "fec6b398a648",
+  "creatures": "29e3681076ad",
+  "all": "c9ffc8bb27c5"
+ },
+ "42": {
+  "terrain": "ace7328d0a57",
+  "people": "f2e22787a4ba",
+  "sites": "1c67d846ab2e",
+  "quest": "82524b79136e",
+  "creatures": "0b4894898181",
+  "all": "79870deb1bbc"
+ },
+ "1000": {
+  "terrain": "fe46eea61cf9",
+  "people": "d607ae3ddf60",
+  "sites": "97a2aba9103d",
+  "quest": "f7bf8dd4afa1",
+  "creatures": "f40014c23656",
+  "all": "5fed95a8002f"
+ }
+}

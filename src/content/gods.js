@@ -3,6 +3,7 @@ export default {
   gods: [
     {
       id: 'thirst',
+      color: 0xd9973a, // the glow above its shrine
       name: 'Ushet, the Dry Mother',
       terms: 'You need half the water. You can never carry more than 4.',
       mods: [
@@ -12,6 +13,7 @@ export default {
     },
     {
       id: 'climber',
+      color: 0xbfe3ff, // the glow above its shrine
       name: 'Karn of the High Places',
       terms: 'Hills and mountains cost you far less time. Flat ground costs more.',
       mods: [
@@ -22,6 +24,7 @@ export default {
     },
     {
       id: 'night',
+      color: 0x9a6be0, // the glow above its shrine
       name: 'Nym, the Lidless',
       terms: 'You see in the dark and the night cold bites less. By day you need much more water.',
       mods: [

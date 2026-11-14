@@ -2,7 +2,7 @@
 import { makeChar, spawn } from './character.js';
 import { AXES } from './civ.js';
 import { makeSpecies, placeCreatures } from './combat.js';
-import { C, H, VERSION, W, byId, clamp, idx, mulberry, say } from './core.js';
+import { C, H, VERSION, W, byId, clamp, idx, say, stream } from './core.js';
 import { makeItem } from './items.js';
 import { dirTo } from './map.js';
 import { makeQuest } from './quest.js';
@@ -10,13 +10,24 @@ import { makeQuest } from './quest.js';
 /* World generation */
 function newGame(seed) {
   seed = seed >>> 0 || 1;
-  const r = mulberry(seed),
-    pick = (a) => a[Math.floor(r() * a.length)];
-  const biome = pick(C.biomes),
-    god = pick(C.gods),
+  // Each part of the world draws from its own named random stream, so adding a new step to one part
+  // never reshuffles the others: a seed keeps its terrain when, say, a new kind of site is added.
+  const rnd = (name) => stream(seed, name),
+    rT = rnd('terrain'),
+    rL = rnd('layout'),
+    rV = rnd('vault'),
+    rS = rnd('sites'),
+    rR = rnd('roads'),
+    rRun = rnd('run'),
+    rW = rnd('weather'),
+    rO = rnd('offer'),
+    pickWith = (rng) => (a) => a[Math.floor(rng() * a.length)];
+  const biome = pickWith(rnd('biome'))(C.biomes),
+    god = pickWith(rnd('god'))(C.gods),
     civ = {};
-  for (const ax of AXES) civ[ax] = pick(C.civ[ax]).id;
   {
+    const pick = pickWith(rnd('people'));
+    for (const ax of AXES) civ[ax] = pick(C.civ[ax]).id;
     const st = byId(C.civ.style, civ.style);
     civ.name = pick(st.a) + pick(st.b) + pick(st.c);
   }
@@ -25,7 +36,7 @@ function newGame(seed) {
     doom = byId(C.civ.doom, civ.doom);
   const layer = (cells) => {
     const g = [];
-    for (let i = 0; i < (cells + 1) * (cells + 1); i++) g.push(r());
+    for (let i = 0; i < (cells + 1) * (cells + 1); i++) g.push(rT());
     return (x, y) => {
       const fx = (x / W) * cells,
         fy = (y / H) * cells,
@@ -42,7 +53,7 @@ function newGame(seed) {
   const n1 = layer(5),
     n2 = layer(11),
     hts = [];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) hts.push(n1(x, y) * 0.65 + n2(x, y) * 0.3 + r() * 0.05);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) hts.push(n1(x, y) * 0.65 + n2(x, y) * 0.3 + rT() * 0.05);
   const sorted = hts.slice().sort((a, b) => a - b),
     q = (f) => sorted[Math.min(sorted.length - 1, Math.floor(f * sorted.length))];
   const mT = q(1 - biome.mountains),
@@ -65,8 +76,8 @@ function newGame(seed) {
     let best = -1,
       bh = -1;
     for (let tries = 0; tries < 40; tries++) {
-      const x = 4 + Math.floor(r() * (W - 8)),
-        y = 2 + Math.floor(r() * (H - 4)),
+      const x = 4 + Math.floor(rT() * (W - 8)),
+        y = 2 + Math.floor(rT() * (H - 4)),
         i = idx(x, y);
       if (hts[i] > bh && terrain[i] !== 4) {
         bh = hts[i];
@@ -101,7 +112,7 @@ function newGame(seed) {
         }
         const j = idx(xx, yy);
         if (seenR[j]) continue;
-        const hh = hts[j] + r() * 0.035;
+        const hh = hts[j] + rT() * 0.035;
         if (hh < nh) {
           nh = hh;
           nb = [xx, yy];
@@ -113,16 +124,16 @@ function newGame(seed) {
     }
   }
   // You start in the middle. The town, the locked place and the beacon lie in three different directions.
-  const sx = 17 + Math.floor(r() * 3),
-    sy = 17 + Math.floor(r() * 3),
-    a0 = r() * 6.283;
+  const sx = 17 + Math.floor(rL() * 3),
+    sy = 17 + Math.floor(rL() * 3),
+    a0 = rL() * 6.283;
   const polar = (ang, rad) => ({
     x: clamp(Math.round(sx + Math.cos(ang) * rad), 2, W - 3),
     y: clamp(Math.round(sy + Math.sin(ang) * rad), 2, H - 3),
   });
-  const townP = polar(a0, 6 + r() * 2),
-    vaultP = polar(a0 + 1.9 + (r() - 0.5) * 0.5, 10 + r() * 2),
-    goalP = polar(a0 + 3.9 + (r() - 0.5) * 0.5, 11 + r() * 2),
+  const townP = polar(a0, 6 + rL() * 2),
+    vaultP = polar(a0 + 1.9 + (rL() - 0.5) * 0.5, 10 + rL() * 2),
+    goalP = polar(a0 + 3.9 + (rL() - 0.5) * 0.5, 11 + rL() * 2),
     gx = goalP.x,
     gy = goalP.y;
   for (const pt of [{ x: sx, y: sy }, townP, vaultP, goalP]) {
@@ -141,7 +152,7 @@ function newGame(seed) {
       open: false,
       depth: 0,
       guard: null,
-      floors: [F[Math.floor(r() * F.length)], F[Math.floor(r() * F.length)], 'guard'],
+      floors: [F[Math.floor(rV() * F.length)], F[Math.floor(rV() * F.length)], 'guard'],
     };
   }
   const free = (x, y) => {
@@ -159,8 +170,8 @@ function newGame(seed) {
       const x0 = 3 + Math.floor((k * (W - 6)) / n),
         x1 = 3 + Math.floor(((k + 1) * (W - 6)) / n);
       for (let tries = 0; tries < 300; tries++) {
-        const x = x0 + Math.floor(r() * Math.max(1, x1 - x0)),
-          y = clamp(1 + Math.floor((((k % 2) + r()) * (H - 2)) / 2), 1, H - 2),
+        const x = x0 + Math.floor(rS() * Math.max(1, x1 - x0)),
+          y = clamp(1 + Math.floor((((k % 2) + rS()) * (H - 2)) / 2), 1, H - 2),
           t = terrain[idx(x, y)];
         if (t === 2 || t >= 4 || !free(x, y)) continue;
         if (want !== undefined && t !== want && tries < 150) continue;
@@ -191,15 +202,15 @@ function newGame(seed) {
       if (done) break;
     }
   }
-  place(biome.springs + 1, () => ({ kind: 'spring', foul: r() < biome.foul, known: false }), 0);
+  place(biome.springs + 1, () => ({ kind: 'spring', foul: rS() < biome.foul, known: false }), 0);
   place(age.ruins, () => ({ kind: 'ruin', searched: false }), habit.onHills ? 1 : 0);
-  place(4, () => ({ kind: 'cave', searched: false, loot: r() < 0.4 }), 1);
+  place(4, () => ({ kind: 'cave', searched: false, loot: rS() < 0.4 }), 1);
   place(4, () => ({
     kind: 'cache',
     searched: false,
-    loot: r() < 0.5,
-    fuel: 1 + Math.floor(r() * 3),
-    water: 1 + Math.floor(r() * 3),
+    loot: rS() < 0.5,
+    fuel: 1 + Math.floor(rS() * 3),
+    water: 1 + Math.floor(rS() * 3),
   }));
   place(1, () => ({ kind: 'shrine' }));
   const ruinTiles = Object.keys(sites)
@@ -215,7 +226,7 @@ function newGame(seed) {
         ty = Math.floor(ruinTiles[k + 1] / W);
       road[idx(x, y)] = 1;
       while (x !== tx || y !== ty) {
-        if (x !== tx && (y === ty || r() < Math.abs(tx - x) / (Math.abs(tx - x) + Math.abs(ty - y)))) x += Math.sign(tx - x);
+        if (x !== tx && (y === ty || rR() < Math.abs(tx - x) / (Math.abs(tx - x) + Math.abs(ty - y)))) x += Math.sign(tx - x);
         else y += Math.sign(ty - y);
         road[idx(x, y)] = 1;
       }
@@ -235,7 +246,7 @@ function newGame(seed) {
   const s = {
     v: VERSION,
     seed,
-    rng: Math.floor(r() * 4294967296) | 0,
+    rng: Math.floor(rRun() * 4294967296) | 0,
     w: W,
     h: H,
     terrain,
@@ -270,21 +281,21 @@ function newGame(seed) {
     off: {},
     stats: { moves: 0, trips: 0 },
   };
-  s.weather.changeAt = (360 + r() * 600) * s.tun.stormGap;
+  s.weather.changeAt = (360 + rW() * 600) * s.tun.stormGap;
   const draw = (list, n) => {
     const a = list.map((e) => e.id);
     for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(r() * (i + 1));
+      const j = Math.floor(rO() * (i + 1));
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a.slice(0, n);
   };
   s.offer = { races: draw(C.races, C.offer.races), classes: draw(C.classes, C.offer.classes) };
-  s.species = makeSpecies(s, r);
+  s.species = makeSpecies(s, rnd('species'));
   s.creatures = [];
-  makeQuest(s, r, townP, vaultP, a0, goalP);
-  placeCreatures(s, r);
-  spawn(s, makeChar(r, s));
+  makeQuest(s, rnd('quest'), townP, vaultP, a0, goalP);
+  placeCreatures(s, rnd('creatures'));
+  spawn(s, makeChar(rnd('character'), s));
   s.depots[s.camp] = {
     water: 0,
     fuel: 3,

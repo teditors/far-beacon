@@ -2,6 +2,7 @@
 import { depotHere } from './actions.js';
 import { scores } from './character.js';
 import { C, H, byId, clamp, idx, say, srand } from './core.js';
+import { aOrAn } from './core.js';
 import { genItem, isCursed, itemName, makeItem } from './items.js';
 import { dirTo } from './map.js';
 import { amod, gainXp, playerAC, prof, roll, weaponOf } from './progress.js';
@@ -87,7 +88,7 @@ function startCombat(s, c, enemyFirst) {
   c.seen = true;
   clog(
     s,
-    (enemyFirst ? 'A ' + sp.name + ' is on you! ' : 'A ' + sp.name + ' bars your way. ') + (sp.met ? '' : formOf(s, c).text),
+    (enemyFirst ? aOrAn(sp.name, true) + ' is on you! ' : aOrAn(sp.name, true) + ' bars your way. ') + (sp.met ? '' : formOf(s, c).text),
     'bad',
   );
   sp.met = true;
@@ -319,8 +320,8 @@ function stepCreatures(s) {
       say(
         s,
         (dirTo(s, c.x, c.y) === 'here' ? 'Something moves right beside you' : 'Something moves to the ' + dirTo(s, c.x, c.y)) +
-          ': a ' +
-          sp.name +
+          ': ' +
+          aOrAn(sp.name) +
           '. ' +
           (sp.rare === 'docile' ? 'It watches you without interest.' : byId(C.creature.tempers, sp.temper).text),
         sp.rare === 'docile' ? '' : 'bad',

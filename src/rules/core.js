@@ -19,6 +19,12 @@ function mulberry(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+// A named stream: the same seed and name always give the same sequence, independent of every other name.
+function stream(seed, name) {
+  let h = 2166136261 ^ (seed >>> 0);
+  for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 16777619);
+  return mulberry(h >>> 0);
+}
 function srand(s) {
   s.rng = (s.rng + 0x6d2b79f5) | 0;
   let t = Math.imul(s.rng ^ (s.rng >>> 15), s.rng | 1);
@@ -40,6 +46,8 @@ on('log', (s, d) => {
 });
 const say = (s, msg, tone) => emit(s, 'log', { msg, tone });
 
+// 'a' or 'an' before a word, for generated names: aOrAn('Elder Brute') gives 'an Elder Brute'.
+const aOrAn = (word, cap) => ((/^[aeiou]/i.test(word) ? 'an ' : 'a ') + word).replace(/^a/, cap ? 'A' : 'a');
 function clock(s) {
   const m = START + s.time;
   const mod = m % 1440;
@@ -49,4 +57,25 @@ function clock(s) {
 const biomeOf = (s) => byId(C.biomes, s.biome),
   godOf = (s) => byId(C.gods, s.god);
 
-export { C, W, H, VERSION, START, TERR, byId, idx, clamp, mulberry, srand, listeners, on, emit, say, clock, biomeOf, godOf };
+export {
+  stream,
+  C,
+  W,
+  H,
+  VERSION,
+  START,
+  TERR,
+  byId,
+  idx,
+  clamp,
+  mulberry,
+  srand,
+  listeners,
+  on,
+  emit,
+  say,
+  clock,
+  biomeOf,
+  godOf,
+};
+export { aOrAn };

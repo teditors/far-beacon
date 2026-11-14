@@ -5,7 +5,8 @@ const V = { S: null, terrain: null, blockedUntil: 0, locked: false };
 const P = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, walked: 0 };
 const R = Rules,
   $ = (id) => document.getElementById(id),
-  KEY = 'farbeacon3d.run.v6',
+  KEY = 'farbeacon.run',
+  OLD_KEYS = ['farbeacon3d.run.v6'],
   CODEX = 'farbeacon3d.codex.v1';
 const TS = 28,
   WORLD = R.W * TS,
@@ -41,4 +42,27 @@ function mulberry(a) {
 const tileX = (tx) => (tx + 0.5) * TS - HALF,
   toTile = (x) => clamp(Math.floor((x + HALF) / TS), 0, R.W - 1);
 
-export { V, P, R, $, KEY, CODEX, TS, WORLD, HALF, N, CELL, EYE, VIEW, clamp, lerp, smooth, f1, el, mulberry, tileX, toTile };
+export {
+  OLD_KEYS,
+  V,
+  P,
+  R,
+  $,
+  KEY,
+  CODEX,
+  TS,
+  WORLD,
+  HALF,
+  N,
+  CELL,
+  EYE,
+  VIEW,
+  clamp,
+  lerp,
+  smooth,
+  f1,
+  el,
+  mulberry,
+  tileX,
+  toTile,
+};

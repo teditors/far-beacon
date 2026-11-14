@@ -50,7 +50,7 @@ function render() {
   $('fuel').textContent = 'Fuel ' + f1(p.fuel) + ' · Armor ' + R.playerAC(V.S) + ' · Coin ' + p.coin;
   const st = R.siteHere(V.S);
   $('place').textContent =
-    (st ? 'At a ' + R.siteName(V.S, st) : ((n) => n.charAt(0).toUpperCase() + n.slice(1))(R.groundHere(V.S).name)) +
+    (st ? 'At ' + R.aOrAn(R.siteName(V.S, st)) : ((n) => n.charAt(0).toUpperCase() + n.slice(1))(R.groundHere(V.S).name)) +
     (R.atCamp(V.S) ? ' (camp)' : '');
   const box = $('actions');
   box.textContent = '';
@@ -378,7 +378,7 @@ function openTown() {
       ]),
     );
   openModal('The town of ' + t.name, [
-    el('p', { cls: 'note', text: 'A ' + race + ' town with a well. You have ' + p.coin + ' coin.' }),
+    el('p', { cls: 'note', text: R.aOrAn(race, true) + ' town with a well. You have ' + p.coin + ' coin.' }),
     el('h3', { text: t.elder + ', the elder' }),
     ...(t.speech.length
       ? t.speech.map((l) => el('p', { text: l }))
@@ -443,7 +443,7 @@ function showEnd() {
     ]);
   else if (left > 0)
     openModal(
-      V.S.over.cause === 'slain' ? 'Slain by a ' + V.S.over.by : V.S.over.cause === 'thirst' ? 'Dead of thirst' : 'Frozen',
+      V.S.over.cause === 'slain' ? 'Slain by ' + R.aOrAn(V.S.over.by) : V.S.over.cause === 'thirst' ? 'Dead of thirst' : 'Frozen',
       [
         el('p', { text: who + ' died on day ' + c.day + ', ' + dist + '.' }),
         el('p', {
@@ -724,6 +724,42 @@ function openMenu() {
         .reverse()
         .map((l) => el('li', { cls: l.tone || '', text: l.msg })),
     ),
+    el('h3', { text: 'Saved game' }),
+    el('p', {
+      cls: 'note',
+      text: 'Your run saves itself in this browser. To move it to another device, copy it here and load it there.',
+    }),
+    (() => {
+      const box = el('textarea', {
+          id: 'save-text',
+          rows: '3',
+          placeholder: 'Paste a saved game here',
+          'aria-label': 'Saved game text',
+        }),
+        msg = el('p', { cls: 'note', id: 'save-msg' });
+      const copy = btn('Copy this run', () => {
+        const txt = R.serialize(V.S);
+        box.value = txt;
+        try {
+          navigator.clipboard.writeText(txt).then(
+            () => (msg.textContent = 'Copied. Paste it into Menu on the other device.'),
+            () => (msg.textContent = 'Copy the text in the box by hand.'),
+          );
+        } catch (e) {
+          msg.textContent = 'Copy the text in the box by hand.';
+        }
+      });
+      const loadIt = btn('Load the pasted run', () => {
+        const res = R.deserialize(box.value.trim());
+        if (res.error) {
+          msg.textContent = res.error;
+          return;
+        }
+        enter(res.state);
+        if (V.S.over) showEnd();
+      });
+      return el('div', null, [box, el('div', { cls: 'row' }, [copy, loadIt]), msg]);
+    })(),
     el('h3', { text: 'Tinker' }),
     el('p', { cls: 'note', text: 'Switch whole systems off, or change the numbers while you play.' }),
     sw,

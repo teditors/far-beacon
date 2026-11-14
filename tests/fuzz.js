@@ -12,4 +12,5 @@ for(let seed=1;seed<=150;seed++){ let s=R.newGame(seed); const r=()=>Math.random
     if(i%50===0){ s=JSON.parse(JSON.stringify(s)); }
     const p=s.player; if([p.water,p.warmth,p.stamina,p.fuel,s.time].some(v=>!isFinite(v)||v<-1e-6)){crashes++;console.log('bad value',seed,p);break;}
   } }
-console.log('fuzz ok, bad:',crashes);
+if (crashes) { console.log('fuzz found bad values in', crashes, 'worlds'); process.exit(1); }
+console.log('fuzz ok: 150 worlds of random actions, saving and reloading every 50 steps');

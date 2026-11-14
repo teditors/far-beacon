@@ -1,6 +1,6 @@
 /* Run control: saving, starting, acting, and the per-frame loop. */
-import { $, CODEX, EYE, HALF, KEY, P, R, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
-import { SKY, buildDynamic, buildStatic, camera, hemi, lamp, renderer, scene, sun } from './scene.js';
+import { $, CODEX, EYE, HALF, KEY, OLD_KEYS, P, R, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
+import { buildDynamic, buildStatic, camera, hemi, lamp, renderer, scene, sun } from './scene.js';
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
@@ -22,19 +22,21 @@ const codexTotal = R.AXES.reduce((n, a) => n + R.C.civ[a].length, 0);
 function save() {
   try {
     if (!V.S || (V.S.over && (V.S.over.won || R.livesLeft(V.S) <= 0))) localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, JSON.stringify(V.S));
+    else localStorage.setItem(KEY, R.serialize(V.S));
   } catch (e) {
     /* storage is optional */
   }
 }
 function load() {
-  try {
-    const t = localStorage.getItem(KEY);
-    if (t) {
-      const s = JSON.parse(t);
-      if (s && s.v === R.VERSION) return s;
-    }
-  } catch (e) {}
+  for (const k of [KEY].concat(OLD_KEYS)) {
+    let t = null;
+    try {
+      t = localStorage.getItem(k);
+    } catch (e) {}
+    if (!t) continue;
+    const res = R.deserialize(t);
+    if (res.state) return res.state;
+  }
   return null;
 }
 function placePlayer() {
@@ -140,7 +142,7 @@ function frame() {
     b = R.biomeOf(V.S),
     day = smooth(clamp((h - 5) / 2, 0, 1)) * (1 - smooth(clamp((h - 18.5) / 2, 0, 1))),
     dusk = Math.max(0, 1 - Math.abs(h - 6) / 1.3, 1 - Math.abs(h - 19.4) / 1.5);
-  dayC.setHex(SKY[b.id]);
+  dayC.setHex(b.sky);
   skyC
     .copy(nightC)
     .lerp(dayC, day)

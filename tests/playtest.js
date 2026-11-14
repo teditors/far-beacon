@@ -1,5 +1,6 @@
 // An honest bot: walks tile by tile toward its goal, drinks at water it has seen, rests, sleeps, uses the town, fights or flees.
 const { Rules } = require('./lib');
+{ let a = 12345; Math.random = () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), a | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; } // repeatable runs
 const R=Rules,W=36;
 const dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 function target(s){ const q=s.quest,v=R.findSite(s,'vault');
@@ -52,7 +53,7 @@ function play(seed){ const s=R.newGame(seed); const stats={seed,searches:0,flees
     const dd=dist(p,t); if(t===lastTarget&&dd>=lastD){ if(++noProg>40){stats.stuck=true;break;} } else noProg=0; lastTarget=t; lastD=dd;
   }
   stats.won=!!(s.over&&s.over.won); stats.days=R.clock(s).day; stats.travellers=s.travellers; stats.shape=s.quest.key+'/'+s.quest.vault.id+'/'+s.quest.dest; stats.biome=s.biome; stats.lastGoal=R.objective(s).text; return stats; }
-const N=+process.argv[2]||150, res=[]; for(let i=1;i<=N;i++){ const t0=Date.now(); res.push(play(i*13+5)); if(Date.now()-t0>3000) console.log("slow seed",i*13+5,Date.now()-t0); }
+const N=+process.argv[2]||150, res=[]; for(let i=1;i<=N;i++){ const t0=Date.now(); res.push(play(i*13+(+process.env.OFF||5))); if(Date.now()-t0>3000) console.log("slow seed",i*13+5,Date.now()-t0); }
 const won=res.filter(r=>r.won); console.log('won',won.length,'/',N,' avg days',(won.reduce((a,r)=>a+r.days,0)/Math.max(1,won.length)).toFixed(1),' avg travellers used',(won.reduce((a,r)=>a+r.travellers,0)/Math.max(1,won.length)).toFixed(2));
 const deaths={},goals={},cls={}; for(const r of res) for(const d of r.deaths){ const k=d.cause.replace(/:.*(Brute|Hound|Wight|Serpent)$/,':$1'); deaths[k]=(deaths[k]||0)+1; goals[d.goal.split(',')[0].replace(/the [A-Z].*/,'')]=(goals[d.goal]||0)+1; cls[d.cls]=(cls[d.cls]||0)+1; }
 console.log('deaths by cause',JSON.stringify(deaths)); console.log('deaths during goal',JSON.stringify(goals)); console.log('deaths by class',JSON.stringify(cls));

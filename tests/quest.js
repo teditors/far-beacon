@@ -13,6 +13,5 @@ for(let seed=1;seed<=200;seed++){ const s=R.newGame(seed), q=s.quest; s.tun.carr
   let g=0; while(v.st.depth<v.st.floors.length&&!s.over&&g++<20){ s.player.hp=s.player.hpMax; R.descend(s); fight(s);} take();
   const d=q.dest==='beacon'?s.goal:R.findSite(s,'shrine'); go(s,d.x-1,d.y); s.player.stamina=100;s.player.water=5; R.move(s,1,0); fight(s); if(q.dest==='shrine') R.offer(s);
   if(!(s.over&&s.over.won)){ fail++; if(fail<4) console.log('FAIL',seed,key,JSON.stringify(s.over),JSON.stringify(R.objective(s)),s.log.slice(-2).map(l=>l.msg).join(' | ').slice(0,300)); } }
-console.log('variants',JSON.stringify(tally),'failures',fail);
-const s=R.newGame(11); console.log(s.town.name, s.town.elder, s.town.merchant, JSON.stringify(R.objective(s)), s.town.stock.map(i=>R.itemName(i)+' '+R.itemValue(i)).join(', '));
-s.player.x=s.town.x;s.player.y=s.town.y;R.talkElder(s);console.log(s.town.speech.join('\n'),'\n',JSON.stringify(R.objective(s)));
+console.log('quest ok: ' + Object.keys(tally).length + ' quest shapes, 200 worlds completed, failures ' + fail);
+if (fail) process.exit(1);

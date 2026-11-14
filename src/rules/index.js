@@ -40,6 +40,7 @@ import {
 import { AXES, civOf, civTraits, trait, traitText } from './civ.js';
 import { attack, firebolt, flee, foe, formOf, identify, mend, power, smite, spOf } from './combat.js';
 import { C, H, TERR, VERSION, W, biomeOf, byId, clock, godOf, on } from './core.js';
+import { aOrAn } from './core.js';
 import { active, equip, slotOf, unequip } from './equipment.js';
 import { describeItem, isCursed, itemName, itemWeight, weight } from './items.js';
 import { atCamp, bearing, groundHere, inShelter, reveal, siteHere, siteName, terrainInfo } from './map.js';
@@ -64,7 +65,12 @@ import {
 import { carryCap, stat, waterCap } from './stats.js';
 import { newGame } from './worldgen.js';
 
+import { serialize, deserialize } from './save.js';
+
 const api = {
+  aOrAn,
+  serialize,
+  deserialize,
   VERSION,
   W,
   H,
