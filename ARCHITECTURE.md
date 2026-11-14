@@ -122,5 +122,12 @@ Planned next, in order, so changes now should not paint us into a corner:
 3. **Generated biomes** with a rare-trait slot, then side quests, creatures, races and classes,
    and unique items, all as content menus.
 
+## Versions and git
+
+Work goes onto `main`, one commit per working step, with all checks passing. A milestone gets a version:
+set `version` in package.json, build, commit, then push that commit as the branch `version/vX.Y` (and tag it
+`vX.Y` locally). Version branches are never moved. CHANGELOG.md lists them. To roll back, restore an old
+version's files as a new commit on `main`, so history is never rewritten.
+
 `tools/once/` holds the scripts that split the original single-file game into modules. They are a
 record, not part of the build.

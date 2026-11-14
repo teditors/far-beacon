@@ -1,7 +1,8 @@
 # Versions
 
-From v0.6 on, each version is a git tag. On GitHub, open **Tags** to see them; each one holds the whole project
-as it was, including the playable `dist/index.html`. The two early prototypes are kept as files in `prototypes/`.
+From v0.6 on, each version is a frozen branch named `version/v0.X`. On GitHub, open the branch menu (it says
+`main`) and pick one to see the whole project as it was, including the playable `dist/index.html`. `main` is always
+the latest. Version branches are never changed after they are made. The two early prototypes are kept as files in `prototypes/`.
 
 | Version | What it added |
 | --- | --- |
