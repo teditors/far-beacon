@@ -84,7 +84,7 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 if (!window.THREE) document.getElementById('log').innerHTML = '<li class="bad new">The 3D library did not load. Check your connection and reload the page.</li>';
-var GAME_VERSION = 'v0.7';
+var GAME_VERSION = 'v0.8';
 var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls and past messages are in Menu.';
 </script>
 <script>
@@ -110,7 +110,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       waterskin: 6,
       cloak: 10,
       boots: 10,
-      lantern: 12,
+      lantern: 8,
       spyglass: 14,
       framepack: 14,
       staff: 6,
@@ -934,9 +934,11 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   var C = CONTENT;
   var W = 36;
   var H = 36;
-  var VERSION = 6;
+  var VERSION = 7;
   var START = 6 * 60;
-  var TERR = ["plain", "hill", "mountain", "forest", "river", "special"];
+  var TERR = ["plain", "hill", "mountain", "forest", "river", "special", "wall", "floor"];
+  var WALL = 6;
+  var FLOOR = 7;
   var byId = (list, id) => list.find((e) => e.id === id);
   var idx = (x, y) => y * W + x;
   var clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1038,6 +1040,88 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       "good"
     );
     emit(s, "learned", { axis, id: s.civ[axis] });
+  }
+
+  // src/rules/areas.js
+  var AREA_FIELDS = ["terrain", "elev", "sites", "depots", "creatures", "seen", "road", "dug", "lostMaps"];
+  var GENERATORS = {};
+  var areaRec = (s) => s.areas[s.area];
+  var inOverworld = (s) => s.area === "overworld";
+  var indoors = (s) => !!areaRec(s).indoor;
+  var isDark = (s) => !!areaRec(s).dark;
+  function park(s) {
+    const rec = areaRec(s);
+    for (const f of AREA_FIELDS) {
+      rec.map = rec.map || {};
+      rec.map[f] = s[f];
+    }
+  }
+  function unpark(s, id) {
+    const rec = s.areas[id];
+    if (!rec.map) rec.map = GENERATORS[rec.kind](s, rec);
+    for (const f of AREA_FIELDS) s[f] = rec.map[f] !== void 0 ? rec.map[f] : AREA_DEFAULTS[f]();
+    delete rec.map;
+    s.area = id;
+  }
+  var AREA_DEFAULTS = {
+    terrain: () => new Array(W * H).fill(0),
+    elev: () => new Array(W * H).fill(0),
+    sites: () => ({}),
+    depots: () => ({}),
+    creatures: () => [],
+    seen: () => new Array(W * H).fill(0),
+    road: () => ({}),
+    dug: () => ({}),
+    lostMaps: () => ({})
+  };
+  function enterArea(s, id, rec, at) {
+    if (!s.areas[id]) s.areas[id] = Object.assign({ id }, rec);
+    const from = { area: s.area, x: s.player.x, y: s.player.y };
+    park(s);
+    unpark(s, id);
+    s.areas[id].from = from;
+    const p = at || s.areas[id].entry;
+    s.player.x = p.x;
+    s.player.y = p.y;
+    s.lastGround = s.terrain[idx(p.x, p.y)];
+    s.onRoad = false;
+  }
+  function leaveArea(s) {
+    const from = areaRec(s).from;
+    if (!from) return false;
+    park(s);
+    unpark(s, from.area);
+    s.player.x = from.x;
+    s.player.y = from.y;
+    s.lastGround = s.terrain[idx(from.x, from.y)];
+    return true;
+  }
+  function toOverworld(s) {
+    while (!inOverworld(s)) if (!leaveArea(s)) break;
+  }
+  function worldMap(s) {
+    return inOverworld(s) ? s : s.areas.overworld.map;
+  }
+  function worldPos(s) {
+    if (inOverworld(s)) return { x: s.player.x, y: s.player.y };
+    let rec = areaRec(s);
+    while (rec.from && rec.from.area !== "overworld") rec = s.areas[rec.from.area];
+    return rec.from ? { x: rec.from.x, y: rec.from.y } : s.start;
+  }
+  function allMaps(s) {
+    const out = [[s.area, s]];
+    for (const id in s.areas) if (id !== s.area && s.areas[id].map) out.push([id, s.areas[id].map]);
+    return out;
+  }
+  function forgetMaps(s) {
+    for (const [id, m] of allMaps(s)) {
+      if (s.areas[id].kind === "town") continue;
+      m.seen.fill(0);
+      for (const k in m.sites) {
+        m.sites[k].seen = false;
+        m.sites[k].visited = false;
+      }
+    }
   }
 
   // src/rules/items.js
@@ -1159,7 +1243,12 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   // src/rules/map.js
   var phase = (s) => clock(s).isDay ? biomeOf(s).day : biomeOf(s).night;
   var here = (s) => idx(s.player.x, s.player.y);
+  var INDOOR_GROUND = {
+    6: { name: "wall", wall: true, moveMin: 0, moveSta: 0, mods: [] },
+    7: { name: "stone floor", moveMin: 0.5, moveSta: 0.15, mods: [] }
+  };
   function terrainInfo(s, t) {
+    if (t >= WALL) return INDOOR_GROUND[t];
     const b = biomeOf(s);
     if (t < 3)
       return {
@@ -1173,11 +1262,17 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   var groundHere = (s) => terrainInfo(s, s.terrain[here(s)]);
   var siteHere = (s) => s.sites[here(s)] || null;
   var isShelter = (site) => !!site && (site.kind === "cave" || site.kind === "ruin" || site.kind === "well" || site.kind === "town" || site.kind === "vault");
-  var inShelter = (s) => isShelter(siteHere(s));
-  var atCamp = (s) => s.camp === here(s);
+  var inShelter = (s) => indoors(s) || isShelter(siteHere(s));
+  var atCamp = (s) => inOverworld(s) && s.camp === here(s);
+  var passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL;
   var DIRS = ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"];
   function dirTo(s, x, y) {
     const dx = x - s.player.x, dy = y - s.player.y;
+    if (!dx && !dy) return "here";
+    return DIRS[(Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8 + 8) % 8];
+  }
+  function dirFrom(p, x, y) {
+    const dx = x - p.x, dy = y - p.y;
     if (!dx && !dy) return "here";
     return DIRS[(Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8 + 8) % 8];
   }
@@ -1189,7 +1284,14 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     shrine: "shrine",
     well: "well",
     beacon: "beacon",
-    town: "town"
+    town: "town",
+    exit: "way out",
+    stairsDown: "stair down",
+    stairsUp: "stair up",
+    elder: "elder's hall",
+    inn: "inn",
+    shop: "shop",
+    trap: "trap"
   };
   var siteName = (s, site) => site.kind === "ruin" ? s.known.civ ? civOf(s).ruin : "ruin" : site.kind === "vault" ? s.quest.vault.name : SITE_NAME[site.kind];
   function reveal(s, cx, cy, rad, quiet) {
@@ -1197,11 +1299,12 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     for (let y = Math.max(0, Math.floor(cy - rad)); y <= Math.min(H - 1, Math.ceil(cy + rad)); y++)
       for (let x = Math.max(0, Math.floor(cx - rad)); x <= Math.min(W - 1, Math.ceil(cx + rad)); x++) {
         if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > rad * rad + 0.5) continue;
+        if (indoors(s) && !lineOfSight(s, Math.round(cx), Math.round(cy), x, y)) continue;
         const i = idx(x, y);
         if (!s.seen[i]) {
           s.seen[i] = 1;
           const st = s.sites[i];
-          if (st && !st.seen) {
+          if (st && !st.seen && !(st.kind === "trap" && !st.sprung && stat(s, "trapSafe", 0) <= 0)) {
             st.seen = true;
             {
               const d = dirTo(s, x, y);
@@ -1214,7 +1317,25 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       say(s, "You sight: " + found.slice(0, 4).join("; ") + (found.length > 4 ? "; and more" : "") + ".", "good");
     return found.length;
   }
+  function lineOfSight(s, x0, y0, x1, y1) {
+    let dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx + dy, x = x0, y = y0;
+    while (x !== x1 || y !== y1) {
+      if ((x !== x0 || y !== y0) && s.terrain[idx(x, y)] === WALL) return false;
+      const e2 = 2 * err;
+      if (e2 >= dy) {
+        err += dy;
+        x += sx;
+      }
+      if (e2 <= dx) {
+        err += dx;
+        y += sy;
+      }
+    }
+    return true;
+  }
   function sightRadius(s) {
+    if (isDark(s)) return stat(s, "nightSight", 0) > 0 ? 3.5 : 0.5;
+    if (indoors(s)) return 8;
     if (s.weather.storm) return 0.5;
     if (groundHere(s).blind) return 1;
     if (!clock(s).isDay) return stat(s, "nightSight", 0) > 0 ? 1 : 0.5;
@@ -1259,6 +1380,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     {
       id: "weather",
       fn(s, out) {
+        if (indoors(s)) return;
         if (s.weather.storm) for (const m of biomeOf(s).storm.mods) out.push(m);
       }
     },
@@ -1273,6 +1395,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     {
       id: "shelter",
       fn(s, out) {
+        if (indoors(s)) out.push({ stat: "waterDrain", op: "mul", value: 0.7 });
         if (inShelter(s)) {
           out.push({ stat: "cold", op: "mul", value: 0.25 });
           out.push({ stat: "stormCold", op: "mul", value: 0 });
@@ -1485,461 +1608,18 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     d.remains = s.char.name;
     d.coin = (d.coin || 0) + p.coin;
     s.lostMaps[i] = s.seen.join("");
-    s.seen.fill(0);
-    for (const k in s.sites) {
-      s.sites[k].seen = false;
-      s.sites[k].visited = false;
-    }
+    const diedIn = areaRec(s), where = inOverworld(s) ? null : worldPos(s);
+    forgetMaps(s);
+    toOverworld(s);
     const mod = (START + s.time) % 1440;
     s.time += (1440 + 360 - mod) % 1440 || 1440;
     s.travellers++;
     spawn(s, ch);
     say(
       s,
-      "Dawn, day " + clock(s).day + ". " + charTitle(ch) + " sets out from the well. " + d.remains + " lies somewhere to the " + dirTo(s, i % W, Math.floor(i / W)) + ", with everything they carried.",
+      "Dawn, day " + clock(s).day + ". " + charTitle(ch) + " sets out from the well. " + d.remains + (where ? " lies somewhere " + (diedIn.kind === "town" ? "in " + s.town.name : "inside the " + s.quest.vault.name) + ", to the " + dirTo(s, where.x, where.y) : " lies somewhere to the " + dirTo(s, i % W, Math.floor(i / W))) + ", with everything they carried.",
       "good"
     );
-    return true;
-  }
-
-  // src/rules/systems.js
-  var SYSTEMS = [
-    {
-      id: "weather",
-      fn(s) {
-        if (s.off.weather) {
-          s.weather.storm = false;
-          return;
-        }
-        if (s.time >= s.weather.changeAt) {
-          s.weather.storm = !s.weather.storm;
-          s.weather.changeAt = s.time + (s.weather.storm ? 180 + srand(s) * 240 : (480 + srand(s) * 720) * s.tun.stormGap);
-          say(
-            s,
-            s.weather.storm ? aOrAn(biomeOf(s).storm.name, true) + " breaks over you." : "The " + biomeOf(s).storm.name + " passes.",
-            s.weather.storm ? "bad" : "good"
-          );
-        }
-      }
-    },
-    {
-      id: "thirst",
-      fn(s, dt, ctx) {
-        let rate = stat(s, "waterDrain", s.tun.waterPerHour);
-        if (ctx.activity !== "move") rate *= s.tun.restWaterFactor;
-        if (s.player.water > 0) rate += stat(s, "leak", 0);
-        s.player.water = Math.max(0, s.player.water - rate * dt);
-        if (s.player.water <= 0) {
-          s.player.stamina -= 15 * dt;
-          s.cause = "thirst";
-        }
-      }
-    },
-    {
-      id: "warmth",
-      fn(s, dt) {
-        const cold = stat(s, "cold", phase(s).cold * s.tun.coldScale) + (s.weather.storm ? stat(s, "stormCold", biomeOf(s).storm.cold * s.tun.coldScale) : 0);
-        const warm = stat(s, "warm", phase(s).warm);
-        s.player.warmth = clamp(s.player.warmth + (warm - cold) * dt, 0, 100);
-        if (s.player.warmth <= 0) {
-          s.player.stamina -= 12 * dt;
-          s.cause = "cold";
-        }
-      }
-    },
-    {
-      id: "lantern",
-      fn(s, dt, ctx) {
-        if (clock(s).isDay || ctx.activity !== "move" || s.player.fuel <= 0) return;
-        if (!s.player.items.some((it) => it.base === "lantern")) return;
-        s.player.fuel = Math.max(0, s.player.fuel - s.tun.lanternFuelPerHour * stat(s, "fuelUse", 1) * dt);
-        if (s.player.fuel <= 0) say(s, "Your lantern gutters out. No fuel left.", "bad");
-      }
-    },
-    {
-      id: "identify",
-      fn(s, dt) {
-        for (const it of s.player.items)
-          if (!it.known && active(it)) {
-            it.carried += dt;
-            if (it.carried >= s.tun.autoIdHours * stat(s, "studyTime", 1)) {
-              it.known = true;
-              say(s, "After long use you understand it: " + itemName(it) + ".", isCursed(it) ? "bad" : "good");
-            }
-          }
-      }
-    },
-    {
-      id: "vitals",
-      fn(s) {
-        const p = s.player, w = s.warn;
-        if (p.water <= 1 && !w.water) {
-          w.water = true;
-          say(s, p.water <= 0 ? "You are out of water." : "You are nearly out of water.", "bad");
-        } else if (p.water > 1.5) w.water = false;
-        if (p.warmth <= 25 && !w.warmth) {
-          w.warmth = true;
-          say(s, "You are shivering badly.", "bad");
-        } else if (p.warmth > 35) w.warmth = false;
-        if (p.stamina <= 0) {
-          p.stamina = 0;
-          if (s.over) return;
-          if (p.water <= 0 && !s.off.thirst || p.warmth <= 0 && !s.off.warmth) {
-            s.over = { won: false, cause: p.water <= 0 ? "thirst" : "cold" };
-            say(
-              s,
-              p.water <= 0 ? "You collapse, dry as the ground. The land keeps you." : "The cold takes you in your sleep.",
-              "bad"
-            );
-          }
-        }
-      }
-    }
-  ];
-  function advance(s, minutes, activity) {
-    let left = minutes;
-    while (left > 0 && !s.over) {
-      const step = Math.min(15, left);
-      left -= step;
-      s.time += step;
-      for (const sys of SYSTEMS) if (!s.off[sys.id]) sys.fn(s, step / 60, { activity });
-    }
-  }
-
-  // src/rules/quest.js
-  var hasItem = (s, base) => s.player.items.some((i) => i.base === base);
-  var atTown = (s) => {
-    const st = siteHere(s);
-    return !!st && st.kind === "town";
-  };
-  function mark(s, x, y) {
-    reveal(s, x, y, 1.5, true);
-    const st = s.sites[idx(x, y)];
-    if (st) st.seen = true;
-  }
-  function findSite(s, kind) {
-    for (const k in s.sites) if (s.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: s.sites[k] };
-    return null;
-  }
-  function itemValue(it) {
-    const b = byId(C.bases, it.base);
-    if (b.quest || b.id === "campkit") return 0;
-    let v = C.value[it.base] || 5;
-    for (const id of [it.pre, it.suf]) if (id) v += byId(C.affixes, id).cursed ? -4 : 8;
-    if (it.mark) v += 6;
-    return Math.max(1, v);
-  }
-  function makeQuest(s, r, townP, vaultP, a0, goalP) {
-    const Q = C.quest, T = C.town, pick = (a) => a[Math.floor(r() * a.length)];
-    const race = pick(C.races), q = s.quest = {
-      key: pick(Q.keys),
-      vault: pick(Q.vaults),
-      relic: pick(Q.relics) + " of the " + s.civ.name,
-      dest: pick(Q.dests),
-      told: false,
-      keyTile: null,
-      beast: null
-    };
-    s.town = {
-      x: townP.x,
-      y: townP.y,
-      name: pick(T.a) + pick(T.b),
-      race: race.id,
-      elder: pick(race.names),
-      merchant: pick(race.names),
-      fuel: T.fuel,
-      stock: [],
-      speech: []
-    };
-    while (s.town.merchant === s.town.elder) s.town.merchant = pick(race.names);
-    for (const b of T.staples) s.town.stock.push(makeItem(s, b, null, null, true));
-    for (let i = 0; i < T.stock; i++) {
-      const it = genItem(s, { noConsumables: i < 3 });
-      it.known = true;
-      s.town.stock.push(it);
-    }
-    if (q.dest === "shrine") {
-      for (const k in s.sites) if (s.sites[k].kind === "shrine") delete s.sites[k];
-      for (let tries = 0; tries < 80; tries++) {
-        const x = clamp(goalP.x + Math.round((r() - 0.5) * 8), 1, W - 2), y = clamp(goalP.y + Math.round((r() - 0.5) * 8), 1, H - 2), k = idx(x, y), d = Math.abs(x - goalP.x) + Math.abs(y - goalP.y);
-        if (d < 3 || s.terrain[k] === 2 || s.terrain[k] >= 4 || s.sites[k]) continue;
-        s.sites[k] = { kind: "shrine" };
-        break;
-      }
-    }
-    const f = pick(C.creature.forms.filter((x) => x.id !== "hound"));
-    s.species.push({ name: q.vault.guard + " " + f.name, form: f.id, temper: "territorial", rare: null, met: false });
-    q.guardSp = s.species.length - 1;
-    if (q.key === "ruin") {
-      let best = null, bd = 1e9;
-      for (const k in s.sites)
-        if (s.sites[k].kind === "ruin") {
-          const d = Math.abs(k % W - vaultP.x) + Math.abs(Math.floor(k / W) - vaultP.y);
-          if (d >= 4 && d < bd) {
-            bd = d;
-            best = +k;
-          }
-        }
-      if (best === null) q.key = "elder";
-      else q.keyTile = best;
-    }
-    if (q.key === "beast") {
-      const bf = pick(C.creature.forms);
-      s.species.push({
-        name: pick(Q.beastNames) + " " + pick(C.creature.prefix[s.biome]) + " " + bf.name,
-        form: bf.id,
-        temper: "territorial",
-        rare: "elder",
-        met: false,
-        named: true
-      });
-      let x = 0, y = 0;
-      for (let tries = 0; tries < 60; tries++) {
-        const ang = a0 + Math.PI + (r() - 0.5) * 1.2, rad = 8 + r() * 4;
-        x = clamp(Math.round(s.start.x + Math.cos(ang) * rad), 2, W - 3);
-        y = clamp(Math.round(s.start.y + Math.sin(ang) * rad), 2, H - 3);
-        if (s.terrain[idx(x, y)] !== 2 && !s.sites[idx(x, y)]) break;
-      }
-      const c = makeCreature(s, 90, s.species.length - 1, x, y, 1);
-      c.key = true;
-      s.creatures.push(c);
-      q.beast = 90;
-    }
-  }
-  function findLoose(s, base) {
-    for (const k in s.depots)
-      if (s.depots[k].items.some((i) => i.base === base)) return { x: k % W, y: Math.floor(k / W), who: s.depots[k].remains };
-    return null;
-  }
-  function objective(s) {
-    const q = s.quest, t = s.town, v = findSite(s, "vault"), to = (p) => dirTo(s, p.x, p.y);
-    if (!hasItem(s, "relic")) {
-      const lr = findLoose(s, "relic");
-      if (lr) return { text: "Take up the " + q.relic + (lr.who ? " from " + lr.who + "'s body" : ""), dir: to(lr) };
-    }
-    if (!hasItem(s, "key") && !hasItem(s, "relic") && !v.st.open) {
-      const lk = findLoose(s, "key");
-      if (lk) return { text: "Take the key to the " + q.vault.name + (lk.who ? " from " + lk.who + "'s body" : ""), dir: to(lk) };
-    }
-    if (hasItem(s, "relic")) {
-      const d = q.dest === "beacon" ? s.goal : findSite(s, "shrine");
-      return { text: "Carry the " + q.relic + " to the " + q.dest, dir: to(d) };
-    }
-    if (v.st.depth >= v.st.floors.length) return { text: "Recover the " + q.relic + ", wherever it was left", dir: null };
-    if (v.st.open || hasItem(s, "key"))
-      return { text: (v.st.open ? "Go down into the " : "Unlock the ") + q.vault.name, dir: q.told || v.st.seen ? to(v) : null };
-    if (!q.told) return { text: "Find the town", dir: to(t) };
-    if (q.key === "beast") {
-      const c = s.creatures.find((x) => x.id === q.beast);
-      return c ? { text: "Kill the " + spOf(s, c).name + ", which has the key", dir: to(c) } : { text: "Take the key from the lair", dir: null };
-    }
-    if (q.key === "ruin")
-      return { text: "Search the ruin where the key lies", dir: to({ x: q.keyTile % W, y: Math.floor(q.keyTile / W) }) };
-    return { text: "Find the key to the " + q.vault.name, dir: null };
-  }
-  function talkElder(s) {
-    if (s.over || !atTown(s)) return false;
-    const q = s.quest, t = s.town, v = findSite(s, "vault"), sp = t.speech = [];
-    if (!q.told) {
-      q.told = true;
-      mark(s, v.x, v.y);
-      const d = q.dest === "beacon" ? s.goal : findSite(s, "shrine");
-      mark(s, d.x, d.y);
-      for (const k in s.sites)
-        if (s.sites[k].sure) {
-          s.sites[k].known = true;
-          mark(s, k % W, Math.floor(k / W));
-        }
-      sp.push(
-        '"You came across the open ground alone? Then listen. ' + (q.dest === "beacon" ? "The beacon is dying. It was lit with" : "The shrine has stood empty since the " + s.civ.name + " took from it") + " the " + q.relic + ", and the " + s.civ.name + " locked that away in the " + q.vault.name + ' before the end."'
-      );
-      sp.push(
-        '"Bring it out, and carry it to the ' + q.dest + '. I have marked both on your map, and the springs our people use on the way."'
-      );
-      if (q.key === "elder") {
-        const k = makeItem(s, "key", null, null, true);
-        k.label = "Key to the " + q.vault.name;
-        s.player.items.push(k);
-        sp.push('"Here is the key. We have kept it three generations, and not one of us has dared use it."');
-      } else if (q.key === "beast") {
-        const c = s.creatures.find((x) => x.id === q.beast);
-        if (c) {
-          c.seen = true;
-          mark(s, c.x, c.y);
-          sp.push(
-            '"The key is gone. The ' + spOf(s, c).name + ' took the last warden, key and all. Its lair is marked too. I am sorry."'
-          );
-        }
-      } else {
-        mark(s, q.keyTile % W, Math.floor(q.keyTile / W));
-        sp.push('"The key was buried with the last warden, in a ruin of theirs. I have marked that as well."');
-      }
-      const left = AXES.filter((a) => !s.civKnown[a]);
-      if (left.length) {
-        const ax = left[Math.floor(srand(s) * left.length)], tx = traitText(ax, s.civ[ax]);
-        s.known.civ = true;
-        learn(s, ax);
-        sp.push('"What else do we remember of the ' + s.civ.name + "? Only this: " + tx.label.toLowerCase() + ". " + tx.text + '"');
-      }
-      gainXp(s, 30);
-      say(s, t.elder + ", elder of " + t.name + ", tells you what this land needs. Your goal is under the meters.", "good");
-    } else {
-      const o = objective(s);
-      sp.push('"' + o.text + (o.dir && o.dir !== "here" ? ", to the " + o.dir : "") + '. Nothing has changed, traveller."');
-    }
-    return true;
-  }
-  function buy(s, id) {
-    if (s.over || !atTown(s)) return false;
-    const t = s.town, i = t.stock.findIndex((x) => x.id === id);
-    if (i < 0) return false;
-    const price = itemValue(t.stock[i]);
-    if (s.player.coin < price) {
-      say(s, "You cannot afford that.");
-      return false;
-    }
-    s.player.coin -= price;
-    const it = t.stock.splice(i, 1)[0];
-    s.player.items.push(it);
-    autoEquip(s, it);
-    say(s, "You buy the " + itemName(it) + " for " + price + " coin.");
-    return true;
-  }
-  function buyFuel(s) {
-    const t = s.town;
-    if (s.over || !atTown(s) || t.fuel < 1) return false;
-    if (s.player.coin < C.town.fuelPrice) {
-      say(s, "You cannot afford that.");
-      return false;
-    }
-    s.player.coin -= C.town.fuelPrice;
-    t.fuel--;
-    s.player.fuel += 1;
-    return true;
-  }
-  var sellPrice = (it) => itemValue(it) ? it.known ? Math.max(1, Math.floor(itemValue(it) * C.town.sellRate)) : 3 : 0;
-  function sell(s, id) {
-    if (s.over || !atTown(s)) return false;
-    const i = s.player.items.findIndex((x) => x.id === id);
-    if (i < 0) return false;
-    const it = s.player.items[i], price = sellPrice(it);
-    if (!price) {
-      say(s, "No one here will buy that.");
-      return false;
-    }
-    s.player.items.splice(i, 1);
-    delete it.eq;
-    it.known = true;
-    s.town.stock.push(it);
-    s.player.coin += price;
-    fitWater(s);
-    say(s, "You sell the " + itemName(it) + " for " + price + " coin.");
-    return true;
-  }
-  function appraise(s, id) {
-    if (s.over || !atTown(s)) return false;
-    const it = s.player.items.find((x) => x.id === id);
-    if (!it || it.known) return false;
-    if (s.player.coin < C.town.appraisePrice) {
-      say(s, "You cannot afford that.");
-      return false;
-    }
-    s.player.coin -= C.town.appraisePrice;
-    it.known = true;
-    say(s, s.town.merchant + " turns it over twice: " + itemName(it) + ".", isCursed(it) ? "bad" : "good");
-    return true;
-  }
-  function inn(s) {
-    if (s.over || !atTown(s)) return false;
-    if (s.player.coin < C.town.innPrice) {
-      say(s, "You cannot afford a bed.");
-      return false;
-    }
-    s.player.coin -= C.town.innPrice;
-    const p = s.player, w = p.water;
-    for (let i = 0; i < 8 && !s.over; i++) restHour(s);
-    if (s.over) return true;
-    p.water = Math.max(p.water, w);
-    p.hp = p.hpMax;
-    p.mana = p.manaMax;
-    p.stamina = 100;
-    p.warmth = 100;
-    say(s, "A bed, a fire and a meal. You wake whole.", "good");
-    return true;
-  }
-  function unlock(s) {
-    const st = siteHere(s);
-    if (s.over || !st || st.kind !== "vault" || st.open) return false;
-    if (!hasItem(s, "key")) {
-      say(s, "The door of the " + s.quest.vault.name + " is locked, and will not be forced.");
-      return false;
-    }
-    st.open = true;
-    gainXp(s, 20);
-    say(s, "The key turns. Cold air comes up the stair.", "good");
-    return true;
-  }
-  function vaultAdvance(s, st) {
-    st.depth++;
-    if (st.depth < st.floors.length) {
-      say(s, "The way down to level " + (st.depth + 1) + " is clear.");
-      return;
-    }
-    const it = makeItem(s, "relic", null, null, true);
-    it.label = s.quest.relic;
-    depotHere(s, true).items.push(it);
-    gainXp(s, 50);
-    say(s, "At the bottom, on a plinth, lies the " + s.quest.relic + ". Open Pack to take it.", "good");
-  }
-  function descend(s) {
-    const st = siteHere(s);
-    if (s.over || !st || st.kind !== "vault" || !st.open || st.depth >= st.floors.length) return false;
-    if (stat(s, "nightSight", 0) <= 0) {
-      say(s, "It is black as pitch below. You need a light: a worn lantern with fuel will do.", "bad");
-      return false;
-    }
-    if (st.guard) {
-      const c = s.creatures.find((x) => x.id === st.guard);
-      if (c) {
-        c.cool = 0;
-        startCombat(s, c, false);
-        return true;
-      }
-      st.guard = null;
-    }
-    advance(s, 30, "rest");
-    if (s.over) return true;
-    const kind = st.floors[st.depth], lvl = st.depth + 1;
-    if (kind === "guard") {
-      const c = makeCreature(s, 100 + lvl, s.quest.guardSp, s.player.x, s.player.y, lvl >= st.floors.length ? 2 : 1);
-      c.bound = true;
-      s.creatures.push(c);
-      st.guard = c.id;
-      say(s, "Level " + lvl + ". Something stands up in the dark.", "bad");
-      startCombat(s, c, false);
-    } else if (kind === "loot") {
-      const it = genItem(s, { relic: true, noConsumables: true }), n = roll(s, 3, 6);
-      depotHere(s, true).items.push(it);
-      s.player.coin += n;
-      say(s, "Level " + lvl + ". A store-room, untouched: " + itemName(it) + " and " + n + " coin.", "good");
-      vaultAdvance(s, st);
-    } else {
-      if (stat(s, "trapSafe", 0) > 0)
-        say(s, "Level " + lvl + ". You find the pressure plate with your fingertips, and step over it.", "good");
-      else {
-        const n = Math.min(roll(s, 1, 6) + 2, Math.max(0, Math.ceil(s.player.hp) - 1));
-        s.player.hp -= n;
-        say(s, "Level " + lvl + ". Darts from the wall: " + n + " damage.", "bad");
-      }
-      vaultAdvance(s, st);
-    }
-    return true;
-  }
-  function offer(s) {
-    const st = siteHere(s);
-    if (s.over || !st || st.kind !== "shrine" || s.quest.dest !== "shrine" || !hasItem(s, "relic")) return false;
-    s.over = { won: true };
-    say(s, "You set the " + s.quest.relic + " on the shrine. Something that was held breath for an age lets go.", "good");
     return true;
   }
 
@@ -2056,13 +1736,12 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       depotHere(s, true).items.push(k);
       say(s, "In its lair lies the key to the " + s.quest.vault.name + ". Open Pack to take it.", "good");
     }
-    if (c.bound) {
-      const st = s.sites[idx(c.x, c.y)];
-      if (st && st.kind === "vault") {
-        st.guard = null;
-        vaultAdvance(s, st);
-      }
-    }
+    if (c.warden)
+      say(
+        s,
+        "The warden of the " + s.quest.vault.name + " is dead. Nothing stands between you and the " + s.quest.relic + ".",
+        "good"
+      );
     gainXp(s, xp);
   }
   function enemyTurn(s) {
@@ -2187,22 +1866,21 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     if (s.over) return;
     const p = s.player;
     for (const c of s.creatures) {
-      if (c.bound) continue;
       const sp = spOf(s, c);
       if (c.cool > 0) c.cool--;
       let d = Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y));
       let moved = false;
-      const chase = sp.rare !== "docile" && c.cool === 0 && (sp.temper === "hunter" && d <= 5 && srand(s) < 0.6 || sp.temper === "territorial" && d <= 2);
+      const chase = sp.rare !== "docile" && c.cool === 0 && (sp.temper === "hunter" && d <= 5 && srand(s) < 0.6 || sp.temper === "territorial" && d <= 2) && lineOfSight(s, c.x, c.y, p.x, p.y);
       if (chase && d > 0) {
         const dx = Math.sign(p.x - c.x), dy = Math.sign(p.y - c.y), nx = Math.abs(p.x - c.x) >= Math.abs(p.y - c.y) ? c.x + dx : c.x, ny = nx === c.x ? c.y + dy : c.y;
-        if (s.terrain[idx(nx, ny)] !== 2) {
+        if (s.terrain[idx(nx, ny)] !== 2 && passable(s, nx, ny)) {
           c.x = nx;
           c.y = ny;
           moved = true;
         }
         d = Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y));
       }
-      if (d <= 3 && !c.seen && !s.weather.storm) {
+      if (d <= Math.max(1, Math.min(3, sightRadius(s))) && !c.seen && lineOfSight(s, p.x, p.y, c.x, c.y) && (isDark(s) || !s.weather.storm)) {
         c.seen = true;
         say(
           s,
@@ -2221,11 +1899,495 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     }
   }
 
+  // src/rules/systems.js
+  var SYSTEMS = [
+    {
+      id: "weather",
+      fn(s) {
+        if (s.off.weather) {
+          s.weather.storm = false;
+          return;
+        }
+        if (s.time >= s.weather.changeAt) {
+          s.weather.storm = !s.weather.storm;
+          s.weather.changeAt = s.time + (s.weather.storm ? 180 + srand(s) * 240 : (480 + srand(s) * 720) * s.tun.stormGap);
+          if (!isDark(s) && !indoors(s))
+            say(
+              s,
+              s.weather.storm ? aOrAn(biomeOf(s).storm.name, true) + " breaks over you." : "The " + biomeOf(s).storm.name + " passes.",
+              s.weather.storm ? "bad" : "good"
+            );
+          else if (!isDark(s))
+            say(
+              s,
+              s.weather.storm ? "Outside the walls, " + aOrAn(biomeOf(s).storm.name) + " has begun." : "Outside, the " + biomeOf(s).storm.name + " has passed."
+            );
+        }
+      }
+    },
+    {
+      id: "thirst",
+      fn(s, dt, ctx) {
+        let rate = stat(s, "waterDrain", s.tun.waterPerHour);
+        if (ctx.activity !== "move") rate *= s.tun.restWaterFactor;
+        if (s.player.water > 0) rate += stat(s, "leak", 0);
+        s.player.water = Math.max(0, s.player.water - rate * dt);
+        if (s.player.water <= 0) {
+          s.player.stamina -= 15 * dt;
+          s.cause = "thirst";
+        }
+      }
+    },
+    {
+      id: "warmth",
+      fn(s, dt) {
+        const cold = stat(s, "cold", phase(s).cold * s.tun.coldScale) + (s.weather.storm ? stat(s, "stormCold", biomeOf(s).storm.cold * s.tun.coldScale) : 0);
+        const warm = stat(s, "warm", phase(s).warm);
+        s.player.warmth = clamp(s.player.warmth + (warm - cold) * dt, 0, 100);
+        if (s.player.warmth <= 0) {
+          s.player.stamina -= 12 * dt;
+          s.cause = "cold";
+        }
+      }
+    },
+    {
+      id: "lantern",
+      fn(s, dt, ctx) {
+        if (clock(s).isDay && !isDark(s) || ctx.activity !== "move" || s.player.fuel <= 0) return;
+        if (!s.player.items.some((it) => it.base === "lantern" && it.eq)) return;
+        s.player.fuel = Math.max(0, s.player.fuel - s.tun.lanternFuelPerHour * stat(s, "fuelUse", 1) * dt);
+        if (s.player.fuel <= 0) say(s, "Your lantern gutters out. No fuel left.", "bad");
+      }
+    },
+    {
+      id: "identify",
+      fn(s, dt) {
+        for (const it of s.player.items)
+          if (!it.known && active(it)) {
+            it.carried += dt;
+            if (it.carried >= s.tun.autoIdHours * stat(s, "studyTime", 1)) {
+              it.known = true;
+              say(s, "After long use you understand it: " + itemName(it) + ".", isCursed(it) ? "bad" : "good");
+            }
+          }
+      }
+    },
+    {
+      id: "vitals",
+      fn(s) {
+        const p = s.player, w = s.warn;
+        if (p.water <= 1 && !w.water) {
+          w.water = true;
+          say(s, p.water <= 0 ? "You are out of water." : "You are nearly out of water.", "bad");
+        } else if (p.water > 1.5) w.water = false;
+        if (p.warmth <= 25 && !w.warmth) {
+          w.warmth = true;
+          say(s, "You are shivering badly.", "bad");
+        } else if (p.warmth > 35) w.warmth = false;
+        if (p.stamina <= 0) {
+          p.stamina = 0;
+          if (s.over) return;
+          if (p.water <= 0 && !s.off.thirst || p.warmth <= 0 && !s.off.warmth) {
+            s.over = { won: false, cause: p.water <= 0 ? "thirst" : "cold" };
+            say(
+              s,
+              p.water <= 0 ? "You collapse, dry as the ground. The land keeps you." : "The cold takes you in your sleep.",
+              "bad"
+            );
+          }
+        }
+      }
+    }
+  ];
+  function advance(s, minutes, activity) {
+    let left = minutes;
+    while (left > 0 && !s.over) {
+      const step = Math.min(15, left);
+      left -= step;
+      s.time += step;
+      for (const sys of SYSTEMS) if (!s.off[sys.id]) sys.fn(s, step / 60, { activity });
+    }
+  }
+
+  // src/rules/quest.js
+  var hasItem = (s, base) => s.player.items.some((i) => i.base === base);
+  var atTown = (s) => s.area === "town";
+  function mark(s, x, y) {
+    const m = worldMap(s);
+    for (let j = -1; j <= 1; j++)
+      for (let i = -1; i <= 1; i++) {
+        const xx = x + i, yy = y + j;
+        if (xx >= 0 && yy >= 0 && xx < W && yy < H) m.seen[idx(xx, yy)] = 1;
+      }
+    const st = m.sites[idx(x, y)];
+    if (st) st.seen = true;
+  }
+  function findSite(s, kind) {
+    const m = worldMap(s);
+    for (const k in m.sites) if (m.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: m.sites[k] };
+    return null;
+  }
+  function findHere(s, kind) {
+    for (const k in s.sites) if (s.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: s.sites[k] };
+    return null;
+  }
+  function itemValue(it) {
+    const b = byId(C.bases, it.base);
+    if (b.quest || b.id === "campkit") return 0;
+    let v = C.value[it.base] || 5;
+    for (const id of [it.pre, it.suf]) if (id) v += byId(C.affixes, id).cursed ? -4 : 8;
+    if (it.mark) v += 6;
+    return Math.max(1, v);
+  }
+  function makeQuest(s, r, townP, vaultP, a0, goalP) {
+    const Q = C.quest, T = C.town, pick = (a) => a[Math.floor(r() * a.length)];
+    const race = pick(C.races), q = s.quest = {
+      key: pick(Q.keys),
+      vault: pick(Q.vaults),
+      relic: pick(Q.relics) + " of the " + s.civ.name,
+      dest: pick(Q.dests),
+      told: false,
+      keyTile: null,
+      beast: null
+    };
+    s.town = {
+      x: townP.x,
+      y: townP.y,
+      name: pick(T.a) + pick(T.b),
+      race: race.id,
+      elder: pick(race.names),
+      merchant: pick(race.names),
+      fuel: T.fuel,
+      stock: [],
+      speech: []
+    };
+    while (s.town.merchant === s.town.elder) s.town.merchant = pick(race.names);
+    for (const b of T.staples) s.town.stock.push(makeItem(s, b, null, null, true));
+    for (let i = 0; i < T.stock; i++) {
+      const it = genItem(s, { noConsumables: i < 3 });
+      it.known = true;
+      s.town.stock.push(it);
+    }
+    if (q.dest === "shrine") {
+      for (const k in s.sites) if (s.sites[k].kind === "shrine") delete s.sites[k];
+      for (let tries = 0; tries < 80; tries++) {
+        const x = clamp(goalP.x + Math.round((r() - 0.5) * 8), 1, W - 2), y = clamp(goalP.y + Math.round((r() - 0.5) * 8), 1, H - 2), k = idx(x, y), d = Math.abs(x - goalP.x) + Math.abs(y - goalP.y);
+        if (d < 3 || s.terrain[k] === 2 || s.terrain[k] >= 4 || s.sites[k]) continue;
+        s.sites[k] = { kind: "shrine" };
+        break;
+      }
+    }
+    const f = pick(C.creature.forms.filter((x) => x.id !== "hound"));
+    s.species.push({ name: q.vault.guard + " " + f.name, form: f.id, temper: "territorial", rare: null, met: false });
+    q.guardSp = s.species.length - 1;
+    if (q.key === "ruin") {
+      let best = null, bd = 1e9;
+      for (const k in s.sites)
+        if (s.sites[k].kind === "ruin") {
+          const d = Math.abs(k % W - vaultP.x) + Math.abs(Math.floor(k / W) - vaultP.y);
+          if (d >= 4 && d < bd) {
+            bd = d;
+            best = +k;
+          }
+        }
+      if (best === null) q.key = "elder";
+      else q.keyTile = best;
+    }
+    if (q.key === "beast") {
+      const bf = pick(C.creature.forms);
+      s.species.push({
+        name: pick(Q.beastNames) + " " + pick(C.creature.prefix[s.biome]) + " " + bf.name,
+        form: bf.id,
+        temper: "territorial",
+        rare: "elder",
+        met: false,
+        named: true
+      });
+      let x = 0, y = 0;
+      for (let tries = 0; tries < 60; tries++) {
+        const ang = a0 + Math.PI + (r() - 0.5) * 1.2, rad = 8 + r() * 4;
+        x = clamp(Math.round(s.start.x + Math.cos(ang) * rad), 2, W - 3);
+        y = clamp(Math.round(s.start.y + Math.sin(ang) * rad), 2, H - 3);
+        if (s.terrain[idx(x, y)] !== 2 && !s.sites[idx(x, y)]) break;
+      }
+      const c = makeCreature(s, 90, s.species.length - 1, x, y, 1);
+      c.key = true;
+      s.creatures.push(c);
+      q.beast = 90;
+    }
+  }
+  function findLoose(s, base) {
+    for (const [area, m] of allMaps(s))
+      for (const k in m.depots)
+        if (m.depots[k].items.some((i) => i.base === base))
+          return { area, x: k % W, y: Math.floor(k / W), who: m.depots[k].remains };
+    return null;
+  }
+  function objective(s) {
+    const q = s.quest, t = s.town, v = findSite(s, "vault"), wp = worldPos(s), toWorld = (p) => dirFrom(wp, p.x, p.y), toHere = (p) => dirTo(s, p.x, p.y), vaultName = q.vault.name, inVault = areaRec(s).kind === "vault";
+    const loose = (base, what) => {
+      const l = findLoose(s, base);
+      if (!l) return null;
+      const from = l.who ? " from " + l.who + "'s body" : "";
+      if (l.area === s.area) return { text: "Take " + what + from, dir: toHere(l) };
+      if (l.area === "overworld") return { text: "Take " + what + from, dir: toWorld(l) };
+      const deeper = s.areas[l.area].kind === "vault" && (!inVault || s.areas[l.area].level > areaRec(s).level);
+      if (inVault && deeper) {
+        const st = findHere(s, "stairsDown");
+        return { text: "Go deeper for " + what, dir: st && st.st.seen ? toHere(st) : null };
+      }
+      if (inVault) return { text: "Go back up for " + what, dir: null };
+      return { text: "Go into the " + vaultName + " for " + what + from, dir: toWorld(v) };
+    };
+    if (!hasItem(s, "relic")) {
+      const lr = loose("relic", "the " + q.relic);
+      if (lr && (findLoose(s, "relic").who || !inVault || findLoose(s, "relic").area === s.area)) return lr;
+    }
+    if (!hasItem(s, "key") && !hasItem(s, "relic") && !v.st.open) {
+      const lk = loose("key", "the key to the " + vaultName);
+      if (lk) return lk;
+    }
+    if (hasItem(s, "relic")) {
+      const d = q.dest === "beacon" ? s.goal : findSite(s, "shrine");
+      if (inVault) {
+        const up = findHere(s, areaRec(s).level === 1 ? "exit" : "stairsUp");
+        return { text: "Carry the " + q.relic + " out of the " + vaultName, dir: up ? toHere(up) : null };
+      }
+      if (!s.area || s.area === "overworld") return { text: "Carry the " + q.relic + " to the " + q.dest, dir: toWorld(d) };
+      return { text: "Carry the " + q.relic + " to the " + q.dest, dir: toWorld(d) };
+    }
+    if (inVault) {
+      const st = findHere(s, "stairsDown");
+      return { text: "Find the way down", dir: st && st.st.seen ? toHere(st) : null };
+    }
+    if (v.st.open || hasItem(s, "key"))
+      return { text: (v.st.open ? "Go down into the " : "Unlock the ") + vaultName, dir: q.told || v.st.seen ? toWorld(v) : null };
+    if (!q.told)
+      return {
+        text: s.area === "town" ? "Talk to the elder" : "Find the town",
+        dir: s.area === "town" ? toHere(findHere(s, "elder")) : toWorld(t)
+      };
+    if (q.key === "beast") {
+      const c = worldMap(s).creatures.find((x) => x.id === q.beast);
+      return c ? { text: "Kill the " + spOf(s, c).name + ", which has the key", dir: toWorld(c) } : { text: "Take the key from the lair", dir: null };
+    }
+    if (q.key === "ruin")
+      return { text: "Search the ruin where the key lies", dir: toWorld({ x: q.keyTile % W, y: Math.floor(q.keyTile / W) }) };
+    return { text: "Find the key to the " + vaultName, dir: null };
+  }
+  function talkElder(s) {
+    if (s.over || !atTown(s)) return false;
+    const q = s.quest, t = s.town, v = findSite(s, "vault"), sp = t.speech = [];
+    if (!q.told) {
+      q.told = true;
+      mark(s, v.x, v.y);
+      const d = q.dest === "beacon" ? s.goal : findSite(s, "shrine");
+      mark(s, d.x, d.y);
+      const wm = worldMap(s);
+      for (const k in wm.sites)
+        if (wm.sites[k].sure) {
+          wm.sites[k].known = true;
+          mark(s, k % W, Math.floor(k / W));
+        }
+      sp.push(
+        '"You came across the open ground alone? Then listen. ' + (q.dest === "beacon" ? "The beacon is dying. It was lit with" : "The shrine has stood empty since the " + s.civ.name + " took from it") + " the " + q.relic + ", and the " + s.civ.name + " locked that away in the " + q.vault.name + ' before the end."'
+      );
+      sp.push(
+        '"Bring it out, and carry it to the ' + q.dest + '. I have marked both on your map, and the springs our people use on the way."'
+      );
+      if (q.key === "elder") {
+        const k = makeItem(s, "key", null, null, true);
+        k.label = "Key to the " + q.vault.name;
+        s.player.items.push(k);
+        sp.push('"Here is the key. We have kept it three generations, and not one of us has dared use it."');
+      } else if (q.key === "beast") {
+        const c = worldMap(s).creatures.find((x) => x.id === q.beast);
+        if (c) {
+          c.seen = true;
+          mark(s, c.x, c.y);
+          sp.push(
+            '"The key is gone. The ' + spOf(s, c).name + ' took the last warden, key and all. Its lair is marked too. I am sorry."'
+          );
+        }
+      } else {
+        mark(s, q.keyTile % W, Math.floor(q.keyTile / W));
+        sp.push('"The key was buried with the last warden, in a ruin of theirs. I have marked that as well."');
+      }
+      const left = AXES.filter((a) => !s.civKnown[a]);
+      if (left.length) {
+        const ax = left[Math.floor(srand(s) * left.length)], tx = traitText(ax, s.civ[ax]);
+        s.known.civ = true;
+        learn(s, ax);
+        sp.push('"What else do we remember of the ' + s.civ.name + "? Only this: " + tx.label.toLowerCase() + ". " + tx.text + '"');
+      }
+      gainXp(s, 30);
+      say(s, t.elder + ", elder of " + t.name + ", tells you what this land needs. Your goal is under the meters.", "good");
+    } else {
+      const o = objective(s);
+      sp.push('"' + o.text + (o.dir && o.dir !== "here" ? ", to the " + o.dir : "") + '. Nothing has changed, traveller."');
+    }
+    return true;
+  }
+  function buy(s, id) {
+    if (s.over || !atTown(s)) return false;
+    const t = s.town, i = t.stock.findIndex((x) => x.id === id);
+    if (i < 0) return false;
+    const price = itemValue(t.stock[i]);
+    if (s.player.coin < price) {
+      say(s, "You cannot afford that.");
+      return false;
+    }
+    s.player.coin -= price;
+    const it = t.stock.splice(i, 1)[0];
+    s.player.items.push(it);
+    autoEquip(s, it);
+    say(s, "You buy the " + itemName(it) + " for " + price + " coin.");
+    return true;
+  }
+  function buyFuel(s) {
+    const t = s.town;
+    if (s.over || !atTown(s) || t.fuel < 1) return false;
+    if (s.player.coin < C.town.fuelPrice) {
+      say(s, "You cannot afford that.");
+      return false;
+    }
+    s.player.coin -= C.town.fuelPrice;
+    t.fuel--;
+    s.player.fuel += 1;
+    return true;
+  }
+  var sellPrice = (it) => itemValue(it) ? it.known ? Math.max(1, Math.floor(itemValue(it) * C.town.sellRate)) : 3 : 0;
+  function sell(s, id) {
+    if (s.over || !atTown(s)) return false;
+    const i = s.player.items.findIndex((x) => x.id === id);
+    if (i < 0) return false;
+    const it = s.player.items[i], price = sellPrice(it);
+    if (!price) {
+      say(s, "No one here will buy that.");
+      return false;
+    }
+    s.player.items.splice(i, 1);
+    delete it.eq;
+    it.known = true;
+    s.town.stock.push(it);
+    s.player.coin += price;
+    fitWater(s);
+    say(s, "You sell the " + itemName(it) + " for " + price + " coin.");
+    return true;
+  }
+  function appraise(s, id) {
+    if (s.over || !atTown(s)) return false;
+    const it = s.player.items.find((x) => x.id === id);
+    if (!it || it.known) return false;
+    if (s.player.coin < C.town.appraisePrice) {
+      say(s, "You cannot afford that.");
+      return false;
+    }
+    s.player.coin -= C.town.appraisePrice;
+    it.known = true;
+    say(s, s.town.merchant + " turns it over twice: " + itemName(it) + ".", isCursed(it) ? "bad" : "good");
+    return true;
+  }
+  function inn(s) {
+    if (s.over || !atTown(s)) return false;
+    if (s.player.coin < C.town.innPrice) {
+      say(s, "You cannot afford a bed.");
+      return false;
+    }
+    s.player.coin -= C.town.innPrice;
+    const p = s.player, w = p.water;
+    for (let i = 0; i < 8 && !s.over; i++) restHour(s);
+    if (s.over) return true;
+    p.water = Math.max(p.water, w);
+    p.hp = p.hpMax;
+    p.mana = p.manaMax;
+    p.stamina = 100;
+    p.warmth = 100;
+    say(s, "A bed, a fire and a meal. You wake whole.", "good");
+    return true;
+  }
+  function unlock(s) {
+    const st = siteHere(s);
+    if (s.over || !st || st.kind !== "vault" || st.open) return false;
+    if (!hasItem(s, "key")) {
+      say(s, "The door of the " + s.quest.vault.name + " is locked, and will not be forced.");
+      return false;
+    }
+    st.open = true;
+    gainXp(s, 20);
+    say(s, "The key turns. Cold air comes up the stair.", "good");
+    return true;
+  }
+  function enterTown(s) {
+    const st = siteHere(s);
+    if (s.over || !st || st.kind !== "town") return false;
+    enterArea(s, "town", { kind: "town", indoor: true, name: s.town.name });
+    if (!st.entered) {
+      st.entered = true;
+      gainXp(s, 20);
+    }
+    say(
+      s,
+      "You pass the gate of " + s.town.name + "." + (s.quest.told ? "" : " The elder will be at the hall on the north side of the square.")
+    );
+    return true;
+  }
+  var vaultLevelId = (n) => "vault" + n;
+  function enterVault(s) {
+    const st = siteHere(s);
+    if (s.over || !st || st.kind !== "vault" || !st.open) return false;
+    if (stat(s, "nightSight", 0) <= 0) {
+      say(s, "It is black as pitch inside. You need a light: a worn lantern with fuel will do.", "bad");
+      return false;
+    }
+    goToLevel(s, 1, st.floors);
+    say(s, "You go down into the " + s.quest.vault.name + ". Level 1 of " + st.floors.length + ".");
+    return true;
+  }
+  function goToLevel(s, n, floors) {
+    const id = vaultLevelId(n);
+    enterArea(s, id, { kind: "vault", indoor: true, dark: true, level: n, levels: floors.length, floor: floors[n - 1] });
+    reveal(s, s.player.x, s.player.y, sightRadius(s), true);
+  }
+  function goDown(s) {
+    const st = siteHere(s), rec = areaRec(s);
+    if (s.over || !st || st.kind !== "stairsDown") return false;
+    if (stat(s, "nightSight", 0) <= 0) {
+      say(s, "You will not find the next stair without a light.", "bad");
+      return false;
+    }
+    advance(s, 10, "rest");
+    if (s.over) return true;
+    const n = rec.level + 1, floors = findSite(s, "vault").st.floors;
+    goToLevel(s, n, floors);
+    say(s, "Level " + n + " of " + floors.length + (n === floors.length ? ". The air is older here." : "."));
+    return true;
+  }
+  function goUp(s) {
+    const st = siteHere(s);
+    if (s.over || !st || st.kind !== "stairsUp" && st.kind !== "exit") return false;
+    const leaving = areaRec(s);
+    advance(s, 10, "rest");
+    if (s.over) return true;
+    leaveArea(s);
+    if (leaving.kind === "town") say(s, "You leave " + s.town.name + " by the south gate.");
+    else if (s.area === "overworld") say(s, "You climb out into the " + (clock(s).isDay ? "daylight" : "night") + ".");
+    else say(s, "You climb back up to level " + areaRec(s).level + ".");
+    return true;
+  }
+  function offer(s) {
+    const st = siteHere(s);
+    if (s.over || !st || st.kind !== "shrine" || s.quest.dest !== "shrine" || !hasItem(s, "relic")) return false;
+    s.over = { won: true };
+    say(s, "You set the " + s.quest.relic + " on the shrine. Something that was held breath for an age lets go.", "good");
+    return true;
+  }
+
   // src/rules/actions.js
   function moveCost(s, x, y) {
     const tt = s.terrain[idx(x, y)], tn = TERR[tt], g = terrainInfo(s, tt);
     let mins = g.moveMin * stat(s, "moveTime", 1) * stat(s, "moveTime." + tn, 1);
-    if (!clock(s).isDay && stat(s, "nightSight", 0) <= 0) mins *= 2;
+    if ((!clock(s).isDay || isDark(s)) && stat(s, "nightSight", 0) <= 0) mins *= 2;
     let sta = g.moveSta;
     if (s.road[idx(x, y)]) {
       mins = s.tun.moveMin.plain * 0.55 * stat(s, "moveTime", 1) * (!clock(s).isDay && stat(s, "nightSight", 0) <= 0 ? 2 : 1);
@@ -2240,6 +2402,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       say(s, "The map ends here.");
       return false;
     }
+    if (!passable(s, nx, ny)) return false;
     if (weight(s) > carryCap(s) + 1e-9) {
       say(s, "You are carrying too much to move. Leave something here.", "bad");
       return false;
@@ -2257,7 +2420,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     const g = groundHere(s), was = s.lastGround;
     s.lastGround = s.terrain[here(s)];
     if (g.wet && !s.off.warmth) s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
-    if (s.lastGround !== was && s.lastGround >= 3)
+    if (s.lastGround !== was && s.lastGround >= 3 && s.lastGround < WALL)
       say(
         s,
         {
@@ -2295,9 +2458,34 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         "good"
       );
     }
+    {
+      const d = s.depots[here(s)];
+      if (d && d.coin && !d.remains) {
+        s.player.coin += d.coin;
+        say(
+          s,
+          (d.store ? "A store-room, untouched. " : "") + "You pick up " + d.coin + " coin." + (d.items.length ? " There is more in the Pack screen." : ""),
+          "good"
+        );
+        d.coin = 0;
+      }
+      if (d && d.items.some((i) => i.base === "relic") && !hasItem(s, "relic"))
+        say(s, "On a plinth lies the " + s.quest.relic + ". Open Pack to take it.", "good");
+    }
     const st = siteHere(s);
     if (!st) return;
     st.seen = true;
+    if (st.kind === "trap" && !st.sprung) {
+      st.sprung = true;
+      if (stat(s, "trapSafe", 0) > 0)
+        say(s, "You feel the pressure plate shift under your boot, and step off it before it fires.", "good");
+      else {
+        const n = Math.min(roll(s, 1, 6) + 2, Math.max(0, Math.ceil(s.player.hp) - 1));
+        s.player.hp -= n;
+        say(s, "A plate clicks underfoot. Darts from the wall: " + n + " damage.", "bad");
+      }
+      return;
+    }
     if (st.kind === "spring" && !st.known && stat(s, "tasteWater", 0) > 0) {
       st.known = true;
       say(
@@ -2312,7 +2500,6 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       say(s, "You set the " + s.quest.relic + " in the beacon. The fire catches, and turns, and holds.", "good");
       return;
     }
-    if (st.kind === "town" && !st.visited) gainXp(s, 20);
     if (st.kind === "shrine" && !s.known.god) {
       s.known.god = true;
       emit(s, "learned", { axis: "god", id: s.god });
@@ -2338,7 +2525,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     }
   }
   function survey(s) {
-    if (s.over) return false;
+    if (s.over || indoors(s)) return false;
     if (s.weather.storm) {
       say(s, "You can see nothing through the " + biomeOf(s).storm.name + ".");
       return false;
@@ -2408,7 +2595,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     return true;
   }
   function topUp(s, limit) {
-    const room = Math.max(0, waterCap(s) - s.player.water), got = Math.min(room, limit === void 0 ? room : limit);
+    const room = Math.max(0, Math.min(waterCap(s) - s.player.water, carryCap(s) - weight(s))), got = Math.min(room, limit === void 0 ? room : limit);
     s.player.water += got;
     return got;
   }
@@ -2483,7 +2670,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   }
   function melt(s) {
     const b = biomeOf(s);
-    if (s.over || !b.melt) return false;
+    if (s.over || !b.melt || indoors(s)) return false;
     if (s.player.fuel < 1) {
       say(s, "You need 1 fuel to melt snow.");
       return false;
@@ -2777,9 +2964,18 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       return a;
     }
     if (s.char.cls === "cleric" && p.hp < p.hpMax && p.mana >= 3) a.push({ id: "mend", label: "Mend", hint: "heal, 3 mana" });
-    a.push({ id: "survey", label: "Survey", hint: "30 min" });
+    if (!indoors(s)) a.push({ id: "survey", label: "Survey", hint: "30 min" });
     if (st) {
-      if (st.kind === "well" || st.kind === "town" || st.kind === "ruin" && st.water > 0.05 && !st.foulWater || st.kind === "spring" && (!st.known || !st.foul))
+      if (st.kind === "exit")
+        a.push({ id: "goUp", label: areaRec(s).kind === "town" ? "Leave " + s.town.name : "Climb out", hint: "back outside" });
+      if (st.kind === "stairsUp") a.push({ id: "goUp", label: "Go up", hint: "level " + (areaRec(s).level - 1) });
+      if (st.kind === "stairsDown")
+        a.push({ id: "goDown", label: "Go down", hint: "level " + (areaRec(s).level + 1) + " of " + areaRec(s).levels });
+      if (st.kind === "elder") a.push({ id: "townAsk", section: "elder", label: "Talk to " + s.town.elder, hint: "the elder" });
+      if (st.kind === "inn") a.push({ id: "townAsk", section: "inn", label: "The inn", hint: "a bed for the night" });
+      if (st.kind === "shop")
+        a.push({ id: "townAsk", section: "shop", label: "Trade with " + s.town.merchant, hint: "buy, sell, appraise" });
+      if (st.kind === "well" || st.kind === "ruin" && st.water > 0.05 && !st.foulWater || st.kind === "spring" && (!st.known || !st.foul))
         a.push({ id: "fill", label: st.kind === "spring" && !st.known ? "Taste the spring" : "Fill water", hint: "15 min" });
       if (st.kind === "spring" && st.known && st.foul || st.kind === "ruin" && st.foulWater && st.water > 0.05) {
         a.push({ id: "boil", label: "Boil and fill", hint: "1 fuel" });
@@ -2796,25 +2992,21 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       if (st.kind === "shrine" && !s.pact) a.push({ id: "pactAsk", label: "Approach the shrine", hint: "hear the terms" });
       if (st.kind === "shrine" && s.quest.dest === "shrine" && hasItem(s, "relic"))
         a.push({ id: "offer", label: "Offer the " + s.quest.relic, hint: "end the journey" });
-      if (st.kind === "town") a.push({ id: "townAsk", label: "Enter " + s.town.name, hint: "talk, trade, rest" });
+      if (st.kind === "town") a.push({ id: "enterTown", label: "Enter " + s.town.name, hint: "talk, trade, rest" });
       if (st.kind === "vault" && !st.open)
         a.push({
           id: "unlock",
           label: "Unlock the " + s.quest.vault.name,
           hint: hasItem(s, "key") ? "you have the key" : "needs the key"
         });
-      if (st.kind === "vault" && st.open && st.depth < st.floors.length)
-        a.push({
-          id: "descend",
-          label: st.guard ? "Face the guardian again" : "Descend",
-          hint: "level " + (st.depth + 1) + " of " + st.floors.length + ", needs a light"
-        });
+      if (st.kind === "vault" && st.open)
+        a.push({ id: "enterVault", label: "Go into the " + s.quest.vault.name, hint: st.floors.length + " levels, needs a light" });
     }
     const g = groundHere(s);
     if (!st && g.drink) a.push({ id: "fill", label: "Fill from the " + g.name, hint: "15 min" });
     if (g.dig && !s.dug[here(s)]) a.push({ id: "dig", label: "Dig for water", hint: "1 h, -12 stamina" });
     if (g.gather) a.push({ id: "gather", label: "Gather wood", hint: "30 min, +1 fuel" });
-    if (biomeOf(s).melt && cap - p.water >= 0.05) a.push({ id: "melt", label: "Melt snow", hint: "1 fuel" });
+    if (biomeOf(s).melt && !indoors(s) && cap - p.water >= 0.05) a.push({ id: "melt", label: "Melt snow", hint: "1 fuel" });
     a.push({ id: "rest", label: "Rest", hint: "1 h" });
     if (inShelter(s)) a.push({ id: "sleep", label: atCamp(s) ? "Sleep at camp" : "Sleep in shelter", hint: "until rested" });
     if (p.warmth < 95) a.push({ id: "fire", label: "Light a fire", hint: "1 fuel" });
@@ -2833,11 +3025,12 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   }
   function shrineBearing(s) {
     if (stat(s, "shrineSense", 0) <= 0) return null;
-    for (const k in s.sites) if (s.sites[k].kind === "shrine") return dirTo(s, k % W, Math.floor(k / W));
+    const m = worldMap(s);
+    for (const k in m.sites) if (m.sites[k].kind === "shrine") return dirFrom(worldPos(s), k % W, Math.floor(k / W));
     return null;
   }
   function wellfinder(s) {
-    if (stat(s, "wellfinder", 0) <= 0) return null;
+    if (indoors(s) || stat(s, "wellfinder", 0) <= 0) return null;
     let best = null, bd = 1e9;
     for (const k in s.sites) {
       const st = s.sites[k];
@@ -2850,6 +3043,128 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     }
     return best;
   }
+
+  // src/rules/interiors.js
+  var blank = (fill2) => new Array(W * H).fill(fill2);
+  var inside = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1;
+  GENERATORS.town = (s, rec) => {
+    const r = stream(s.seed, "area:town"), terrain = blank(FLOOR), sites = {}, c = 18;
+    for (let i = 0; i < W; i++)
+      for (const [x, y] of [
+        [i, 0],
+        [i, H - 1],
+        [0, i],
+        [W - 1, i]
+      ])
+        terrain[idx(x, y)] = WALL;
+    const block = (x0, y0, w, h) => {
+      for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (inside(x, y)) terrain[idx(x, y)] = WALL;
+    };
+    const plaza = (x, y) => Math.abs(x - c) <= 6 && Math.abs(y - c) <= 6;
+    const street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1;
+    block(c - 3, c - 12, 7, 5);
+    block(c + 8, c - 3, 5, 7);
+    block(c - 12, c - 3, 5, 7);
+    sites[idx(c, c - 7)] = { kind: "elder", seen: true };
+    sites[idx(c + 7, c)] = { kind: "inn", seen: true };
+    sites[idx(c - 7, c)] = { kind: "shop", seen: true };
+    sites[idx(c, c)] = { kind: "well", seen: true };
+    for (let tries = 0, n = 0; tries < 400 && n < 16; tries++) {
+      const w = 3 + Math.floor(r() * 3), h = 3 + Math.floor(r() * 3), x0 = 2 + Math.floor(r() * (W - 4 - w)), y0 = 2 + Math.floor(r() * (H - 4 - h));
+      let ok = true;
+      for (let y = y0 - 1; y <= y0 + h && ok; y++)
+        for (let x = x0 - 1; x <= x0 + w && ok; x++)
+          if (plaza(x, y) || street(x, y) || terrain[idx(x, y)] === WALL || sites[idx(x, y)]) ok = false;
+      if (!ok) continue;
+      block(x0, y0, w, h);
+      n++;
+    }
+    const gate = { x: c, y: H - 2 };
+    terrain[idx(c, H - 1)] = FLOOR;
+    sites[idx(gate.x, gate.y)] = { kind: "exit", seen: true };
+    rec.entry = { x: gate.x, y: gate.y - 1 };
+    return { terrain, sites, seen: blank(1) };
+  };
+  GENERATORS.vault = (s, rec) => {
+    const lvl = rec.level, last2 = lvl === rec.levels, kind = rec.floor, r = stream(s.seed, "area:vault" + lvl), terrain = blank(WALL), sites = {}, depots = {}, creatures = [];
+    const rooms = [];
+    for (let tries = 0; tries < 300 && rooms.length < 9; tries++) {
+      const w = 4 + Math.floor(r() * 5), h = 4 + Math.floor(r() * 5), x = 2 + Math.floor(r() * (W - w - 4)), y = 2 + Math.floor(r() * (H - h - 4));
+      if (rooms.some((o) => x < o.x + o.w + 2 && x + w + 2 > o.x && y < o.y + o.h + 2 && y + h + 2 > o.y)) continue;
+      rooms.push({ x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) });
+    }
+    for (const o of rooms) for (let y = o.y; y < o.y + o.h; y++) for (let x = o.x; x < o.x + o.w; x++) terrain[idx(x, y)] = FLOOR;
+    const corridor = [];
+    const dig2 = (x, y) => {
+      if (terrain[idx(x, y)] === WALL) corridor.push(idx(x, y));
+      terrain[idx(x, y)] = FLOOR;
+    };
+    rooms.sort((a, b) => a.cx - b.cx);
+    for (let i = 1; i < rooms.length; i++) {
+      const a = rooms[i - 1], b = rooms[i];
+      let x = a.cx, y = a.cy;
+      const horizFirst = r() < 0.5;
+      if (horizFirst) {
+        while (x !== b.cx) dig2(x += Math.sign(b.cx - x), y);
+        while (y !== b.cy) dig2(x, y += Math.sign(b.cy - y));
+      } else {
+        while (y !== b.cy) dig2(x, y += Math.sign(b.cy - y));
+        while (x !== b.cx) dig2(x += Math.sign(b.cx - x), y);
+      }
+    }
+    const start2 = rooms[0], entry = { x: start2.cx, y: start2.cy };
+    const dist = blank(-1), q = [idx(entry.x, entry.y)];
+    dist[q[0]] = 0;
+    while (q.length) {
+      const i = q.shift(), x = i % W, y = Math.floor(i / W);
+      for (const [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1]
+      ]) {
+        const j = idx(x + dx, y + dy);
+        if (terrain[j] === FLOOR && dist[j] < 0) {
+          dist[j] = dist[i] + 1;
+          q.push(j);
+        }
+      }
+    }
+    const far = rooms.slice(1).sort((a, b) => dist[idx(b.cx, b.cy)] - dist[idx(a.cx, a.cy)])[0] || start2;
+    sites[idx(entry.x, entry.y - 1 >= start2.y ? entry.y - 1 : entry.y)] = { kind: lvl === 1 ? "exit" : "stairsUp" };
+    rec.entry = { x: entry.x, y: entry.y };
+    const tier = Math.min(3, lvl), others = rooms.filter((o) => o !== start2 && o !== far), pickRoom = () => others[Math.floor(r() * others.length)] || far, spot = (o) => {
+      for (let t = 0; t < 30; t++) {
+        const x = o.x + Math.floor(r() * o.w), y = o.y + Math.floor(r() * o.h), i = idx(x, y);
+        if (!sites[i] && !depots[i] && !creatures.some((c) => c.x === x && c.y === y)) return { x, y };
+      }
+      return { x: o.cx, y: o.cy };
+    };
+    let cid = 200 + lvl * 10;
+    const guard = (o, t) => {
+      const p = spot(o), c = makeCreature(s, cid++, s.quest.guardSp, p.x, p.y, t);
+      creatures.push(c);
+      return c;
+    };
+    if (last2) {
+      const relic = makeItem(s, "relic", null, null, true);
+      relic.label = s.quest.relic;
+      depots[idx(far.cx, far.cy)] = { water: 0, fuel: 0, items: [relic] };
+      guard(far, 2).warden = true;
+    } else sites[idx(far.cx, far.cy)] = { kind: "stairsDown" };
+    guard(pickRoom(), Math.max(1, tier - 1));
+    if (kind === "guard") guard(pickRoom(), tier);
+    if (kind === "loot") {
+      const o = pickRoom(), p = spot(o), it = genItem(s, { relic: true, noConsumables: true });
+      depots[idx(p.x, p.y)] = { water: 0, fuel: 0, items: [it], coin: 6 + Math.floor(r() * 12), store: true };
+    }
+    if (kind === "trap")
+      for (let n = 0; n < 4 && corridor.length; n++) {
+        const i = corridor.splice(Math.floor(r() * corridor.length), 1)[0];
+        if (!sites[i]) sites[i] = { kind: "trap", sprung: false };
+      }
+    return { terrain, sites, depots, creatures };
+  };
 
   // src/rules/worldgen.js
   function newGame(seed) {
@@ -2954,8 +3269,6 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       sites[idx(vaultP.x, vaultP.y)] = {
         kind: "vault",
         open: false,
-        depth: 0,
-        guard: null,
         floors: [F[Math.floor(rV() * F.length)], F[Math.floor(rV() * F.length)], "guard"]
       };
     }
@@ -3060,6 +3373,8 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       char: null,
       travellers: 1,
       lostMaps: {},
+      area: "overworld",
+      areas: { overworld: { id: "overworld", kind: "overworld" } },
       offer: null,
       time: 0,
       weather: { storm: false, changeAt: 0 },
@@ -3104,7 +3419,19 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
 
   // src/rules/save.js
   var MIGRATIONS = {
-    // Example: 6: (s) => { s.newField = defaultValue; },   // upgrades a version-6 save to version 7
+    // 6 -> 7: towns and the locked place became areas you walk into.
+    6: (s) => {
+      s.area = "overworld";
+      s.areas = { overworld: { id: "overworld", kind: "overworld" } };
+      s.creatures = s.creatures.filter((c) => !c.bound);
+      if (s.combat && !s.creatures.some((c) => c.id === s.combat.cid)) s.combat = null;
+      for (const k in s.sites) {
+        const st = s.sites[k];
+        if (st.kind !== "vault") continue;
+        delete st.guard;
+        delete st.depth;
+      }
+    }
   };
   function serialize(s) {
     return JSON.stringify(s);
@@ -3130,6 +3457,16 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
 
   // src/rules/index.js
   var api = {
+    findLoose,
+    passable,
+    areaRec,
+    inOverworld,
+    indoors,
+    isDark,
+    worldMap,
+    worldPos,
+    WALL,
+    FLOOR,
     aOrAn,
     serialize,
     deserialize,
@@ -3208,7 +3545,11 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     appraise,
     inn,
     unlock,
-    descend,
+    enterTown,
+    enterVault,
+    goDown,
+    goUp,
+    findHere,
     offer,
     itemValue,
     hasItem,
@@ -3267,7 +3608,10 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     "appraise",
     "inn",
     "unlock",
-    "descend",
+    "enterTown",
+    "enterVault",
+    "goDown",
+    "goUp",
     "offer"
   ]) {
     const fn = api[k];
@@ -3317,8 +3661,14 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
   }
-  var tileX = (tx) => (tx + 0.5) * TS - HALF;
-  var toTile = (x) => clamp2(Math.floor((x + HALF) / TS), 0, R.W - 1);
+  var INDOOR_TS = 4;
+  var G = { ts: TS, half: HALF };
+  function setGeometry(indoor) {
+    G.ts = indoor ? INDOOR_TS : TS;
+    G.half = R.W * G.ts / 2;
+  }
+  var tileX = (tx) => (tx + 0.5) * G.ts - G.half;
+  var toTile = (x) => clamp2(Math.floor((x + G.half) / G.ts), 0, R.W - 1);
 
   // src/view/terrain.js
   function makeTerrain(s) {
@@ -3590,10 +3940,111 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       return g;
     }
   };
+  var FLAT = { height: () => 0 };
+  var VAULT_STONE = { castle: 6973024, barrow: 6122058, temple: 5205612 };
+  function buildInterior() {
+    const rec = R.areaRec(V.S), town = rec.kind === "town", ts = G.ts, size = R.W * ts, T = V.S.terrain, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
+    V.terrain = FLAT;
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 9407104 : 4078133));
+    staticGroup.add(floor);
+    const stone = town ? 13220768 : VAULT_STONE[V.S.quest.vault.id], tiles = [];
+    for (let y = 0; y < R.H; y++)
+      for (let x = 0; x < R.W; x++) {
+        if (!isWall(x, y)) continue;
+        if (!isWall(x + 1, y) || !isWall(x - 1, y) || !isWall(x, y + 1) || !isWall(x, y - 1) || !isWall(x + 1, y + 1) || !isWall(x - 1, y - 1) || !isWall(x + 1, y - 1) || !isWall(x - 1, y + 1))
+          tiles.push([x, y]);
+      }
+    const outer = (x, y) => x === 0 || y === 0 || x === R.W - 1 || y === R.H - 1;
+    const groups = town ? [tiles.filter(([x, y]) => outer(x, y)), tiles.filter(([x, y]) => !outer(x, y))] : [tiles];
+    groups.forEach((list, gi) => {
+      const h = town ? gi === 0 ? 6 : 4.5 : 5, inst = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(ts, h, ts),
+        std(town && gi === 0 ? 9274745 : stone),
+        Math.max(1, list.length)
+      ), m = new THREE.Matrix4();
+      list.forEach(([x, y], i) => {
+        m.makeTranslation(tileX(x), h / 2, tileX(y));
+        inst.setMatrixAt(i, m);
+      });
+      inst.count = list.length;
+      staticGroup.add(inst);
+    });
+    if (town) {
+      const caps = groups[1], inst = new THREE.InstancedMesh(new THREE.BoxGeometry(ts * 1.02, 0.4, ts * 1.02), std(8011564), Math.max(1, caps.length)), m = new THREE.Matrix4();
+      caps.forEach(([x, y], i) => {
+        m.makeTranslation(tileX(x), 4.7, tileX(y));
+        inst.setMatrixAt(i, m);
+      });
+      inst.count = caps.length;
+      staticGroup.add(inst);
+    } else {
+      const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(1841688));
+      ceiling.position.y = 5;
+      staticGroup.add(ceiling);
+    }
+  }
+  function person(color, hat) {
+    const g = new THREE.Group(), body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 1.5, 8), std(color)), head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 10, 8), std(14268566));
+    body.position.y = 0.75;
+    head.position.y = 1.75;
+    g.add(body, head);
+    if (hat) {
+      const h = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.45, 8), std(hat));
+      h.position.y = 2.1;
+      g.add(h);
+    }
+    return g;
+  }
+  function interiorSite(st) {
+    const ts = G.ts, g = new THREE.Group();
+    if (st.kind === "elder") g.add(person(9055276, 5905436));
+    else if (st.kind === "inn") g.add(person(8018478), box(1.6, 0.9, 0.8, std(5913890), 1.2, 0.45, 0));
+    else if (st.kind === "shop")
+      g.add(person(3104655), box(1.8, 0.9, 0.9, std(7031338), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(13214247), -0.4, 1.1, -1.1));
+    else if (st.kind === "well") g.add(BUILD.well());
+    else if (st.kind === "exit" && R.areaRec(V.S).kind === "town")
+      g.add(
+        box(0.6, 5, 0.6, std(7037784), -ts / 2, 2.5, 0),
+        box(0.6, 5, 0.6, std(7037784), ts / 2, 2.5, 0),
+        box(ts + 0.6, 0.6, 0.6, std(7037784), 0, 5, 0)
+      );
+    else if (st.kind === "exit" || st.kind === "stairsUp") {
+      for (let i = 0; i < 4; i++)
+        g.add(box(ts * 0.8, 0.3 + i * 0.4, 0.6, std(7827818), 0, (0.3 + i * 0.4) / 2, -ts / 2 + 0.3 + i * 0.6));
+      const shaft = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.5, 0.9, 5, 10, 1, true),
+        new THREE.MeshBasicMaterial({
+          color: st.kind === "exit" ? 16773568 : 14723146,
+          transparent: true,
+          opacity: 0.1,
+          depthWrite: false
+        })
+      );
+      shaft.material.side = THREE.DoubleSide;
+      shaft.position.set(0, 2.5, -ts * 0.35);
+      g.add(shaft);
+    } else if (st.kind === "stairsDown") {
+      g.add(
+        new THREE.Mesh(
+          new THREE.PlaneGeometry(ts * 0.8, ts * 0.8).rotateX(-Math.PI / 2),
+          new THREE.MeshBasicMaterial({ color: 328965 })
+        )
+      );
+      g.children[0].position.y = 0.02;
+      for (let i = 0; i < 3; i++) g.add(box(ts * 0.7, 0.12, 0.5, std(5920078), 0, 0.04 - i * 0.01, -ts * 0.3 + i * 0.6));
+      const marker = new THREE.Mesh(new THREE.TorusGeometry(ts * 0.42, 0.06, 6, 24).rotateX(Math.PI / 2), glow(14723146, 0.5));
+      marker.position.y = 0.05;
+      g.add(marker);
+    } else if (st.kind === "trap" && (st.sprung || st.seen))
+      g.add(box(ts * 0.6, 0.06, ts * 0.6, std(st.sprung ? 2762018 : 10103330), 0, 0.03, 0));
+    return g;
+  }
   function buildStatic() {
     dispose(staticGroup);
     staticGroup = new THREE.Group();
     scene.add(staticGroup);
+    setGeometry(R.indoors(V.S));
+    if (R.indoors(V.S)) return buildInterior();
     V.terrain = makeTerrain(V.S);
     const b = R.biomeOf(V.S), cols = b.colors.map((c2) => new THREE.Color(c2)), lush = new THREE.Color(b.id === "taiga" ? 6126200 : 6261317), paved = new THREE.Color(9210502), c = new THREE.Color();
     const springs = Object.keys(V.S.sites).filter((k) => V.S.sites[k].kind === "spring").map((k) => ({ x: tileX(k % R.W), z: tileX(Math.floor(k / R.W)) }));
@@ -3709,10 +4160,23 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         dynGroup.add(c);
       }
     }
+    const indoor = R.indoors(V.S), off = indoor ? G.ts / 28 : 1;
+    if (indoor)
+      for (const k in V.S.sites) {
+        const st = V.S.sites[k], [x, y, z] = at(+k), g = interiorSite(st);
+        g.position.set(x, y, z);
+        if (st.kind === "elder" || st.kind === "inn" || st.kind === "shop") g.rotation.y = Math.atan2(P.x - x, P.z - z);
+        dynGroup.add(g);
+      }
     for (const k in V.S.depots) {
-      if (+k === V.S.camp) continue;
-      const [x, y, z] = at(+k, 3.5, 2.5);
-      dynGroup.add(box(1.2, 1, 1.2, std(9067051), x, y + 0.5, z));
+      if (R.inOverworld(V.S) && +k === V.S.camp) continue;
+      const d = V.S.depots[k], relic = d.items.some((i) => i.base === "relic"), [x, y, z] = at(+k, 3.5 * off, 2.5 * off);
+      if (relic) {
+        dynGroup.add(box(1.2, 1, 1.2, std(7827818), x, y + 0.5, z));
+        const r = new THREE.Mesh(new THREE.OctahedronGeometry(0.35), glow(16765562, 1));
+        r.position.set(x, y + 1.45, z);
+        dynGroup.add(r);
+      } else dynGroup.add(box(1.2, 1, 1.2, std(9067051), x, y + 0.5, z));
     }
     for (const c of V.S.creatures) {
       if (c.bound && !(V.S.combat && V.S.combat.cid === c.id)) continue;
@@ -3754,19 +4218,19 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       g.scale.setScalar(k * (sp.form === "wight" ? 0.85 : 1.1));
       let x, y, z;
       if (V.S.combat && V.S.combat.cid === c.id) {
-        x = P.x - Math.sin(P.yaw) * 7.5;
-        z = P.z - Math.cos(P.yaw) * 7.5;
+        x = P.x - Math.sin(P.yaw) * (indoor ? 3 : 7.5);
+        z = P.z - Math.cos(P.yaw) * (indoor ? 3 : 7.5);
         P.pitch = 0;
         y = V.terrain.height(x, z);
         g.rotation.y = P.yaw;
       } else {
-        [x, y, z] = at(c.y * R.W + c.x, -4, -5);
+        [x, y, z] = at(c.y * R.W + c.x, -4 * off, -5 * off);
         g.rotation.y = Math.atan2(P.x - x, P.z - z);
       }
       g.position.set(x, y, z);
       dynGroup.add(g);
     }
-    if (V.S.camp !== null) {
+    if (R.inOverworld(V.S) && V.S.camp !== null) {
       const [x, y, z] = at(V.S.camp, 5, 3), t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(14262858));
       t.position.set(x, y + 1.8, z);
       const sm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.6, 150, 8, 1, true), glow(15921902, 0.38));
@@ -3819,13 +4283,33 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     return null;
   }
   function placePlayer() {
-    P.x = tileX(V.S.player.x) + 6;
-    P.z = tileX(V.S.player.y) + 7;
+    const indoor = R.indoors(V.S);
+    P.x = tileX(V.S.player.x) + (indoor ? 0 : 6);
+    P.z = tileX(V.S.player.y) + (indoor ? 0 : 7);
     P.y = V.terrain.height(P.x, P.z) + EYE;
     P.pitch = 0;
     P.walked = 0;
-    P.yaw = Math.atan2(-(tileX(V.S.town.x) - P.x), -(tileX(V.S.town.y) - P.z));
+    if (indoor) {
+      let best = 0, bestRun = -1;
+      [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0]
+      ].forEach(([dx, dy], i) => {
+        const st = V.S.sites[(V.S.player.y + dy) * R.W + V.S.player.x + dx];
+        if (st && (st.kind === "exit" || st.kind === "stairsUp")) return;
+        let run = 0;
+        while (run < 12 && R.passable(V.S, V.S.player.x + dx * (run + 1), V.S.player.y + dy * (run + 1))) run++;
+        if (run > bestRun) {
+          bestRun = run;
+          best = i;
+        }
+      });
+      P.yaw = [0, -Math.PI / 2, Math.PI, Math.PI / 2][best];
+    } else P.yaw = Math.atan2(-(tileX(V.S.town.x) - P.x), -(tileX(V.S.town.y) - P.z));
     shown.t = V.S.time;
+    shown.area = V.S.area;
   }
   function enter(state) {
     V.S = state;
@@ -3843,9 +4327,16 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     enter(R.newGame(seed));
     openCreate(false);
   };
+  function sync() {
+    if (shown.area !== V.S.area) {
+      buildStatic();
+      placePlayer();
+    }
+  }
   function act(fn) {
     if (!V.S || V.S.over) return;
     fn();
+    sync();
     buildDynamic();
     render();
     save();
@@ -3880,8 +4371,15 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       fy /= mag;
       mag = 1;
     }
-    const sn = Math.sin(P.yaw), cs = Math.cos(P.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx, mc = R.moveCost(V.S, V.S.player.x, V.S.player.y), sp = VIEW.speed * clamp2(mc.base / mc.mins, 0.3, 1.15);
-    const nx = clamp2(P.x + dx * sp * dt, -HALF + 3, HALF - 3), nz = clamp2(P.z + dz * sp * dt, -HALF + 3, HALF - 3), tx = toTile(nx), tz = toTile(nz);
+    const sn = Math.sin(P.yaw), cs = Math.cos(P.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx, mc = R.moveCost(V.S, V.S.player.x, V.S.player.y), indoor = R.indoors(V.S), sp = VIEW.speed * (indoor ? 0.65 : clamp2(mc.base / mc.mins, 0.3, 1.15));
+    let nx = clamp2(P.x + dx * sp * dt, -G.half + 1, G.half - 1), nz = clamp2(P.z + dz * sp * dt, -G.half + 1, G.half - 1);
+    const pad = indoor ? 0.6 : 0, blocked = (x, z) => !R.passable(V.S, toTile(x + Math.sign(x - P.x) * pad), toTile(z)) || !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P.z) * pad));
+    if (indoor && blocked(nx, nz)) {
+      if (!blocked(nx, P.z)) nz = P.z;
+      else if (!blocked(P.x, nz)) nx = P.x;
+      else return;
+    }
+    const tx = toTile(nx), tz = toTile(nz);
     if (tx !== V.S.player.x || tz !== V.S.player.y) {
       if (now < V.blockedUntil) return;
       const before = V.S.log.length, ok = R.move(V.S, tx - V.S.player.x, tz - V.S.player.y);
@@ -3890,6 +4388,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         render();
         return;
       }
+      sync();
       buildDynamic();
       render();
       save();
@@ -3908,12 +4407,27 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     const h = (360 + shown.t) / 60 % 24, b = R.biomeOf(V.S), day = smooth(clamp2((h - 5) / 2, 0, 1)) * (1 - smooth(clamp2((h - 18.5) / 2, 0, 1))), dusk = Math.max(0, 1 - Math.abs(h - 6) / 1.3, 1 - Math.abs(h - 19.4) / 1.5);
     dayC.setHex(b.sky);
     skyC.copy(nightC).lerp(dayC, day).lerp(duskC, dusk * 0.55);
-    const storm = V.S.weather.storm;
+    if (R.isDark(V.S)) {
+      const lit = R.stat(V.S, "nightSight", 0) > 0;
+      scene.background.setHex(329224);
+      scene.fog.color.setHex(329224);
+      shown.far = lerp(shown.far, lit ? 26 : 6, 0.1);
+      scene.fog.far = shown.far;
+      scene.fog.near = 1;
+      hemi.intensity = 0.05;
+      sun.intensity = 0;
+      lamp.intensity = lit ? 1.1 : 0.25;
+      lamp.distance = lit ? 26 : 6;
+      lamp.position.set(P.x, P.y + 0.8, P.z);
+      return finishFrame();
+    }
+    lamp.distance = 45;
+    const storm = V.S.weather.storm && !R.indoors(V.S);
     if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
     scene.background.copy(skyC);
     scene.fog.color.copy(skyC);
     const sight = R.stat(V.S, "nightSight", 0) > 0, far = storm ? 85 : lerp(sight ? 260 : 110, 620, day);
-    shown.far = lerp(shown.far, far, 0.05);
+    shown.far = lerp(shown.far, R.indoors(V.S) ? Math.min(far, 160) : far, 0.05);
     scene.fog.far = shown.far;
     scene.fog.near = Math.min(40, shown.far * 0.2);
     hemi.intensity = lerp(0.22, 0.78, day);
@@ -3922,6 +4436,9 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
     lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
     lamp.position.set(P.x, P.y + 0.3, P.z);
+    finishFrame();
+  }
+  function finishFrame() {
     const target = V.terrain.height(P.x, P.z) + EYE + (still ? 0 : Math.sin(P.walked * 1.7) * 0.05);
     P.y = lerp(P.y, target, 0.35);
     camera.position.set(P.x, P.y, P.z);
@@ -3949,10 +4466,10 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   }
   function render() {
     if (!V.S) return;
-    const c = R.clock(V.S), p = V.S.player, cap = R.waterCap(V.S), wt = R.weight(V.S), cc = R.carryCap(V.S), fc = R.forecast(V.S);
+    const c = R.clock(V.S), p = V.S.player, cap = R.waterCap(V.S), wt = R.weight(V.S), cc = R.carryCap(V.S), fc = R.isDark(V.S) ? "Underground" : R.indoors(V.S) ? R.forecast(V.S) + " outside the walls" : R.forecast(V.S);
     $("when").textContent = "Day " + c.day + ", " + String(c.hour).padStart(2, "0") + ":" + String(c.min).padStart(2, "0");
     $("sky").textContent = fc;
-    $("sky").className = "chip" + (V.S.weather.storm ? " bad" : fc === "Storm close" ? " warn" : "");
+    $("sky").className = "chip" + (R.indoors(V.S) ? "" : V.S.weather.storm ? " bad" : fc === "Storm close" ? " warn" : "");
     const ob = R.objective(V.S);
     let b = "Goal: " + ob.text + (ob.dir ? ob.dir === "here" ? " (here)" : ", " + ob.dir : "");
     const wf = R.wellfinder(V.S);
@@ -3991,7 +4508,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
           {
             cls: "act",
             type: "button",
-            on: () => a.id === "pactAsk" ? openPact() : a.id === "townAsk" ? openTown() : act(() => R[a.id](V.S))
+            on: () => a.id === "pactAsk" ? openPact() : a.id === "townAsk" ? openTown(a.section) : act(() => R[a.id](V.S))
           },
           [el("span", { text: a.label }), el("small", { text: a.hint })]
         )
@@ -4090,6 +4607,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
               closeModal();
               if (next) R.nextTraveller(V.S, ch);
               else R.setCharacter(V.S, ch);
+              buildStatic();
               placePlayer();
               buildDynamic();
               render.stamp = "";
@@ -4233,10 +4751,11 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       ])
     ]);
   }
-  function openTown() {
+  function openTown(section) {
+    if (section === "elder" && !V.S.quest.told) act(() => R.talkElder(V.S));
     const t = V.S.town, p = V.S.player, T = R.C.town, race = R.byId(R.C.races, t.race).name.toLowerCase(), re = (fn) => () => {
       act(fn);
-      if (!V.S.over) openTown();
+      if (!V.S.over) openTown(section);
     };
     const stock = t.stock.map(
       (it) => el("li", { cls: "item" }, [
@@ -4269,36 +4788,45 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         ])
       ])
     );
-    openModal("The town of " + t.name, [
-      el("p", { cls: "note", text: R.aOrAn(race, true) + " town with a well. You have " + p.coin + " coin." }),
-      el("h3", { text: t.elder + ", the elder" }),
-      ...t.speech.length ? t.speech.map((l) => el("p", { text: l })) : [el("p", { cls: "note", text: "An old " + race + " watches you from a bench by the well." })],
-      el("div", { cls: "row" }, [
-        btn(
-          V.S.quest.told ? "Ask again" : "Talk to the elder",
-          re(() => R.talkElder(V.S)),
-          V.S.quest.told ? "small" : "primary"
-        )
-      ]),
-      el("h3", { text: "The inn" }),
-      el("div", { cls: "row" }, [
-        btn(
-          "A bed for the night, " + T.innPrice + " coin",
-          re(() => R.inn(V.S))
-        ),
-        el("span", { cls: "note", text: "Eight hours. Restores everything." })
-      ]),
-      el("h3", { text: t.merchant + ", the merchant" }),
-      el("div", { cls: "row" }, [
-        btn(
-          "Fuel, " + T.fuelPrice + " coin each (" + t.fuel + " left)",
-          re(() => R.buyFuel(V.S))
-        )
-      ]),
-      el("ul", { cls: "items" }, stock),
-      el("h3", { text: "Your goods" }),
-      mine.length ? el("ul", { cls: "items" }, mine) : el("p", { cls: "note", text: "Nothing they would buy." })
-    ]);
+    const coin = el("p", { cls: "note", text: "You have " + p.coin + " coin." });
+    if (section === "elder")
+      openModal(t.elder + ", elder of " + t.name, [
+        ...t.speech.length ? t.speech.map((l) => el("p", { text: l })) : [el("p", { cls: "note", text: "An old " + race + " looks up from a table covered in maps." })],
+        el("div", { cls: "row" }, [
+          btn(
+            V.S.quest.told ? "Ask what to do now" : "Talk",
+            re(() => R.talkElder(V.S)),
+            "small"
+          )
+        ])
+      ]);
+    else if (section === "inn")
+      openModal("The inn", [
+        el("p", { text: "A fire, a long table, and rooms upstairs." }),
+        coin,
+        el("div", { cls: "row" }, [
+          btn(
+            "A bed for the night, " + T.innPrice + " coin",
+            re(() => R.inn(V.S)),
+            "primary"
+          ),
+          el("span", { cls: "note", text: "Eight hours. Restores everything." })
+        ])
+      ]);
+    else
+      openModal(t.merchant + "'s shop", [
+        coin,
+        el("div", { cls: "row" }, [
+          btn(
+            "Fuel, " + T.fuelPrice + " coin each (" + t.fuel + " left)",
+            re(() => R.buyFuel(V.S))
+          )
+        ]),
+        el("h3", { text: "For sale" }),
+        el("ul", { cls: "items" }, stock),
+        el("h3", { text: "Your goods" }),
+        mine.length ? el("ul", { cls: "items" }, mine) : el("p", { cls: "note", text: "Nothing they would buy." })
+      ]);
   }
   function showEnd() {
     const c = R.clock(V.S), won = V.S.over.won, left = R.livesLeft(V.S), who = R.charTitle(V.S.char), dist = "with this still undone: " + R.objective(V.S).text.toLowerCase();
@@ -4348,17 +4876,28 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     well: "#2f7fb5",
     beacon: "#d98a1c",
     town: "#f2e2a0",
-    vault: "#15171c"
+    vault: "#15171c",
+    exit: "#e0a84a",
+    stairsUp: "#e0a84a",
+    stairsDown: "#e0a84a",
+    elder: "#b8443c",
+    inn: "#8a6a1f",
+    shop: "#2f7fb5",
+    trap: "#e0302a"
   };
+  var INDOOR_COLS = { 6: "#3a3631", 7: "#9a948a" };
   function openMap() {
-    const cv2 = el("canvas", { id: "mapcv", "aria-label": "Your map so far" });
-    openModal("Map", [
-      cv2,
-      el("p", {
-        cls: "note",
-        text: "Only what you have seen or surveyed. White dot: you. Gold: camp. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: depot. Red dot: a creature you can currently see."
-      })
-    ]);
+    const cv2 = el("canvas", { id: "mapcv", "aria-label": "Your map so far" }), rec = R.areaRec(V.S), indoor = R.indoors(V.S);
+    openModal(
+      indoor ? rec.kind === "town" ? V.S.town.name : "The " + V.S.quest.vault.name + ", level " + rec.level + " of " + rec.levels : "Map",
+      [
+        cv2,
+        el("p", {
+          cls: "note",
+          text: indoor ? rec.kind === "town" ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: the gate." : "Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see." : "Only what you have seen or surveyed. White dot: you. Gold: camp. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: depot. Red dot: a creature you can currently see."
+        })
+      ]
+    );
     const css = cv2.clientWidth, dpr = window.devicePixelRatio || 1;
     cv2.width = cv2.height = Math.round(css * dpr);
     const g = cv2.getContext("2d");
@@ -4370,7 +4909,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       for (let x = 0; x < R.W; x++) {
         const i = y * R.W + x;
         if (!V.S.seen[i]) continue;
-        g.fillStyle = cols[V.S.terrain[i]];
+        g.fillStyle = INDOOR_COLS[V.S.terrain[i]] || cols[V.S.terrain[i]];
         g.fillRect(x * ts, y * ts, ts + 0.5, ts + 0.5);
         if (V.S.road[i]) {
           g.fillStyle = "#8c8a86";
@@ -4388,7 +4927,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
           g.fill();
         }
       }
-    if (V.S.camp !== null) {
+    if (R.inOverworld(V.S) && V.S.camp !== null) {
       const x = V.S.camp % R.W, y = Math.floor(V.S.camp / R.W);
       g.fillStyle = "#e0a84a";
       g.strokeStyle = "#1a1205";
@@ -4408,7 +4947,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         g.arc((c.x + 0.5) * ts, (c.y + 0.5) * ts, 4, 0, 7);
         g.fill();
       }
-    const px = (P.x + HALF) / TS * ts, py = (P.z + HALF) / TS * ts;
+    const px = (P.x + G.half) / G.ts * ts, py = (P.z + G.half) / G.ts * ts;
     g.beginPath();
     g.arc(px, py, 4.5, 0, 7);
     g.fillStyle = "#fff";
@@ -4719,7 +5258,14 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     },
     P,
     VIEW,
-    input
+    input,
+    // for tests and tinkering from the console: redraw everything after changing the state by hand
+    refresh() {
+      sync();
+      placePlayer();
+      buildDynamic();
+      render();
+    }
   };
   requestAnimationFrame(loop);
 

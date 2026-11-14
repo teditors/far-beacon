@@ -1,7 +1,7 @@
 /* HUD, panels and screens, input and start-up. */
-import { $, HALF, P, R, TS, V, VIEW, clamp, el, f1 } from './ctx.js';
-import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSeed, save, start } from './run.js';
-import { box, buildDynamic, resize } from './scene.js';
+import { $, G, P, R, V, VIEW, clamp, el, f1 } from './ctx.js';
+import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSeed, save, start, sync } from './run.js';
+import { box, buildDynamic, buildStatic, resize } from './scene.js';
 
 /* ---------- HUD and panels ---------- */
 function meter(id, v, max, txt) {
@@ -16,10 +16,10 @@ function render() {
     cap = R.waterCap(V.S),
     wt = R.weight(V.S),
     cc = R.carryCap(V.S),
-    fc = R.forecast(V.S);
+    fc = R.isDark(V.S) ? 'Underground' : R.indoors(V.S) ? R.forecast(V.S) + ' outside the walls' : R.forecast(V.S);
   $('when').textContent = 'Day ' + c.day + ', ' + String(c.hour).padStart(2, '0') + ':' + String(c.min).padStart(2, '0');
   $('sky').textContent = fc;
-  $('sky').className = 'chip' + (V.S.weather.storm ? ' bad' : fc === 'Storm close' ? ' warn' : '');
+  $('sky').className = 'chip' + (R.indoors(V.S) ? '' : V.S.weather.storm ? ' bad' : fc === 'Storm close' ? ' warn' : '');
   const ob = R.objective(V.S);
   let b = 'Goal: ' + ob.text + (ob.dir ? (ob.dir === 'here' ? ' (here)' : ', ' + ob.dir) : '');
   const wf = R.wellfinder(V.S);
@@ -61,7 +61,7 @@ function render() {
         {
           cls: 'act',
           type: 'button',
-          on: () => (a.id === 'pactAsk' ? openPact() : a.id === 'townAsk' ? openTown() : act(() => R[a.id](V.S))),
+          on: () => (a.id === 'pactAsk' ? openPact() : a.id === 'townAsk' ? openTown(a.section) : act(() => R[a.id](V.S))),
         },
         [el('span', { text: a.label }), el('small', { text: a.hint })],
       ),
@@ -172,6 +172,7 @@ function openCreate(next) {
             closeModal();
             if (next) R.nextTraveller(V.S, ch);
             else R.setCharacter(V.S, ch);
+            buildStatic();
             placePlayer();
             buildDynamic();
             render.stamp = '';
@@ -333,14 +334,16 @@ function openPact() {
     ]),
   ]);
 }
-function openTown() {
+// The town's people, one at a time: section is 'elder', 'inn' or 'shop', matching where you are standing.
+function openTown(section) {
+  if (section === 'elder' && !V.S.quest.told) act(() => R.talkElder(V.S));
   const t = V.S.town,
     p = V.S.player,
     T = R.C.town,
     race = R.byId(R.C.races, t.race).name.toLowerCase(),
     re = (fn) => () => {
       act(fn);
-      if (!V.S.over) openTown();
+      if (!V.S.over) openTown(section);
     };
   const stock = t.stock.map((it) =>
     el('li', { cls: 'item' }, [
@@ -377,38 +380,47 @@ function openTown() {
         ]),
       ]),
     );
-  openModal('The town of ' + t.name, [
-    el('p', { cls: 'note', text: R.aOrAn(race, true) + ' town with a well. You have ' + p.coin + ' coin.' }),
-    el('h3', { text: t.elder + ', the elder' }),
-    ...(t.speech.length
-      ? t.speech.map((l) => el('p', { text: l }))
-      : [el('p', { cls: 'note', text: 'An old ' + race + ' watches you from a bench by the well.' })]),
-    el('div', { cls: 'row' }, [
-      btn(
-        V.S.quest.told ? 'Ask again' : 'Talk to the elder',
-        re(() => R.talkElder(V.S)),
-        V.S.quest.told ? 'small' : 'primary',
-      ),
-    ]),
-    el('h3', { text: 'The inn' }),
-    el('div', { cls: 'row' }, [
-      btn(
-        'A bed for the night, ' + T.innPrice + ' coin',
-        re(() => R.inn(V.S)),
-      ),
-      el('span', { cls: 'note', text: 'Eight hours. Restores everything.' }),
-    ]),
-    el('h3', { text: t.merchant + ', the merchant' }),
-    el('div', { cls: 'row' }, [
-      btn(
-        'Fuel, ' + T.fuelPrice + ' coin each (' + t.fuel + ' left)',
-        re(() => R.buyFuel(V.S)),
-      ),
-    ]),
-    el('ul', { cls: 'items' }, stock),
-    el('h3', { text: 'Your goods' }),
-    mine.length ? el('ul', { cls: 'items' }, mine) : el('p', { cls: 'note', text: 'Nothing they would buy.' }),
-  ]);
+  const coin = el('p', { cls: 'note', text: 'You have ' + p.coin + ' coin.' });
+  if (section === 'elder')
+    openModal(t.elder + ', elder of ' + t.name, [
+      ...(t.speech.length
+        ? t.speech.map((l) => el('p', { text: l }))
+        : [el('p', { cls: 'note', text: 'An old ' + race + ' looks up from a table covered in maps.' })]),
+      el('div', { cls: 'row' }, [
+        btn(
+          V.S.quest.told ? 'Ask what to do now' : 'Talk',
+          re(() => R.talkElder(V.S)),
+          'small',
+        ),
+      ]),
+    ]);
+  else if (section === 'inn')
+    openModal('The inn', [
+      el('p', { text: 'A fire, a long table, and rooms upstairs.' }),
+      coin,
+      el('div', { cls: 'row' }, [
+        btn(
+          'A bed for the night, ' + T.innPrice + ' coin',
+          re(() => R.inn(V.S)),
+          'primary',
+        ),
+        el('span', { cls: 'note', text: 'Eight hours. Restores everything.' }),
+      ]),
+    ]);
+  else
+    openModal(t.merchant + "'s shop", [
+      coin,
+      el('div', { cls: 'row' }, [
+        btn(
+          'Fuel, ' + T.fuelPrice + ' coin each (' + t.fuel + ' left)',
+          re(() => R.buyFuel(V.S)),
+        ),
+      ]),
+      el('h3', { text: 'For sale' }),
+      el('ul', { cls: 'items' }, stock),
+      el('h3', { text: 'Your goods' }),
+      mine.length ? el('ul', { cls: 'items' }, mine) : el('p', { cls: 'note', text: 'Nothing they would buy.' }),
+    ]);
 }
 function showEnd() {
   const c = R.clock(V.S),
@@ -480,16 +492,37 @@ const MAPC = {
   beacon: '#d98a1c',
   town: '#f2e2a0',
   vault: '#15171c',
+  exit: '#e0a84a',
+  stairsUp: '#e0a84a',
+  stairsDown: '#e0a84a',
+  elder: '#b8443c',
+  inn: '#8a6a1f',
+  shop: '#2f7fb5',
+  trap: '#e0302a',
 };
+const INDOOR_COLS = { 6: '#3a3631', 7: '#9a948a' };
 function openMap() {
-  const cv = el('canvas', { id: 'mapcv', 'aria-label': 'Your map so far' });
-  openModal('Map', [
-    cv,
-    el('p', {
-      cls: 'note',
-      text: 'Only what you have seen or surveyed. White dot: you. Gold: camp. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: depot. Red dot: a creature you can currently see.',
-    }),
-  ]);
+  const cv = el('canvas', { id: 'mapcv', 'aria-label': 'Your map so far' }),
+    rec = R.areaRec(V.S),
+    indoor = R.indoors(V.S);
+  openModal(
+    indoor
+      ? rec.kind === 'town'
+        ? V.S.town.name
+        : 'The ' + V.S.quest.vault.name + ', level ' + rec.level + ' of ' + rec.levels
+      : 'Map',
+    [
+      cv,
+      el('p', {
+        cls: 'note',
+        text: indoor
+          ? rec.kind === 'town'
+            ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: the gate."
+            : 'Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see.'
+          : 'Only what you have seen or surveyed. White dot: you. Gold: camp. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: depot. Red dot: a creature you can currently see.',
+      }),
+    ],
+  );
   const css = cv.clientWidth,
     dpr = window.devicePixelRatio || 1;
   cv.width = cv.height = Math.round(css * dpr);
@@ -503,7 +536,7 @@ function openMap() {
     for (let x = 0; x < R.W; x++) {
       const i = y * R.W + x;
       if (!V.S.seen[i]) continue;
-      g.fillStyle = cols[V.S.terrain[i]];
+      g.fillStyle = INDOOR_COLS[V.S.terrain[i]] || cols[V.S.terrain[i]];
       g.fillRect(x * ts, y * ts, ts + 0.5, ts + 0.5);
       if (V.S.road[i]) {
         g.fillStyle = '#8c8a86';
@@ -521,7 +554,7 @@ function openMap() {
         g.fill();
       }
     }
-  if (V.S.camp !== null) {
+  if (R.inOverworld(V.S) && V.S.camp !== null) {
     const x = V.S.camp % R.W,
       y = Math.floor(V.S.camp / R.W);
     g.fillStyle = '#e0a84a';
@@ -542,8 +575,8 @@ function openMap() {
       g.arc((c.x + 0.5) * ts, (c.y + 0.5) * ts, 4, 0, 7);
       g.fill();
     }
-  const px = ((P.x + HALF) / TS) * ts,
-    py = ((P.z + HALF) / TS) * ts;
+  const px = ((P.x + G.half) / G.ts) * ts,
+    py = ((P.z + G.half) / G.ts) * ts;
   g.beginPath();
   g.arc(px, py, 4.5, 0, 7);
   g.fillStyle = '#fff';
@@ -912,6 +945,13 @@ window.__g = {
   P,
   VIEW,
   input,
+  // for tests and tinkering from the console: redraw everything after changing the state by hand
+  refresh() {
+    sync();
+    placePlayer();
+    buildDynamic();
+    render();
+  },
 };
 requestAnimationFrame(loop);
 

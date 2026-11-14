@@ -1,5 +1,5 @@
 /* Run control: saving, starting, acting, and the per-frame loop. */
-import { $, CODEX, EYE, HALF, KEY, OLD_KEYS, P, R, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
+import { $, CODEX, EYE, G, KEY, OLD_KEYS, P, R, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
 import { buildDynamic, buildStatic, camera, hemi, lamp, renderer, scene, sun } from './scene.js';
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
 
@@ -40,13 +40,36 @@ function load() {
   return null;
 }
 function placePlayer() {
-  P.x = tileX(V.S.player.x) + 6;
-  P.z = tileX(V.S.player.y) + 7;
+  const indoor = R.indoors(V.S);
+  P.x = tileX(V.S.player.x) + (indoor ? 0 : 6);
+  P.z = tileX(V.S.player.y) + (indoor ? 0 : 7);
   P.y = V.terrain.height(P.x, P.z) + EYE;
   P.pitch = 0;
   P.walked = 0;
-  P.yaw = Math.atan2(-(tileX(V.S.town.x) - P.x), -(tileX(V.S.town.y) - P.z));
+  // face somewhere useful: indoors, the open direction with the most floor ahead; outdoors, toward the town
+  if (indoor) {
+    // face the longest open view, but never back toward the door or stair you just came through
+    let best = 0,
+      bestRun = -1;
+    [
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+    ].forEach(([dx, dy], i) => {
+      const st = V.S.sites[(V.S.player.y + dy) * R.W + V.S.player.x + dx];
+      if (st && (st.kind === 'exit' || st.kind === 'stairsUp')) return;
+      let run = 0;
+      while (run < 12 && R.passable(V.S, V.S.player.x + dx * (run + 1), V.S.player.y + dy * (run + 1))) run++;
+      if (run > bestRun) {
+        bestRun = run;
+        best = i;
+      }
+    });
+    P.yaw = [0, -Math.PI / 2, Math.PI, Math.PI / 2][best];
+  } else P.yaw = Math.atan2(-(tileX(V.S.town.x) - P.x), -(tileX(V.S.town.y) - P.z));
   shown.t = V.S.time;
+  shown.area = V.S.area;
 }
 function enter(state) {
   V.S = state;
@@ -64,9 +87,17 @@ const randomSeed = () => 10000 + Math.floor(Math.random() * 90000),
     enter(R.newGame(seed));
     openCreate(false);
   };
+// After anything that might move the player into another area, rebuild the scene for where they are now.
+function sync() {
+  if (shown.area !== V.S.area) {
+    buildStatic();
+    placePlayer();
+  }
+}
 function act(fn) {
   if (!V.S || V.S.over) return;
   fn();
+  sync();
   buildDynamic();
   render();
   save();
@@ -109,10 +140,21 @@ function tick(dt, now) {
     dx = -sn * fy + cs * fx,
     dz = -cs * fy - sn * fx,
     mc = R.moveCost(V.S, V.S.player.x, V.S.player.y),
-    sp = VIEW.speed * clamp(mc.base / mc.mins, 0.3, 1.15);
-  const nx = clamp(P.x + dx * sp * dt, -HALF + 3, HALF - 3),
-    nz = clamp(P.z + dz * sp * dt, -HALF + 3, HALF - 3),
-    tx = toTile(nx),
+    indoor = R.indoors(V.S),
+    sp = VIEW.speed * (indoor ? 0.65 : clamp(mc.base / mc.mins, 0.3, 1.15));
+  let nx = clamp(P.x + dx * sp * dt, -G.half + 1, G.half - 1),
+    nz = clamp(P.z + dz * sp * dt, -G.half + 1, G.half - 1);
+  // walls: keep a little distance from them, and slide along them instead of stopping dead
+  const pad = indoor ? 0.6 : 0,
+    blocked = (x, z) =>
+      !R.passable(V.S, toTile(x + Math.sign(x - P.x) * pad), toTile(z)) ||
+      !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P.z) * pad));
+  if (indoor && blocked(nx, nz)) {
+    if (!blocked(nx, P.z)) nz = P.z;
+    else if (!blocked(P.x, nz)) nx = P.x;
+    else return;
+  }
+  const tx = toTile(nx),
     tz = toTile(nz);
   if (tx !== V.S.player.x || tz !== V.S.player.y) {
     if (now < V.blockedUntil) return;
@@ -123,6 +165,7 @@ function tick(dt, now) {
       render();
       return;
     }
+    sync();
     buildDynamic();
     render();
     save();
@@ -147,13 +190,29 @@ function frame() {
     .copy(nightC)
     .lerp(dayC, day)
     .lerp(duskC, dusk * 0.55);
-  const storm = V.S.weather.storm;
+  if (R.isDark(V.S)) {
+    // underground: no sky, and you see only as far as your light reaches
+    const lit = R.stat(V.S, 'nightSight', 0) > 0;
+    scene.background.setHex(0x050608);
+    scene.fog.color.setHex(0x050608);
+    shown.far = lerp(shown.far, lit ? 26 : 6, 0.1);
+    scene.fog.far = shown.far;
+    scene.fog.near = 1;
+    hemi.intensity = 0.05;
+    sun.intensity = 0;
+    lamp.intensity = lit ? 1.1 : 0.25;
+    lamp.distance = lit ? 26 : 6;
+    lamp.position.set(P.x, P.y + 0.8, P.z);
+    return finishFrame();
+  }
+  lamp.distance = 45;
+  const storm = V.S.weather.storm && !R.indoors(V.S);
   if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
   scene.background.copy(skyC);
   scene.fog.color.copy(skyC);
   const sight = R.stat(V.S, 'nightSight', 0) > 0,
     far = storm ? 85 : lerp(sight ? 260 : 110, 620, day);
-  shown.far = lerp(shown.far, far, 0.05);
+  shown.far = lerp(shown.far, R.indoors(V.S) ? Math.min(far, 160) : far, 0.05);
   scene.fog.far = shown.far;
   scene.fog.near = Math.min(40, shown.far * 0.2);
   hemi.intensity = lerp(0.22, 0.78, day);
@@ -162,6 +221,9 @@ function frame() {
   sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
   lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
   lamp.position.set(P.x, P.y + 0.3, P.z);
+  finishFrame();
+}
+function finishFrame() {
   const target = V.terrain.height(P.x, P.z) + EYE + (still ? 0 : Math.sin(P.walked * 1.7) * 0.05);
   P.y = lerp(P.y, target, 0.35);
   camera.position.set(P.x, P.y, P.z);
@@ -182,6 +244,8 @@ function loop(now) {
 }
 
 export {
+  sync,
+  finishFrame,
   codex,
   codexTotal,
   save,

@@ -18,7 +18,7 @@ export default {
     waterskin: 6,
     cloak: 10,
     boots: 10,
-    lantern: 12,
+    lantern: 8,
     spyglass: 14,
     framepack: 14,
     staff: 6,

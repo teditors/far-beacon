@@ -1,4 +1,5 @@
 /* Characters: rolling, race and class, setting out, and the next traveller after a death. */
+import { areaRec, forgetMaps, inOverworld, toOverworld, worldPos } from './areas.js';
 import { C, START, W, byId, clock, idx, say } from './core.js';
 import { autoEquip } from './equipment.js';
 import { describeMods, makeItem } from './items.js';
@@ -109,11 +110,10 @@ function nextTraveller(s, ch) {
   d.remains = s.char.name;
   d.coin = (d.coin || 0) + p.coin;
   s.lostMaps[i] = s.seen.join('');
-  s.seen.fill(0);
-  for (const k in s.sites) {
-    s.sites[k].seen = false;
-    s.sites[k].visited = false;
-  }
+  const diedIn = areaRec(s),
+    where = inOverworld(s) ? null : worldPos(s);
+  forgetMaps(s);
+  toOverworld(s);
   const mod = (START + s.time) % 1440;
   s.time += (1440 + 360 - mod) % 1440 || 1440;
   s.travellers++;
@@ -126,8 +126,12 @@ function nextTraveller(s, ch) {
       charTitle(ch) +
       ' sets out from the well. ' +
       d.remains +
-      ' lies somewhere to the ' +
-      dirTo(s, i % W, Math.floor(i / W)) +
+      (where
+        ? ' lies somewhere ' +
+          (diedIn.kind === 'town' ? 'in ' + s.town.name : 'inside the ' + s.quest.vault.name) +
+          ', to the ' +
+          dirTo(s, where.x, where.y)
+        : ' lies somewhere to the ' + dirTo(s, i % W, Math.floor(i / W))) +
       ', with everything they carried.',
     'good',
   );

@@ -24,6 +24,8 @@ src/
     stats.js      the modifier stack: every number goes through stat()
     systems.js    things that happen as time passes (thirst, cold, weather...)
     worldgen.js   newGame(seed): builds a world
+    areas.js      the overworld, the town and each dungeon level as separate maps, and moving between them
+    interiors.js  generators for the town and the levels of the locked place
     map.js        questions about the map: where you are, what you can see
     actions.js    everything the player does outside a fight
     combat.js     creatures and turn-based fights
@@ -52,6 +54,19 @@ tools/check.js  runs every test
 4. **Any system can be switched off** (`s.off[id]`). The game must still run.
 5. **Tuning happens live**: the Tinker panel edits `s.tun` while you play.
 6. **Build a general brick only when its second use arrives.**
+
+## Areas
+
+The overworld, the town and each level of the locked place are separate maps on the same 36 x 36 grid. The map the
+player is in sits at the top of the state (`s.terrain`, `s.sites`, `s.depots`, `s.creatures`, `s.seen`...), so most
+rules never need to know where they are. Every other area is parked in `s.areas[id].map` until the player goes back.
+`enterArea` and `leaveArea` in areas.js do the swapping; an interior's map is generated the first time it is entered.
+
+- `s.area` names where the player is; `areaRec(s)` gives its record (`kind`, `indoor`, `dark`, `level`, `from`).
+- Quest places live on the overworld. Use `worldMap(s)` and `worldPos(s)` for them, never `s.sites`, which is
+  whatever area the player is in.
+- The view shows the same grid at two scales: 28 m tiles outdoors, 4 m tiles inside (`setGeometry` in view/ctx.js).
+- New kinds of interior: add a generator to `GENERATORS` in interiors.js and an entry point in quest.js or actions.js.
 
 ## State
 
@@ -113,12 +128,10 @@ node tools/check.js          everything, including a 40-world playtest and the b
 
 Planned next, in order, so changes now should not paint us into a corner:
 
-1. **Areas.** Towns and dungeons become places you enter, each its own map. Today the map fields
-   (`terrain`, `sites`, `depots`, `creatures`, `seen`...) sit directly on the state and the map size
-   is fixed (`W`, `H` in core.js). Step 1 moves them into `s.areas[id]` with a size per area and
-   `s.area` naming where the player is. Code that reads map fields should go through the helpers in
-   map.js where possible, to keep that change small.
-2. **Regions.** A large world of regions generated as you reach them, each one an area.
+1. **Areas.** Done in v0.8: see "Areas" above.
+2. **Regions.** A large world of regions generated as you reach them. Each region will be an area of kind
+   `region`, using the same parking as interiors; the open question is how the grid size and the overworld-only
+   fields (`s.goal`, `s.town`, `s.start`, `s.camp`) become per-region.
 3. **Generated biomes** with a rare-trait slot, then side quests, creatures, races and classes,
    and unique items, all as content menus.
 

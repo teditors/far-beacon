@@ -39,19 +39,26 @@ import {
 } from './character.js';
 import { AXES, civOf, civTraits, trait, traitText } from './civ.js';
 import { attack, firebolt, flee, foe, formOf, identify, mend, power, smite, spOf } from './combat.js';
-import { C, H, TERR, VERSION, W, biomeOf, byId, clock, godOf, on } from './core.js';
+import { C, FLOOR, H, TERR, VERSION, W, WALL, biomeOf, byId, clock, godOf, on } from './core.js';
 import { aOrAn } from './core.js';
 import { active, equip, slotOf, unequip } from './equipment.js';
 import { describeItem, isCursed, itemName, itemWeight, weight } from './items.js';
-import { atCamp, bearing, groundHere, inShelter, reveal, siteHere, siteName, terrainInfo } from './map.js';
+import { atCamp, bearing, groundHere, inShelter, passable, reveal, siteHere, siteName, terrainInfo } from './map.js';
+import { areaRec, inOverworld, indoors, isDark, worldMap, worldPos } from './areas.js';
+import './interiors.js'; // registers the town and vault generators
 import { playerAC, weaponOf, xpFor } from './progress.js';
 import {
   appraise,
   atTown,
   buy,
   buyFuel,
-  descend,
+  enterTown,
+  enterVault,
+  findHere,
+  findLoose,
   findSite,
+  goDown,
+  goUp,
   hasItem,
   inn,
   itemValue,
@@ -68,6 +75,16 @@ import { newGame } from './worldgen.js';
 import { serialize, deserialize } from './save.js';
 
 const api = {
+  findLoose,
+  passable,
+  areaRec,
+  inOverworld,
+  indoors,
+  isDark,
+  worldMap,
+  worldPos,
+  WALL,
+  FLOOR,
   aOrAn,
   serialize,
   deserialize,
@@ -146,7 +163,11 @@ const api = {
   appraise,
   inn,
   unlock,
-  descend,
+  enterTown,
+  enterVault,
+  goDown,
+  goUp,
+  findHere,
   offer,
   itemValue,
   hasItem,
@@ -205,7 +226,10 @@ for (const k of [
   'appraise',
   'inn',
   'unlock',
-  'descend',
+  'enterTown',
+  'enterVault',
+  'goDown',
+  'goUp',
   'offer',
 ]) {
   const fn = api[k];

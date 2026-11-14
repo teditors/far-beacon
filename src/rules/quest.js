@@ -2,26 +2,37 @@
 import { depotHere, restHour } from './actions.js';
 import { AXES, learn, traitText } from './civ.js';
 import { makeCreature, spOf, startCombat } from './combat.js';
-import { C, H, W, byId, clamp, idx, say, srand } from './core.js';
+import { C, H, W, byId, clamp, clock, idx, say, srand } from './core.js';
 import { autoEquip, fitWater } from './equipment.js';
 import { genItem, isCursed, itemName, makeItem } from './items.js';
-import { dirTo, reveal, siteHere } from './map.js';
+import { dirFrom, dirTo, reveal, siteHere, sightRadius } from './map.js';
+import { allMaps, areaRec, enterArea, leaveArea, worldMap, worldPos } from './areas.js';
 import { gainXp, roll } from './progress.js';
 import { stat } from './stats.js';
 import { advance } from './systems.js';
 
 /* Quest, town and vault */
 const hasItem = (s, base) => s.player.items.some((i) => i.base === base);
-const atTown = (s) => {
-  const st = siteHere(s);
-  return !!st && st.kind === 'town';
-};
+const atTown = (s) => s.area === 'town';
+// Mark a place on the overworld map, wherever the player happens to be standing.
 function mark(s, x, y) {
-  reveal(s, x, y, 1.5, true);
-  const st = s.sites[idx(x, y)];
+  const m = worldMap(s);
+  for (let j = -1; j <= 1; j++)
+    for (let i = -1; i <= 1; i++) {
+      const xx = x + i,
+        yy = y + j;
+      if (xx >= 0 && yy >= 0 && xx < W && yy < H) m.seen[idx(xx, yy)] = 1;
+    }
+  const st = m.sites[idx(x, y)];
   if (st) st.seen = true;
 }
+// Quest places are on the overworld, whichever area the player is in.
 function findSite(s, kind) {
+  const m = worldMap(s);
+  for (const k in m.sites) if (m.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: m.sites[k] };
+  return null;
+}
+function findHere(s, kind) {
   for (const k in s.sites) if (s.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: s.sites[k] };
   return null;
 }
@@ -119,41 +130,74 @@ function makeQuest(s, r, townP, vaultP, a0, goalP) {
     q.beast = 90;
   }
 }
+// Where a key or relic lies when nobody is carrying it: { area, x, y, who }.
 function findLoose(s, base) {
-  for (const k in s.depots)
-    if (s.depots[k].items.some((i) => i.base === base)) return { x: k % W, y: Math.floor(k / W), who: s.depots[k].remains };
+  for (const [area, m] of allMaps(s))
+    for (const k in m.depots)
+      if (m.depots[k].items.some((i) => i.base === base))
+        return { area, x: k % W, y: Math.floor(k / W), who: m.depots[k].remains };
   return null;
 }
 function objective(s) {
   const q = s.quest,
     t = s.town,
     v = findSite(s, 'vault'),
-    to = (p) => dirTo(s, p.x, p.y);
+    wp = worldPos(s),
+    toWorld = (p) => dirFrom(wp, p.x, p.y),
+    toHere = (p) => dirTo(s, p.x, p.y),
+    vaultName = q.vault.name,
+    inVault = areaRec(s).kind === 'vault';
+  const loose = (base, what) => {
+    const l = findLoose(s, base);
+    if (!l) return null;
+    const from = l.who ? ' from ' + l.who + "'s body" : '';
+    if (l.area === s.area) return { text: 'Take ' + what + from, dir: toHere(l) };
+    if (l.area === 'overworld') return { text: 'Take ' + what + from, dir: toWorld(l) };
+    const deeper = s.areas[l.area].kind === 'vault' && (!inVault || s.areas[l.area].level > areaRec(s).level);
+    if (inVault && deeper) {
+      const st = findHere(s, 'stairsDown');
+      return { text: 'Go deeper for ' + what, dir: st && st.st.seen ? toHere(st) : null };
+    }
+    if (inVault) return { text: 'Go back up for ' + what, dir: null };
+    return { text: 'Go into the ' + vaultName + ' for ' + what + from, dir: toWorld(v) };
+  };
   if (!hasItem(s, 'relic')) {
-    const lr = findLoose(s, 'relic');
-    if (lr) return { text: 'Take up the ' + q.relic + (lr.who ? ' from ' + lr.who + "'s body" : ''), dir: to(lr) };
+    const lr = loose('relic', 'the ' + q.relic);
+    if (lr && (findLoose(s, 'relic').who || !inVault || findLoose(s, 'relic').area === s.area)) return lr;
   }
   if (!hasItem(s, 'key') && !hasItem(s, 'relic') && !v.st.open) {
-    const lk = findLoose(s, 'key');
-    if (lk) return { text: 'Take the key to the ' + q.vault.name + (lk.who ? ' from ' + lk.who + "'s body" : ''), dir: to(lk) };
+    const lk = loose('key', 'the key to the ' + vaultName);
+    if (lk) return lk;
   }
   if (hasItem(s, 'relic')) {
     const d = q.dest === 'beacon' ? s.goal : findSite(s, 'shrine');
-    return { text: 'Carry the ' + q.relic + ' to the ' + q.dest, dir: to(d) };
+    if (inVault) {
+      const up = findHere(s, areaRec(s).level === 1 ? 'exit' : 'stairsUp');
+      return { text: 'Carry the ' + q.relic + ' out of the ' + vaultName, dir: up ? toHere(up) : null };
+    }
+    if (!s.area || s.area === 'overworld') return { text: 'Carry the ' + q.relic + ' to the ' + q.dest, dir: toWorld(d) };
+    return { text: 'Carry the ' + q.relic + ' to the ' + q.dest, dir: toWorld(d) };
   }
-  if (v.st.depth >= v.st.floors.length) return { text: 'Recover the ' + q.relic + ', wherever it was left', dir: null };
+  if (inVault) {
+    const st = findHere(s, 'stairsDown');
+    return { text: 'Find the way down', dir: st && st.st.seen ? toHere(st) : null };
+  }
   if (v.st.open || hasItem(s, 'key'))
-    return { text: (v.st.open ? 'Go down into the ' : 'Unlock the ') + q.vault.name, dir: q.told || v.st.seen ? to(v) : null };
-  if (!q.told) return { text: 'Find the town', dir: to(t) };
+    return { text: (v.st.open ? 'Go down into the ' : 'Unlock the ') + vaultName, dir: q.told || v.st.seen ? toWorld(v) : null };
+  if (!q.told)
+    return {
+      text: s.area === 'town' ? 'Talk to the elder' : 'Find the town',
+      dir: s.area === 'town' ? toHere(findHere(s, 'elder')) : toWorld(t),
+    };
   if (q.key === 'beast') {
-    const c = s.creatures.find((x) => x.id === q.beast);
+    const c = worldMap(s).creatures.find((x) => x.id === q.beast);
     return c
-      ? { text: 'Kill the ' + spOf(s, c).name + ', which has the key', dir: to(c) }
+      ? { text: 'Kill the ' + spOf(s, c).name + ', which has the key', dir: toWorld(c) }
       : { text: 'Take the key from the lair', dir: null };
   }
   if (q.key === 'ruin')
-    return { text: 'Search the ruin where the key lies', dir: to({ x: q.keyTile % W, y: Math.floor(q.keyTile / W) }) };
-  return { text: 'Find the key to the ' + q.vault.name, dir: null };
+    return { text: 'Search the ruin where the key lies', dir: toWorld({ x: q.keyTile % W, y: Math.floor(q.keyTile / W) }) };
+  return { text: 'Find the key to the ' + vaultName, dir: null };
 }
 function talkElder(s) {
   if (s.over || !atTown(s)) return false;
@@ -166,9 +210,10 @@ function talkElder(s) {
     mark(s, v.x, v.y);
     const d = q.dest === 'beacon' ? s.goal : findSite(s, 'shrine');
     mark(s, d.x, d.y);
-    for (const k in s.sites)
-      if (s.sites[k].sure) {
-        s.sites[k].known = true;
+    const wm = worldMap(s);
+    for (const k in wm.sites)
+      if (wm.sites[k].sure) {
+        wm.sites[k].known = true;
         mark(s, k % W, Math.floor(k / W));
       }
     sp.push(
@@ -195,7 +240,7 @@ function talkElder(s) {
       s.player.items.push(k);
       sp.push('"Here is the key. We have kept it three generations, and not one of us has dared use it."');
     } else if (q.key === 'beast') {
-      const c = s.creatures.find((x) => x.id === q.beast);
+      const c = worldMap(s).creatures.find((x) => x.id === q.beast);
       if (c) {
         c.seen = true;
         mark(s, c.x, c.y);
@@ -316,62 +361,67 @@ function unlock(s) {
   say(s, 'The key turns. Cold air comes up the stair.', 'good');
   return true;
 }
-function vaultAdvance(s, st) {
-  st.depth++;
-  if (st.depth < st.floors.length) {
-    say(s, 'The way down to level ' + (st.depth + 1) + ' is clear.');
-    return;
-  }
-  const it = makeItem(s, 'relic', null, null, true);
-  it.label = s.quest.relic;
-  depotHere(s, true).items.push(it);
-  gainXp(s, 50);
-  say(s, 'At the bottom, on a plinth, lies the ' + s.quest.relic + '. Open Pack to take it.', 'good');
-}
-function descend(s) {
+/* Going in and out of places */
+function enterTown(s) {
   const st = siteHere(s);
-  if (s.over || !st || st.kind !== 'vault' || !st.open || st.depth >= st.floors.length) return false;
+  if (s.over || !st || st.kind !== 'town') return false;
+  enterArea(s, 'town', { kind: 'town', indoor: true, name: s.town.name });
+  if (!st.entered) {
+    st.entered = true;
+    gainXp(s, 20);
+  }
+  say(
+    s,
+    'You pass the gate of ' +
+      s.town.name +
+      '.' +
+      (s.quest.told ? '' : ' The elder will be at the hall on the north side of the square.'),
+  );
+  return true;
+}
+const vaultLevelId = (n) => 'vault' + n;
+function enterVault(s) {
+  const st = siteHere(s);
+  if (s.over || !st || st.kind !== 'vault' || !st.open) return false;
   if (stat(s, 'nightSight', 0) <= 0) {
-    say(s, 'It is black as pitch below. You need a light: a worn lantern with fuel will do.', 'bad');
+    say(s, 'It is black as pitch inside. You need a light: a worn lantern with fuel will do.', 'bad');
     return false;
   }
-  if (st.guard) {
-    const c = s.creatures.find((x) => x.id === st.guard);
-    if (c) {
-      c.cool = 0;
-      startCombat(s, c, false);
-      return true;
-    }
-    st.guard = null;
+  goToLevel(s, 1, st.floors);
+  say(s, 'You go down into the ' + s.quest.vault.name + '. Level 1 of ' + st.floors.length + '.');
+  return true;
+}
+function goToLevel(s, n, floors) {
+  const id = vaultLevelId(n);
+  enterArea(s, id, { kind: 'vault', indoor: true, dark: true, level: n, levels: floors.length, floor: floors[n - 1] });
+  reveal(s, s.player.x, s.player.y, sightRadius(s), true);
+}
+function goDown(s) {
+  const st = siteHere(s),
+    rec = areaRec(s);
+  if (s.over || !st || st.kind !== 'stairsDown') return false;
+  if (stat(s, 'nightSight', 0) <= 0) {
+    say(s, 'You will not find the next stair without a light.', 'bad');
+    return false;
   }
-  advance(s, 30, 'rest');
+  advance(s, 10, 'rest');
   if (s.over) return true;
-  const kind = st.floors[st.depth],
-    lvl = st.depth + 1;
-  if (kind === 'guard') {
-    const c = makeCreature(s, 100 + lvl, s.quest.guardSp, s.player.x, s.player.y, lvl >= st.floors.length ? 2 : 1);
-    c.bound = true;
-    s.creatures.push(c);
-    st.guard = c.id;
-    say(s, 'Level ' + lvl + '. Something stands up in the dark.', 'bad');
-    startCombat(s, c, false);
-  } else if (kind === 'loot') {
-    const it = genItem(s, { relic: true, noConsumables: true }),
-      n = roll(s, 3, 6);
-    depotHere(s, true).items.push(it);
-    s.player.coin += n;
-    say(s, 'Level ' + lvl + '. A store-room, untouched: ' + itemName(it) + ' and ' + n + ' coin.', 'good');
-    vaultAdvance(s, st);
-  } else {
-    if (stat(s, 'trapSafe', 0) > 0)
-      say(s, 'Level ' + lvl + '. You find the pressure plate with your fingertips, and step over it.', 'good');
-    else {
-      const n = Math.min(roll(s, 1, 6) + 2, Math.max(0, Math.ceil(s.player.hp) - 1));
-      s.player.hp -= n;
-      say(s, 'Level ' + lvl + '. Darts from the wall: ' + n + ' damage.', 'bad');
-    }
-    vaultAdvance(s, st);
-  }
+  const n = rec.level + 1,
+    floors = findSite(s, 'vault').st.floors;
+  goToLevel(s, n, floors);
+  say(s, 'Level ' + n + ' of ' + floors.length + (n === floors.length ? '. The air is older here.' : '.'));
+  return true;
+}
+function goUp(s) {
+  const st = siteHere(s);
+  if (s.over || !st || (st.kind !== 'stairsUp' && st.kind !== 'exit')) return false;
+  const leaving = areaRec(s);
+  advance(s, 10, 'rest');
+  if (s.over) return true;
+  leaveArea(s);
+  if (leaving.kind === 'town') say(s, 'You leave ' + s.town.name + ' by the south gate.');
+  else if (s.area === 'overworld') say(s, 'You climb out into the ' + (clock(s).isDay ? 'daylight' : 'night') + '.');
+  else say(s, 'You climb back up to level ' + areaRec(s).level + '.');
   return true;
 }
 function offer(s) {
@@ -399,7 +449,11 @@ export {
   appraise,
   inn,
   unlock,
-  vaultAdvance,
-  descend,
+  findHere,
+  enterTown,
+  enterVault,
+  goToLevel,
+  goDown,
+  goUp,
   offer,
 };

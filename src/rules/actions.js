@@ -1,12 +1,26 @@
 /* Everything the player can do outside a fight. */
 import { AXES, civOf, learn, trait } from './civ.js';
 import { enemyTurn, stepCreatures } from './combat.js';
-import { C, H, TERR, W, biomeOf, byId, clamp, clock, emit, godOf, idx, say, srand } from './core.js';
+import { C, H, TERR, W, WALL, biomeOf, byId, clamp, clock, emit, godOf, idx, say, srand } from './core.js';
 import { autoEquip } from './equipment.js';
 import { genItem, isCursed, itemName, makeItem, weight } from './items.js';
-import { atCamp, dirTo, groundHere, here, inShelter, reveal, sightRadius, siteHere, siteName, terrainInfo } from './map.js';
+import {
+  atCamp,
+  dirFrom,
+  dirTo,
+  groundHere,
+  here,
+  inShelter,
+  passable,
+  reveal,
+  sightRadius,
+  siteHere,
+  siteName,
+  terrainInfo,
+} from './map.js';
 import { gainXp, roll, weaponOf } from './progress.js';
 import { hasItem } from './quest.js';
+import { areaRec, indoors, isDark, worldMap, worldPos } from './areas.js';
 import { carryCap, stat, waterCap } from './stats.js';
 import { advance } from './systems.js';
 
@@ -16,7 +30,7 @@ function moveCost(s, x, y) {
     tn = TERR[tt],
     g = terrainInfo(s, tt);
   let mins = g.moveMin * stat(s, 'moveTime', 1) * stat(s, 'moveTime.' + tn, 1);
-  if (!clock(s).isDay && stat(s, 'nightSight', 0) <= 0) mins *= 2;
+  if ((!clock(s).isDay || isDark(s)) && stat(s, 'nightSight', 0) <= 0) mins *= 2;
   let sta = g.moveSta;
   if (s.road[idx(x, y)]) {
     mins = s.tun.moveMin.plain * 0.55 * stat(s, 'moveTime', 1) * (!clock(s).isDay && stat(s, 'nightSight', 0) <= 0 ? 2 : 1);
@@ -32,6 +46,7 @@ function move(s, dx, dy) {
     say(s, 'The map ends here.');
     return false;
   }
+  if (!passable(s, nx, ny)) return false;
   if (weight(s) > carryCap(s) + 1e-9) {
     say(s, 'You are carrying too much to move. Leave something here.', 'bad');
     return false;
@@ -52,7 +67,7 @@ function move(s, dx, dy) {
     was = s.lastGround;
   s.lastGround = s.terrain[here(s)];
   if (g.wet && !s.off.warmth) s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
-  if (s.lastGround !== was && s.lastGround >= 3)
+  if (s.lastGround !== was && s.lastGround >= 3 && s.lastGround < WALL)
     say(
       s,
       {
@@ -102,9 +117,38 @@ function arrive(s) {
       'good',
     );
   }
+  {
+    const d = s.depots[here(s)];
+    if (d && d.coin && !d.remains) {
+      s.player.coin += d.coin;
+      say(
+        s,
+        (d.store ? 'A store-room, untouched. ' : '') +
+          'You pick up ' +
+          d.coin +
+          ' coin.' +
+          (d.items.length ? ' There is more in the Pack screen.' : ''),
+        'good',
+      );
+      d.coin = 0;
+    }
+    if (d && d.items.some((i) => i.base === 'relic') && !hasItem(s, 'relic'))
+      say(s, 'On a plinth lies the ' + s.quest.relic + '. Open Pack to take it.', 'good');
+  }
   const st = siteHere(s);
   if (!st) return;
   st.seen = true;
+  if (st.kind === 'trap' && !st.sprung) {
+    st.sprung = true;
+    if (stat(s, 'trapSafe', 0) > 0)
+      say(s, 'You feel the pressure plate shift under your boot, and step off it before it fires.', 'good');
+    else {
+      const n = Math.min(roll(s, 1, 6) + 2, Math.max(0, Math.ceil(s.player.hp) - 1));
+      s.player.hp -= n;
+      say(s, 'A plate clicks underfoot. Darts from the wall: ' + n + ' damage.', 'bad');
+    }
+    return;
+  }
   if (st.kind === 'spring' && !st.known && stat(s, 'tasteWater', 0) > 0) {
     st.known = true;
     say(
@@ -119,7 +163,6 @@ function arrive(s) {
     say(s, 'You set the ' + s.quest.relic + ' in the beacon. The fire catches, and turns, and holds.', 'good');
     return;
   }
-  if (st.kind === 'town' && !st.visited) gainXp(s, 20);
   if (st.kind === 'shrine' && !s.known.god) {
     s.known.god = true;
     emit(s, 'learned', { axis: 'god', id: s.god });
@@ -154,7 +197,7 @@ function arrive(s) {
   }
 }
 function survey(s) {
-  if (s.over) return false;
+  if (s.over || indoors(s)) return false;
   if (s.weather.storm) {
     say(s, 'You can see nothing through the ' + biomeOf(s).storm.name + '.');
     return false;
@@ -231,7 +274,8 @@ function fire(s) {
   return true;
 }
 function topUp(s, limit) {
-  const room = Math.max(0, waterCap(s) - s.player.water),
+  // never fill past what you can carry: water you cannot walk with is no use
+  const room = Math.max(0, Math.min(waterCap(s) - s.player.water, carryCap(s) - weight(s))),
     got = Math.min(room, limit === undefined ? room : limit);
   s.player.water += got;
   return got;
@@ -311,7 +355,7 @@ function boil(s) {
 }
 function melt(s) {
   const b = biomeOf(s);
-  if (s.over || !b.melt) return false;
+  if (s.over || !b.melt || indoors(s)) return false;
   if (s.player.fuel < 1) {
     say(s, 'You need 1 fuel to melt snow.');
     return false;
@@ -616,11 +660,19 @@ function actions(s) {
     return a;
   }
   if (s.char.cls === 'cleric' && p.hp < p.hpMax && p.mana >= 3) a.push({ id: 'mend', label: 'Mend', hint: 'heal, 3 mana' });
-  a.push({ id: 'survey', label: 'Survey', hint: '30 min' });
+  if (!indoors(s)) a.push({ id: 'survey', label: 'Survey', hint: '30 min' });
   if (st) {
+    if (st.kind === 'exit')
+      a.push({ id: 'goUp', label: areaRec(s).kind === 'town' ? 'Leave ' + s.town.name : 'Climb out', hint: 'back outside' });
+    if (st.kind === 'stairsUp') a.push({ id: 'goUp', label: 'Go up', hint: 'level ' + (areaRec(s).level - 1) });
+    if (st.kind === 'stairsDown')
+      a.push({ id: 'goDown', label: 'Go down', hint: 'level ' + (areaRec(s).level + 1) + ' of ' + areaRec(s).levels });
+    if (st.kind === 'elder') a.push({ id: 'townAsk', section: 'elder', label: 'Talk to ' + s.town.elder, hint: 'the elder' });
+    if (st.kind === 'inn') a.push({ id: 'townAsk', section: 'inn', label: 'The inn', hint: 'a bed for the night' });
+    if (st.kind === 'shop')
+      a.push({ id: 'townAsk', section: 'shop', label: 'Trade with ' + s.town.merchant, hint: 'buy, sell, appraise' });
     if (
       st.kind === 'well' ||
-      st.kind === 'town' ||
       (st.kind === 'ruin' && st.water > 0.05 && !st.foulWater) ||
       (st.kind === 'spring' && (!st.known || !st.foul))
     )
@@ -649,25 +701,21 @@ function actions(s) {
     if (st.kind === 'shrine' && !s.pact) a.push({ id: 'pactAsk', label: 'Approach the shrine', hint: 'hear the terms' });
     if (st.kind === 'shrine' && s.quest.dest === 'shrine' && hasItem(s, 'relic'))
       a.push({ id: 'offer', label: 'Offer the ' + s.quest.relic, hint: 'end the journey' });
-    if (st.kind === 'town') a.push({ id: 'townAsk', label: 'Enter ' + s.town.name, hint: 'talk, trade, rest' });
+    if (st.kind === 'town') a.push({ id: 'enterTown', label: 'Enter ' + s.town.name, hint: 'talk, trade, rest' });
     if (st.kind === 'vault' && !st.open)
       a.push({
         id: 'unlock',
         label: 'Unlock the ' + s.quest.vault.name,
         hint: hasItem(s, 'key') ? 'you have the key' : 'needs the key',
       });
-    if (st.kind === 'vault' && st.open && st.depth < st.floors.length)
-      a.push({
-        id: 'descend',
-        label: st.guard ? 'Face the guardian again' : 'Descend',
-        hint: 'level ' + (st.depth + 1) + ' of ' + st.floors.length + ', needs a light',
-      });
+    if (st.kind === 'vault' && st.open)
+      a.push({ id: 'enterVault', label: 'Go into the ' + s.quest.vault.name, hint: st.floors.length + ' levels, needs a light' });
   }
   const g = groundHere(s);
   if (!st && g.drink) a.push({ id: 'fill', label: 'Fill from the ' + g.name, hint: '15 min' });
   if (g.dig && !s.dug[here(s)]) a.push({ id: 'dig', label: 'Dig for water', hint: '1 h, -12 stamina' });
   if (g.gather) a.push({ id: 'gather', label: 'Gather wood', hint: '30 min, +1 fuel' });
-  if (biomeOf(s).melt && cap - p.water >= 0.05) a.push({ id: 'melt', label: 'Melt snow', hint: '1 fuel' });
+  if (biomeOf(s).melt && !indoors(s) && cap - p.water >= 0.05) a.push({ id: 'melt', label: 'Melt snow', hint: '1 fuel' });
   a.push({ id: 'rest', label: 'Rest', hint: '1 h' });
   if (inShelter(s)) a.push({ id: 'sleep', label: atCamp(s) ? 'Sleep at camp' : 'Sleep in shelter', hint: 'until rested' });
   if (p.warmth < 95) a.push({ id: 'fire', label: 'Light a fire', hint: '1 fuel' });
@@ -686,11 +734,12 @@ function forecast(s) {
 }
 function shrineBearing(s) {
   if (stat(s, 'shrineSense', 0) <= 0) return null;
-  for (const k in s.sites) if (s.sites[k].kind === 'shrine') return dirTo(s, k % W, Math.floor(k / W));
+  const m = worldMap(s);
+  for (const k in m.sites) if (m.sites[k].kind === 'shrine') return dirFrom(worldPos(s), k % W, Math.floor(k / W));
   return null;
 }
 function wellfinder(s) {
-  if (stat(s, 'wellfinder', 0) <= 0) return null;
+  if (indoors(s) || stat(s, 'wellfinder', 0) <= 0) return null;
   let best = null,
     bd = 1e9;
   for (const k in s.sites) {

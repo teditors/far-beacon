@@ -1,5 +1,5 @@
 /* The 3D scene: lights, models, and the static and moving parts of the world. */
-import { $, N, P, R, TS, V, WORLD, tileX, toTile } from './ctx.js';
+import { $, G, N, P, R, TS, V, WORLD, setGeometry, tileX, toTile } from './ctx.js';
 import { makeTerrain } from './terrain.js';
 
 /* ---------- scene ---------- */
@@ -229,10 +229,136 @@ const BUILD = {
     return g;
   },
 };
+const FLAT = { height: () => 0 };
+const VAULT_STONE = { castle: 0x6a6660, barrow: 0x5d6a4a, temple: 0x4f6e6c };
+// Inside the town or the locked place: a floor, and a block for every wall tile that borders open floor.
+function buildInterior() {
+  const rec = R.areaRec(V.S),
+    town = rec.kind === 'town',
+    ts = G.ts,
+    size = R.W * ts,
+    T = V.S.terrain,
+    isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
+  V.terrain = FLAT;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 0x8f8a80 : 0x3e3a35));
+  staticGroup.add(floor);
+  const stone = town ? 0xc9bba0 : VAULT_STONE[V.S.quest.vault.id],
+    tiles = [];
+  for (let y = 0; y < R.H; y++)
+    for (let x = 0; x < R.W; x++) {
+      if (!isWall(x, y)) continue;
+      if (
+        !isWall(x + 1, y) ||
+        !isWall(x - 1, y) ||
+        !isWall(x, y + 1) ||
+        !isWall(x, y - 1) ||
+        !isWall(x + 1, y + 1) ||
+        !isWall(x - 1, y - 1) ||
+        !isWall(x + 1, y - 1) ||
+        !isWall(x - 1, y + 1)
+      )
+        tiles.push([x, y]);
+    }
+  const outer = (x, y) => x === 0 || y === 0 || x === R.W - 1 || y === R.H - 1;
+  const groups = town ? [tiles.filter(([x, y]) => outer(x, y)), tiles.filter(([x, y]) => !outer(x, y))] : [tiles];
+  groups.forEach((list, gi) => {
+    const h = town ? (gi === 0 ? 6 : 4.5) : 5,
+      inst = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(ts, h, ts),
+        std(town && gi === 0 ? 0x8d8579 : stone),
+        Math.max(1, list.length),
+      ),
+      m = new THREE.Matrix4();
+    list.forEach(([x, y], i) => {
+      m.makeTranslation(tileX(x), h / 2, tileX(y));
+      inst.setMatrixAt(i, m);
+    });
+    inst.count = list.length;
+    staticGroup.add(inst);
+  });
+  if (town) {
+    // roofs: a flat dark cap on the house blocks reads as roof from the street
+    const caps = groups[1],
+      inst = new THREE.InstancedMesh(new THREE.BoxGeometry(ts * 1.02, 0.4, ts * 1.02), std(0x7a3f2c), Math.max(1, caps.length)),
+      m = new THREE.Matrix4();
+    caps.forEach(([x, y], i) => {
+      m.makeTranslation(tileX(x), 4.7, tileX(y));
+      inst.setMatrixAt(i, m);
+    });
+    inst.count = caps.length;
+    staticGroup.add(inst);
+  } else {
+    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(0x1c1a18));
+    ceiling.position.y = 5;
+    staticGroup.add(ceiling);
+  }
+}
+// Things inside that can change: people, stairs, traps, and anything lying on the floor.
+function person(color, hat) {
+  const g = new THREE.Group(),
+    body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 1.5, 8), std(color)),
+    head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 10, 8), std(0xd9b896));
+  body.position.y = 0.75;
+  head.position.y = 1.75;
+  g.add(body, head);
+  if (hat) {
+    const h = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.45, 8), std(hat));
+    h.position.y = 2.1;
+    g.add(h);
+  }
+  return g;
+}
+function interiorSite(st) {
+  const ts = G.ts,
+    g = new THREE.Group();
+  if (st.kind === 'elder') g.add(person(0x8a2c2c, 0x5a1c1c));
+  else if (st.kind === 'inn') g.add(person(0x7a5a2e), box(1.6, 0.9, 0.8, std(0x5a3d22), 1.2, 0.45, 0));
+  else if (st.kind === 'shop')
+    g.add(person(0x2f5f8f), box(1.8, 0.9, 0.9, std(0x6b4a2a), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(0xc9a227), -0.4, 1.1, -1.1));
+  else if (st.kind === 'well') g.add(BUILD.well());
+  else if (st.kind === 'exit' && R.areaRec(V.S).kind === 'town')
+    g.add(
+      box(0.6, 5, 0.6, std(0x6b6358), -ts / 2, 2.5, 0),
+      box(0.6, 5, 0.6, std(0x6b6358), ts / 2, 2.5, 0),
+      box(ts + 0.6, 0.6, 0.6, std(0x6b6358), 0, 5, 0),
+    );
+  else if (st.kind === 'exit' || st.kind === 'stairsUp') {
+    for (let i = 0; i < 4; i++)
+      g.add(box(ts * 0.8, 0.3 + i * 0.4, 0.6, std(0x77716a), 0, (0.3 + i * 0.4) / 2, -ts / 2 + 0.3 + i * 0.6));
+    const shaft = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.9, 5, 10, 1, true),
+      new THREE.MeshBasicMaterial({
+        color: st.kind === 'exit' ? 0xfff1c0 : 0xe0a84a,
+        transparent: true,
+        opacity: 0.1,
+        depthWrite: false,
+      }),
+    );
+    shaft.material.side = THREE.DoubleSide;
+    shaft.position.set(0, 2.5, -ts * 0.35);
+    g.add(shaft);
+  } else if (st.kind === 'stairsDown') {
+    g.add(
+      new THREE.Mesh(
+        new THREE.PlaneGeometry(ts * 0.8, ts * 0.8).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0x050505 }),
+      ),
+    );
+    g.children[0].position.y = 0.02;
+    for (let i = 0; i < 3; i++) g.add(box(ts * 0.7, 0.12, 0.5, std(0x5a554e), 0, 0.04 - i * 0.01, -ts * 0.3 + i * 0.6));
+    const marker = new THREE.Mesh(new THREE.TorusGeometry(ts * 0.42, 0.06, 6, 24).rotateX(Math.PI / 2), glow(0xe0a84a, 0.5));
+    marker.position.y = 0.05;
+    g.add(marker);
+  } else if (st.kind === 'trap' && (st.sprung || st.seen))
+    g.add(box(ts * 0.6, 0.06, ts * 0.6, std(st.sprung ? 0x2a2522 : 0x9a2a22), 0, 0.03, 0));
+  return g;
+}
 function buildStatic() {
   dispose(staticGroup);
   staticGroup = new THREE.Group();
   scene.add(staticGroup);
+  setGeometry(R.indoors(V.S));
+  if (R.indoors(V.S)) return buildInterior();
   V.terrain = makeTerrain(V.S);
   const b = R.biomeOf(V.S),
     cols = b.colors.map((c) => new THREE.Color(c)),
@@ -373,10 +499,28 @@ function buildDynamic() {
       dynGroup.add(c);
     }
   }
+  const indoor = R.indoors(V.S),
+    off = indoor ? G.ts / 28 : 1;
+  if (indoor)
+    for (const k in V.S.sites) {
+      const st = V.S.sites[k],
+        [x, y, z] = at(+k),
+        g = interiorSite(st);
+      g.position.set(x, y, z);
+      if (st.kind === 'elder' || st.kind === 'inn' || st.kind === 'shop') g.rotation.y = Math.atan2(P.x - x, P.z - z);
+      dynGroup.add(g);
+    }
   for (const k in V.S.depots) {
-    if (+k === V.S.camp) continue;
-    const [x, y, z] = at(+k, 3.5, 2.5);
-    dynGroup.add(box(1.2, 1, 1.2, std(0x8a5a2b), x, y + 0.5, z));
+    if (R.inOverworld(V.S) && +k === V.S.camp) continue;
+    const d = V.S.depots[k],
+      relic = d.items.some((i) => i.base === 'relic'),
+      [x, y, z] = at(+k, 3.5 * off, 2.5 * off);
+    if (relic) {
+      dynGroup.add(box(1.2, 1, 1.2, std(0x77716a), x, y + 0.5, z));
+      const r = new THREE.Mesh(new THREE.OctahedronGeometry(0.35), glow(0xffd27a, 1));
+      r.position.set(x, y + 1.45, z);
+      dynGroup.add(r);
+    } else dynGroup.add(box(1.2, 1, 1.2, std(0x8a5a2b), x, y + 0.5, z));
   }
   for (const c of V.S.creatures) {
     if (c.bound && !(V.S.combat && V.S.combat.cid === c.id)) continue;
@@ -423,19 +567,19 @@ function buildDynamic() {
     g.scale.setScalar(k * (sp.form === 'wight' ? 0.85 : 1.1));
     let x, y, z;
     if (V.S.combat && V.S.combat.cid === c.id) {
-      x = P.x - Math.sin(P.yaw) * 7.5;
-      z = P.z - Math.cos(P.yaw) * 7.5;
+      x = P.x - Math.sin(P.yaw) * (indoor ? 3 : 7.5);
+      z = P.z - Math.cos(P.yaw) * (indoor ? 3 : 7.5);
       P.pitch = 0;
       y = V.terrain.height(x, z);
       g.rotation.y = P.yaw;
     } else {
-      [x, y, z] = at(c.y * R.W + c.x, -4, -5);
+      [x, y, z] = at(c.y * R.W + c.x, -4 * off, -5 * off);
       g.rotation.y = Math.atan2(P.x - x, P.z - z);
     }
     g.position.set(x, y, z);
     dynGroup.add(g);
   }
-  if (V.S.camp !== null) {
+  if (R.inOverworld(V.S) && V.S.camp !== null) {
     const [x, y, z] = at(V.S.camp, 5, 3),
       t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(0xd9a24a));
     t.position.set(x, y + 1.8, z);

@@ -1,4 +1,5 @@
 /* Systems that run as time passes (Lego rule 4: each can be switched off). */
+import { indoors, isDark } from './areas.js';
 import { biomeOf, clamp, clock, say, srand } from './core.js';
 import { aOrAn } from './core.js';
 import { active } from './equipment.js';
@@ -18,11 +19,21 @@ const SYSTEMS = [
       if (s.time >= s.weather.changeAt) {
         s.weather.storm = !s.weather.storm;
         s.weather.changeAt = s.time + (s.weather.storm ? 180 + srand(s) * 240 : (480 + srand(s) * 720) * s.tun.stormGap);
-        say(
-          s,
-          s.weather.storm ? aOrAn(biomeOf(s).storm.name, true) + ' breaks over you.' : 'The ' + biomeOf(s).storm.name + ' passes.',
-          s.weather.storm ? 'bad' : 'good',
-        );
+        if (!isDark(s) && !indoors(s))
+          say(
+            s,
+            s.weather.storm
+              ? aOrAn(biomeOf(s).storm.name, true) + ' breaks over you.'
+              : 'The ' + biomeOf(s).storm.name + ' passes.',
+            s.weather.storm ? 'bad' : 'good',
+          );
+        else if (!isDark(s))
+          say(
+            s,
+            s.weather.storm
+              ? 'Outside the walls, ' + aOrAn(biomeOf(s).storm.name) + ' has begun.'
+              : 'Outside, the ' + biomeOf(s).storm.name + ' has passed.',
+          );
       }
     },
   },
@@ -56,8 +67,8 @@ const SYSTEMS = [
   {
     id: 'lantern',
     fn(s, dt, ctx) {
-      if (clock(s).isDay || ctx.activity !== 'move' || s.player.fuel <= 0) return;
-      if (!s.player.items.some((it) => it.base === 'lantern')) return;
+      if ((clock(s).isDay && !isDark(s)) || ctx.activity !== 'move' || s.player.fuel <= 0) return;
+      if (!s.player.items.some((it) => it.base === 'lantern' && it.eq)) return;
       s.player.fuel = Math.max(0, s.player.fuel - s.tun.lanternFuelPerHour * stat(s, 'fuelUse', 1) * dt);
       if (s.player.fuel <= 0) say(s, 'Your lantern gutters out. No fuel left.', 'bad');
     },

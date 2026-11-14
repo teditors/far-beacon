@@ -3,7 +3,19 @@
 import { VERSION } from './core.js';
 
 const MIGRATIONS = {
-  // Example: 6: (s) => { s.newField = defaultValue; },   // upgrades a version-6 save to version 7
+  // 6 -> 7: towns and the locked place became areas you walk into.
+  6: (s) => {
+    s.area = 'overworld';
+    s.areas = { overworld: { id: 'overworld', kind: 'overworld' } };
+    s.creatures = s.creatures.filter((c) => !c.bound); // the old menu-dungeon's guardians
+    if (s.combat && !s.creatures.some((c) => c.id === s.combat.cid)) s.combat = null;
+    for (const k in s.sites) {
+      const st = s.sites[k];
+      if (st.kind !== 'vault') continue;
+      delete st.guard;
+      delete st.depth; // the levels are now built when you first go in, so any progress inside starts over
+    }
+  },
 };
 
 function serialize(s) {

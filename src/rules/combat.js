@@ -4,9 +4,9 @@ import { scores } from './character.js';
 import { C, H, byId, clamp, idx, say, srand } from './core.js';
 import { aOrAn } from './core.js';
 import { genItem, isCursed, itemName, makeItem } from './items.js';
-import { dirTo } from './map.js';
+import { dirTo, lineOfSight, passable, sightRadius } from './map.js';
+import { isDark } from './areas.js';
 import { amod, gainXp, playerAC, prof, roll, weaponOf } from './progress.js';
-import { vaultAdvance } from './quest.js';
 import { stat } from './stats.js';
 
 /* Creatures and combat: rare, one at a time, turn by turn. */
@@ -88,7 +88,8 @@ function startCombat(s, c, enemyFirst) {
   c.seen = true;
   clog(
     s,
-    (enemyFirst ? aOrAn(sp.name, true) + ' is on you! ' : aOrAn(sp.name, true) + ' bars your way. ') + (sp.met ? '' : formOf(s, c).text),
+    (enemyFirst ? aOrAn(sp.name, true) + ' is on you! ' : aOrAn(sp.name, true) + ' bars your way. ') +
+      (sp.met ? '' : formOf(s, c).text),
     'bad',
   );
   sp.met = true;
@@ -149,13 +150,12 @@ function hurt(s, c, dmg, lead) {
     depotHere(s, true).items.push(k);
     say(s, 'In its lair lies the key to the ' + s.quest.vault.name + '. Open Pack to take it.', 'good');
   }
-  if (c.bound) {
-    const st = s.sites[idx(c.x, c.y)];
-    if (st && st.kind === 'vault') {
-      st.guard = null;
-      vaultAdvance(s, st);
-    }
-  }
+  if (c.warden)
+    say(
+      s,
+      'The warden of the ' + s.quest.vault.name + ' is dead. Nothing stands between you and the ' + s.quest.relic + '.',
+      'good',
+    );
   gainXp(s, xp);
 }
 function enemyTurn(s) {
@@ -294,7 +294,6 @@ function stepCreatures(s) {
   if (s.over) return;
   const p = s.player;
   for (const c of s.creatures) {
-    if (c.bound) continue;
     const sp = spOf(s, c);
     if (c.cool > 0) c.cool--;
     let d = Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y));
@@ -302,20 +301,26 @@ function stepCreatures(s) {
     const chase =
       sp.rare !== 'docile' &&
       c.cool === 0 &&
-      ((sp.temper === 'hunter' && d <= 5 && srand(s) < 0.6) || (sp.temper === 'territorial' && d <= 2));
+      ((sp.temper === 'hunter' && d <= 5 && srand(s) < 0.6) || (sp.temper === 'territorial' && d <= 2)) &&
+      lineOfSight(s, c.x, c.y, p.x, p.y);
     if (chase && d > 0) {
       const dx = Math.sign(p.x - c.x),
         dy = Math.sign(p.y - c.y),
         nx = Math.abs(p.x - c.x) >= Math.abs(p.y - c.y) ? c.x + dx : c.x,
         ny = nx === c.x ? c.y + dy : c.y;
-      if (s.terrain[idx(nx, ny)] !== 2) {
+      if (s.terrain[idx(nx, ny)] !== 2 && passable(s, nx, ny)) {
         c.x = nx;
         c.y = ny;
         moved = true;
       }
       d = Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y));
     }
-    if (d <= 3 && !c.seen && !s.weather.storm) {
+    if (
+      d <= Math.max(1, Math.min(3, sightRadius(s))) &&
+      !c.seen &&
+      lineOfSight(s, p.x, p.y, c.x, c.y) &&
+      (isDark(s) || !s.weather.storm)
+    ) {
       c.seen = true;
       say(
         s,

@@ -3,9 +3,12 @@ import { CONTENT } from '../content/index.js';
 const C = CONTENT,
   W = 36,
   H = 36,
-  VERSION = 6,
+  VERSION = 7,
   START = 6 * 60;
-const TERR = ['plain', 'hill', 'mountain', 'forest', 'river', 'special'];
+const TERR = ['plain', 'hill', 'mountain', 'forest', 'river', 'special', 'wall', 'floor'];
+// Indoor ground: walls cannot be walked through; floor is the inside of towns and the locked place.
+const WALL = 6,
+  FLOOR = 7;
 const byId = (list, id) => list.find((e) => e.id === id);
 const idx = (x, y) => y * W + x;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -79,3 +82,4 @@ export {
   godOf,
 };
 export { aOrAn };
+export { WALL, FLOOR };

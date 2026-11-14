@@ -23,6 +23,26 @@ for (const seed of [3, 17, 404]) {
 }
 need(R.deserialize('not json').error, 'garbage text should be refused');
 need(R.deserialize(JSON.stringify({ v: R.VERSION + 1, player: {}, terrain: [] })).error, 'a save from the future should be refused');
+// 2b. saves from older versions still load and play on (fixtures/save-v*.json were written by those versions)
+for (const f of fs.readdirSync(path.join(__dirname, 'fixtures')).filter((f) => f.startsWith('save-v'))) {
+  const res = R.deserialize(fs.readFileSync(path.join(__dirname, 'fixtures', f), 'utf8'));
+  need(res.state, f + ': did not load: ' + res.error);
+  if (!res.state) continue;
+  need(res.state.v === R.VERSION, f + ': not upgraded to the current version');
+  try {
+    const s = scripted(res.state, 150, 7);
+    need(R.serialize(s).length > 0, f + ': could not be saved again');
+    const v = R.findSite(s, 'vault');
+    if (v.st.open && !s.over) {
+      s.player.x = v.x;
+      s.player.y = v.y;
+      s.combat = null;
+      need(R.enterVault(s) || R.stat(s, 'nightSight', 0) <= 0, f + ': could not go into the open vault');
+    }
+  } catch (e) {
+    errs.push(f + ': crashed after loading: ' + e.message);
+  }
+}
 // 3. invariants over many worlds
 for (let seed = 1; seed <= 150; seed++) {
   const s = R.newGame(seed), p = s.player, tile = (pt) => pt.y * R.W + pt.x;
@@ -51,4 +71,4 @@ else {
 }
 for (const w of warns) console.log('note: ' + w);
 if (errs.length) { console.log('state problems:\n  ' + errs.slice(0, 20).join('\n  ')); process.exit(1); }
-console.log('state ok: determinism, save round trip, 150 worlds checked');
+console.log('state ok: determinism, save round trip, old saves upgrade, 150 worlds checked');

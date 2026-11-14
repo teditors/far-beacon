@@ -4,7 +4,7 @@ const { Rules } = require('./lib');
 const R=Rules,W=36;
 const dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 function target(s){ const q=s.quest,v=R.findSite(s,'vault');
-  const loose=b=>{for(const k in s.depots) if(s.depots[k].items.some(i=>i.base===b)) return {x:k%W,y:Math.floor(k/W)}; return null;};
+  const loose=b=>{const l=R.findLoose(s,b); if(!l) return null; return l.area==='overworld'?{x:l.x,y:l.y}:v;};
   if(!R.hasItem(s,'relic')){const l=loose('relic'); if(l) return l;} if(!R.hasItem(s,'key')&&!R.hasItem(s,'relic')&&!v.st.open){const l=loose('key'); if(l) return l;}
   if(R.hasItem(s,'relic')) return q.dest==='beacon'?s.goal:R.findSite(s,'shrine');
   if(v.st.open||R.hasItem(s,'key')) return v;
@@ -20,33 +20,56 @@ function step(s,t){ const p=s.player; const opts=[[1,0],[-1,0],[0,1],[0,-1]].map
 function maintain(s,stats){ const p=s.player,st=R.siteHere(s);
   if(st){ if(st.kind==='spring'||st.kind==='well'||st.kind==='town'||(st.kind==='ruin'&&st.water>0.05)){ if(st.kind==='spring'&&st.known&&st.foul){ if(p.fuel>=1)R.boil(s);} else if(st.kind==='ruin'&&st.foulWater){ if(p.fuel>=1)R.boil(s);} else R.fill(s);} 
     if(['ruin','cave','cache'].includes(st.kind)&&!st.searched&&p.stamina>35) { R.search(s); stats.searches++; }
-    const d=R.depotHere(s); if(d){ for(const it of d.items.slice()){ const b=R.byId(R.C.bases,it.base); if(b.quest||b.consumable||(R.slotOf(it)&&!p.items.some(i=>i.eq===R.slotOf(it))&&R.weight(s)+R.itemWeight(s,it)<R.carryCap(s)*0.7)||it.base==='waterskin') R.takeItem(s,it.id);} if(d.fuel)R.transfer(s,'fuel',-9); if(d.water)R.transfer(s,'water',-9);} }
+ }
+  const d=R.depotHere(s); if(d){ for(const it of d.items.slice()){ const b=R.byId(R.C.bases,it.base); if(b.quest||b.consumable||(R.slotOf(it)&&!p.items.some(i=>i.eq===R.slotOf(it))&&R.weight(s)+R.itemWeight(s,it)<R.carryCap(s)*0.7)||it.base==='waterskin') R.takeItem(s,it.id);} if(d.fuel)R.transfer(s,'fuel',-9); if(d.water)R.transfer(s,'water',-9);}
   if(!st&&R.groundHere(s).drink&&p.water<R.waterCap(s)-0.5) R.fill(s);
   if(R.groundHere(s).gather&&p.fuel<4) R.gather(s);
   if(R.biome)0;
   if(R.biomeOf(s).melt&&p.water<1.5&&p.fuel>=2) R.melt(s);
   if(p.warmth<35&&p.fuel>=1) R.fire(s); if(s.weather.storm&&!R.inShelter(s)&&!R.groundHere(s).blind&&p.warmth<60){ const ok=[[1,0],[-1,0],[0,1],[0,-1]].find(([dx,dy])=>{const x=p.x+dx,y=p.y+dy;return x>=0&&y>=0&&x<36&&y<36&&s.terrain[y*36+x]===3;}); if(ok)R.move(s,ok[0],ok[1]); }
-  if(R.atTown(s)){ if(!s.quest.told){R.talkElder(s);stats.town=R.clock(s).day;} 
+  if(R.atTown(s)&&st&&st.kind==='elder'&&!s.quest.told){R.talkElder(s);stats.town=R.clock(s).day;}
+  if(R.atTown(s)&&st&&st.kind==='shop'){ stats.shopped=true;
     if(!R.stat(s,'nightSight',0)){const l=s.town.stock.find(i=>i.base==='lantern'); if(l&&p.coin>=R.itemValue(l)){R.buy(s,l.id);R.equip(s,l.id);}}
     for(const it of p.items.slice()) if(!it.eq&&R.slotOf(it)&&p.items.some(i=>i.eq===R.slotOf(it)&&i!==it)) R.sell(s,it.id);
     while(p.fuel<4&&p.coin>=2&&s.town.fuel>0)R.buyFuel(s);
     const sv=s.town.stock.find(i=>i.base==='salve'); if(sv&&p.coin>=R.itemValue(sv)+5)R.buy(s,sv.id);
-    if(p.hp<p.hpMax*0.7&&p.coin>=5)R.inn(s); }
-  if(p.stamina<25||(p.hp<p.hpMax*0.5&&R.inShelter(s))){ if(R.inShelter(s)) R.sleep(s); else R.rest(s); }
+  }
+  if(R.atTown(s)&&st&&st.kind==='inn'){ stats.rested=true; if(p.hp<p.hpMax*0.7&&p.coin>=5)R.inn(s); }
+  if(p.stamina<25||(p.hp<p.hpMax*0.5&&R.inShelter(s))){ if(R.inShelter(s)&&R.areaRec(s).kind!=='vault') R.sleep(s); else R.rest(s); }
+  // too heavy to walk: drop spare gear first, then pour out water
+  for(const it of p.items.slice()){ if(R.weight(s)<=R.carryCap(s))break; const b=R.byId(R.C.bases,it.base); if(!it.eq&&!b.quest&&it.base!=='waterskin'&&it.base!=='campkit') R.leaveItem(s,it.id); }
+  if(R.weight(s)>R.carryCap(s)) p.water=Math.max(0,p.water-(R.weight(s)-R.carryCap(s))-0.1);
 }
 function fight(s,stats){ let g=0; while(s.combat&&!s.over&&g++<80){ const p=s.player,a=R.actions(s).map(x=>x.id),f=R.foe(s);
   if(p.hp<=p.hpMax*0.3){ const salve=p.items.find(i=>i.base==='salve'); if(salve){R.useItem(s,salve.id);continue;} if(a.includes('mend')&&p.mana>=3){R.mend(s);continue;} if(!s.quest||f.bound||f.key){} R.flee(s); stats.flees++; continue; }
   if(a.includes('firebolt')&&p.mana>=2)R.firebolt(s); else if(a.includes('smite')&&p.mana>=2)R.smite(s); else if(a.includes('power')&&p.stamina>30)R.power(s); else R.attack(s);} }
+// Inside the town or the locked place: walk the shortest open path, one step per turn.
+function bfsStep(s,tx,ty){ const prev=new Array(W*W).fill(-1),start=s.player.y*W+s.player.x,goal=ty*W+tx,q=[start]; prev[start]=start;
+  while(q.length&&prev[goal]<0){ const i=q.shift(); for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const x=i%W+dx,y=Math.floor(i/W)+dy,j=y*W+x; if(R.passable(s,x,y)&&prev[j]<0){prev[j]=i;q.push(j);} } }
+  if(prev[goal]<0) return false; let j=goal; while(prev[j]!==start&&j!==start) j=prev[j]; if(j===start) return true; return R.move(s,j%W-s.player.x,Math.floor(j/W)-s.player.y); }
+function interior(s,stats){ const p=s.player, rec=R.areaRec(s), at=(k)=>{const f=R.findHere(s,k); return f;}, onIt=(f)=>f&&f.x===p.x&&f.y===p.y;
+  if(rec.kind==='town'){ let t=!s.quest.told?at('elder'):!stats.shopped?at('shop'):(p.hp<p.hpMax*0.7&&p.coin>=5&&!stats.rested)?at('inn'):at('exit');
+    if(onIt(t)&&t.st.kind==='exit'){ R.goUp(s); return; } if(!onIt(t)) { if(!bfsStep(s,t.x,t.y)) R.rest(s); } return; }
+  // the locked place
+  if(!R.stat(s,'nightSight',0)&&!R.hasItem(s,'relic')){ stats.darkness=(stats.darkness||0)+1; }
+  let relicAt=null; for(const k in s.depots) if(s.depots[k].items.some(i=>i.base==='relic')) relicAt={x:k%W,y:Math.floor(k/W)};
+  let t; if(R.hasItem(s,'relic')||(!R.stat(s,'nightSight',0)&&p.fuel<=0)) t=at('stairsUp')||at('exit'); else if(relicAt) t=relicAt; else t=at('stairsDown');
+  if(!t) t=at('stairsUp')||at('exit');
+  if(onIt(t)){ const k=t.st&&t.st.kind; if(k==='stairsDown')R.goDown(s); else if(k==='stairsUp'||k==='exit')R.goUp(s); return; }
+  if(p.hp<p.hpMax*0.35){ R.rest(s); return; }
+  if(!bfsStep(s,t.x,t.y)) R.rest(s); }
 function play(seed){ const s=R.newGame(seed); const stats={seed,searches:0,flees:0,fights:0,town:null,deaths:[],dungeon:null,stuck:false}; let guard=0, lastTarget=null, lastD=1e9, noProg=0;
   while(guard++<2500){
     if(s.over){ if(s.over.won) break; stats.deaths.push({cause:s.over.cause+(s.over.by?':'+s.over.by:''),day:R.clock(s).day,goal:R.objective(s).text,cls:s.char.cls,lvl:s.player.level}); if(R.livesLeft(s)<=0)break; R.nextTraveller(s,R.makeChar(Math.random,s)); continue; }
     if(s.combat){ stats.fights++; fight(s,stats); continue; }
     maintain(s,stats); if(s.over||s.combat) continue;
-    const p=s.player, v=R.findSite(s,'vault');
-    if(v.x===p.x&&v.y===p.y){ if(!v.st.open)R.unlock(s); if(v.st.open&&v.st.depth<v.st.floors.length){ if(!R.stat(s,'nightSight',0)){ stats.noLight=(stats.noLight||0)+1; } else { if(p.hp<p.hpMax*0.6){ R.sleep(s); } R.descend(s); if(!stats.dungeon)stats.dungeon=R.clock(s).day; continue; } } }
+    if(s.area!=='overworld'){ interior(s,stats); continue; }
+    const p=s.player, v=R.findSite(s,'vault'), here=R.siteHere(s);
+    if(here&&here.kind==='town'&&(!s.quest.told||(!R.stat(s,'nightSight',0)&&(v.st.open||R.hasItem(s,'key'))))){ stats.shopped=false; stats.rested=false; R.enterTown(s); continue; }
+    if(v.x===p.x&&v.y===p.y&&!R.hasItem(s,'relic')){ if(!v.st.open)R.unlock(s); if(v.st.open&&p.water<R.waterCap(s)*0.7){ stats.refill=true; } else if(v.st.open){ if(!R.stat(s,'nightSight',0)){ stats.noLight=(stats.noLight||0)+1; } else { if(p.hp<p.hpMax*0.6){ R.sleep(s); } R.enterVault(s); if(!stats.dungeon)stats.dungeon=R.clock(s).day; continue; } } }
     if(R.siteHere(s)&&R.siteHere(s).kind==='shrine'&&R.hasItem(s,'relic')) R.offer(s);
     // water safety: if water won't get us to the target, go to known water first
-    let t=target(s); if(!R.stat(s,'nightSight',0)&&(v.st.open||R.hasItem(s,'key'))&&!R.hasItem(s,'relic')) t=s.town;
+    let t=target(s); if(stats.refill){ const kw0=knownWater(s); if(kw0&&p.water<R.waterCap(s)*0.9) t=kw0.p; else stats.refill=false; } if(!R.stat(s,'nightSight',0)&&(v.st.open||R.hasItem(s,'key'))&&!R.hasItem(s,'relic')) t=s.town;
     const wr=R.stat(s,'waterDrain',s.tun.waterPerHour)*0.4, need=dist(p,t)*wr, kw=knownWater(s);
     const back=kw?kw.d*wr:0; if(kw&&kw.d>0&&p.water<R.waterCap(s)-0.3&&p.water<Math.min(need,back+1.2)+0.3) t=kw.p;
     if(!step(s,t)){ R.rest(s); }

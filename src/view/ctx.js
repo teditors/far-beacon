@@ -39,10 +39,21 @@ function mulberry(a) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const tileX = (tx) => (tx + 0.5) * TS - HALF,
-  toTile = (x) => clamp(Math.floor((x + HALF) / TS), 0, R.W - 1);
+// Geometry of the area being shown. Outdoors a tile is TS metres; inside the town and the locked place it is
+// INDOOR_TS, so the same rules grid becomes a walkable building. setGeometry() switches between them.
+const INDOOR_TS = 4;
+const G = { ts: TS, half: HALF };
+function setGeometry(indoor) {
+  G.ts = indoor ? INDOOR_TS : TS;
+  G.half = (R.W * G.ts) / 2;
+}
+const tileX = (tx) => (tx + 0.5) * G.ts - G.half,
+  toTile = (x) => clamp(Math.floor((x + G.half) / G.ts), 0, R.W - 1);
 
 export {
+  G,
+  INDOOR_TS,
+  setGeometry,
   OLD_KEYS,
   V,
   P,

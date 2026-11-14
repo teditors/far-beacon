@@ -150,8 +150,6 @@ function newGame(seed) {
     sites[idx(vaultP.x, vaultP.y)] = {
       kind: 'vault',
       open: false,
-      depth: 0,
-      guard: null,
       floors: [F[Math.floor(rV() * F.length)], F[Math.floor(rV() * F.length)], 'guard'],
     };
   }
@@ -269,6 +267,8 @@ function newGame(seed) {
     char: null,
     travellers: 1,
     lostMaps: {},
+    area: 'overworld',
+    areas: { overworld: { id: 'overworld', kind: 'overworld' } },
     offer: null,
     time: 0,
     weather: { storm: false, changeAt: 0 },
