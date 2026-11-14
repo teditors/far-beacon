@@ -1,0 +1,156 @@
+/* Ability scores, races and classes. */
+export default {
+  /* Characters: six classic scores, each tied to something in a survival game. A world offers only some races and classes. */
+  abilities: [
+    { id: 'str', name: 'Strength', does: 'carry limit', mods: (v) => [{ stat: 'carryCap', op: 'add', value: v - 10 }] },
+    {
+      id: 'dex',
+      name: 'Dexterity',
+      does: 'effort per step',
+      mods: (v) => [{ stat: 'staminaCost', op: 'mul', value: 1 - (v - 10) * 0.02 }],
+    },
+    {
+      id: 'con',
+      name: 'Constitution',
+      does: 'water need and cold',
+      mods: (v) => [
+        { stat: 'waterDrain', op: 'mul', value: 1 - (v - 10) * 0.02 },
+        { stat: 'cold', op: 'mul', value: 1 - (v - 10) * 0.015 },
+      ],
+    },
+    {
+      id: 'int',
+      name: 'Intelligence',
+      does: 'time to understand items',
+      mods: (v) => [{ stat: 'studyTime', op: 'mul', value: Math.max(0.3, 1 - (v - 10) * 0.06) }],
+    },
+    {
+      id: 'wis',
+      name: 'Wisdom',
+      does: 'survey range',
+      mods: (v) => [{ stat: 'surveyRadius', op: 'add', value: Math.round((v - 10) / 3) }],
+    },
+    {
+      id: 'cha',
+      name: 'Charisma',
+      does: 'luck in caves and caches',
+      mods: (v) => [{ stat: 'luck', op: 'add', value: Math.max(0, (v - 10) * 0.03) }],
+    },
+  ],
+  races: [
+    {
+      id: 'human',
+      name: 'Human',
+      adj: { str: 1, cha: 1 },
+      text: 'Adaptable. Rests well anywhere.',
+      mods: [{ stat: 'restGain', op: 'mul', value: 1.15 }],
+      names: ['Aldric', 'Maren', 'Joss', 'Edda', 'Corwin', 'Sabel', 'Tam', 'Ysolde'],
+    },
+    {
+      id: 'dwarf',
+      name: 'Dwarf',
+      adj: { con: 2, cha: -2 },
+      text: 'Hardy against cold, and quick on hills and mountains.',
+      mods: [
+        { stat: 'cold', op: 'mul', value: 0.85 },
+        { stat: 'moveTime.hill', op: 'mul', value: 0.85 },
+        { stat: 'moveTime.mountain', op: 'mul', value: 0.85 },
+      ],
+      names: ['Borin', 'Hild', 'Thrain', 'Dagna', 'Orm', 'Sigrun', 'Kazr', 'Ulfa'],
+    },
+    {
+      id: 'elf',
+      name: 'Elf',
+      adj: { dex: 2, con: -2 },
+      text: 'Sees in the dark, and moves through woodland as if it were open ground.',
+      mods: [
+        { stat: 'nightSight', op: 'add', value: 1 },
+        { stat: 'moveTime.forest', op: 'mul', value: 0.7 },
+      ],
+      names: ['Aelin', 'Thalos', 'Sirene', 'Ilvar', 'Nimue', 'Caelis', 'Lorien', 'Vaela'],
+    },
+    {
+      id: 'halfling',
+      name: 'Halfling',
+      adj: { dex: 2, str: -2 },
+      text: 'A small body needs less water.',
+      mods: [{ stat: 'waterDrain', op: 'mul', value: 0.85 }],
+      names: ['Pip', 'Merry', 'Rosa', 'Tolman', 'Daisy', 'Fenn', 'Lob', 'Primula'],
+    },
+    {
+      id: 'orc',
+      name: 'Half-orc',
+      adj: { str: 2, int: -2 },
+      text: 'Tireless. Every step costs less.',
+      mods: [{ stat: 'staminaCost', op: 'mul', value: 0.9 }],
+      names: ['Grash', 'Urza', 'Mok', 'Shara', 'Dorgan', 'Vek', 'Hruna', 'Bolg'],
+    },
+  ],
+  classes: [
+    {
+      id: 'fighter',
+      name: 'Fighter',
+      text: 'Trained to march. Less effort per step, and a larger carry limit. Starts with a sword, leather armor and boots.',
+      kit: ['sword', 'leather', 'boots'],
+      hd: 10,
+      fight: 'Power strike: spend stamina to hit harder.',
+      mods: [
+        { stat: 'staminaCost', op: 'mul', value: 0.9 },
+        { stat: 'carryCap', op: 'add', value: 2 },
+      ],
+    },
+    {
+      id: 'ranger',
+      name: 'Ranger',
+      text: 'Reads the land. Surveys further, knows sweet water from foul on sight, and gathers twice the wood. Starts with a spear and a spyglass.',
+      kit: ['spear', 'spyglass'],
+      hd: 8,
+      fight: 'Opens every fight with a free shot.',
+      mods: [
+        { stat: 'surveyRadius', op: 'add', value: 1 },
+        { stat: 'tasteWater', op: 'add', value: 1 },
+        { stat: 'gatherYield', op: 'add', value: 1 },
+      ],
+    },
+    {
+      id: 'rogue',
+      name: 'Rogue',
+      text: 'Searches in half the time and is never caught by a trap. Starts with a dagger, leather armor and a rope.',
+      kit: ['dagger', 'leather', 'rope'],
+      hd: 6,
+      fight: 'First hit of a fight deals double. Always gets away when fleeing.',
+      mods: [
+        { stat: 'searchTime', op: 'mul', value: 0.5 },
+        { stat: 'trapSafe', op: 'add', value: 1 },
+      ],
+    },
+    {
+      id: 'cleric',
+      name: 'Cleric',
+      text: 'Always knows which way the shrine lies, and rests better. Starts with a staff and two warming draughts.',
+      kit: ['staff', 'draught', 'draught'],
+      hd: 8,
+      caster: 'wis',
+      manaPer: 2,
+      fight: 'Spells: Smite and Mend.',
+      mods: [
+        { stat: 'shrineSense', op: 'add', value: 1 },
+        { stat: 'restGain', op: 'mul', value: 1.2 },
+      ],
+    },
+    {
+      id: 'wizard',
+      name: 'Wizard',
+      text: 'Understands items in a quarter of the time, but carries less. Starts with a dagger and a lantern.',
+      kit: ['dagger', 'lantern'],
+      hd: 4,
+      caster: 'int',
+      manaPer: 4,
+      fight: 'Spells: Firebolt, and Identify from the Pack screen.',
+      mods: [
+        { stat: 'studyTime', op: 'mul', value: 0.25 },
+        { stat: 'carryCap', op: 'add', value: -2 },
+      ],
+    },
+  ],
+};

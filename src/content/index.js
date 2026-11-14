@@ -1,0 +1,12 @@
+/* CONTENT: every biome, people, god, creature, item and quest part is data. Adding an entry needs no code change.
+   Each file below holds one theme; this file merges them into the single CONTENT object the rules read. */
+import tuning from './tuning.js';
+import characters from './characters.js';
+import biomes from './biomes.js';
+import gods from './gods.js';
+import peoples from './peoples.js';
+import creatures from './creatures.js';
+import items from './items.js';
+import quest from './quest.js';
+
+export const CONTENT = Object.assign({}, tuning, characters, biomes, gods, peoples, creatures, items, quest);
