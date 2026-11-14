@@ -1,7 +1,7 @@
 # Versions
 
-Each version is a git tag. On GitHub, open **Tags** to see them; each one holds the whole project as it
-was, including the playable `dist/index.html`.
+From v0.6 on, each version is a git tag. On GitHub, open **Tags** to see them; each one holds the whole project
+as it was, including the playable `dist/index.html`. The two early prototypes are kept as files in `prototypes/`.
 
 | Version | What it added |
 | --- | --- |

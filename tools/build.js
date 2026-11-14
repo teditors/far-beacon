@@ -9,16 +9,9 @@ function buildRules() {
   esbuild.buildSync({ entryPoints: [path.join(ROOT, 'src/rules/index.js')], bundle: true, format: 'cjs', platform: 'node', banner: { js: '"use strict";' }, outfile: path.join(ROOT, 'build/rules.cjs'), logLevel: 'error' });
   return path.join(ROOT, 'build/rules.cjs');
 }
-// The version shown in Menu: the latest tag, plus how many changes since it (e.g. "v0.7" or "v0.7 +2").
+// The version shown in Menu comes from package.json. To release: set "version" there, build, commit, then tag v<version>.
 function versionLabel() {
-  try {
-    const d = require('child_process').execSync('git describe --tags --long --dirty', { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-    const m = d.match(/^(.*)-(\d+)-g[0-9a-f]+(-dirty)?$/);
-    if (!m) return d;
-    return m[1] + (m[2] !== '0' ? ' +' + m[2] : '') + (m[3] ? ' (unsaved changes)' : '');
-  } catch (e) {
-    return 'unversioned';
-  }
+  return 'v' + require(path.join(ROOT, 'package.json')).version.replace(/\.0$/, '');
 }
 function buildPage() {
   const out = esbuild.buildSync({ entryPoints: [path.join(ROOT, 'src/main.js')], bundle: true, format: 'iife', target: 'es2020', banner: { js: '"use strict";' }, write: false, logLevel: 'error' });
