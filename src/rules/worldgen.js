@@ -2,8 +2,8 @@
 import { makeChar, spawn } from './character.js';
 import { AXES } from './civ.js';
 import { makeSpecies, placeCreatures, speciesFor } from './combat.js';
-import { GENERATORS, HOME, sketchOf } from './areas.js';
-import { makeSketch, worldNoise } from './world.js';
+import { GENERATORS, HOME, sketchOf, wrap } from './areas.js';
+import { crossings, makeSketch, worldNoise } from './world.js';
 import { C, H, VERSION, W, byId, clamp, idx, say, stream } from './core.js';
 import { makeItem } from './items.js';
 import { dirTo } from './map.js';
@@ -12,34 +12,101 @@ import { makeQuest } from './quest.js';
 /* Pieces shared by the home region and every other region */
 
 // Landforms for one region, read off the world-wide noise so that neighbours line up.
+const heightCache = {};
 function genTerrain(seed, world, cx, cy, biome, rT) {
   const n1 = worldNoise(seed, world, 5, 1),
     n2 = worldNoise(seed, world, 11, 2),
     n3 = worldNoise(seed, world, 8, 3),
+    jit = worldNoise(seed, world, W, 4),
+    ht = (gx, gy) => n1(gx, gy) * 0.65 + n2(gx, gy) * 0.3 + jit(gx, gy) * 0.05,
     gx0 = cx * W,
     gy0 = cy * H,
     hts = [];
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) hts.push(n1(gx0 + x, gy0 + y) * 0.65 + n2(gx0 + x, gy0 + y) * 0.3 + rT() * 0.05);
-  const sorted = hts.slice().sort((a, b) => a - b),
-    q = (f) => sorted[Math.min(sorted.length - 1, Math.floor(f * sorted.length))];
-  const mT = q(1 - biome.mountains),
-    hT = q(1 - biome.mountains - biome.hills);
-  const terrain = hts.map((h) => (h >= mT ? 2 : h >= hT ? 1 : 0)),
-    elev = terrain.slice();
-  const lowT = q(biome.special.frac * (1 - biome.mountains - biome.hills) * 1.0),
-    fT = 1 - biome.forest.frac * 1.6;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) hts.push(ht(gx0 + x, gy0 + y));
+  // "How high counts as a mountain" is measured over the whole world, so neighbouring regions agree at their border.
+  const key = seed + ':' + world.cols + 'x' + world.rows;
+  if (!heightCache[key]) {
+    const all = [];
+    for (let gy = 0; gy < world.rows * H; gy += 2) for (let gx = 0; gx < world.cols * W; gx += 2) all.push(ht(gx, gy));
+    heightCache[key] = all.sort((a, b) => a - b);
+  }
+  const sorted = heightCache[key],
+    q = (f) => sorted[clamp(Math.floor(f * sorted.length), 0, sorted.length - 1)];
+  // Near a border the land is a blend of the two biomes (four at a corner), so one does not stop dead at a line.
+  const M = 6,
+    bio = (dx, dy) => byId(C.biomes, world.sketch[wrap(cy + dy, world.rows) * world.cols + wrap(cx + dx, world.cols)].biome),
+    lean = (v, n) => (v < M ? [-1, 0.5 * (1 - (v + 0.5) / M)] : v >= n - M ? [1, 0.5 * (1 - (n - v - 0.5) / M)] : [0, 0]),
+    mix = (x, y, f) => {
+      const [sx, wx] = lean(x, W),
+        [sy, wy] = lean(y, H);
+      if (!wx && !wy) return f(biome);
+      return (
+        f(biome) * (1 - wx) * (1 - wy) + f(bio(sx, 0)) * wx * (1 - wy) + f(bio(0, sy)) * (1 - wx) * wy + f(bio(sx, sy)) * wx * wy
+      );
+    };
+  const terrain = [],
+    elev = [];
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
-      const i = idx(x, y);
-      if (terrain[i] === 0 && hts[i] <= lowT) {
+      const i = idx(x, y),
+        mo = mix(x, y, (b) => b.mountains),
+        hi = mix(x, y, (b) => b.hills),
+        sp = mix(x, y, (b) => b.special.frac),
+        fT = 1 - mix(x, y, (b) => b.forest.frac) * 1.6,
+        h = hts[i];
+      terrain[i] = elev[i] = h >= q(1 - mo) ? 2 : h >= q(1 - mo - hi) ? 1 : 0;
+      if (terrain[i] === 0 && h <= q(sp * (1 - mo - hi))) {
         terrain[i] = 5;
         elev[i] = -0.15;
       } else if (terrain[i] < 2 && n3(gx0 + x, gy0 + y) * 0.7 + n2(gx0 + x + 9, gy0 + y + 5) * 0.3 > fT * 0.72 + 0.14)
         terrain[i] = 3;
     }
+  // Rivers. One walk does all of them: downhill from a source, or uphill from where a river leaves the region.
+  // They keep off the outermost tiles, so a river only ever touches a border at a crossing point both sides know.
+  const seenR = {},
+    carve = (i, force) => {
+      if (terrain[i] === 2 && !force) return;
+      terrain[i] = 4;
+      elev[i] = -0.5;
+    },
+    run = (x, y, uphill, steps) => {
+      for (let step = 0; step < steps; step++) {
+        const i = idx(x, y);
+        seenR[i] = 1;
+        if (step > 0) {
+          if (uphill && terrain[i] === 2) break; // it rises in the mountains
+          if (!uphill && terrain[i] === 5 && step > 6) break; // it soaks away into the low ground
+          if (terrain[i] === 4 && step > 1) break; // it joins another river
+          carve(i);
+        }
+        let nb = null,
+          nh = uphill ? -9 : 9;
+        for (const [dx, dy] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ]) {
+          const xx = x + dx,
+            yy = y + dy;
+          if (xx < 1 || yy < 1 || xx > W - 2 || yy > H - 2 || seenR[idx(xx, yy)]) continue;
+          const hh = hts[idx(xx, yy)] + rT() * 0.035;
+          if (uphill ? hh > nh : hh < nh) {
+            nh = hh;
+            nb = [xx, yy];
+          }
+        }
+        if (!nb) break;
+        x = nb[0];
+        y = nb[1];
+      }
+    };
+  for (const p of crossings(seed, world, cx, cy)) {
+    if (!p.river) continue;
+    carve(idx(p.x, p.y), true);
+    run(p.x, p.y, !p.inflow, p.inflow ? 36 : 24);
+  }
   for (let k = 0; k < biome.river.count; k++) {
-    // rivers run downhill from high ground until they reach low ground or the region's edge
     let best = -1,
       bh = -1;
     for (let tries = 0; tries < 40; tries++) {
@@ -51,44 +118,8 @@ function genTerrain(seed, world, cx, cy, biome, rT) {
         best = i;
       }
     }
-    let cx2 = best % W,
-      cy2 = Math.floor(best / W);
-    const seenR = {};
-    for (let step = 0; step < 70; step++) {
-      const i = idx(cx2, cy2);
-      seenR[i] = 1;
-      if (terrain[i] !== 2) {
-        if (terrain[i] === 5 && step > 6) break;
-        terrain[i] = 4;
-        elev[i] = -0.5;
-      }
-      let nb = null,
-        nh = 9;
-      for (const [dx, dy] of [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-      ]) {
-        const xx = cx2 + dx,
-          yy = cy2 + dy;
-        if (xx < 0 || yy < 0 || xx >= W || yy >= H) {
-          nb = 'edge';
-          nh = -1;
-          break;
-        }
-        const j = idx(xx, yy);
-        if (seenR[j]) continue;
-        const hh = hts[j] + rT() * 0.035;
-        if (hh < nh) {
-          nh = hh;
-          nb = [xx, yy];
-        }
-      }
-      if (!nb || nb === 'edge') break;
-      cx2 = nb[0];
-      cy2 = nb[1];
-    }
+    carve(best);
+    run(best % W, Math.floor(best / W), false, 40);
   }
   return { terrain, elev };
 }
@@ -120,7 +151,7 @@ function makePlacer(rS, terrain, sites) {
   };
 }
 // What the lost people's habits and doom do to a region's sites. Returns the paved road, if they built one.
-function finishSites(sites, habit, doom, rR) {
+function finishSites(sites, habit, doom, rR, ports) {
   const ruinTiles = Object.keys(sites)
       .filter((k) => sites[k].kind === 'ruin')
       .map(Number)
@@ -151,6 +182,32 @@ function finishSites(sites, habit, doom, rR) {
         if (Math.max(Math.abs((rt % W) - (k % W)), Math.abs(Math.floor(rt / W) - Math.floor(k / W))) <= doom.foulSprings)
           st.foul = true;
   }
+  // Road-builders ran their roads on to the next country: from each crossing point to the nearest ruin.
+  if (habit.roads && ruinTiles.length)
+    for (const p of ports || []) {
+      if (!p.road) continue;
+      let x = p.x2,
+        y = p.y2,
+        best = ruinTiles[0];
+      for (const rt of ruinTiles)
+        if (
+          Math.abs((rt % W) - x) + Math.abs(Math.floor(rt / W) - y) <
+          Math.abs((best % W) - x) + Math.abs(Math.floor(best / W) - y)
+        )
+          best = rt;
+      const tx = best % W,
+        ty = Math.floor(best / W);
+      road[idx(x, y)] = 1;
+      // straight in off the border first, so the road touches the edge only at its crossing point
+      x = clamp(x, 1, W - 2);
+      y = clamp(y, 1, H - 2);
+      road[idx(x, y)] = 1;
+      while (x !== tx || y !== ty) {
+        if (x !== tx && (y === ty || rR() < Math.abs(tx - x) / (Math.abs(tx - x) + Math.abs(ty - y)))) x += Math.sign(tx - x);
+        else y += Math.sign(ty - y);
+        road[idx(x, y)] = 1;
+      }
+    }
   return road;
 }
 const cacheSite = (rS) => () => ({
@@ -187,7 +244,7 @@ GENERATORS.region = (s, rec) => {
   place(Math.max(2, age.ruins - 2), () => ({ kind: 'ruin', searched: false }), habit.onHills ? 1 : 0);
   place(3, () => ({ kind: 'cave', searched: false, loot: rS() < 0.4 }), 1);
   place(3, cacheSite(rS));
-  const road = finishSites(sites, habit, doom, stream(s.seed, 'roads' + tag)),
+  const road = finishSites(sites, habit, doom, stream(s.seed, 'roads' + tag), crossings(s.seed, s.world, rec.cx, rec.cy)),
     map = { terrain, elev, sites, road, creatures: [] };
   placeCreatures(s, stream(s.seed, 'creatures' + tag), map, {
     count: C.creature.count - 2,
@@ -286,7 +343,7 @@ function newGame(seed) {
   place(4, () => ({ kind: 'cave', searched: false, loot: rS() < 0.4 }), 1);
   place(4, cacheSite(rS));
   place(1, () => ({ kind: 'shrine' }));
-  const road = finishSites(sites, habit, doom, rR);
+  const road = finishSites(sites, habit, doom, rR, crossings(seed, world, world.home.cx, world.home.cy));
   const s = {
     v: VERSION,
     seed,

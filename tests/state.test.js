@@ -56,7 +56,7 @@ for (let seed = 1; seed <= 150; seed++) {
   for (const k in s.sites) need(+k >= 0 && +k < R.W * R.H, 'seed ' + seed + ': a site is off the map');
 }
 // 3b. the wider world: every region is sound, borders wrap, and a save with many regions round-trips
-let bigSave = 0, borderSame = 0, borderAll = 0;
+let bigSave = 0, borderSame = 0, borderAll = 0, edgeAll = 0, edgeSame = 0, riverAll = 0, riverSame = 0, roadAll = 0, roadSame = 0;
 for (let seed = 1; seed <= 40; seed++) {
   const s = R.newGame(seed), w = s.world, tag = 'seed ' + seed + ': ';
   need(w.cols * w.rows === w.sketch.length && new Set(w.sketch.map((e) => e.biome)).size >= 2, tag + 'the world sketch is wrong');
@@ -89,6 +89,19 @@ for (let seed = 1; seed <= 40; seed++) {
     for (const c of s.creatures) need(s.species[c.sp], tag + id + ' has a creature of no species');
     need(cx === w.home.cx && cy === w.home.cy ? true : !Object.values(s.sites).some((x) => ['town', 'vault', 'beacon', 'well'].includes(x.kind)), tag + id + ' has a quest place');
   }
+  // borders: mountains nearly always agree, and rivers and roads cross at the same tiles on both sides
+  const mapOf = (cx, cy) => { const id = R.regionId(s, (cx + w.cols) % w.cols, (cy + w.rows) % w.rows); return id === s.area ? s : s.areas[id].map; };
+  for (let cy = 0; cy < w.rows; cy++) for (let cx = 0; cx < w.cols; cx++) {
+    const a = mapOf(cx, cy), e = mapOf(cx + 1, cy), so = mapOf(cx, cy + 1);
+    for (let k = 0; k < R.W; k++) {
+      const pairs = [[k * R.W + R.W - 1, k * R.W, e], [(R.H - 1) * R.W + k, k, so]];
+      for (const [i, j, b] of pairs) {
+        edgeAll++; if ((a.terrain[i] === 2) === (b.terrain[j] === 2)) edgeSame++;
+        if (a.terrain[i] === 4 || b.terrain[j] === 4) { riverAll++; if (a.terrain[i] === 4 && b.terrain[j] === 4) riverSame++; }
+        if (a.road[i] || b.road[j]) { roadAll++; if (a.road[i] && b.road[j]) roadSame++; }
+      }
+    }
+  }
   const wp = R.worldPos(s);
   need(Math.abs(wp.x) <= R.W * w.cols && Math.abs(wp.y) <= R.H * w.rows, tag + 'world position out of range');
   // a camp pitched far away is not "here" at home; a save with every region loads and plays on identically
@@ -104,7 +117,11 @@ for (let seed = 1; seed <= 40; seed++) {
     need(R.campHere(s) === null || s.camp.area === 'overworld', tag + 'a far camp shows up at home');
   }
 }
-warns.push('largest save with all ' + 9 + ' regions: ' + Math.round(bigSave / 1024) + ' KB; mountains agree across a border on ' + Math.round((100 * borderSame) / Math.max(1, borderAll)) + '% of tiles');
+need(edgeSame / edgeAll > 0.95, 'mountains disagree across borders too often: ' + edgeSame + ' / ' + edgeAll);
+need(riverAll > 0 && riverSame === riverAll, 'rivers do not line up across borders: ' + riverSame + ' / ' + riverAll);
+need(roadSame === roadAll, 'roads do not line up across borders: ' + roadSame + ' / ' + roadAll);
+warns.push('borders: mountains agree on ' + ((100 * edgeSame) / edgeAll).toFixed(1) + '% of tiles, ' + riverAll + ' river crossings and ' + roadAll + ' road crossings all line up');
+warns.push('largest save with all ' + 9 + ' regions: ' + Math.round(bigSave / 1024) + ' KB');
 // 4. snapshot: tells you when a change alters what existing seeds generate (that is sometimes intended)
 const snapFile = path.join(__dirname, 'snapshot.json');
 const hash = (s) => crypto.createHash('sha1').update(R.serialize(s)).digest('hex').slice(0, 12);

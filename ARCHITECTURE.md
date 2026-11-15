@@ -78,6 +78,9 @@ first time the player arrives.
 - The world wraps in both directions. `move()` in actions.js is the only place a border is crossed
   (`switchRegion`), which is where seamless borders will be added later.
 - Landforms come from `worldNoise` (world.js), which repeats at the world's size, so land lines up across borders.
+- `crossings(seed, world, cx, cy)` (world.js) says where rivers and roads cross each of a region's four edges. Both
+  neighbours get the same answer, and nothing else may put a river or road on a region's outermost tiles.
+- Mountain and hill thresholds are measured over the whole world, and biome fractions blend within 6 tiles of a border.
 - The quest places (`s.town`, `s.goal`, `s.start`, the locked place) are all in the home region. `worldMap(s)` is
   the home map; `worldPos(s)` and `homePos` give positions in home coordinates from anywhere, for directions.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
@@ -144,7 +147,7 @@ node tools/check.js          everything, including a 40-world playtest and the b
 Planned next, in order, so changes now should not paint us into a corner:
 
 1. **Areas.** Done in v0.8: see "Areas" above.
-2. **Regions.** Started in v0.9: see "The world" above. Still to do: a 5 x 5 world, towns and roads beyond
+2. **Regions.** Started in v0.9: see "The world" above. Borders agree since v0.10. Still to do: a 5 x 5 world, towns and roads beyond
    the home region, water guaranteed along routes, and borders you can see across (seamless travel).
 3. **Generated biomes** with a rare-trait slot, then side quests, creatures, races and classes,
    and unique items, all as content menus.

@@ -501,7 +501,7 @@
       if (!window.THREE)
         document.getElementById('log').innerHTML =
           '<li class="bad new">The 3D library did not load. Check your connection and reload the page.</li>';
-      var GAME_VERSION = 'v0.9';
+      var GAME_VERSION = 'v0.10';
       var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls and past messages are in Menu.';
     </script>
     <script>
@@ -3686,25 +3686,89 @@
       return (v(x0, y0) * (1 - tx) + v(x0 + 1, y0) * tx) * (1 - ty) + (v(x0, y0 + 1) * (1 - tx) + v(x0 + 1, y0 + 1) * tx) * ty;
     };
   }
+  function edgeRoll(seed, key) {
+    const r = stream(seed, "edge:" + key), river = r() < 0.55, at = 4 + Math.floor(r() * 28), forward = r() < 0.5, road = r() < 0.6;
+    let roadAt = 4 + Math.floor(r() * 28);
+    if (Math.abs(roadAt - at) < 2) roadAt = at >= 18 ? at - 3 : at + 3;
+    return { river, at, forward, road, roadAt };
+  }
+  function crossings(seed, world, cx, cy) {
+    const E = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S = edgeRoll(seed, "h:" + cx + ":" + cy), N2 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
+    return [
+      { side: "east", river: E.river, road: E.road, inflow: !E.forward, x: W - 1, y: E.at, x2: W - 1, y2: E.roadAt },
+      { side: "west", river: Wst.river, road: Wst.road, inflow: Wst.forward, x: 0, y: Wst.at, x2: 0, y2: Wst.roadAt },
+      { side: "south", river: S.river, road: S.road, inflow: !S.forward, x: S.at, y: H - 1, x2: S.roadAt, y2: H - 1 },
+      { side: "north", river: N2.river, road: N2.road, inflow: N2.forward, x: N2.at, y: 0, x2: N2.roadAt, y2: 0 }
+    ];
+  }
 
   // src/rules/worldgen.js
+  var heightCache = {};
   function genTerrain(seed, world, cx, cy, biome, rT) {
-    const n1 = worldNoise(seed, world, 5, 1), n2 = worldNoise(seed, world, 11, 2), n3 = worldNoise(seed, world, 8, 3), gx0 = cx * W, gy0 = cy * H, hts = [];
-    for (let y = 0; y < H; y++)
-      for (let x = 0; x < W; x++) hts.push(n1(gx0 + x, gy0 + y) * 0.65 + n2(gx0 + x, gy0 + y) * 0.3 + rT() * 0.05);
-    const sorted = hts.slice().sort((a, b) => a - b), q = (f) => sorted[Math.min(sorted.length - 1, Math.floor(f * sorted.length))];
-    const mT = q(1 - biome.mountains), hT = q(1 - biome.mountains - biome.hills);
-    const terrain = hts.map((h) => h >= mT ? 2 : h >= hT ? 1 : 0), elev = terrain.slice();
-    const lowT = q(biome.special.frac * (1 - biome.mountains - biome.hills) * 1), fT = 1 - biome.forest.frac * 1.6;
+    const n1 = worldNoise(seed, world, 5, 1), n2 = worldNoise(seed, world, 11, 2), n3 = worldNoise(seed, world, 8, 3), jit = worldNoise(seed, world, W, 4), ht = (gx, gy) => n1(gx, gy) * 0.65 + n2(gx, gy) * 0.3 + jit(gx, gy) * 0.05, gx0 = cx * W, gy0 = cy * H, hts = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) hts.push(ht(gx0 + x, gy0 + y));
+    const key = seed + ":" + world.cols + "x" + world.rows;
+    if (!heightCache[key]) {
+      const all = [];
+      for (let gy = 0; gy < world.rows * H; gy += 2) for (let gx = 0; gx < world.cols * W; gx += 2) all.push(ht(gx, gy));
+      heightCache[key] = all.sort((a, b) => a - b);
+    }
+    const sorted = heightCache[key], q = (f) => sorted[clamp(Math.floor(f * sorted.length), 0, sorted.length - 1)];
+    const M = 6, bio = (dx, dy) => byId(C.biomes, world.sketch[wrap(cy + dy, world.rows) * world.cols + wrap(cx + dx, world.cols)].biome), lean = (v, n) => v < M ? [-1, 0.5 * (1 - (v + 0.5) / M)] : v >= n - M ? [1, 0.5 * (1 - (n - v - 0.5) / M)] : [0, 0], mix = (x, y, f) => {
+      const [sx, wx] = lean(x, W), [sy, wy] = lean(y, H);
+      if (!wx && !wy) return f(biome);
+      return f(biome) * (1 - wx) * (1 - wy) + f(bio(sx, 0)) * wx * (1 - wy) + f(bio(0, sy)) * (1 - wx) * wy + f(bio(sx, sy)) * wx * wy;
+    };
+    const terrain = [], elev = [];
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) {
-        const i = idx(x, y);
-        if (terrain[i] === 0 && hts[i] <= lowT) {
+        const i = idx(x, y), mo = mix(x, y, (b) => b.mountains), hi = mix(x, y, (b) => b.hills), sp = mix(x, y, (b) => b.special.frac), fT = 1 - mix(x, y, (b) => b.forest.frac) * 1.6, h = hts[i];
+        terrain[i] = elev[i] = h >= q(1 - mo) ? 2 : h >= q(1 - mo - hi) ? 1 : 0;
+        if (terrain[i] === 0 && h <= q(sp * (1 - mo - hi))) {
           terrain[i] = 5;
           elev[i] = -0.15;
         } else if (terrain[i] < 2 && n3(gx0 + x, gy0 + y) * 0.7 + n2(gx0 + x + 9, gy0 + y + 5) * 0.3 > fT * 0.72 + 0.14)
           terrain[i] = 3;
       }
+    const seenR = {}, carve = (i, force) => {
+      if (terrain[i] === 2 && !force) return;
+      terrain[i] = 4;
+      elev[i] = -0.5;
+    }, run = (x, y, uphill, steps) => {
+      for (let step = 0; step < steps; step++) {
+        const i = idx(x, y);
+        seenR[i] = 1;
+        if (step > 0) {
+          if (uphill && terrain[i] === 2) break;
+          if (!uphill && terrain[i] === 5 && step > 6) break;
+          if (terrain[i] === 4 && step > 1) break;
+          carve(i);
+        }
+        let nb = null, nh = uphill ? -9 : 9;
+        for (const [dx, dy] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1]
+        ]) {
+          const xx = x + dx, yy = y + dy;
+          if (xx < 1 || yy < 1 || xx > W - 2 || yy > H - 2 || seenR[idx(xx, yy)]) continue;
+          const hh = hts[idx(xx, yy)] + rT() * 0.035;
+          if (uphill ? hh > nh : hh < nh) {
+            nh = hh;
+            nb = [xx, yy];
+          }
+        }
+        if (!nb) break;
+        x = nb[0];
+        y = nb[1];
+      }
+    };
+    for (const p of crossings(seed, world, cx, cy)) {
+      if (!p.river) continue;
+      carve(idx(p.x, p.y), true);
+      run(p.x, p.y, !p.inflow, p.inflow ? 36 : 24);
+    }
     for (let k = 0; k < biome.river.count; k++) {
       let best = -1, bh = -1;
       for (let tries = 0; tries < 40; tries++) {
@@ -3714,41 +3778,8 @@
           best = i;
         }
       }
-      let cx2 = best % W, cy2 = Math.floor(best / W);
-      const seenR = {};
-      for (let step = 0; step < 70; step++) {
-        const i = idx(cx2, cy2);
-        seenR[i] = 1;
-        if (terrain[i] !== 2) {
-          if (terrain[i] === 5 && step > 6) break;
-          terrain[i] = 4;
-          elev[i] = -0.5;
-        }
-        let nb = null, nh = 9;
-        for (const [dx, dy] of [
-          [1, 0],
-          [-1, 0],
-          [0, 1],
-          [0, -1]
-        ]) {
-          const xx = cx2 + dx, yy = cy2 + dy;
-          if (xx < 0 || yy < 0 || xx >= W || yy >= H) {
-            nb = "edge";
-            nh = -1;
-            break;
-          }
-          const j = idx(xx, yy);
-          if (seenR[j]) continue;
-          const hh = hts[j] + rT() * 0.035;
-          if (hh < nh) {
-            nh = hh;
-            nb = [xx, yy];
-          }
-        }
-        if (!nb || nb === "edge") break;
-        cx2 = nb[0];
-        cy2 = nb[1];
-      }
+      carve(best);
+      run(best % W, Math.floor(best / W), false, 40);
     }
     return { terrain, elev };
   }
@@ -3774,7 +3805,7 @@
       }
     };
   }
-  function finishSites(sites, habit, doom, rR) {
+  function finishSites(sites, habit, doom, rR, ports) {
     const ruinTiles = Object.keys(sites).filter((k) => sites[k].kind === "ruin").map(Number).sort((a, b) => a % W - b % W), road = {};
     if (habit.roads)
       for (let k = 0; k + 1 < ruinTiles.length; k++) {
@@ -3800,6 +3831,24 @@
             st.foul = true;
       }
     }
+    if (habit.roads && ruinTiles.length)
+      for (const p of ports || []) {
+        if (!p.road) continue;
+        let x = p.x2, y = p.y2, best = ruinTiles[0];
+        for (const rt of ruinTiles)
+          if (Math.abs(rt % W - x) + Math.abs(Math.floor(rt / W) - y) < Math.abs(best % W - x) + Math.abs(Math.floor(best / W) - y))
+            best = rt;
+        const tx = best % W, ty = Math.floor(best / W);
+        road[idx(x, y)] = 1;
+        x = clamp(x, 1, W - 2);
+        y = clamp(y, 1, H - 2);
+        road[idx(x, y)] = 1;
+        while (x !== tx || y !== ty) {
+          if (x !== tx && (y === ty || rR() < Math.abs(tx - x) / (Math.abs(tx - x) + Math.abs(ty - y)))) x += Math.sign(tx - x);
+          else y += Math.sign(ty - y);
+          road[idx(x, y)] = 1;
+        }
+      }
     return road;
   }
   var cacheSite = (rS) => () => ({
@@ -3823,7 +3872,7 @@
     place(Math.max(2, age.ruins - 2), () => ({ kind: "ruin", searched: false }), habit.onHills ? 1 : 0);
     place(3, () => ({ kind: "cave", searched: false, loot: rS() < 0.4 }), 1);
     place(3, cacheSite(rS));
-    const road = finishSites(sites, habit, doom, stream(s.seed, "roads" + tag)), map = { terrain, elev, sites, road, creatures: [] };
+    const road = finishSites(sites, habit, doom, stream(s.seed, "roads" + tag), crossings(s.seed, s.world, rec.cx, rec.cy)), map = { terrain, elev, sites, road, creatures: [] };
     placeCreatures(s, stream(s.seed, "creatures" + tag), map, {
       count: C.creature.count - 2,
       species: speciesFor(s, rec.biome),
@@ -3893,7 +3942,7 @@
     place(4, () => ({ kind: "cave", searched: false, loot: rS() < 0.4 }), 1);
     place(4, cacheSite(rS));
     place(1, () => ({ kind: "shrine" }));
-    const road = finishSites(sites, habit, doom, rR);
+    const road = finishSites(sites, habit, doom, rR, crossings(seed, world, world.home.cx, world.home.cy));
     const s = {
       v: VERSION,
       seed,
