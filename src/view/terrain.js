@@ -1,6 +1,8 @@
 /* Turns the rules map into a continuous height field. */
 import { CELL, HALF, N, R, TS, clamp, lerp, mulberry, smooth, tileX, toTile } from './ctx.js';
 
+const PAD = { town: 15, vault: 11, beacon: 9, spring: 6 }; // metres of level ground under each kind of site
+
 /* ---------- terrain from the rules map ---------- */
 function makeTerrain(s) {
   const r = mulberry(s.seed ^ 0x51f15e),
@@ -88,15 +90,17 @@ function makeTerrain(s) {
       ci = Math.round((cx + HALF) / CELL),
       cj = Math.round((cz + HALF) / CELL),
       h0 = hg[cj * (N + 1) + ci] - (s.sites[k].kind === 'spring' ? 1.2 : 0),
-      rad = 11,
+      // a level pad as wide as what stands there, then a slope that eases back into the land around it
+      flat = PAD[s.sites[k].kind] || 8,
+      rad = flat + 13,
       n = Math.ceil(rad / CELL);
     for (let j = -n; j <= n; j++)
       for (let i = -n; i <= n; i++) {
         const d = Math.hypot(i, j) * CELL;
-        if (d >= rad) continue;
+        if (d >= rad || ci + i < 0 || ci + i > N) continue;
         const q = (cj + j) * (N + 1) + ci + i;
         if (q < 0 || q >= hg.length) continue;
-        hg[q] = lerp(hg[q], h0, smooth(1 - d / rad));
+        hg[q] = lerp(hg[q], h0, d <= flat ? 1 : smooth(1 - (d - flat) / (rad - flat)));
       }
   }
   const height = (x, z) => {
@@ -107,7 +111,10 @@ function makeTerrain(s) {
       tx = fx - ix,
       tz = fz - iz,
       H = (a, b) => hg[b * (N + 1) + a];
-    return (H(ix, iz) * (1 - tx) + H(ix + 1, iz) * tx) * (1 - tz) + (H(ix, iz + 1) * (1 - tx) + H(ix + 1, iz + 1) * tx) * tz;
+    // the same two triangles per cell that the ground mesh is drawn with, so things stand exactly on what you see
+    return tx + tz <= 1
+      ? H(ix, iz) + (H(ix + 1, iz) - H(ix, iz)) * tx + (H(ix, iz + 1) - H(ix, iz)) * tz
+      : H(ix + 1, iz + 1) + (H(ix, iz + 1) - H(ix + 1, iz + 1)) * (1 - tx) + (H(ix + 1, iz) - H(ix + 1, iz + 1)) * (1 - tz);
   };
   return { height, level, noise, masks, roadAt, rand: r };
 }

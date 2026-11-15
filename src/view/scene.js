@@ -576,6 +576,14 @@ function buildDynamic() {
       [x, y, z] = at(c.y * R.W + c.x, -4 * off, -5 * off);
       g.rotation.y = Math.atan2(P.x - x, P.z - z);
     }
+    // stand on the lowest ground under the body, so nothing hovers on a slope
+    for (const [ox, oz] of [
+      [1.2, 0],
+      [-1.2, 0],
+      [0, 1.2],
+      [0, -1.2],
+    ])
+      y = Math.min(y, V.terrain.height(x + ox, z + oz));
     g.position.set(x, y, z);
     dynGroup.add(g);
   }

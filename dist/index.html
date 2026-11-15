@@ -4237,6 +4237,7 @@
   var toTile = (x) => clamp2(Math.floor((x + G.half) / G.ts), 0, R.W - 1);
 
   // src/view/terrain.js
+  var PAD = { town: 15, vault: 11, beacon: 9, spring: 6 };
   function makeTerrain(s) {
     const r = mulberry2(s.seed ^ 5370206), T = new Float32Array(4096);
     for (let i = 0; i < 4096; i++) T[i] = r();
@@ -4284,19 +4285,19 @@
     const hg = new Float32Array((N + 1) * (N + 1)), gx = (i) => -HALF + i * CELL;
     for (let iz = 0; iz <= N; iz++) for (let ix = 0; ix <= N; ix++) hg[iz * (N + 1) + ix] = raw(gx(ix), gx(iz));
     for (const k in s.sites) {
-      const cx = tileX(k % W2), cz = tileX(Math.floor(k / W2)), ci = Math.round((cx + HALF) / CELL), cj = Math.round((cz + HALF) / CELL), h0 = hg[cj * (N + 1) + ci] - (s.sites[k].kind === "spring" ? 1.2 : 0), rad = 11, n = Math.ceil(rad / CELL);
+      const cx = tileX(k % W2), cz = tileX(Math.floor(k / W2)), ci = Math.round((cx + HALF) / CELL), cj = Math.round((cz + HALF) / CELL), h0 = hg[cj * (N + 1) + ci] - (s.sites[k].kind === "spring" ? 1.2 : 0), flat = PAD[s.sites[k].kind] || 8, rad = flat + 13, n = Math.ceil(rad / CELL);
       for (let j = -n; j <= n; j++)
         for (let i = -n; i <= n; i++) {
           const d = Math.hypot(i, j) * CELL;
-          if (d >= rad) continue;
+          if (d >= rad || ci + i < 0 || ci + i > N) continue;
           const q = (cj + j) * (N + 1) + ci + i;
           if (q < 0 || q >= hg.length) continue;
-          hg[q] = lerp(hg[q], h0, smooth(1 - d / rad));
+          hg[q] = lerp(hg[q], h0, d <= flat ? 1 : smooth(1 - (d - flat) / (rad - flat)));
         }
     }
     const height = (x, z) => {
       const fx = clamp2((x + HALF) / CELL, 0, N - 1e-3), fz = clamp2((z + HALF) / CELL, 0, N - 1e-3), ix = Math.floor(fx), iz = Math.floor(fz), tx = fx - ix, tz = fz - iz, H2 = (a, b) => hg[b * (N + 1) + a];
-      return (H2(ix, iz) * (1 - tx) + H2(ix + 1, iz) * tx) * (1 - tz) + (H2(ix, iz + 1) * (1 - tx) + H2(ix + 1, iz + 1) * tx) * tz;
+      return tx + tz <= 1 ? H2(ix, iz) + (H2(ix + 1, iz) - H2(ix, iz)) * tx + (H2(ix, iz + 1) - H2(ix, iz)) * tz : H2(ix + 1, iz + 1) + (H2(ix, iz + 1) - H2(ix + 1, iz + 1)) * (1 - tx) + (H2(ix + 1, iz) - H2(ix + 1, iz + 1)) * (1 - tz);
     };
     return { height, level, noise, masks, roadAt, rand: r };
   }
@@ -4793,6 +4794,13 @@
         [x, y, z] = at(c.y * R.W + c.x, -4 * off, -5 * off);
         g.rotation.y = Math.atan2(P.x - x, P.z - z);
       }
+      for (const [ox2, oz] of [
+        [1.2, 0],
+        [-1.2, 0],
+        [0, 1.2],
+        [0, -1.2]
+      ])
+        y = Math.min(y, V.terrain.height(x + ox2, z + oz));
       g.position.set(x, y, z);
       dynGroup.add(g);
     }
