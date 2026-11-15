@@ -44,7 +44,18 @@ import { aOrAn } from './core.js';
 import { active, equip, slotOf, unequip } from './equipment.js';
 import { describeItem, isCursed, itemName, itemWeight, weight } from './items.js';
 import { atCamp, bearing, groundHere, inShelter, passable, reveal, siteHere, siteName, terrainInfo } from './map.js';
-import { areaRec, inOverworld, indoors, isDark, worldMap, worldPos } from './areas.js';
+import {
+  areaRec,
+  campHere,
+  inOverworld,
+  indoors,
+  isDark,
+  outdoorRec,
+  regionId,
+  switchRegion,
+  worldMap,
+  worldPos,
+} from './areas.js';
 import './interiors.js'; // registers the town and vault generators
 import { playerAC, weaponOf, xpFor } from './progress.js';
 import {
@@ -154,6 +165,10 @@ const api = {
   godOf,
   reveal,
   byId,
+  campHere,
+  regionId,
+  outdoorRec,
+  switchRegion,
   objective,
   talkElder,
   buy,

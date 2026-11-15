@@ -1,98 +1,517 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Far Beacon 3D</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  /* Surveyor's desk again: slate panels over the view, lamp-amber accent. Readouts along the top edge, actions under the right thumb, left side kept clear for walking. */
-  --ground: #161c26; --panel: rgba(22, 28, 38, .8); --solid: #1f2733; --line: #3a4757; --ink: #ece6d8; --ink-dim: #b3bcc5; --accent: #e0a84a;
-  --water: #5aa9d6; --warm: #e58555; --stam: #93c26c; --bad: #ea6a62;
-  --font-display: 'Bitter', Georgia, serif; --font-body: 'IBM Plex Sans', system-ui, sans-serif; --font-num: 'IBM Plex Mono', ui-monospace, monospace;
-  color-scheme: dark;
-}
-* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ground); color: var(--ink); font: 400 14px/1.4 var(--font-body); }
-#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-#hud { position: fixed; top: 0; left: 0; right: 0; padding: 8px 16px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
-.status, .sub { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: center; font: 400 12px var(--font-num); }
-.sub { color: var(--ink-dim); margin-top: 4px; }
-.chip { border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; } .chip.warn { border-color: var(--accent); color: var(--accent); } .chip.bad { border-color: var(--bad); color: var(--bad); }
-.meters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 5px; }
-.meter { display: grid; grid-template-columns: 1fr auto; gap: 1px 6px; font-size: 12px; align-items: baseline; }
-.meter .track { grid-column: 1 / -1; height: 7px; background: #0f141b; border-radius: 4px; overflow: hidden; }
-.meter .fill { height: 100%; width: 50%; }
-#m-hp .fill { background: var(--bad); } #m-mana .fill { background: #8f7be0; } .lvl { font: 400 11.5px var(--font-num); color: var(--ink-dim); grid-column: 1 / -1; align-self: end; }
-#fight { position: fixed; left: 16px; right: 186px; bottom: 14px; background: var(--panel); border: 1px solid var(--bad); border-radius: 8px; padding: 8px 10px; pointer-events: none; } #fight[hidden] { display: none; }
-#fight .track { height: 8px; background: #0f141b; border-radius: 4px; overflow: hidden; margin: 4px 0; } #foe-bar { height: 100%; background: var(--bad); } #fight strong { font-family: var(--font-display); } #foe-val { font: 600 12px var(--font-num); float: right; }
-#foe-log { list-style: none; margin: 4px 0 0; padding: 0; font-size: 12px; color: var(--ink-dim); display: grid; gap: 2px; } #foe-log li:last-child { color: var(--ink); }
-#m-water .fill { background: var(--water); } #m-warm .fill { background: var(--warm); } #m-stam .fill { background: var(--stam); }
-.meter .val { font: 600 12px var(--font-num); font-variant-numeric: tabular-nums; } .meter.low .val, .bad { color: var(--bad); }
-.tools { display: flex; gap: 6px; justify-content: flex-end; }
-button { pointer-events: auto; font: 500 13px var(--font-body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-height: 40px; padding: 5px 12px; cursor: pointer; }
-button:active { background: #2a3545; } button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #1a1205; font-weight: 600; } button.small { min-height: 38px; padding: 4px 10px; } button.sel { border-color: var(--accent); color: var(--accent); background: #2a2a22; }
-.scores { grid-template-columns: 1fr 1fr; } .scores .item { padding: 6px 8px; }
-#btn-pack.has { border-color: var(--accent); color: var(--accent); }
-#log { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 12.5px; max-width: 34em; }
-#log li { background: var(--panel); border-radius: 6px; padding: 3px 8px; color: var(--ink-dim); width: fit-content; } #log li.new { color: var(--ink); border: 1px solid var(--line); } #log li.good.new { border-color: var(--stam); } #log li.bad { color: #ffd0cc; } #log li.bad.new { border-color: var(--bad); }
-#actions { position: fixed; right: 16px; bottom: 14px; width: 158px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; }
-.act { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 38px; padding: 3px 10px; line-height: 1.2; } .act small { font: 400 10.5px var(--font-num); color: var(--ink-dim); }
-#stick { position: fixed; width: 110px; height: 110px; margin: -55px 0 0 -55px; border: 2px solid rgba(236, 230, 216, .45); border-radius: 50%; pointer-events: none; display: none; }
-#knob { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(236, 230, 216, .6); }
-#modal { position: fixed; inset: 0; background: rgba(8, 11, 16, .78); display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; z-index: 5; } #modal[hidden] { display: none; }
-.sheet { width: 100%; max-width: 500px; background: var(--solid); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 18px; }
-.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-h2 { font: 700 18px/1.2 var(--font-display); margin: 0; text-wrap: balance; } h3 { font: 600 14px/1.2 var(--font-display); margin: 14px 0 0; color: var(--accent); } p { margin: 6px 0; }
-.items { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
-.item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; background: #19212c; border: 1px solid var(--line); border-radius: 8px; flex-wrap: wrap; }
-.item p { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-dim); } .item.cursed strong { color: var(--bad); } .item.tune input { flex: 1 1 100%; }
-.wt { font: 400 12px var(--font-num); color: var(--ink-dim); margin-left: 8px; } .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; } .note { font-size: 12.5px; color: var(--ink-dim); }
-.journal li { font-size: 12.5px; color: var(--ink-dim); padding: 2px 0; border-bottom: 1px solid var(--line); } .journal li.bad { color: #ffd0cc; }
-#mapcv { width: 100%; aspect-ratio: 1; display: block; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
-input[type=number] { font: 400 14px var(--font-num); width: 96px; min-height: 38px; background: #0f141b; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
-textarea { width: 100%; margin-top: 6px; font: 400 12px var(--font-num); background: #0f141b; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
-input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); } input[type=range] { accent-color: var(--accent); }
-</style>
-</head>
-<body>
-<canvas id="c" aria-label="First-person view of the land"></canvas>
-<div id="hud">
-  <div class="card">
-    <div class="status"><span id="when">Day 1</span><span id="sky" class="chip">Clear</span><span id="facing">Facing E</span><span id="bearing"></span></div>
-    <div class="meters">
-      <div class="meter" id="m-hp"><span>Health</span><span class="val" id="m-hp-val"></span><div class="track"><div class="fill" id="m-hp-bar"></div></div></div>
-      <div class="meter" id="m-mana"><span>Mana</span><span class="val" id="m-mana-val"></span><div class="track"><div class="fill" id="m-mana-bar"></div></div></div>
-      <div class="meter"><span id="lvl" class="lvl">Level 1</span></div>
-      <div class="meter" id="m-water"><span>Water</span><span class="val" id="m-water-val"></span><div class="track"><div class="fill" id="m-water-bar"></div></div></div>
-      <div class="meter" id="m-warm"><span>Warmth</span><span class="val" id="m-warm-val"></span><div class="track"><div class="fill" id="m-warm-bar"></div></div></div>
-      <div class="meter" id="m-stam"><span>Stamina</span><span class="val" id="m-stam-val"></span><div class="track"><div class="fill" id="m-stam-bar"></div></div></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>Far Beacon 3D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* Surveyor's desk again: slate panels over the view, lamp-amber accent. Readouts along the top edge, actions under the right thumb, left side kept clear for walking. */
+        --ground: #161c26;
+        --panel: rgba(22, 28, 38, 0.8);
+        --solid: #1f2733;
+        --line: #3a4757;
+        --ink: #ece6d8;
+        --ink-dim: #b3bcc5;
+        --accent: #e0a84a;
+        --water: #5aa9d6;
+        --warm: #e58555;
+        --stam: #93c26c;
+        --bad: #ea6a62;
+        --font-display: 'Bitter', Georgia, serif;
+        --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+        --font-num: 'IBM Plex Mono', ui-monospace, monospace;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--ground);
+        color: var(--ink);
+        font: 400 14px/1.4 var(--font-body);
+      }
+      #c {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+      }
+      #hud {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 8px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        pointer-events: none;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 10px;
+      }
+      .status,
+      .sub {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 10px;
+        align-items: center;
+        font: 400 12px var(--font-num);
+      }
+      .sub {
+        color: var(--ink-dim);
+        margin-top: 4px;
+      }
+      .chip {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0 8px;
+      }
+      .chip.warn {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .chip.bad {
+        border-color: var(--bad);
+        color: var(--bad);
+      }
+      .meters {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 5px;
+      }
+      .meter {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1px 6px;
+        font-size: 12px;
+        align-items: baseline;
+      }
+      .meter .track {
+        grid-column: 1 / -1;
+        height: 7px;
+        background: #0f141b;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .meter .fill {
+        height: 100%;
+        width: 50%;
+      }
+      #m-hp .fill {
+        background: var(--bad);
+      }
+      #m-mana .fill {
+        background: #8f7be0;
+      }
+      .lvl {
+        font: 400 11.5px var(--font-num);
+        color: var(--ink-dim);
+        grid-column: 1 / -1;
+        align-self: end;
+      }
+      #fight {
+        position: fixed;
+        left: 16px;
+        right: 186px;
+        bottom: 14px;
+        background: var(--panel);
+        border: 1px solid var(--bad);
+        border-radius: 8px;
+        padding: 8px 10px;
+        pointer-events: none;
+      }
+      #fight[hidden] {
+        display: none;
+      }
+      #fight .track {
+        height: 8px;
+        background: #0f141b;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 4px 0;
+      }
+      #foe-bar {
+        height: 100%;
+        background: var(--bad);
+      }
+      #fight strong {
+        font-family: var(--font-display);
+      }
+      #foe-val {
+        font: 600 12px var(--font-num);
+        float: right;
+      }
+      #foe-log {
+        list-style: none;
+        margin: 4px 0 0;
+        padding: 0;
+        font-size: 12px;
+        color: var(--ink-dim);
+        display: grid;
+        gap: 2px;
+      }
+      #foe-log li:last-child {
+        color: var(--ink);
+      }
+      #m-water .fill {
+        background: var(--water);
+      }
+      #m-warm .fill {
+        background: var(--warm);
+      }
+      #m-stam .fill {
+        background: var(--stam);
+      }
+      .meter .val {
+        font: 600 12px var(--font-num);
+        font-variant-numeric: tabular-nums;
+      }
+      .meter.low .val,
+      .bad {
+        color: var(--bad);
+      }
+      .tools {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+      }
+      button {
+        pointer-events: auto;
+        font: 500 13px var(--font-body);
+        color: var(--ink);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-height: 40px;
+        padding: 5px 12px;
+        cursor: pointer;
+      }
+      button:active {
+        background: #2a3545;
+      }
+      button:focus-visible,
+      input:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #1a1205;
+        font-weight: 600;
+      }
+      button.small {
+        min-height: 38px;
+        padding: 4px 10px;
+      }
+      button.sel {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: #2a2a22;
+      }
+      .scores {
+        grid-template-columns: 1fr 1fr;
+      }
+      .scores .item {
+        padding: 6px 8px;
+      }
+      #btn-pack.has {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      #log {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 3px;
+        font-size: 12.5px;
+        max-width: 34em;
+      }
+      #log li {
+        background: var(--panel);
+        border-radius: 6px;
+        padding: 3px 8px;
+        color: var(--ink-dim);
+        width: fit-content;
+      }
+      #log li.new {
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+      #log li.good.new {
+        border-color: var(--stam);
+      }
+      #log li.bad {
+        color: #ffd0cc;
+      }
+      #log li.bad.new {
+        border-color: var(--bad);
+      }
+      #actions {
+        position: fixed;
+        right: 16px;
+        bottom: 14px;
+        width: 158px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        pointer-events: none;
+      }
+      .act {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        min-height: 38px;
+        padding: 3px 10px;
+        line-height: 1.2;
+      }
+      .act small {
+        font: 400 10.5px var(--font-num);
+        color: var(--ink-dim);
+      }
+      #stick {
+        position: fixed;
+        width: 110px;
+        height: 110px;
+        margin: -55px 0 0 -55px;
+        border: 2px solid rgba(236, 230, 216, 0.45);
+        border-radius: 50%;
+        pointer-events: none;
+        display: none;
+      }
+      #knob {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 44px;
+        height: 44px;
+        margin: -22px 0 0 -22px;
+        border-radius: 50%;
+        background: rgba(236, 230, 216, 0.6);
+      }
+      #modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(8, 11, 16, 0.78);
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 16px;
+        overflow-y: auto;
+        z-index: 5;
+      }
+      #modal[hidden] {
+        display: none;
+      }
+      .sheet {
+        width: 100%;
+        max-width: 500px;
+        background: var(--solid);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 16px 18px;
+      }
+      .sheet-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      h2 {
+        font: 700 18px/1.2 var(--font-display);
+        margin: 0;
+        text-wrap: balance;
+      }
+      h3 {
+        font: 600 14px/1.2 var(--font-display);
+        margin: 14px 0 0;
+        color: var(--accent);
+      }
+      p {
+        margin: 6px 0;
+      }
+      .items {
+        list-style: none;
+        margin: 6px 0 0;
+        padding: 0;
+        display: grid;
+        gap: 6px;
+      }
+      .item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        background: #19212c;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        flex-wrap: wrap;
+      }
+      .item p {
+        margin: 2px 0 0;
+        font-size: 12.5px;
+        color: var(--ink-dim);
+      }
+      .item.cursed strong {
+        color: var(--bad);
+      }
+      .item.tune input {
+        flex: 1 1 100%;
+      }
+      .wt {
+        font: 400 12px var(--font-num);
+        color: var(--ink-dim);
+        margin-left: 8px;
+      }
+      .row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 4px;
+      }
+      .note {
+        font-size: 12.5px;
+        color: var(--ink-dim);
+      }
+      .journal li {
+        font-size: 12.5px;
+        color: var(--ink-dim);
+        padding: 2px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .journal li.bad {
+        color: #ffd0cc;
+      }
+      #mapcv {
+        width: 100%;
+        aspect-ratio: 1;
+        display: block;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-top: 8px;
+      }
+      input[type='number'] {
+        font: 400 14px var(--font-num);
+        width: 96px;
+        min-height: 38px;
+        background: #0f141b;
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 4px 8px;
+      }
+      textarea {
+        width: 100%;
+        margin-top: 6px;
+        font: 400 12px var(--font-num);
+        background: #0f141b;
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 8px;
+      }
+      input[type='checkbox'] {
+        width: 22px;
+        height: 22px;
+        accent-color: var(--accent);
+      }
+      input[type='range'] {
+        accent-color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c" aria-label="First-person view of the land"></canvas>
+    <div id="hud">
+      <div class="card">
+        <div class="status">
+          <span id="when">Day 1</span><span id="sky" class="chip">Clear</span><span id="facing">Facing E</span
+          ><span id="bearing"></span>
+        </div>
+        <div class="meters">
+          <div class="meter" id="m-hp">
+            <span>Health</span><span class="val" id="m-hp-val"></span>
+            <div class="track"><div class="fill" id="m-hp-bar"></div></div>
+          </div>
+          <div class="meter" id="m-mana">
+            <span>Mana</span><span class="val" id="m-mana-val"></span>
+            <div class="track"><div class="fill" id="m-mana-bar"></div></div>
+          </div>
+          <div class="meter"><span id="lvl" class="lvl">Level 1</span></div>
+          <div class="meter" id="m-water">
+            <span>Water</span><span class="val" id="m-water-val"></span>
+            <div class="track"><div class="fill" id="m-water-bar"></div></div>
+          </div>
+          <div class="meter" id="m-warm">
+            <span>Warmth</span><span class="val" id="m-warm-val"></span>
+            <div class="track"><div class="fill" id="m-warm-bar"></div></div>
+          </div>
+          <div class="meter" id="m-stam">
+            <span>Stamina</span><span class="val" id="m-stam-val"></span>
+            <div class="track"><div class="fill" id="m-stam-bar"></div></div>
+          </div>
+        </div>
+        <div class="sub"><span id="load"></span><span id="fuel"></span><span id="place"></span></div>
+      </div>
+      <div class="tools">
+        <button type="button" id="btn-pack">Pack</button><button type="button" id="btn-map">Map</button
+        ><button type="button" id="btn-menu">Menu</button>
+      </div>
+      <ul id="log" aria-live="polite"></ul>
     </div>
-    <div class="sub"><span id="load"></span><span id="fuel"></span><span id="place"></span></div>
-  </div>
-  <div class="tools"><button type="button" id="btn-pack">Pack</button><button type="button" id="btn-map">Map</button><button type="button" id="btn-menu">Menu</button></div>
-  <ul id="log" aria-live="polite"></ul>
-</div>
-<div id="fight" hidden><strong id="foe-name"></strong><span id="foe-val"></span><div class="track"><div id="foe-bar"></div></div><ul id="foe-log"></ul></div>
-<div id="actions"></div>
-<div id="stick"><div id="knob"></div></div>
-<div id="modal" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="sheet-head"><h2 id="modal-title"></h2><button type="button" id="modal-close" class="small">Close</button></div><div id="modal-body"></div></div></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-if (!window.THREE) document.getElementById('log').innerHTML = '<li class="bad new">The 3D library did not load. Check your connection and reload the page.</li>';
-var GAME_VERSION = 'v0.8';
-var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls and past messages are in Menu.';
-</script>
-<script>
-"use strict";
+    <div id="fight" hidden>
+      <strong id="foe-name"></strong><span id="foe-val"></span>
+      <div class="track"><div id="foe-bar"></div></div>
+      <ul id="foe-log"></ul>
+    </div>
+    <div id="actions"></div>
+    <div id="stick"><div id="knob"></div></div>
+    <div id="modal" hidden>
+      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="sheet-head">
+          <h2 id="modal-title"></h2>
+          <button type="button" id="modal-close" class="small">Close</button>
+        </div>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+      if (!window.THREE)
+        document.getElementById('log').innerHTML =
+          '<li class="bad new">The 3D library did not load. Check your connection and reload the page.</li>';
+      var GAME_VERSION = 'v0.9';
+      var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls and past messages are in Menu.';
+    </script>
+    <script>
+      "use strict";
 (() => {
   // src/content/tuning.js
   var tuning_default = {
     tun: {
+      world: { cols: 3, rows: 3 },
+      // regions across and down; the world wraps around in both directions
       waterPerHour: 0.65,
       restWaterFactor: 0.5,
       staminaScale: 1,
@@ -934,7 +1353,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   var C = CONTENT;
   var W = 36;
   var H = 36;
-  var VERSION = 7;
+  var VERSION = 8;
   var START = 6 * 60;
   var TERR = ["plain", "hill", "mountain", "forest", "river", "special", "wall", "floor"];
   var WALL = 6;
@@ -1046,7 +1465,37 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   var AREA_FIELDS = ["terrain", "elev", "sites", "depots", "creatures", "seen", "road", "dug", "lostMaps"];
   var GENERATORS = {};
   var areaRec = (s) => s.areas[s.area];
-  var inOverworld = (s) => s.area === "overworld";
+  var HOME = "overworld";
+  var inOverworld = (s) => areaRec(s).kind === "region";
+  var wrap = (n, m) => (n % m + m) % m;
+  var wrapDelta = (a, b, m) => {
+    let d = wrap(a - b, m);
+    if (d > m / 2) d -= m;
+    return d;
+  };
+  var regionId = (s, cx, cy) => cx === s.world.home.cx && cy === s.world.home.cy ? HOME : "r" + cx + "_" + cy;
+  var sketchOf = (s, cx, cy) => s.world.sketch[cy * s.world.cols + cx];
+  function outdoorRec(s) {
+    let rec = areaRec(s);
+    while (rec.kind !== "region" && rec.from) rec = s.areas[rec.from.area];
+    return rec;
+  }
+  var regionOffset = (s, rec) => ({
+    dx: wrapDelta(rec.cx, s.world.home.cx, s.world.cols) * W,
+    dy: wrapDelta(rec.cy, s.world.home.cy, s.world.rows) * H
+  });
+  function switchRegion(s, cx, cy, at) {
+    const id = regionId(s, cx, cy);
+    if (!s.areas[id]) s.areas[id] = { id, kind: "region", cx, cy, biome: sketchOf(s, cx, cy).biome };
+    park(s);
+    unpark(s, id);
+    s.areas[id].from = null;
+    s.biome = s.areas[id].biome;
+    s.player.x = at.x;
+    s.player.y = at.y;
+    s.lastGround = s.terrain[idx(at.x, at.y)];
+    s.onRoad = false;
+  }
   var indoors = (s) => !!areaRec(s).indoor;
   var isDark = (s) => !!areaRec(s).dark;
   function park(s) {
@@ -1098,15 +1547,19 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   }
   function toOverworld(s) {
     while (!inOverworld(s)) if (!leaveArea(s)) break;
+    if (s.area !== HOME) switchRegion(s, s.world.home.cx, s.world.home.cy, s.start);
   }
   function worldMap(s) {
-    return inOverworld(s) ? s : s.areas.overworld.map;
+    return s.area === HOME ? s : s.areas[HOME].map;
   }
   function worldPos(s) {
-    if (inOverworld(s)) return { x: s.player.x, y: s.player.y };
-    let rec = areaRec(s);
-    while (rec.from && rec.from.area !== "overworld") rec = s.areas[rec.from.area];
-    return rec.from ? { x: rec.from.x, y: rec.from.y } : s.start;
+    let rec = areaRec(s), pos = { x: s.player.x, y: s.player.y };
+    while (rec.kind !== "region" && rec.from) {
+      pos = { x: rec.from.x, y: rec.from.y };
+      rec = s.areas[rec.from.area];
+    }
+    const o = regionOffset(s, rec);
+    return { x: pos.x + o.dx, y: pos.y + o.dy };
   }
   function allMaps(s) {
     const out = [[s.area, s]];
@@ -1123,6 +1576,16 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       }
     }
   }
+  function homePos(s, areaId, x, y) {
+    let rec = s.areas[areaId], pos = { x, y };
+    while (rec.kind !== "region" && rec.from) {
+      pos = { x: rec.from.x, y: rec.from.y };
+      rec = s.areas[rec.from.area];
+    }
+    const o = regionOffset(s, rec);
+    return { x: pos.x + o.dx, y: pos.y + o.dy };
+  }
+  var campHere = (s) => s.camp && s.camp.area === s.area ? s.camp.i : null;
 
   // src/rules/items.js
   function makeItem(s, baseId, pre, suf, known) {
@@ -1263,7 +1726,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   var siteHere = (s) => s.sites[here(s)] || null;
   var isShelter = (site) => !!site && (site.kind === "cave" || site.kind === "ruin" || site.kind === "well" || site.kind === "town" || site.kind === "vault");
   var inShelter = (s) => indoors(s) || isShelter(siteHere(s));
-  var atCamp = (s) => inOverworld(s) && s.camp === here(s);
+  var atCamp = (s) => campHere(s) === here(s);
   var passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL;
   var DIRS = ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"];
   function dirTo(s, x, y) {
@@ -1276,7 +1739,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     if (!dx && !dy) return "here";
     return DIRS[(Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8 + 8) % 8];
   }
-  var bearing = (s) => dirTo(s, s.goal.x, s.goal.y);
+  var bearing = (s) => dirFrom(worldPos(s), s.goal.x, s.goal.y);
   var SITE_NAME = {
     spring: "spring",
     cave: "cave",
@@ -1608,7 +2071,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     d.remains = s.char.name;
     d.coin = (d.coin || 0) + p.coin;
     s.lostMaps[i] = s.seen.join("");
-    const diedIn = areaRec(s), where = inOverworld(s) ? null : worldPos(s);
+    const diedIn = areaRec(s), inside2 = !inOverworld(s), where = worldPos(s);
     forgetMaps(s);
     toOverworld(s);
     const mod = (START + s.time) % 1440;
@@ -1617,34 +2080,38 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     spawn(s, ch);
     say(
       s,
-      "Dawn, day " + clock(s).day + ". " + charTitle(ch) + " sets out from the well. " + d.remains + (where ? " lies somewhere " + (diedIn.kind === "town" ? "in " + s.town.name : "inside the " + s.quest.vault.name) + ", to the " + dirTo(s, where.x, where.y) : " lies somewhere to the " + dirTo(s, i % W, Math.floor(i / W))) + ", with everything they carried.",
+      "Dawn, day " + clock(s).day + ". " + charTitle(ch) + " sets out from the well. " + d.remains + (inside2 ? " lies somewhere " + (diedIn.kind === "town" ? "in " + s.town.name : "inside the " + s.quest.vault.name) + ", to the " + dirTo(s, where.x, where.y) : " lies somewhere to the " + dirTo(s, where.x, where.y)) + ", with everything they carried.",
       "good"
     );
     return true;
   }
 
   // src/rules/combat.js
-  function makeSpecies(s, r) {
+  function makeSpecies(s, r, biomeId) {
     const cr = C.creature, pick = (a) => a[Math.floor(r() * a.length)], out = [], used = {};
+    for (const sp of s.species || []) used[sp.name] = 1;
     while (out.length < cr.speciesPerWorld) {
-      const form = pick(cr.forms), pre = pick(cr.prefix[s.biome]), temper = pick(cr.tempers), rare = r() < cr.rareChance ? pick(cr.rares) : null, name = (rare ? rare.name + " " : "") + pre + " " + form.name;
+      const form = pick(cr.forms), pre = pick(cr.prefix[biomeId]), temper = pick(cr.tempers), rare = r() < cr.rareChance ? pick(cr.rares) : null, name = (rare ? rare.name + " " : "") + pre + " " + form.name;
       if (used[name]) continue;
       used[name] = 1;
       out.push({ name, form: form.id, temper: temper.id, rare: rare ? rare.id : null, met: false });
     }
     return out;
   }
-  function placeCreatures(s, r) {
-    const cr = C.creature;
-    for (let k = 0; k < cr.count; k++) {
-      const x0 = 2 + Math.floor(k * 32 / cr.count), x1 = 2 + Math.floor((k + 1) * 32 / cr.count);
+  function speciesFor(s, biomeId) {
+    if (!s.speciesByBiome[biomeId]) {
+      const made = makeSpecies(s, stream(s.seed, "species:" + biomeId), biomeId);
+      s.speciesByBiome[biomeId] = made.map((sp) => s.species.push(sp) - 1);
+    }
+    return s.speciesByBiome[biomeId];
+  }
+  function placeCreatures(s, r, m, o) {
+    for (let k = 0; k < o.count; k++) {
+      const x0 = 2 + Math.floor(k * 32 / o.count), x1 = 2 + Math.floor((k + 1) * 32 / o.count);
       for (let tries = 0; tries < 200; tries++) {
-        const x = x0 + Math.floor(r() * (x1 - x0)), y = 1 + Math.floor(r() * (H - 2)), i = idx(x, y), far = Math.max(Math.abs(x - s.start.x), Math.abs(y - s.start.y));
-        if (far < 7 || Math.max(Math.abs(x - s.town.x), Math.abs(y - s.town.y)) < 4 || s.terrain[i] === 2 || s.sites[i] || s.creatures.some((c) => c.x === x && c.y === y))
-          continue;
-        s.creatures.push(
-          makeCreature(s, k + 1, Math.floor(r() * C.creature.speciesPerWorld), x, y, clamp(1 + Math.floor((far - 4) / 5), 1, 3))
-        );
+        const x = x0 + Math.floor(r() * (x1 - x0)), y = 1 + Math.floor(r() * (H - 2)), i = idx(x, y), far = o.far(x, y);
+        if (o.avoid(x, y, far) || m.terrain[i] === 2 || m.sites[i] || m.creatures.some((c) => c.x === x && c.y === y)) continue;
+        m.creatures.push(makeCreature(s, k + 1, o.species[Math.floor(r() * o.species.length)], x, y, o.tier(x, y, far)));
         break;
       }
     }
@@ -2130,7 +2597,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       if (!l) return null;
       const from = l.who ? " from " + l.who + "'s body" : "";
       if (l.area === s.area) return { text: "Take " + what + from, dir: toHere(l) };
-      if (l.area === "overworld") return { text: "Take " + what + from, dir: toWorld(l) };
+      if (s.areas[l.area].kind === "region") return { text: "Take " + what + from, dir: toWorld(homePos(s, l.area, l.x, l.y)) };
       const deeper = s.areas[l.area].kind === "vault" && (!inVault || s.areas[l.area].level > areaRec(s).level);
       if (inVault && deeper) {
         const st = findHere(s, "stairsDown");
@@ -2153,7 +2620,6 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         const up = findHere(s, areaRec(s).level === 1 ? "exit" : "stairsUp");
         return { text: "Carry the " + q.relic + " out of the " + vaultName, dir: up ? toHere(up) : null };
       }
-      if (!s.area || s.area === "overworld") return { text: "Carry the " + q.relic + " to the " + q.dest, dir: toWorld(d) };
       return { text: "Carry the " + q.relic + " to the " + q.dest, dir: toWorld(d) };
     }
     if (inVault) {
@@ -2371,7 +2837,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     if (s.over) return true;
     leaveArea(s);
     if (leaving.kind === "town") say(s, "You leave " + s.town.name + " by the south gate.");
-    else if (s.area === "overworld") say(s, "You climb out into the " + (clock(s).isDay ? "daylight" : "night") + ".");
+    else if (inOverworld(s)) say(s, "You climb out into the " + (clock(s).isDay ? "daylight" : "night") + ".");
     else say(s, "You climb back up to level " + areaRec(s).level + ".");
     return true;
   }
@@ -2397,27 +2863,50 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   }
   function move(s, dx, dy) {
     if (s.over) return false;
-    const nx = s.player.x + dx, ny = s.player.y + dy;
-    if (nx < 0 || ny < 0 || nx >= W || ny >= H) {
-      say(s, "The map ends here.");
-      return false;
-    }
-    if (!passable(s, nx, ny)) return false;
+    let nx = s.player.x + dx, ny = s.player.y + dy;
+    const out = nx < 0 || ny < 0 || nx >= W || ny >= H, was = s.lastGround, leftCamp = atCamp(s);
+    if (out && !inOverworld(s)) return false;
     if (weight(s) > carryCap(s) + 1e-9) {
       say(s, "You are carrying too much to move. Leave something here.", "bad");
       return false;
     }
+    let back = null;
+    if (out) {
+      const rec = areaRec(s);
+      back = { cx: rec.cx, cy: rec.cy, x: s.player.x, y: s.player.y };
+      switchRegion(s, wrap(rec.cx + Math.floor(nx / W), s.world.cols), wrap(rec.cy + Math.floor(ny / H), s.world.rows), {
+        x: wrap(nx, W),
+        y: wrap(ny, H)
+      });
+      nx = s.player.x;
+      ny = s.player.y;
+    }
+    const retreat = () => {
+      if (back) switchRegion(s, back.cx, back.cy, back);
+      return false;
+    };
+    if (!passable(s, nx, ny)) return retreat();
     const mc = moveCost(s, nx, ny), mins = mc.mins, cost = mc.cost;
     if (s.player.stamina < cost) {
       say(s, "You are too exhausted to go on. Rest first.", "bad");
-      return false;
+      return retreat();
     }
-    if (atCamp(s)) s.stats.trips++;
+    if (leftCamp) s.stats.trips++;
     s.player.stamina -= cost;
     s.player.x = nx;
     s.player.y = ny;
     s.stats.moves++;
-    const g = groundHere(s), was = s.lastGround;
+    if (back) {
+      const rec = areaRec(s), name = biomeOf(s).name;
+      say(
+        s,
+        rec.visited ? "You cross into " + name + " again." : "You cross into country no map of yours shows: " + name + ".",
+        rec.visited ? void 0 : "good"
+      );
+      if (!rec.visited) s.stats.regions = (s.stats.regions || 1) + 1;
+      rec.visited = true;
+    }
+    const g = groundHere(s);
     s.lastGround = s.terrain[here(s)];
     if (g.wet && !s.off.warmth) s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
     if (s.lastGround !== was && s.lastGround >= 3 && s.lastGround < WALL)
@@ -2851,7 +3340,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     return true;
   }
   function makeCamp(s) {
-    if (s.over || s.camp !== null) return false;
+    if (s.over || s.camp || !inOverworld(s)) return false;
     const i = s.player.items.findIndex((it) => it.base === "campkit");
     if (i < 0) return false;
     if (!inShelter(s)) {
@@ -2861,7 +3350,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     advance(s, 120, "rest");
     if (s.over) return true;
     s.player.items.splice(i, 1);
-    s.camp = here(s);
+    s.camp = { area: s.area, i: here(s) };
     say(s, "You pitch camp. This is home now.", "good");
     return true;
   }
@@ -3011,7 +3500,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     if (inShelter(s)) a.push({ id: "sleep", label: atCamp(s) ? "Sleep at camp" : "Sleep in shelter", hint: "until rested" });
     if (p.warmth < 95) a.push({ id: "fire", label: "Light a fire", hint: "1 fuel" });
     if (atCamp(s)) a.push({ id: "packCamp", label: "Strike camp", hint: "1 h" });
-    else if (s.camp === null && inShelter(s) && p.items.some((i) => i.base === "campkit"))
+    else if (!s.camp && inOverworld(s) && inShelter(s) && p.items.some((i) => i.base === "campkit"))
       a.push({ id: "makeCamp", label: "Pitch camp here", hint: "2 h" });
     return a;
   }
@@ -3166,43 +3655,55 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     return { terrain, sites, depots, creatures };
   };
 
-  // src/rules/worldgen.js
-  function newGame(seed) {
-    seed = seed >>> 0 || 1;
-    const rnd = (name) => stream(seed, name), rT = rnd("terrain"), rL = rnd("layout"), rV = rnd("vault"), rS = rnd("sites"), rR = rnd("roads"), rRun = rnd("run"), rW = rnd("weather"), rO = rnd("offer"), pickWith = (rng) => (a) => a[Math.floor(rng() * a.length)];
-    const biome = pickWith(rnd("biome"))(C.biomes), god = pickWith(rnd("god"))(C.gods), civ = {};
-    {
-      const pick = pickWith(rnd("people"));
-      for (const ax of AXES) civ[ax] = pick(C.civ[ax]).id;
-      const st = byId(C.civ.style, civ.style);
-      civ.name = pick(st.a) + pick(st.b) + pick(st.c);
-    }
-    const habit = byId(C.civ.habit, civ.habit), age = byId(C.civ.age, civ.age), doom = byId(C.civ.doom, civ.doom);
-    const layer = (cells) => {
-      const g = [];
-      for (let i = 0; i < (cells + 1) * (cells + 1); i++) g.push(rT());
-      return (x, y) => {
-        const fx = x / W * cells, fy = y / H * cells, x0 = Math.floor(fx), y0 = Math.floor(fy);
-        let tx = fx - x0, ty = fy - y0;
-        tx = tx * tx * (3 - 2 * tx);
-        ty = ty * ty * (3 - 2 * ty);
-        const v = (i, j) => g[j * (cells + 1) + i];
-        return (v(x0, y0) * (1 - tx) + v(x0 + 1, y0) * tx) * (1 - ty) + (v(x0, y0 + 1) * (1 - tx) + v(x0 + 1, y0 + 1) * tx) * ty;
-      };
+  // src/rules/world.js
+  function makeSketch(seed, cols, rows, homeBiome) {
+    const r = stream(seed, "sketch"), ids = C.biomes.map((b) => b.id), home = { cx: cols >> 1, cy: rows >> 1 }, sketch = [];
+    for (let cy = 0; cy < rows; cy++)
+      for (let cx = 0; cx < cols; cx++)
+        sketch.push({
+          biome: ids[Math.floor(r() * ids.length)],
+          // danger grows with distance from home, measured the short way round the world
+          danger: Math.max(Math.abs(wrapDelta(cx, home.cx, cols)), Math.abs(wrapDelta(cy, home.cy, rows)))
+        });
+    sketch[home.cy * cols + home.cx].biome = homeBiome;
+    if (sketch.length > 1 && sketch.every((e) => e.biome === homeBiome))
+      sketch[0].biome = ids[(ids.indexOf(homeBiome) + 1) % ids.length];
+    return { cols, rows, home, sketch };
+  }
+  function hash2(seed, ix, iy) {
+    let h = seed ^ Math.imul(ix, 374761393) ^ Math.imul(iy, 668265263) | 0;
+    h = Math.imul(h ^ h >>> 13, 1274126177);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  }
+  function worldNoise(seed, world, cellsPerRegion, salt) {
+    const NX = world.cols * cellsPerRegion, NY = world.rows * cellsPerRegion, sd = seed ^ Math.imul(salt, 2654435761) | 0, v = (i, j) => hash2(sd, wrap(i, NX), wrap(j, NY));
+    return (gx, gy) => {
+      const fx = gx / W * cellsPerRegion, fy = gy / H * cellsPerRegion, x0 = Math.floor(fx), y0 = Math.floor(fy);
+      let tx = fx - x0, ty = fy - y0;
+      tx = tx * tx * (3 - 2 * tx);
+      ty = ty * ty * (3 - 2 * ty);
+      return (v(x0, y0) * (1 - tx) + v(x0 + 1, y0) * tx) * (1 - ty) + (v(x0, y0 + 1) * (1 - tx) + v(x0 + 1, y0 + 1) * tx) * ty;
     };
-    const n1 = layer(5), n2 = layer(11), hts = [];
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) hts.push(n1(x, y) * 0.65 + n2(x, y) * 0.3 + rT() * 0.05);
+  }
+
+  // src/rules/worldgen.js
+  function genTerrain(seed, world, cx, cy, biome, rT) {
+    const n1 = worldNoise(seed, world, 5, 1), n2 = worldNoise(seed, world, 11, 2), n3 = worldNoise(seed, world, 8, 3), gx0 = cx * W, gy0 = cy * H, hts = [];
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) hts.push(n1(gx0 + x, gy0 + y) * 0.65 + n2(gx0 + x, gy0 + y) * 0.3 + rT() * 0.05);
     const sorted = hts.slice().sort((a, b) => a - b), q = (f) => sorted[Math.min(sorted.length - 1, Math.floor(f * sorted.length))];
     const mT = q(1 - biome.mountains), hT = q(1 - biome.mountains - biome.hills);
     const terrain = hts.map((h) => h >= mT ? 2 : h >= hT ? 1 : 0), elev = terrain.slice();
-    const n3 = layer(8), lowT = q(biome.special.frac * (1 - biome.mountains - biome.hills) * 1), fT = 1 - biome.forest.frac * 1.6;
+    const lowT = q(biome.special.frac * (1 - biome.mountains - biome.hills) * 1), fT = 1 - biome.forest.frac * 1.6;
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) {
         const i = idx(x, y);
         if (terrain[i] === 0 && hts[i] <= lowT) {
           terrain[i] = 5;
           elev[i] = -0.15;
-        } else if (terrain[i] < 2 && n3(x, y) * 0.7 + n2(x + 9, y + 5) * 0.3 > fT * 0.72 + 0.14) terrain[i] = 3;
+        } else if (terrain[i] < 2 && n3(gx0 + x, gy0 + y) * 0.7 + n2(gx0 + x + 9, gy0 + y + 5) * 0.3 > fT * 0.72 + 0.14)
+          terrain[i] = 3;
       }
     for (let k = 0; k < biome.river.count; k++) {
       let best = -1, bh = -1;
@@ -3213,10 +3714,10 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
           best = i;
         }
       }
-      let cx = best % W, cy = Math.floor(best / W);
+      let cx2 = best % W, cy2 = Math.floor(best / W);
       const seenR = {};
       for (let step = 0; step < 70; step++) {
-        const i = idx(cx, cy);
+        const i = idx(cx2, cy2);
         seenR[i] = 1;
         if (terrain[i] !== 2) {
           if (terrain[i] === 5 && step > 6) break;
@@ -3230,7 +3731,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
           [0, 1],
           [0, -1]
         ]) {
-          const xx = cx + dx, yy = cy + dy;
+          const xx = cx2 + dx, yy = cy2 + dy;
           if (xx < 0 || yy < 0 || xx >= W || yy >= H) {
             nb = "edge";
             nh = -1;
@@ -3245,33 +3746,13 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
           }
         }
         if (!nb || nb === "edge") break;
-        cx = nb[0];
-        cy = nb[1];
+        cx2 = nb[0];
+        cy2 = nb[1];
       }
     }
-    const sx = 17 + Math.floor(rL() * 3), sy = 17 + Math.floor(rL() * 3), a0 = rL() * 6.283;
-    const polar = (ang, rad) => ({
-      x: clamp(Math.round(sx + Math.cos(ang) * rad), 2, W - 3),
-      y: clamp(Math.round(sy + Math.sin(ang) * rad), 2, H - 3)
-    });
-    const townP = polar(a0, 6 + rL() * 2), vaultP = polar(a0 + 1.9 + (rL() - 0.5) * 0.5, 10 + rL() * 2), goalP = polar(a0 + 3.9 + (rL() - 0.5) * 0.5, 11 + rL() * 2), gx = goalP.x, gy = goalP.y;
-    for (const pt of [{ x: sx, y: sy }, townP, vaultP, goalP]) {
-      const i = idx(pt.x, pt.y);
-      terrain[i] = 0;
-      elev[i] = 0;
-    }
-    const sites = {};
-    sites[idx(sx, sy)] = { kind: "well", seen: true };
-    sites[idx(gx, gy)] = { kind: "beacon" };
-    sites[idx(townP.x, townP.y)] = { kind: "town" };
-    {
-      const F = C.quest.floors;
-      sites[idx(vaultP.x, vaultP.y)] = {
-        kind: "vault",
-        open: false,
-        floors: [F[Math.floor(rV() * F.length)], F[Math.floor(rV() * F.length)], "guard"]
-      };
-    }
+    return { terrain, elev };
+  }
+  function makePlacer(rS, terrain, sites) {
     const free = (x, y) => {
       for (let j = -2; j <= 2; j++)
         for (let i = -2; i <= 2; i++) {
@@ -3280,8 +3761,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         }
       return true;
     };
-    function place(n, mk, want, spread) {
-      spread = spread || H;
+    return function place(n, mk, want) {
       for (let k = 0; k < n; k++) {
         const x0 = 3 + Math.floor(k * (W - 6) / n), x1 = 3 + Math.floor((k + 1) * (W - 6) / n);
         for (let tries = 0; tries < 300; tries++) {
@@ -3292,36 +3772,9 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
           break;
         }
       }
-    }
-    for (const [a, b] of [
-      [townP, vaultP],
-      [vaultP, goalP],
-      [{ x: sx, y: sy }, goalP]
-    ]) {
-      const mx = Math.round((a.x + b.x) / 2), my = Math.round((a.y + b.y) / 2);
-      for (let rad = 0; rad < 4; rad++) {
-        let done = false;
-        for (let j = -rad; j <= rad && !done; j++)
-          for (let i = -rad; i <= rad && !done; i++) {
-            const x = clamp(mx + i, 1, W - 2), y = clamp(my + j, 1, H - 2), k = idx(x, y);
-            if (terrain[k] === 2 || terrain[k] >= 4 || sites[k]) continue;
-            sites[k] = { kind: "spring", foul: false, known: false, sure: true };
-            done = true;
-          }
-        if (done) break;
-      }
-    }
-    place(biome.springs + 1, () => ({ kind: "spring", foul: rS() < biome.foul, known: false }), 0);
-    place(age.ruins, () => ({ kind: "ruin", searched: false }), habit.onHills ? 1 : 0);
-    place(4, () => ({ kind: "cave", searched: false, loot: rS() < 0.4 }), 1);
-    place(4, () => ({
-      kind: "cache",
-      searched: false,
-      loot: rS() < 0.5,
-      fuel: 1 + Math.floor(rS() * 3),
-      water: 1 + Math.floor(rS() * 3)
-    }));
-    place(1, () => ({ kind: "shrine" }));
+    };
+  }
+  function finishSites(sites, habit, doom, rR) {
     const ruinTiles = Object.keys(sites).filter((k) => sites[k].kind === "ruin").map(Number).sort((a, b) => a % W - b % W), road = {};
     if (habit.roads)
       for (let k = 0; k + 1 < ruinTiles.length; k++) {
@@ -3347,6 +3800,100 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
             st.foul = true;
       }
     }
+    return road;
+  }
+  var cacheSite = (rS) => () => ({
+    kind: "cache",
+    searched: false,
+    loot: rS() < 0.5,
+    fuel: 1 + Math.floor(rS() * 3),
+    water: 1 + Math.floor(rS() * 3)
+  });
+  GENERATORS.region = (s, rec) => {
+    const biome = byId(C.biomes, rec.biome), tag = ":" + rec.id, rT = stream(s.seed, "terrain" + tag), rS = stream(s.seed, "sites" + tag), habit = byId(C.civ.habit, s.civ.habit), age = byId(C.civ.age, s.civ.age), doom = byId(C.civ.doom, s.civ.doom), danger = sketchOf(s, rec.cx, rec.cy).danger, { terrain, elev } = genTerrain(s.seed, s.world, rec.cx, rec.cy, biome, rT), sites = {}, place = makePlacer(rS, terrain, sites);
+    for (let rad = 0, done = false; rad < 6 && !done; rad++)
+      for (let j = -rad; j <= rad && !done; j++)
+        for (let i = -rad; i <= rad && !done; i++) {
+          const k = idx(18 + i, 18 + j);
+          if (terrain[k] === 2 || terrain[k] >= 4) continue;
+          sites[k] = { kind: "spring", foul: false, known: false, sure: true };
+          done = true;
+        }
+    place(biome.springs + 2, () => ({ kind: "spring", foul: rS() < biome.foul, known: false }), 0);
+    place(Math.max(2, age.ruins - 2), () => ({ kind: "ruin", searched: false }), habit.onHills ? 1 : 0);
+    place(3, () => ({ kind: "cave", searched: false, loot: rS() < 0.4 }), 1);
+    place(3, cacheSite(rS));
+    const road = finishSites(sites, habit, doom, stream(s.seed, "roads" + tag)), map = { terrain, elev, sites, road, creatures: [] };
+    placeCreatures(s, stream(s.seed, "creatures" + tag), map, {
+      count: C.creature.count - 2,
+      species: speciesFor(s, rec.biome),
+      far: () => 0,
+      avoid: (x, y) => x < 3 || y < 3 || x > W - 4 || y > H - 4,
+      // never right at a border, where you arrive
+      tier: () => clamp(1 + danger, 1, 3)
+    });
+    return map;
+  };
+  function newGame(seed) {
+    seed = seed >>> 0 || 1;
+    const rnd = (name) => stream(seed, name), rT = rnd("terrain"), rL = rnd("layout"), rV = rnd("vault"), rS = rnd("sites"), rR = rnd("roads"), rRun = rnd("run"), rW = rnd("weather"), rO = rnd("offer"), pickWith = (rng) => (a) => a[Math.floor(rng() * a.length)];
+    const biome = pickWith(rnd("biome"))(C.biomes), god = pickWith(rnd("god"))(C.gods), civ = {};
+    {
+      const pick = pickWith(rnd("people"));
+      for (const ax of AXES) civ[ax] = pick(C.civ[ax]).id;
+      const st = byId(C.civ.style, civ.style);
+      civ.name = pick(st.a) + pick(st.b) + pick(st.c);
+    }
+    const habit = byId(C.civ.habit, civ.habit), age = byId(C.civ.age, civ.age), doom = byId(C.civ.doom, civ.doom);
+    const world = makeSketch(seed, C.tun.world.cols, C.tun.world.rows, biome.id), { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
+    const sx = 17 + Math.floor(rL() * 3), sy = 17 + Math.floor(rL() * 3), a0 = rL() * 6.283;
+    const polar = (ang, rad) => ({
+      x: clamp(Math.round(sx + Math.cos(ang) * rad), 2, W - 3),
+      y: clamp(Math.round(sy + Math.sin(ang) * rad), 2, H - 3)
+    });
+    const townP = polar(a0, 6 + rL() * 2), vaultP = polar(a0 + 1.9 + (rL() - 0.5) * 0.5, 10 + rL() * 2), goalP = polar(a0 + 3.9 + (rL() - 0.5) * 0.5, 11 + rL() * 2), gx = goalP.x, gy = goalP.y;
+    for (const pt of [{ x: sx, y: sy }, townP, vaultP, goalP]) {
+      const i = idx(pt.x, pt.y);
+      terrain[i] = 0;
+      elev[i] = 0;
+    }
+    const sites = {};
+    sites[idx(sx, sy)] = { kind: "well", seen: true };
+    sites[idx(gx, gy)] = { kind: "beacon" };
+    sites[idx(townP.x, townP.y)] = { kind: "town" };
+    {
+      const F = C.quest.floors;
+      sites[idx(vaultP.x, vaultP.y)] = {
+        kind: "vault",
+        open: false,
+        floors: [F[Math.floor(rV() * F.length)], F[Math.floor(rV() * F.length)], "guard"]
+      };
+    }
+    const place = makePlacer(rS, terrain, sites);
+    for (const [a, b] of [
+      [townP, vaultP],
+      [vaultP, goalP],
+      [{ x: sx, y: sy }, goalP]
+    ]) {
+      const mx = Math.round((a.x + b.x) / 2), my = Math.round((a.y + b.y) / 2);
+      for (let rad = 0; rad < 4; rad++) {
+        let done = false;
+        for (let j = -rad; j <= rad && !done; j++)
+          for (let i = -rad; i <= rad && !done; i++) {
+            const x = clamp(mx + i, 1, W - 2), y = clamp(my + j, 1, H - 2), k = idx(x, y);
+            if (terrain[k] === 2 || terrain[k] >= 4 || sites[k]) continue;
+            sites[k] = { kind: "spring", foul: false, known: false, sure: true };
+            done = true;
+          }
+        if (done) break;
+      }
+    }
+    place(biome.springs + 1, () => ({ kind: "spring", foul: rS() < biome.foul, known: false }), 0);
+    place(age.ruins, () => ({ kind: "ruin", searched: false }), habit.onHills ? 1 : 0);
+    place(4, () => ({ kind: "cave", searched: false, loot: rS() < 0.4 }), 1);
+    place(4, cacheSite(rS));
+    place(1, () => ({ kind: "shrine" }));
+    const road = finishSites(sites, habit, doom, rR);
     const s = {
       v: VERSION,
       seed,
@@ -3366,15 +3913,16 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       god: god.id,
       known: { civ: false, god: false },
       pact: null,
-      camp: idx(sx, sy),
+      camp: { area: HOME, i: idx(sx, sy) },
       goal: { x: gx, y: gy },
       player: null,
       start: { x: sx, y: sy },
       char: null,
       travellers: 1,
       lostMaps: {},
-      area: "overworld",
-      areas: { overworld: { id: "overworld", kind: "overworld" } },
+      world,
+      area: HOME,
+      areas: { [HOME]: { id: HOME, kind: "region", cx: world.home.cx, cy: world.home.cy, biome: biome.id, visited: true } },
       offer: null,
       time: 0,
       weather: { storm: false, changeAt: 0 },
@@ -3397,12 +3945,19 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       return a.slice(0, n);
     };
     s.offer = { races: draw(C.races, C.offer.races), classes: draw(C.classes, C.offer.classes) };
-    s.species = makeSpecies(s, rnd("species"));
+    s.species = makeSpecies(s, rnd("species"), biome.id);
+    s.speciesByBiome = { [biome.id]: s.species.map((_, i) => i) };
     s.creatures = [];
     makeQuest(s, rnd("quest"), townP, vaultP, a0, goalP);
-    placeCreatures(s, rnd("creatures"));
+    placeCreatures(s, rnd("creatures"), s, {
+      count: C.creature.count,
+      species: s.speciesByBiome[biome.id],
+      far: (x, y) => Math.max(Math.abs(x - sx), Math.abs(y - sy)),
+      avoid: (x, y, far) => far < 7 || Math.max(Math.abs(x - townP.x), Math.abs(y - townP.y)) < 4,
+      tier: (x, y, far) => clamp(1 + Math.floor((far - 4) / 5), 1, 3)
+    });
     spawn(s, makeChar(rnd("character"), s));
-    s.depots[s.camp] = {
+    s.depots[idx(sx, sy)] = {
       water: 0,
       fuel: 3,
       items: [makeItem(s, "cloak", null, null, true), makeItem(s, "lantern", null, null, true)]
@@ -3431,6 +3986,13 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         delete st.guard;
         delete st.depth;
       }
+    },
+    // 7 -> 8: the one map became the home region of a larger world that wraps around.
+    7: (s) => {
+      s.world = makeSketch(s.seed, 3, 3, s.biome);
+      Object.assign(s.areas.overworld, { kind: "region", cx: s.world.home.cx, cy: s.world.home.cy, biome: s.biome, visited: true });
+      s.camp = typeof s.camp === "number" ? { area: "overworld", i: s.camp } : null;
+      s.speciesByBiome = { [s.biome]: s.species.map((_, i) => i) };
     }
   };
   function serialize(s) {
@@ -3536,6 +4098,10 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     godOf,
     reveal,
     byId,
+    campHere,
+    regionId,
+    outdoorRec,
+    switchRegion,
     objective,
     talkElder,
     buy,
@@ -4169,7 +4735,7 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         dynGroup.add(g);
       }
     for (const k in V.S.depots) {
-      if (R.inOverworld(V.S) && +k === V.S.camp) continue;
+      if (+k === R.campHere(V.S)) continue;
       const d = V.S.depots[k], relic = d.items.some((i) => i.base === "relic"), [x, y, z] = at(+k, 3.5 * off, 2.5 * off);
       if (relic) {
         dynGroup.add(box(1.2, 1, 1.2, std(7827818), x, y + 0.5, z));
@@ -4230,8 +4796,8 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       g.position.set(x, y, z);
       dynGroup.add(g);
     }
-    if (R.inOverworld(V.S) && V.S.camp !== null) {
-      const [x, y, z] = at(V.S.camp, 5, 3), t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(14262858));
+    if (R.campHere(V.S) !== null) {
+      const [x, y, z] = at(R.campHere(V.S), 5, 3), t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(14262858));
       t.position.set(x, y + 1.8, z);
       const sm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.6, 150, 8, 1, true), glow(15921902, 0.38));
       sm.material.side = THREE.DoubleSide;
@@ -4372,21 +4938,28 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
       mag = 1;
     }
     const sn = Math.sin(P.yaw), cs = Math.cos(P.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx, mc = R.moveCost(V.S, V.S.player.x, V.S.player.y), indoor = R.indoors(V.S), sp = VIEW.speed * (indoor ? 0.65 : clamp2(mc.base / mc.mins, 0.3, 1.15));
-    let nx = clamp2(P.x + dx * sp * dt, -G.half + 1, G.half - 1), nz = clamp2(P.z + dz * sp * dt, -G.half + 1, G.half - 1);
+    const open = R.inOverworld(V.S), lim = open ? G.half + 1 : G.half - 1, tileOf = open ? (x) => Math.floor((x + G.half) / G.ts) : toTile;
+    let nx = clamp2(P.x + dx * sp * dt, -lim, lim), nz = clamp2(P.z + dz * sp * dt, -lim, lim);
     const pad = indoor ? 0.6 : 0, blocked = (x, z) => !R.passable(V.S, toTile(x + Math.sign(x - P.x) * pad), toTile(z)) || !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P.z) * pad));
     if (indoor && blocked(nx, nz)) {
       if (!blocked(nx, P.z)) nz = P.z;
       else if (!blocked(P.x, nz)) nx = P.x;
       else return;
     }
-    const tx = toTile(nx), tz = toTile(nz);
+    const tx = tileOf(nx), tz = tileOf(nz);
     if (tx !== V.S.player.x || tz !== V.S.player.y) {
       if (now < V.blockedUntil) return;
-      const before = V.S.log.length, ok = R.move(V.S, tx - V.S.player.x, tz - V.S.player.y);
+      const before = V.S.log.length, wasArea = V.S.area, ok = R.move(V.S, tx - V.S.player.x, tz - V.S.player.y);
       if (!ok) {
         V.blockedUntil = now + 1500;
         render();
         return;
+      }
+      if (V.S.area !== wasArea && R.inOverworld(V.S)) {
+        buildStatic();
+        shown.area = V.S.area;
+        nx -= Math.floor(tx / R.W) * 2 * G.half;
+        nz -= Math.floor(tz / R.H) * 2 * G.half;
       }
       sync();
       buildDynamic();
@@ -4894,10 +5467,19 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
         cv2,
         el("p", {
           cls: "note",
-          text: indoor ? rec.kind === "town" ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: the gate." : "Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see." : "Only what you have seen or surveyed. White dot: you. Gold: camp. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: depot. Red dot: a creature you can currently see."
-        })
+          text: indoor ? rec.kind === "town" ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: the gate." : "Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see." : "This region. Only what you have seen or surveyed. White dot: you. Gold: camp. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: depot. Red dot: a creature you can currently see."
+        }),
+        ...indoor ? [] : [
+          el("h3", { text: "The world" }),
+          el("canvas", { id: "worldcv", "aria-label": "The regions of the world you have walked in" }),
+          el("p", {
+            cls: "note",
+            text: "Each square is a region like the one above. White outline: where you are. Gold dot: the well you set out from. Dark: country you have not walked. The world wraps around: walk off any edge and you come in on the far side."
+          })
+        ]
       ]
     );
+    if (!indoor) drawWorld();
     const css = cv2.clientWidth, dpr = window.devicePixelRatio || 1;
     cv2.width = cv2.height = Math.round(css * dpr);
     const g = cv2.getContext("2d");
@@ -4920,15 +5502,15 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
           g.fillStyle = st.kind === "spring" && st.known && st.foul ? "#6f6a35" : MAPC[st.kind];
           g.fillRect(x * ts - 1, y * ts - 1, ts + 2, ts + 2);
         }
-        if (V.S.depots[i] && i !== V.S.camp) {
+        if (V.S.depots[i] && i !== R.campHere(V.S)) {
           g.fillStyle = "#000";
           g.beginPath();
           g.arc((x + 0.5) * ts, (y + 0.5) * ts, ts * 0.3, 0, 7);
           g.fill();
         }
       }
-    if (R.inOverworld(V.S) && V.S.camp !== null) {
-      const x = V.S.camp % R.W, y = Math.floor(V.S.camp / R.W);
+    if (R.campHere(V.S) !== null) {
+      const x = R.campHere(V.S) % R.W, y = Math.floor(R.campHere(V.S) / R.W);
       g.fillStyle = "#e0a84a";
       g.strokeStyle = "#1a1205";
       g.lineWidth = 1.5;
@@ -4960,6 +5542,32 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
     g.lineTo(px - Math.sin(P.yaw) * 12, py - Math.cos(P.yaw) * 12);
     g.strokeStyle = "#fff";
     g.stroke();
+  }
+  function drawWorld() {
+    const cv2 = $("worldcv"), w = V.S.world, css = Math.min(cv2.parentNode.clientWidth || 240, 240), cell = css / Math.max(w.cols, w.rows), dpr = window.devicePixelRatio || 1, here2 = R.outdoorRec(V.S);
+    cv2.style.width = cell * w.cols + "px";
+    cv2.style.height = cell * w.rows + "px";
+    cv2.style.display = "block";
+    cv2.style.marginTop = "8px";
+    cv2.width = Math.round(cell * w.cols * dpr);
+    cv2.height = Math.round(cell * w.rows * dpr);
+    const g = cv2.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    for (let cy = 0; cy < w.rows; cy++)
+      for (let cx = 0; cx < w.cols; cx++) {
+        const rec = V.S.areas[R.regionId(V.S, cx, cy)];
+        g.fillStyle = rec && rec.visited ? R.byId(R.C.biomes, rec.biome).colors[0] : "#10151d";
+        g.fillRect(cx * cell + 1, cy * cell + 1, cell - 2, cell - 2);
+        if (cx === w.home.cx && cy === w.home.cy) {
+          g.fillStyle = "#e0a84a";
+          g.beginPath();
+          g.arc((cx + 0.5) * cell, (cy + 0.5) * cell, 4, 0, 7);
+          g.fill();
+        }
+      }
+    g.strokeStyle = "#fff";
+    g.lineWidth = 2;
+    g.strokeRect(here2.cx * cell + 2, here2.cy * cell + 2, cell - 4, cell - 4);
   }
   function openMenu() {
     const sw = el(
@@ -5273,6 +5881,6 @@ var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls a
   globalThis.Rules = Rules;
 })();
 
-</script>
-</body>
+    </script>
+  </body>
 </html>

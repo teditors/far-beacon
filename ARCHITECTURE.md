@@ -68,6 +68,21 @@ rules never need to know where they are. Every other area is parked in `s.areas[
 - The view shows the same grid at two scales: 28 m tiles outdoors, 4 m tiles inside (`setGeometry` in view/ctx.js).
 - New kinds of interior: add a generator to `GENERATORS` in interiors.js and an entry point in quest.js or actions.js.
 
+## The world
+
+The outdoors is a grid of regions (`s.world`: `cols`, `rows`, `home`, and a `sketch` with each region's biome and
+danger). The size is stored per world, so worlds can differ. Each region is an area of kind `region`, parked like
+any other; the home region keeps the id `overworld`, the rest are `r<cx>_<cy>`, built by `GENERATORS.region` the
+first time the player arrives.
+
+- The world wraps in both directions. `move()` in actions.js is the only place a border is crossed
+  (`switchRegion`), which is where seamless borders will be added later.
+- Landforms come from `worldNoise` (world.js), which repeats at the world's size, so land lines up across borders.
+- The quest places (`s.town`, `s.goal`, `s.start`, the locked place) are all in the home region. `worldMap(s)` is
+  the home map; `worldPos(s)` and `homePos` give positions in home coordinates from anywhere, for directions.
+- `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
+- `inOverworld(s)` means "outdoors, in any region".
+
 ## State
 
 The whole game is one plain object `s` (see `newGame` in worldgen.js). It is saved as JSON, so it
@@ -129,9 +144,8 @@ node tools/check.js          everything, including a 40-world playtest and the b
 Planned next, in order, so changes now should not paint us into a corner:
 
 1. **Areas.** Done in v0.8: see "Areas" above.
-2. **Regions.** A large world of regions generated as you reach them. Each region will be an area of kind
-   `region`, using the same parking as interiors; the open question is how the grid size and the overworld-only
-   fields (`s.goal`, `s.town`, `s.start`, `s.camp`) become per-region.
+2. **Regions.** Started in v0.9: see "The world" above. Still to do: a 5 x 5 world, towns and roads beyond
+   the home region, water guaranteed along routes, and borders you can see across (seamless travel).
 3. **Generated biomes** with a rare-trait slot, then side quests, creatures, races and classes,
    and unique items, all as content menus.
 

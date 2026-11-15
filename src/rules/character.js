@@ -111,7 +111,8 @@ function nextTraveller(s, ch) {
   d.coin = (d.coin || 0) + p.coin;
   s.lostMaps[i] = s.seen.join('');
   const diedIn = areaRec(s),
-    where = inOverworld(s) ? null : worldPos(s);
+    inside = !inOverworld(s),
+    where = worldPos(s);
   forgetMaps(s);
   toOverworld(s);
   const mod = (START + s.time) % 1440;
@@ -126,12 +127,12 @@ function nextTraveller(s, ch) {
       charTitle(ch) +
       ' sets out from the well. ' +
       d.remains +
-      (where
+      (inside
         ? ' lies somewhere ' +
           (diedIn.kind === 'town' ? 'in ' + s.town.name : 'inside the ' + s.quest.vault.name) +
           ', to the ' +
           dirTo(s, where.x, where.y)
-        : ' lies somewhere to the ' + dirTo(s, i % W, Math.floor(i / W))) +
+        : ' lies somewhere to the ' + dirTo(s, where.x, where.y)) +
       ', with everything they carried.',
     'good',
   );

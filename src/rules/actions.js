@@ -20,7 +20,7 @@ import {
 } from './map.js';
 import { gainXp, roll, weaponOf } from './progress.js';
 import { hasItem } from './quest.js';
-import { areaRec, indoors, isDark, worldMap, worldPos } from './areas.js';
+import { areaRec, inOverworld, indoors, isDark, sketchOf, switchRegion, wrap, worldMap, worldPos } from './areas.js';
 import { carryCap, stat, waterCap } from './stats.js';
 import { advance } from './systems.js';
 
@@ -40,31 +40,58 @@ function moveCost(s, x, y) {
 }
 function move(s, dx, dy) {
   if (s.over) return false;
-  const nx = s.player.x + dx,
+  let nx = s.player.x + dx,
     ny = s.player.y + dy;
-  if (nx < 0 || ny < 0 || nx >= W || ny >= H) {
-    say(s, 'The map ends here.');
-    return false;
-  }
-  if (!passable(s, nx, ny)) return false;
+  const out = nx < 0 || ny < 0 || nx >= W || ny >= H,
+    was = s.lastGround,
+    leftCamp = atCamp(s);
+  if (out && !inOverworld(s)) return false;
   if (weight(s) > carryCap(s) + 1e-9) {
     say(s, 'You are carrying too much to move. Leave something here.', 'bad');
     return false;
   }
+  // Walking off the edge of a region brings you onto the facing edge of its neighbour; the world wraps around.
+  // This is the one place a border is crossed, so that borders can be made seamless later.
+  let back = null;
+  if (out) {
+    const rec = areaRec(s);
+    back = { cx: rec.cx, cy: rec.cy, x: s.player.x, y: s.player.y };
+    switchRegion(s, wrap(rec.cx + Math.floor(nx / W), s.world.cols), wrap(rec.cy + Math.floor(ny / H), s.world.rows), {
+      x: wrap(nx, W),
+      y: wrap(ny, H),
+    });
+    nx = s.player.x;
+    ny = s.player.y;
+  }
+  const retreat = () => {
+    if (back) switchRegion(s, back.cx, back.cy, back);
+    return false;
+  };
+  if (!passable(s, nx, ny)) return retreat();
   const mc = moveCost(s, nx, ny),
     mins = mc.mins,
     cost = mc.cost;
   if (s.player.stamina < cost) {
     say(s, 'You are too exhausted to go on. Rest first.', 'bad');
-    return false;
+    return retreat();
   }
-  if (atCamp(s)) s.stats.trips++;
+  if (leftCamp) s.stats.trips++;
   s.player.stamina -= cost;
   s.player.x = nx;
   s.player.y = ny;
   s.stats.moves++;
-  const g = groundHere(s),
-    was = s.lastGround;
+  if (back) {
+    const rec = areaRec(s),
+      name = biomeOf(s).name;
+    say(
+      s,
+      rec.visited ? 'You cross into ' + name + ' again.' : 'You cross into country no map of yours shows: ' + name + '.',
+      rec.visited ? undefined : 'good',
+    );
+    if (!rec.visited) s.stats.regions = (s.stats.regions || 1) + 1;
+    rec.visited = true;
+  }
+  const g = groundHere(s);
   s.lastGround = s.terrain[here(s)];
   if (g.wet && !s.off.warmth) s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
   if (s.lastGround !== was && s.lastGround >= 3 && s.lastGround < WALL)
@@ -541,7 +568,7 @@ function packCamp(s) {
   return true;
 }
 function makeCamp(s) {
-  if (s.over || s.camp !== null) return false;
+  if (s.over || s.camp || !inOverworld(s)) return false;
   const i = s.player.items.findIndex((it) => it.base === 'campkit');
   if (i < 0) return false;
   if (!inShelter(s)) {
@@ -551,7 +578,7 @@ function makeCamp(s) {
   advance(s, 120, 'rest');
   if (s.over) return true;
   s.player.items.splice(i, 1);
-  s.camp = here(s);
+  s.camp = { area: s.area, i: here(s) };
   say(s, 'You pitch camp. This is home now.', 'good');
   return true;
 }
@@ -720,7 +747,7 @@ function actions(s) {
   if (inShelter(s)) a.push({ id: 'sleep', label: atCamp(s) ? 'Sleep at camp' : 'Sleep in shelter', hint: 'until rested' });
   if (p.warmth < 95) a.push({ id: 'fire', label: 'Light a fire', hint: '1 fuel' });
   if (atCamp(s)) a.push({ id: 'packCamp', label: 'Strike camp', hint: '1 h' });
-  else if (s.camp === null && inShelter(s) && p.items.some((i) => i.base === 'campkit'))
+  else if (!s.camp && inOverworld(s) && inShelter(s) && p.items.some((i) => i.base === 'campkit'))
     a.push({ id: 'makeCamp', label: 'Pitch camp here', hint: '2 h' });
   return a;
 }

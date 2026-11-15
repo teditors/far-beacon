@@ -1,6 +1,7 @@
 /* Tuning numbers, equipment slots and item values. */
 export default {
   tun: {
+    world: { cols: 3, rows: 3 }, // regions across and down; the world wraps around in both directions
     waterPerHour: 0.65,
     restWaterFactor: 0.5,
     staminaScale: 1,

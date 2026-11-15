@@ -55,6 +55,56 @@ for (let seed = 1; seed <= 150; seed++) {
   for (const c of s.creatures) if (!c.key) need(Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y)) >= 7, 'seed ' + seed + ': a creature starts too close');
   for (const k in s.sites) need(+k >= 0 && +k < R.W * R.H, 'seed ' + seed + ': a site is off the map');
 }
+// 3b. the wider world: every region is sound, borders wrap, and a save with many regions round-trips
+let bigSave = 0, borderSame = 0, borderAll = 0;
+for (let seed = 1; seed <= 40; seed++) {
+  const s = R.newGame(seed), w = s.world, tag = 'seed ' + seed + ': ';
+  need(w.cols * w.rows === w.sketch.length && new Set(w.sketch.map((e) => e.biome)).size >= 2, tag + 'the world sketch is wrong');
+  // walk east all the way round, one real step across each border
+  s.player.stamina = 1e6;
+  for (let k = 0; k < w.cols; k++) {
+    const rec = R.areaRec(s), eastId = R.regionId(s, (rec.cx + 1) % w.cols, rec.cy);
+    let crossed = false;
+    for (let y = 0; y < R.H && !crossed; y++) {
+      s.player.x = R.W - 1; s.player.y = y; s.combat = null;
+      if (!R.passable(s, s.player.x, y)) continue;
+      const edge = s.terrain.filter((_, i) => i % R.W === R.W - 1);
+      crossed = R.move(s, 1, 0);
+      if (crossed && k === 0) for (let yy = 0; yy < R.H; yy++) { borderAll++; if ((edge[yy] === 2) === (s.terrain[yy * R.W] === 2)) borderSame++; }
+      if (s.over) break;
+    }
+    if (s.over) break;
+    need(crossed && s.area === eastId && s.player.x === 0, tag + 'could not walk east out of ' + rec.id);
+  }
+  if (s.over) continue;
+  need(s.area === 'overworld', tag + 'walking east round the world did not come home');
+  // every region
+  for (let cy = 0; cy < w.rows; cy++) for (let cx = 0; cx < w.cols; cx++) {
+    R.switchRegion(s, cx, cy, { x: 18, y: 18 });
+    const id = R.regionId(s, cx, cy);
+    need(s.area === id && s.biome === w.sketch[cy * w.cols + cx].biome, tag + id + ' has the wrong biome');
+    need(s.terrain.length === R.W * R.H && s.elev.length === R.W * R.H, tag + id + ' has a bad map');
+    need(Object.values(s.sites).some((x) => x.kind === 'spring' && x.sure), tag + id + ' has no sure spring');
+    for (const k in s.sites) need(s.terrain[k] !== 2 && +k >= 0 && +k < R.W * R.H, tag + id + ' has a site in a bad place');
+    for (const c of s.creatures) need(s.species[c.sp], tag + id + ' has a creature of no species');
+    need(cx === w.home.cx && cy === w.home.cy ? true : !Object.values(s.sites).some((x) => ['town', 'vault', 'beacon', 'well'].includes(x.kind)), tag + id + ' has a quest place');
+  }
+  const wp = R.worldPos(s);
+  need(Math.abs(wp.x) <= R.W * w.cols && Math.abs(wp.y) <= R.H * w.rows, tag + 'world position out of range');
+  // a camp pitched far away is not "here" at home; a save with every region loads and plays on identically
+  s.camp = { area: s.area, i: 18 * R.W + 18 };
+  need(R.campHere(s) === 18 * R.W + 18, tag + 'camp not found where it was pitched');
+  const text = R.serialize(s), res = R.deserialize(text);
+  bigSave = Math.max(bigSave, text.length);
+  need(res.state && R.serialize(scripted(s, 60, seed)) === R.serialize(scripted(res.state, 60, seed)), tag + 'a many-region save plays differently after loading');
+  // dying far from home: the next traveller still sets out from the well
+  if (!s.over) { if (s.area === 'overworld') R.switchRegion(s, 0, 0, { x: 18, y: 18 }); s.combat = null; s.over = { won: false, why: 'test' }; }
+  if (!s.over.won && R.livesLeft(s) > 0 && R.nextTraveller(s, R.makeChar(() => 0.5, s))) {
+    need(s.area === 'overworld' && s.player.x === s.start.x && s.player.y === s.start.y, tag + 'the next traveller did not start at the well');
+    need(R.campHere(s) === null || s.camp.area === 'overworld', tag + 'a far camp shows up at home');
+  }
+}
+warns.push('largest save with all ' + 9 + ' regions: ' + Math.round(bigSave / 1024) + ' KB; mountains agree across a border on ' + Math.round((100 * borderSame) / Math.max(1, borderAll)) + '% of tiles');
 // 4. snapshot: tells you when a change alters what existing seeds generate (that is sometimes intended)
 const snapFile = path.join(__dirname, 'snapshot.json');
 const hash = (s) => crypto.createHash('sha1').update(R.serialize(s)).digest('hex').slice(0, 12);

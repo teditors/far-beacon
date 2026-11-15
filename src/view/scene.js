@@ -511,7 +511,7 @@ function buildDynamic() {
       dynGroup.add(g);
     }
   for (const k in V.S.depots) {
-    if (R.inOverworld(V.S) && +k === V.S.camp) continue;
+    if (+k === R.campHere(V.S)) continue;
     const d = V.S.depots[k],
       relic = d.items.some((i) => i.base === 'relic'),
       [x, y, z] = at(+k, 3.5 * off, 2.5 * off);
@@ -579,8 +579,8 @@ function buildDynamic() {
     g.position.set(x, y, z);
     dynGroup.add(g);
   }
-  if (R.inOverworld(V.S) && V.S.camp !== null) {
-    const [x, y, z] = at(V.S.camp, 5, 3),
+  if (R.campHere(V.S) !== null) {
+    const [x, y, z] = at(R.campHere(V.S), 5, 3),
       t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(0xd9a24a));
     t.position.set(x, y + 1.8, z);
     const sm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.6, 150, 8, 1, true), glow(0xf2f2ee, 0.38));

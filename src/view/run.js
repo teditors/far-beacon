@@ -142,8 +142,12 @@ function tick(dt, now) {
     mc = R.moveCost(V.S, V.S.player.x, V.S.player.y),
     indoor = R.indoors(V.S),
     sp = VIEW.speed * (indoor ? 0.65 : clamp(mc.base / mc.mins, 0.3, 1.15));
-  let nx = clamp(P.x + dx * sp * dt, -G.half + 1, G.half - 1),
-    nz = clamp(P.z + dz * sp * dt, -G.half + 1, G.half - 1);
+  // outdoors you can walk off the edge of a region, into its neighbour
+  const open = R.inOverworld(V.S),
+    lim = open ? G.half + 1 : G.half - 1,
+    tileOf = open ? (x) => Math.floor((x + G.half) / G.ts) : toTile;
+  let nx = clamp(P.x + dx * sp * dt, -lim, lim),
+    nz = clamp(P.z + dz * sp * dt, -lim, lim);
   // walls: keep a little distance from them, and slide along them instead of stopping dead
   const pad = indoor ? 0.6 : 0,
     blocked = (x, z) =>
@@ -154,16 +158,24 @@ function tick(dt, now) {
     else if (!blocked(P.x, nz)) nx = P.x;
     else return;
   }
-  const tx = toTile(nx),
-    tz = toTile(nz);
+  const tx = tileOf(nx),
+    tz = tileOf(nz);
   if (tx !== V.S.player.x || tz !== V.S.player.y) {
     if (now < V.blockedUntil) return;
     const before = V.S.log.length,
+      wasArea = V.S.area,
       ok = R.move(V.S, tx - V.S.player.x, tz - V.S.player.y);
     if (!ok) {
       V.blockedUntil = now + 1500;
       render();
       return;
+    }
+    if (V.S.area !== wasArea && R.inOverworld(V.S)) {
+      // crossed a border: same heading, same stride, on the facing edge of the next region
+      buildStatic();
+      shown.area = V.S.area;
+      nx -= Math.floor(tx / R.W) * 2 * G.half;
+      nz -= Math.floor(tz / R.H) * 2 * G.half;
     }
     sync();
     buildDynamic();

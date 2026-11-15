@@ -1,7 +1,7 @@
 /* Questions about the map: where you are, what stands here, directions, and what you can see. */
 import { civOf } from './civ.js';
 import { H, TERR, W, WALL, biomeOf, clock, idx, say } from './core.js';
-import { indoors, inOverworld, isDark } from './areas.js';
+import { campHere, indoors, inOverworld, isDark, worldPos } from './areas.js';
 import { stat } from './stats.js';
 
 const phase = (s) => (clock(s).isDay ? biomeOf(s).day : biomeOf(s).night);
@@ -29,7 +29,7 @@ const isShelter = (site) =>
   !!site &&
   (site.kind === 'cave' || site.kind === 'ruin' || site.kind === 'well' || site.kind === 'town' || site.kind === 'vault');
 const inShelter = (s) => indoors(s) || isShelter(siteHere(s));
-const atCamp = (s) => inOverworld(s) && s.camp === here(s);
+const atCamp = (s) => campHere(s) === here(s);
 const passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL;
 
 const DIRS = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east'];
@@ -45,7 +45,7 @@ function dirFrom(p, x, y) {
   if (!dx && !dy) return 'here';
   return DIRS[((Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8) + 8) % 8];
 }
-const bearing = (s) => dirTo(s, s.goal.x, s.goal.y);
+const bearing = (s) => dirFrom(worldPos(s), s.goal.x, s.goal.y);
 const SITE_NAME = {
   spring: 'spring',
   cave: 'cave',

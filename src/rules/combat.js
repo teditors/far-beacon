@@ -1,7 +1,7 @@
 /* Creatures and turn-based combat. */
 import { depotHere } from './actions.js';
 import { scores } from './character.js';
-import { C, H, byId, clamp, idx, say, srand } from './core.js';
+import { C, H, byId, clamp, idx, say, srand, stream } from './core.js';
 import { aOrAn } from './core.js';
 import { genItem, isCursed, itemName, makeItem } from './items.js';
 import { dirTo, lineOfSight, passable, sightRadius } from './map.js';
@@ -10,14 +10,15 @@ import { amod, gainXp, playerAC, prof, roll, weaponOf } from './progress.js';
 import { stat } from './stats.js';
 
 /* Creatures and combat: rare, one at a time, turn by turn. */
-function makeSpecies(s, r) {
+function makeSpecies(s, r, biomeId) {
   const cr = C.creature,
     pick = (a) => a[Math.floor(r() * a.length)],
     out = [],
     used = {};
+  for (const sp of s.species || []) used[sp.name] = 1;
   while (out.length < cr.speciesPerWorld) {
     const form = pick(cr.forms),
-      pre = pick(cr.prefix[s.biome]),
+      pre = pick(cr.prefix[biomeId]),
       temper = pick(cr.tempers),
       rare = r() < cr.rareChance ? pick(cr.rares) : null,
       name = (rare ? rare.name + ' ' : '') + pre + ' ' + form.name;
@@ -27,27 +28,26 @@ function makeSpecies(s, r) {
   }
   return out;
 }
-function placeCreatures(s, r) {
-  const cr = C.creature;
-  for (let k = 0; k < cr.count; k++) {
-    const x0 = 2 + Math.floor((k * 32) / cr.count),
-      x1 = 2 + Math.floor(((k + 1) * 32) / cr.count);
+// Each biome has its own creatures, rolled the first time a region of that biome is built.
+function speciesFor(s, biomeId) {
+  if (!s.speciesByBiome[biomeId]) {
+    const made = makeSpecies(s, stream(s.seed, 'species:' + biomeId), biomeId);
+    s.speciesByBiome[biomeId] = made.map((sp) => s.species.push(sp) - 1);
+  }
+  return s.speciesByBiome[biomeId];
+}
+// Places creatures on a map m ({ terrain, sites, creatures }), spread across west-to-east bands.
+function placeCreatures(s, r, m, o) {
+  for (let k = 0; k < o.count; k++) {
+    const x0 = 2 + Math.floor((k * 32) / o.count),
+      x1 = 2 + Math.floor(((k + 1) * 32) / o.count);
     for (let tries = 0; tries < 200; tries++) {
       const x = x0 + Math.floor(r() * (x1 - x0)),
         y = 1 + Math.floor(r() * (H - 2)),
         i = idx(x, y),
-        far = Math.max(Math.abs(x - s.start.x), Math.abs(y - s.start.y));
-      if (
-        far < 7 ||
-        Math.max(Math.abs(x - s.town.x), Math.abs(y - s.town.y)) < 4 ||
-        s.terrain[i] === 2 ||
-        s.sites[i] ||
-        s.creatures.some((c) => c.x === x && c.y === y)
-      )
-        continue;
-      s.creatures.push(
-        makeCreature(s, k + 1, Math.floor(r() * C.creature.speciesPerWorld), x, y, clamp(1 + Math.floor((far - 4) / 5), 1, 3)),
-      );
+        far = o.far(x, y);
+      if (o.avoid(x, y, far) || m.terrain[i] === 2 || m.sites[i] || m.creatures.some((c) => c.x === x && c.y === y)) continue;
+      m.creatures.push(makeCreature(s, k + 1, o.species[Math.floor(r() * o.species.length)], x, y, o.tier(x, y, far)));
       break;
     }
   }
@@ -345,6 +345,7 @@ function stepCreatures(s) {
 
 export {
   makeSpecies,
+  speciesFor,
   placeCreatures,
   makeCreature,
   spOf,

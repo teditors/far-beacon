@@ -1,94 +1,511 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Far Beacon 3D</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  /* Surveyor's desk again: slate panels over the view, lamp-amber accent. Readouts along the top edge, actions under the right thumb, left side kept clear for walking. */
-  --ground: #161c26; --panel: rgba(22, 28, 38, .8); --solid: #1f2733; --line: #3a4757; --ink: #ece6d8; --ink-dim: #b3bcc5; --accent: #e0a84a;
-  --water: #5aa9d6; --warm: #e58555; --stam: #93c26c; --bad: #ea6a62;
-  --font-display: 'Bitter', Georgia, serif; --font-body: 'IBM Plex Sans', system-ui, sans-serif; --font-num: 'IBM Plex Mono', ui-monospace, monospace;
-  color-scheme: dark;
-}
-* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ground); color: var(--ink); font: 400 14px/1.4 var(--font-body); }
-#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-#hud { position: fixed; top: 0; left: 0; right: 0; padding: 8px 16px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
-.status, .sub { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: center; font: 400 12px var(--font-num); }
-.sub { color: var(--ink-dim); margin-top: 4px; }
-.chip { border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; } .chip.warn { border-color: var(--accent); color: var(--accent); } .chip.bad { border-color: var(--bad); color: var(--bad); }
-.meters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 5px; }
-.meter { display: grid; grid-template-columns: 1fr auto; gap: 1px 6px; font-size: 12px; align-items: baseline; }
-.meter .track { grid-column: 1 / -1; height: 7px; background: #0f141b; border-radius: 4px; overflow: hidden; }
-.meter .fill { height: 100%; width: 50%; }
-#m-hp .fill { background: var(--bad); } #m-mana .fill { background: #8f7be0; } .lvl { font: 400 11.5px var(--font-num); color: var(--ink-dim); grid-column: 1 / -1; align-self: end; }
-#fight { position: fixed; left: 16px; right: 186px; bottom: 14px; background: var(--panel); border: 1px solid var(--bad); border-radius: 8px; padding: 8px 10px; pointer-events: none; } #fight[hidden] { display: none; }
-#fight .track { height: 8px; background: #0f141b; border-radius: 4px; overflow: hidden; margin: 4px 0; } #foe-bar { height: 100%; background: var(--bad); } #fight strong { font-family: var(--font-display); } #foe-val { font: 600 12px var(--font-num); float: right; }
-#foe-log { list-style: none; margin: 4px 0 0; padding: 0; font-size: 12px; color: var(--ink-dim); display: grid; gap: 2px; } #foe-log li:last-child { color: var(--ink); }
-#m-water .fill { background: var(--water); } #m-warm .fill { background: var(--warm); } #m-stam .fill { background: var(--stam); }
-.meter .val { font: 600 12px var(--font-num); font-variant-numeric: tabular-nums; } .meter.low .val, .bad { color: var(--bad); }
-.tools { display: flex; gap: 6px; justify-content: flex-end; }
-button { pointer-events: auto; font: 500 13px var(--font-body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-height: 40px; padding: 5px 12px; cursor: pointer; }
-button:active { background: #2a3545; } button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #1a1205; font-weight: 600; } button.small { min-height: 38px; padding: 4px 10px; } button.sel { border-color: var(--accent); color: var(--accent); background: #2a2a22; }
-.scores { grid-template-columns: 1fr 1fr; } .scores .item { padding: 6px 8px; }
-#btn-pack.has { border-color: var(--accent); color: var(--accent); }
-#log { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 12.5px; max-width: 34em; }
-#log li { background: var(--panel); border-radius: 6px; padding: 3px 8px; color: var(--ink-dim); width: fit-content; } #log li.new { color: var(--ink); border: 1px solid var(--line); } #log li.good.new { border-color: var(--stam); } #log li.bad { color: #ffd0cc; } #log li.bad.new { border-color: var(--bad); }
-#actions { position: fixed; right: 16px; bottom: 14px; width: 158px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; }
-.act { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 38px; padding: 3px 10px; line-height: 1.2; } .act small { font: 400 10.5px var(--font-num); color: var(--ink-dim); }
-#stick { position: fixed; width: 110px; height: 110px; margin: -55px 0 0 -55px; border: 2px solid rgba(236, 230, 216, .45); border-radius: 50%; pointer-events: none; display: none; }
-#knob { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(236, 230, 216, .6); }
-#modal { position: fixed; inset: 0; background: rgba(8, 11, 16, .78); display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; z-index: 5; } #modal[hidden] { display: none; }
-.sheet { width: 100%; max-width: 500px; background: var(--solid); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 18px; }
-.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-h2 { font: 700 18px/1.2 var(--font-display); margin: 0; text-wrap: balance; } h3 { font: 600 14px/1.2 var(--font-display); margin: 14px 0 0; color: var(--accent); } p { margin: 6px 0; }
-.items { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
-.item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; background: #19212c; border: 1px solid var(--line); border-radius: 8px; flex-wrap: wrap; }
-.item p { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-dim); } .item.cursed strong { color: var(--bad); } .item.tune input { flex: 1 1 100%; }
-.wt { font: 400 12px var(--font-num); color: var(--ink-dim); margin-left: 8px; } .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; } .note { font-size: 12.5px; color: var(--ink-dim); }
-.journal li { font-size: 12.5px; color: var(--ink-dim); padding: 2px 0; border-bottom: 1px solid var(--line); } .journal li.bad { color: #ffd0cc; }
-#mapcv { width: 100%; aspect-ratio: 1; display: block; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
-input[type=number] { font: 400 14px var(--font-num); width: 96px; min-height: 38px; background: #0f141b; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
-textarea { width: 100%; margin-top: 6px; font: 400 12px var(--font-num); background: #0f141b; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
-input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); } input[type=range] { accent-color: var(--accent); }
-</style>
-</head>
-<body>
-<canvas id="c" aria-label="First-person view of the land"></canvas>
-<div id="hud">
-  <div class="card">
-    <div class="status"><span id="when">Day 1</span><span id="sky" class="chip">Clear</span><span id="facing">Facing E</span><span id="bearing"></span></div>
-    <div class="meters">
-      <div class="meter" id="m-hp"><span>Health</span><span class="val" id="m-hp-val"></span><div class="track"><div class="fill" id="m-hp-bar"></div></div></div>
-      <div class="meter" id="m-mana"><span>Mana</span><span class="val" id="m-mana-val"></span><div class="track"><div class="fill" id="m-mana-bar"></div></div></div>
-      <div class="meter"><span id="lvl" class="lvl">Level 1</span></div>
-      <div class="meter" id="m-water"><span>Water</span><span class="val" id="m-water-val"></span><div class="track"><div class="fill" id="m-water-bar"></div></div></div>
-      <div class="meter" id="m-warm"><span>Warmth</span><span class="val" id="m-warm-val"></span><div class="track"><div class="fill" id="m-warm-bar"></div></div></div>
-      <div class="meter" id="m-stam"><span>Stamina</span><span class="val" id="m-stam-val"></span><div class="track"><div class="fill" id="m-stam-bar"></div></div></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>Far Beacon 3D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* Surveyor's desk again: slate panels over the view, lamp-amber accent. Readouts along the top edge, actions under the right thumb, left side kept clear for walking. */
+        --ground: #161c26;
+        --panel: rgba(22, 28, 38, 0.8);
+        --solid: #1f2733;
+        --line: #3a4757;
+        --ink: #ece6d8;
+        --ink-dim: #b3bcc5;
+        --accent: #e0a84a;
+        --water: #5aa9d6;
+        --warm: #e58555;
+        --stam: #93c26c;
+        --bad: #ea6a62;
+        --font-display: 'Bitter', Georgia, serif;
+        --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+        --font-num: 'IBM Plex Mono', ui-monospace, monospace;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--ground);
+        color: var(--ink);
+        font: 400 14px/1.4 var(--font-body);
+      }
+      #c {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+      }
+      #hud {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 8px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        pointer-events: none;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 10px;
+      }
+      .status,
+      .sub {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 10px;
+        align-items: center;
+        font: 400 12px var(--font-num);
+      }
+      .sub {
+        color: var(--ink-dim);
+        margin-top: 4px;
+      }
+      .chip {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0 8px;
+      }
+      .chip.warn {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .chip.bad {
+        border-color: var(--bad);
+        color: var(--bad);
+      }
+      .meters {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 5px;
+      }
+      .meter {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1px 6px;
+        font-size: 12px;
+        align-items: baseline;
+      }
+      .meter .track {
+        grid-column: 1 / -1;
+        height: 7px;
+        background: #0f141b;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .meter .fill {
+        height: 100%;
+        width: 50%;
+      }
+      #m-hp .fill {
+        background: var(--bad);
+      }
+      #m-mana .fill {
+        background: #8f7be0;
+      }
+      .lvl {
+        font: 400 11.5px var(--font-num);
+        color: var(--ink-dim);
+        grid-column: 1 / -1;
+        align-self: end;
+      }
+      #fight {
+        position: fixed;
+        left: 16px;
+        right: 186px;
+        bottom: 14px;
+        background: var(--panel);
+        border: 1px solid var(--bad);
+        border-radius: 8px;
+        padding: 8px 10px;
+        pointer-events: none;
+      }
+      #fight[hidden] {
+        display: none;
+      }
+      #fight .track {
+        height: 8px;
+        background: #0f141b;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 4px 0;
+      }
+      #foe-bar {
+        height: 100%;
+        background: var(--bad);
+      }
+      #fight strong {
+        font-family: var(--font-display);
+      }
+      #foe-val {
+        font: 600 12px var(--font-num);
+        float: right;
+      }
+      #foe-log {
+        list-style: none;
+        margin: 4px 0 0;
+        padding: 0;
+        font-size: 12px;
+        color: var(--ink-dim);
+        display: grid;
+        gap: 2px;
+      }
+      #foe-log li:last-child {
+        color: var(--ink);
+      }
+      #m-water .fill {
+        background: var(--water);
+      }
+      #m-warm .fill {
+        background: var(--warm);
+      }
+      #m-stam .fill {
+        background: var(--stam);
+      }
+      .meter .val {
+        font: 600 12px var(--font-num);
+        font-variant-numeric: tabular-nums;
+      }
+      .meter.low .val,
+      .bad {
+        color: var(--bad);
+      }
+      .tools {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+      }
+      button {
+        pointer-events: auto;
+        font: 500 13px var(--font-body);
+        color: var(--ink);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-height: 40px;
+        padding: 5px 12px;
+        cursor: pointer;
+      }
+      button:active {
+        background: #2a3545;
+      }
+      button:focus-visible,
+      input:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #1a1205;
+        font-weight: 600;
+      }
+      button.small {
+        min-height: 38px;
+        padding: 4px 10px;
+      }
+      button.sel {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: #2a2a22;
+      }
+      .scores {
+        grid-template-columns: 1fr 1fr;
+      }
+      .scores .item {
+        padding: 6px 8px;
+      }
+      #btn-pack.has {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      #log {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 3px;
+        font-size: 12.5px;
+        max-width: 34em;
+      }
+      #log li {
+        background: var(--panel);
+        border-radius: 6px;
+        padding: 3px 8px;
+        color: var(--ink-dim);
+        width: fit-content;
+      }
+      #log li.new {
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+      #log li.good.new {
+        border-color: var(--stam);
+      }
+      #log li.bad {
+        color: #ffd0cc;
+      }
+      #log li.bad.new {
+        border-color: var(--bad);
+      }
+      #actions {
+        position: fixed;
+        right: 16px;
+        bottom: 14px;
+        width: 158px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        pointer-events: none;
+      }
+      .act {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        min-height: 38px;
+        padding: 3px 10px;
+        line-height: 1.2;
+      }
+      .act small {
+        font: 400 10.5px var(--font-num);
+        color: var(--ink-dim);
+      }
+      #stick {
+        position: fixed;
+        width: 110px;
+        height: 110px;
+        margin: -55px 0 0 -55px;
+        border: 2px solid rgba(236, 230, 216, 0.45);
+        border-radius: 50%;
+        pointer-events: none;
+        display: none;
+      }
+      #knob {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 44px;
+        height: 44px;
+        margin: -22px 0 0 -22px;
+        border-radius: 50%;
+        background: rgba(236, 230, 216, 0.6);
+      }
+      #modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(8, 11, 16, 0.78);
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 16px;
+        overflow-y: auto;
+        z-index: 5;
+      }
+      #modal[hidden] {
+        display: none;
+      }
+      .sheet {
+        width: 100%;
+        max-width: 500px;
+        background: var(--solid);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 16px 18px;
+      }
+      .sheet-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      h2 {
+        font: 700 18px/1.2 var(--font-display);
+        margin: 0;
+        text-wrap: balance;
+      }
+      h3 {
+        font: 600 14px/1.2 var(--font-display);
+        margin: 14px 0 0;
+        color: var(--accent);
+      }
+      p {
+        margin: 6px 0;
+      }
+      .items {
+        list-style: none;
+        margin: 6px 0 0;
+        padding: 0;
+        display: grid;
+        gap: 6px;
+      }
+      .item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        background: #19212c;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        flex-wrap: wrap;
+      }
+      .item p {
+        margin: 2px 0 0;
+        font-size: 12.5px;
+        color: var(--ink-dim);
+      }
+      .item.cursed strong {
+        color: var(--bad);
+      }
+      .item.tune input {
+        flex: 1 1 100%;
+      }
+      .wt {
+        font: 400 12px var(--font-num);
+        color: var(--ink-dim);
+        margin-left: 8px;
+      }
+      .row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 4px;
+      }
+      .note {
+        font-size: 12.5px;
+        color: var(--ink-dim);
+      }
+      .journal li {
+        font-size: 12.5px;
+        color: var(--ink-dim);
+        padding: 2px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .journal li.bad {
+        color: #ffd0cc;
+      }
+      #mapcv {
+        width: 100%;
+        aspect-ratio: 1;
+        display: block;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-top: 8px;
+      }
+      input[type='number'] {
+        font: 400 14px var(--font-num);
+        width: 96px;
+        min-height: 38px;
+        background: #0f141b;
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 4px 8px;
+      }
+      textarea {
+        width: 100%;
+        margin-top: 6px;
+        font: 400 12px var(--font-num);
+        background: #0f141b;
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 8px;
+      }
+      input[type='checkbox'] {
+        width: 22px;
+        height: 22px;
+        accent-color: var(--accent);
+      }
+      input[type='range'] {
+        accent-color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c" aria-label="First-person view of the land"></canvas>
+    <div id="hud">
+      <div class="card">
+        <div class="status">
+          <span id="when">Day 1</span><span id="sky" class="chip">Clear</span><span id="facing">Facing E</span
+          ><span id="bearing"></span>
+        </div>
+        <div class="meters">
+          <div class="meter" id="m-hp">
+            <span>Health</span><span class="val" id="m-hp-val"></span>
+            <div class="track"><div class="fill" id="m-hp-bar"></div></div>
+          </div>
+          <div class="meter" id="m-mana">
+            <span>Mana</span><span class="val" id="m-mana-val"></span>
+            <div class="track"><div class="fill" id="m-mana-bar"></div></div>
+          </div>
+          <div class="meter"><span id="lvl" class="lvl">Level 1</span></div>
+          <div class="meter" id="m-water">
+            <span>Water</span><span class="val" id="m-water-val"></span>
+            <div class="track"><div class="fill" id="m-water-bar"></div></div>
+          </div>
+          <div class="meter" id="m-warm">
+            <span>Warmth</span><span class="val" id="m-warm-val"></span>
+            <div class="track"><div class="fill" id="m-warm-bar"></div></div>
+          </div>
+          <div class="meter" id="m-stam">
+            <span>Stamina</span><span class="val" id="m-stam-val"></span>
+            <div class="track"><div class="fill" id="m-stam-bar"></div></div>
+          </div>
+        </div>
+        <div class="sub"><span id="load"></span><span id="fuel"></span><span id="place"></span></div>
+      </div>
+      <div class="tools">
+        <button type="button" id="btn-pack">Pack</button><button type="button" id="btn-map">Map</button
+        ><button type="button" id="btn-menu">Menu</button>
+      </div>
+      <ul id="log" aria-live="polite"></ul>
     </div>
-    <div class="sub"><span id="load"></span><span id="fuel"></span><span id="place"></span></div>
-  </div>
-  <div class="tools"><button type="button" id="btn-pack">Pack</button><button type="button" id="btn-map">Map</button><button type="button" id="btn-menu">Menu</button></div>
-  <ul id="log" aria-live="polite"></ul>
-</div>
-<div id="fight" hidden><strong id="foe-name"></strong><span id="foe-val"></span><div class="track"><div id="foe-bar"></div></div><ul id="foe-log"></ul></div>
-<div id="actions"></div>
-<div id="stick"><div id="knob"></div></div>
-<div id="modal" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="sheet-head"><h2 id="modal-title"></h2><button type="button" id="modal-close" class="small">Close</button></div><div id="modal-body"></div></div></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-if (!window.THREE) document.getElementById('log').innerHTML = '<li class="bad new">The 3D library did not load. Check your connection and reload the page.</li>';
-var GAME_VERSION = '__VERSION__';
-var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls and past messages are in Menu.';
-</script>
-<script>
-/*BUNDLE*/
-</script>
-</body>
+    <div id="fight" hidden>
+      <strong id="foe-name"></strong><span id="foe-val"></span>
+      <div class="track"><div id="foe-bar"></div></div>
+      <ul id="foe-log"></ul>
+    </div>
+    <div id="actions"></div>
+    <div id="stick"><div id="knob"></div></div>
+    <div id="modal" hidden>
+      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="sheet-head">
+          <h2 id="modal-title"></h2>
+          <button type="button" id="modal-close" class="small">Close</button>
+        </div>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+      if (!window.THREE)
+        document.getElementById('log').innerHTML =
+          '<li class="bad new">The 3D library did not load. Check your connection and reload the page.</li>';
+      var GAME_VERSION = '__VERSION__';
+      var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls and past messages are in Menu.';
+    </script>
+    <script>
+      /*BUNDLE*/
+    </script>
+  </body>
 </html>

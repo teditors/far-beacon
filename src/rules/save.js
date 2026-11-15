@@ -1,6 +1,7 @@
 /* Saving and loading. Every save carries its format version (s.v). When the format changes, bump VERSION in core.js
    and add a migration here that upgrades a save from the old version, so a format change never throws away a run. */
 import { VERSION } from './core.js';
+import { makeSketch } from './world.js';
 
 const MIGRATIONS = {
   // 6 -> 7: towns and the locked place became areas you walk into.
@@ -15,6 +16,13 @@ const MIGRATIONS = {
       delete st.guard;
       delete st.depth; // the levels are now built when you first go in, so any progress inside starts over
     }
+  },
+  // 7 -> 8: the one map became the home region of a larger world that wraps around.
+  7: (s) => {
+    s.world = makeSketch(s.seed, 3, 3, s.biome);
+    Object.assign(s.areas.overworld, { kind: 'region', cx: s.world.home.cx, cy: s.world.home.cy, biome: s.biome, visited: true });
+    s.camp = typeof s.camp === 'number' ? { area: 'overworld', i: s.camp } : null;
+    s.speciesByBiome = { [s.biome]: s.species.map((_, i) => i) };
   },
 };
 

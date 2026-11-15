@@ -6,7 +6,7 @@ import { C, H, W, byId, clamp, clock, idx, say, srand } from './core.js';
 import { autoEquip, fitWater } from './equipment.js';
 import { genItem, isCursed, itemName, makeItem } from './items.js';
 import { dirFrom, dirTo, reveal, siteHere, sightRadius } from './map.js';
-import { allMaps, areaRec, enterArea, leaveArea, worldMap, worldPos } from './areas.js';
+import { allMaps, areaRec, enterArea, homePos, inOverworld, leaveArea, worldMap, worldPos } from './areas.js';
 import { gainXp, roll } from './progress.js';
 import { stat } from './stats.js';
 import { advance } from './systems.js';
@@ -152,7 +152,7 @@ function objective(s) {
     if (!l) return null;
     const from = l.who ? ' from ' + l.who + "'s body" : '';
     if (l.area === s.area) return { text: 'Take ' + what + from, dir: toHere(l) };
-    if (l.area === 'overworld') return { text: 'Take ' + what + from, dir: toWorld(l) };
+    if (s.areas[l.area].kind === 'region') return { text: 'Take ' + what + from, dir: toWorld(homePos(s, l.area, l.x, l.y)) };
     const deeper = s.areas[l.area].kind === 'vault' && (!inVault || s.areas[l.area].level > areaRec(s).level);
     if (inVault && deeper) {
       const st = findHere(s, 'stairsDown');
@@ -175,7 +175,6 @@ function objective(s) {
       const up = findHere(s, areaRec(s).level === 1 ? 'exit' : 'stairsUp');
       return { text: 'Carry the ' + q.relic + ' out of the ' + vaultName, dir: up ? toHere(up) : null };
     }
-    if (!s.area || s.area === 'overworld') return { text: 'Carry the ' + q.relic + ' to the ' + q.dest, dir: toWorld(d) };
     return { text: 'Carry the ' + q.relic + ' to the ' + q.dest, dir: toWorld(d) };
   }
   if (inVault) {
@@ -420,7 +419,7 @@ function goUp(s) {
   if (s.over) return true;
   leaveArea(s);
   if (leaving.kind === 'town') say(s, 'You leave ' + s.town.name + ' by the south gate.');
-  else if (s.area === 'overworld') say(s, 'You climb out into the ' + (clock(s).isDay ? 'daylight' : 'night') + '.');
+  else if (inOverworld(s)) say(s, 'You climb out into the ' + (clock(s).isDay ? 'daylight' : 'night') + '.');
   else say(s, 'You climb back up to level ' + areaRec(s).level + '.');
   return true;
 }

@@ -519,10 +519,21 @@ function openMap() {
           ? rec.kind === 'town'
             ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: the gate."
             : 'Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see.'
-          : 'Only what you have seen or surveyed. White dot: you. Gold: camp. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: depot. Red dot: a creature you can currently see.',
+          : 'This region. Only what you have seen or surveyed. White dot: you. Gold: camp. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: depot. Red dot: a creature you can currently see.',
       }),
+      ...(indoor
+        ? []
+        : [
+            el('h3', { text: 'The world' }),
+            el('canvas', { id: 'worldcv', 'aria-label': 'The regions of the world you have walked in' }),
+            el('p', {
+              cls: 'note',
+              text: 'Each square is a region like the one above. White outline: where you are. Gold dot: the well you set out from. Dark: country you have not walked. The world wraps around: walk off any edge and you come in on the far side.',
+            }),
+          ]),
     ],
   );
+  if (!indoor) drawWorld();
   const css = cv.clientWidth,
     dpr = window.devicePixelRatio || 1;
   cv.width = cv.height = Math.round(css * dpr);
@@ -547,16 +558,16 @@ function openMap() {
         g.fillStyle = st.kind === 'spring' && st.known && st.foul ? '#6f6a35' : MAPC[st.kind];
         g.fillRect(x * ts - 1, y * ts - 1, ts + 2, ts + 2);
       }
-      if (V.S.depots[i] && i !== V.S.camp) {
+      if (V.S.depots[i] && i !== R.campHere(V.S)) {
         g.fillStyle = '#000';
         g.beginPath();
         g.arc((x + 0.5) * ts, (y + 0.5) * ts, ts * 0.3, 0, 7);
         g.fill();
       }
     }
-  if (R.inOverworld(V.S) && V.S.camp !== null) {
-    const x = V.S.camp % R.W,
-      y = Math.floor(V.S.camp / R.W);
+  if (R.campHere(V.S) !== null) {
+    const x = R.campHere(V.S) % R.W,
+      y = Math.floor(R.campHere(V.S) / R.W);
     g.fillStyle = '#e0a84a';
     g.strokeStyle = '#1a1205';
     g.lineWidth = 1.5;
@@ -589,6 +600,37 @@ function openMap() {
   g.lineTo(px - Math.sin(P.yaw) * 12, py - Math.cos(P.yaw) * 12);
   g.strokeStyle = '#fff';
   g.stroke();
+}
+function drawWorld() {
+  const cv = $('worldcv'),
+    w = V.S.world,
+    css = Math.min(cv.parentNode.clientWidth || 240, 240),
+    cell = css / Math.max(w.cols, w.rows),
+    dpr = window.devicePixelRatio || 1,
+    here = R.outdoorRec(V.S);
+  cv.style.width = cell * w.cols + 'px';
+  cv.style.height = cell * w.rows + 'px';
+  cv.style.display = 'block';
+  cv.style.marginTop = '8px';
+  cv.width = Math.round(cell * w.cols * dpr);
+  cv.height = Math.round(cell * w.rows * dpr);
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  for (let cy = 0; cy < w.rows; cy++)
+    for (let cx = 0; cx < w.cols; cx++) {
+      const rec = V.S.areas[R.regionId(V.S, cx, cy)];
+      g.fillStyle = rec && rec.visited ? R.byId(R.C.biomes, rec.biome).colors[0] : '#10151d';
+      g.fillRect(cx * cell + 1, cy * cell + 1, cell - 2, cell - 2);
+      if (cx === w.home.cx && cy === w.home.cy) {
+        g.fillStyle = '#e0a84a';
+        g.beginPath();
+        g.arc((cx + 0.5) * cell, (cy + 0.5) * cell, 4, 0, 7);
+        g.fill();
+      }
+    }
+  g.strokeStyle = '#fff';
+  g.lineWidth = 2;
+  g.strokeRect(here.cx * cell + 2, here.cy * cell + 2, cell - 4, cell - 4);
 }
 function openMenu() {
   const sw = el(

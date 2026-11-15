@@ -7,7 +7,42 @@ const AREA_FIELDS = ['terrain', 'elev', 'sites', 'depots', 'creatures', 'seen', 
 const GENERATORS = {}; // kind -> function (s, rec) returning the map fields; registered by interiors.js
 
 const areaRec = (s) => s.areas[s.area];
-const inOverworld = (s) => s.area === 'overworld';
+const HOME = 'overworld'; // the id of the starting region, kept from before the world had more than one
+// "Overworld" now means outdoors, in any region of the world.
+const inOverworld = (s) => areaRec(s).kind === 'region';
+const wrap = (n, m) => ((n % m) + m) % m;
+// Shortest signed step count from b to a on a ring of m (the world wraps around).
+const wrapDelta = (a, b, m) => {
+  let d = wrap(a - b, m);
+  if (d > m / 2) d -= m;
+  return d;
+};
+const regionId = (s, cx, cy) => (cx === s.world.home.cx && cy === s.world.home.cy ? HOME : 'r' + cx + '_' + cy);
+const sketchOf = (s, cx, cy) => s.world.sketch[cy * s.world.cols + cx];
+// The outdoor region the player is in, or is inside a building of.
+function outdoorRec(s) {
+  let rec = areaRec(s);
+  while (rec.kind !== 'region' && rec.from) rec = s.areas[rec.from.area];
+  return rec;
+}
+// How far a region lies from the home region, in tiles, going the short way round.
+const regionOffset = (s, rec) => ({
+  dx: wrapDelta(rec.cx, s.world.home.cx, s.world.cols) * W,
+  dy: wrapDelta(rec.cy, s.world.home.cy, s.world.rows) * H,
+});
+// Step sideways into another region. Regions are neighbours, not nested, so there is no way "back out".
+function switchRegion(s, cx, cy, at) {
+  const id = regionId(s, cx, cy);
+  if (!s.areas[id]) s.areas[id] = { id, kind: 'region', cx, cy, biome: sketchOf(s, cx, cy).biome };
+  park(s);
+  unpark(s, id);
+  s.areas[id].from = null;
+  s.biome = s.areas[id].biome;
+  s.player.x = at.x;
+  s.player.y = at.y;
+  s.lastGround = s.terrain[idx(at.x, at.y)];
+  s.onRoad = false;
+}
 const indoors = (s) => !!areaRec(s).indoor;
 const isDark = (s) => !!areaRec(s).dark;
 
@@ -64,18 +99,25 @@ function leaveArea(s) {
 // Straight back to the overworld from any depth (used when a new traveller sets out).
 function toOverworld(s) {
   while (!inOverworld(s)) if (!leaveArea(s)) break;
+  if (s.area !== HOME) switchRegion(s, s.world.home.cx, s.world.home.cy, s.start);
 }
 
 // The overworld's map, wherever the player is.
+// The home region's map (where the quest places are), wherever the player is.
 function worldMap(s) {
-  return inOverworld(s) ? s : s.areas.overworld.map;
+  return s.area === HOME ? s : s.areas[HOME].map;
 }
-// Where the player is on the overworld: their own position outside, or the door they came in by.
+// Where the player is in home-region coordinates. In another region this runs past the home map's edges, which is
+// what makes directions to home-region places come out right. Inside a building it is the door they came in by.
 function worldPos(s) {
-  if (inOverworld(s)) return { x: s.player.x, y: s.player.y };
-  let rec = areaRec(s);
-  while (rec.from && rec.from.area !== 'overworld') rec = s.areas[rec.from.area];
-  return rec.from ? { x: rec.from.x, y: rec.from.y } : s.start;
+  let rec = areaRec(s),
+    pos = { x: s.player.x, y: s.player.y };
+  while (rec.kind !== 'region' && rec.from) {
+    pos = { x: rec.from.x, y: rec.from.y };
+    rec = s.areas[rec.from.area];
+  }
+  const o = regionOffset(s, rec);
+  return { x: pos.x + o.dx, y: pos.y + o.dy };
 }
 // Every map, current and parked, as [id, fields] pairs.
 function allMaps(s) {
@@ -94,7 +136,31 @@ function forgetMaps(s) {
   }
 }
 
+// A place in any area, in home-region coordinates (for giving directions to it from anywhere).
+function homePos(s, areaId, x, y) {
+  let rec = s.areas[areaId],
+    pos = { x, y };
+  while (rec.kind !== 'region' && rec.from) {
+    pos = { x: rec.from.x, y: rec.from.y };
+    rec = s.areas[rec.from.area];
+  }
+  const o = regionOffset(s, rec);
+  return { x: pos.x + o.dx, y: pos.y + o.dy };
+}
+// The camp's tile if it stands in the area the player is in, otherwise null.
+const campHere = (s) => (s.camp && s.camp.area === s.area ? s.camp.i : null);
+
 export {
+  HOME,
+  wrap,
+  wrapDelta,
+  regionId,
+  sketchOf,
+  outdoorRec,
+  regionOffset,
+  switchRegion,
+  homePos,
+  campHere,
   AREA_FIELDS,
   GENERATORS,
   areaRec,
