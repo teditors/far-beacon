@@ -58,7 +58,11 @@ async def main():
         assert await pg.evaluate("()=>window.__g.S.area") == 'overworld', 'did not climb out'
         # a fight: put a hostile creature on the next tile east and walk into it
         await pg.evaluate("()=>{const g=window.__g,S=g.S;const c=S.creatures.find(c=>S.species[c.sp].rare!=='docile'&&!c.bound);S.player.x=Math.min(34,Math.max(1,S.player.x));c.x=S.player.x+1;c.y=S.player.y;c.cool=0;S.player.hp=S.player.hpMax=200;g.P.x=(S.player.x+0.5)*28-504;g.P.z=(S.player.y+0.5)*28-504;g.P.yaw=-Math.PI/2;}")
-        await pg.keyboard.down('w'); await pg.wait_for_timeout(3000); await pg.keyboard.up('w'); await pg.wait_for_timeout(200)
+        await pg.keyboard.down('w')
+        for _ in range(60):
+            await pg.wait_for_timeout(250)
+            if await pg.evaluate("()=>!!window.__g.S.combat"): break
+        await pg.keyboard.up('w'); await pg.wait_for_timeout(200)
         print('  after walk:', await pg.evaluate("()=>{const S=window.__g.S,P=window.__g.P;return JSON.stringify({combat:!!S.combat,p:[S.player.x,S.player.y],P:[P.x|0,P.z|0],w:Rules.weight(S),cap:Rules.carryCap(S),st:S.player.stamina|0,modal:!document.getElementById('modal').hidden,log:S.log.slice(-2).map(l=>l.msg)})}"))
         fought = 0
         for i in range(40):
@@ -72,8 +76,12 @@ async def main():
         for y in range(4, 32, 3):
             ok = await pg.evaluate("y=>{const g=window.__g,S=g.S;if(S.area!=='overworld')return true;if(!Rules.passable(S,35,y))return false;S.player.x=35;S.player.y=y;g.refresh();g.P.x=35.5*28-504;g.P.z=(y+0.5)*28-504;g.P.yaw=-Math.PI/2;return true}", y)
             if not ok: continue
-            await pg.keyboard.down('w'); await pg.wait_for_timeout(2500); await pg.keyboard.up('w'); await pg.wait_for_timeout(200)
-            if await pg.evaluate("()=>window.__g.S.area") != 'overworld': crossed = True; break
+            await pg.keyboard.down('w')
+            for _ in range(60):
+                await pg.wait_for_timeout(250)
+                if await pg.evaluate("()=>window.__g.S.area") != 'overworld': crossed = True; break
+            await pg.keyboard.up('w'); await pg.wait_for_timeout(200)
+            if crossed: break
         assert crossed, 'could not walk into the next region'
         st = await pg.evaluate("()=>{const g=window.__g,S=g.S;return {x:S.player.x,px:g.P.x,area:S.area,biome:S.biome}}")
         assert st['x'] < 8 and st['px'] < -280, 'did not arrive on the west edge of the next region: %r' % st

@@ -1,7 +1,7 @@
 /* HUD, panels and screens, input and start-up. */
 import { $, G, P, R, V, VIEW, clamp, el, f1 } from './ctx.js';
 import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSeed, save, start, sync } from './run.js';
-import { box, buildDynamic, buildStatic, resize } from './scene.js';
+import { box, buildDynamic, buildStatic, renderer, resize, scene } from './scene.js';
 
 /* ---------- HUD and panels ---------- */
 function meter(id, v, max, txt) {
@@ -985,8 +985,12 @@ window.__g = {
     return V.S;
   },
   P,
+  V,
   VIEW,
   input,
+  scene,
+  renderer,
+  buildStatic,
   // for tests and tinkering from the console: redraw everything after changing the state by hand
   refresh() {
     sync();

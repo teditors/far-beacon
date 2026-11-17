@@ -109,6 +109,7 @@ const input = { fx: 0, fy: 0, keys: {} },
   shown = { t: 0, far: 600 },
   skyC = new THREE.Color(),
   dayC = new THREE.Color(),
+  mixC = new THREE.Color(),
   duskC = new THREE.Color(0xd99a6c),
   nightC = new THREE.Color(0x121827),
   stormC = new THREE.Color(0x8d8f8c);
@@ -198,6 +199,17 @@ function frame() {
     day = smooth(clamp((h - 5) / 2, 0, 1)) * (1 - smooth(clamp((h - 18.5) / 2, 0, 1))),
     dusk = Math.max(0, 1 - Math.abs(h - 6) / 1.3, 1 - Math.abs(h - 19.4) / 1.5);
   dayC.setHex(b.sky);
+  if (V.terrain.share && V.terrain.share.length > 1) {
+    // near a border the sky shades from one biome's into the next
+    dayC.setRGB(0, 0, 0);
+    V.terrain.share.forEach((f, i) => {
+      const w = f(P.x, P.z);
+      mixC.setHex(V.terrain.land.biomes[i].sky);
+      dayC.r += mixC.r * w;
+      dayC.g += mixC.g * w;
+      dayC.b += mixC.b * w;
+    });
+  }
   skyC
     .copy(nightC)
     .lerp(dayC, day)

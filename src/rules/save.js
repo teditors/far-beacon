@@ -1,6 +1,7 @@
 /* Saving and loading. Every save carries its format version (s.v). When the format changes, bump VERSION in core.js
    and add a migration here that upgrades a save from the old version, so a format change never throws away a run. */
 import { VERSION } from './core.js';
+import { ensureAround } from './areas.js';
 import { makeSketch } from './world.js';
 
 const MIGRATIONS = {
@@ -47,6 +48,7 @@ function deserialize(text) {
     up(s);
     s.v++;
   }
+  ensureAround(s);
   return { state: s };
 }
 

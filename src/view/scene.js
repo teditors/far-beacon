@@ -1,6 +1,6 @@
 /* The 3D scene: lights, models, and the static and moving parts of the world. */
-import { $, G, N, P, R, TS, V, WORLD, setGeometry, tileX, toTile } from './ctx.js';
-import { makeTerrain } from './terrain.js';
+import { $, G, HALF, P, R, TS, V, setGeometry, tileX } from './ctx.js';
+import { EW, MARGIN, PAD, SINK, makeTerrain } from './terrain.js';
 
 /* ---------- scene ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: true, powerPreference: 'high-performance' });
@@ -360,113 +360,179 @@ function buildStatic() {
   setGeometry(R.indoors(V.S));
   if (R.indoors(V.S)) return buildInterior();
   V.terrain = makeTerrain(V.S);
-  const b = R.biomeOf(V.S),
-    cols = b.colors.map((c) => new THREE.Color(c)),
-    lush = new THREE.Color(b.id === 'taiga' ? 0x5d7a78 : 0x5f8a45),
+  const T = V.terrain,
+    land = T.land,
+    pal = land.biomes.map((b) => ({
+      cols: b.colors.map((c) => new THREE.Color(c)),
+      lush: new THREE.Color(b.id === 'taiga' ? 0x5d7a78 : 0x5f8a45),
+    })),
     paved = new THREE.Color(0x8c8a86),
-    c = new THREE.Color();
-  const springs = Object.keys(V.S.sites)
-    .filter((k) => V.S.sites[k].kind === 'spring')
-    .map((k) => ({ x: tileX(k % R.W), z: tileX(Math.floor(k / R.W)) }));
-  const geo = new THREE.PlaneGeometry(WORLD, WORLD, N, N);
-  geo.rotateX(-Math.PI / 2);
-  const pos = geo.attributes.position,
-    col = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i),
-      z = pos.getZ(i);
-    pos.setY(i, V.terrain.height(x, z));
-    const l = V.terrain.level(x, z);
-    if (l <= 1) c.copy(cols[0]).lerp(cols[1], Math.max(0, l));
-    else c.copy(cols[1]).lerp(cols[2], Math.min(1, l - 1));
-    for (let mi = 0; mi < 3; mi++) {
-      const mv = V.terrain.masks[mi](x, z);
-      if (mv > 0) c.lerp(cols[3 + mi], mv * (mi === 0 ? 0.7 : 1));
+    c = new THREE.Color(),
+    cb = new THREE.Color(),
+    lush = new THREE.Color(),
+    centre = (t) => (t + 0.5) * TS - HALF,
+    springs = land.sites.filter((q) => q.st.kind === 'spring').map((q) => ({ x: centre(q.x), z: centre(q.y) }));
+  // The colour of the ground at a point: each biome's own palette, mixed where two biomes meet.
+  const colourAt = (x, z) => {
+    const l = T.level(x, z),
+      mv = [T.masks[0](x, z), T.masks[1](x, z), T.masks[2](x, z)];
+    let total = 0;
+    c.setRGB(0, 0, 0);
+    lush.setRGB(0, 0, 0);
+    for (let b = 0; b < pal.length; b++) {
+      const w = pal.length === 1 ? 1 : T.share[b](x, z);
+      if (w < 0.002) continue;
+      const cols = pal[b].cols;
+      if (l <= 1) cb.copy(cols[0]).lerp(cols[1], Math.max(0, l));
+      else cb.copy(cols[1]).lerp(cols[2], Math.min(1, l - 1));
+      for (let mi = 0; mi < 3; mi++) if (mv[mi] > 0) cb.lerp(cols[3 + mi], mv[mi] * (mi === 0 ? 0.7 : 1));
+      c.r += cb.r * w;
+      c.g += cb.g * w;
+      c.b += cb.b * w;
+      lush.r += pal[b].lush.r * w;
+      lush.g += pal[b].lush.g * w;
+      lush.b += pal[b].lush.b * w;
+      total += w;
     }
-    if (V.terrain.roadAt(x, z)) c.lerp(paved, 0.85);
-    c.multiplyScalar(0.88 + 0.2 * V.terrain.noise(x / 40 + 3, z / 40 + 3));
+    c.multiplyScalar(1 / total);
+    lush.multiplyScalar(1 / total);
+    if (T.roadAt(x, z)) c.lerp(paved, 0.85);
+    c.multiplyScalar(0.88 + 0.2 * T.tint(x, z));
     for (const s of springs) {
-      const d = Math.hypot(s.x - x, s.z - z);
+      const dx = s.x - x,
+        dz = s.z - z;
+      if (dx > 34 || dx < -34 || dz > 34 || dz < -34) continue;
+      const d = Math.hypot(dx, dz);
       if (d < 34) c.lerp(lush, (1 - d / 34) * 0.8);
     }
-    col[i * 3] = c.r;
-    col[i * 3 + 1] = c.g;
-    col[i * 3 + 2] = c.b;
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  geo.computeVertexNormals();
-  staticGroup.add(
-    new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 })),
-  );
-  const r = V.terrain.rand,
-    m = new THREE.Matrix4(),
+    return c;
+  };
+  // One ground mesh from a height grid. The coarse one leaves out the middle, where the fine one lies.
+  const ground = (g, sink, hollow) => {
+    const geo = new THREE.PlaneGeometry(g.half * 2, g.half * 2, g.n, g.n);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position,
+      col = new Float32Array(pos.count * 3),
+      keep = HALF - g.cell * 1.5;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i),
+        z = pos.getZ(i);
+      pos.setY(i, g.h[Math.round((z + g.half) / g.cell) * (g.n + 1) + Math.round((x + g.half) / g.cell)] - sink);
+      if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue; // never drawn
+      const k = colourAt(x, z);
+      col[i * 3] = k.r;
+      col[i * 3 + 1] = k.g;
+      col[i * 3 + 2] = k.b;
+    }
+    if (hollow) {
+      const ix = geo.index.array,
+        out = [],
+        inner = (i) => Math.abs(pos.getX(i)) < keep && Math.abs(pos.getZ(i)) < keep;
+      for (let i = 0; i < ix.length; i += 3)
+        if (!(inner(ix[i]) && inner(ix[i + 1]) && inner(ix[i + 2]))) out.push(ix[i], ix[i + 1], ix[i + 2]);
+      geo.setIndex(out);
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.computeVertexNormals();
+    staticGroup.add(
+      new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 })),
+    );
+  };
+  ground(T.fine, 0, false);
+  ground(T.coarse, SINK, true);
+  // Rocks and trees, tile by tile, from a source that depends only on where the tile is in the world.
+  const m = new THREE.Matrix4(),
     q = new THREE.Quaternion(),
     e = new THREE.Euler(),
     v = new THREE.Vector3(),
-    sc = new THREE.Vector3();
+    sc = new THREE.Vector3(),
+    rocks = pal.map(() => []),
+    trees = pal.map(() => []);
   const nearSite = (x, z) => {
-    const s = V.S.sites[toTile(z) * R.W + toTile(x)];
-    return s && Math.hypot(tileX(toTile(x)) - x, tileX(toTile(z)) - z) < 11;
+    const site = land.siteAt[T.etile(x, z)];
+    return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;
   };
-  function scatter(geom, mat, count, fn) {
-    const inst = new THREE.InstancedMesh(geom, mat, count);
-    let n = 0;
-    for (let i = 0; i < count * 3 && n < count; i++) {
-      const x = (r() - 0.5) * (WORLD - 10),
-        z = (r() - 0.5) * (WORLD - 10);
-      if (nearSite(x, z)) continue;
-      const o = fn(x, z, V.terrain.level(x, z));
-      if (!o) continue;
-      e.set(o.rx || 0, r() * 6.28, o.rz || 0);
-      q.setFromEuler(e);
-      sc.set(o.sx, o.sy, o.sx);
-      v.set(x, V.terrain.height(x, z) + o.lift, z);
-      m.compose(v, q, sc);
-      inst.setMatrixAt(n++, m);
-    }
-    inst.count = n;
-    staticGroup.add(inst);
-  }
-  const rockCol = cols[2].clone().multiplyScalar(0.85);
-  scatter(new THREE.IcosahedronGeometry(1, 0), std(rockCol), b.id === 'salt' ? 800 : 450, (x, z, l) => {
-    const s = 0.3 + r() * r() * (1.5 + l * 1.6);
-    return { sx: s, sy: s * (0.6 + r() * 0.6), lift: s * 0.2, rx: r() * 3, rz: r() * 3 };
-  });
-  scatter(new THREE.IcosahedronGeometry(1, 0), std(rockCol), 16, () => {
-    const s = 1.8 + r() * 1.6;
-    return { sx: s, sy: s * (3 + r() * 2.5), lift: s, rx: r() * 0.15, rz: r() * 0.15 };
-  });
-  const tr = b.forest.tree,
-    ftiles = [];
-  for (let i = 0; i < V.S.terrain.length; i++) if (V.S.terrain[i] === 3) ftiles.push(i);
-  if (ftiles.length) {
-    const trees = new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1, 6), std(tr.color), ftiles.length * tr.n);
-    let n = 0;
-    for (const i of ftiles)
-      for (let j = 0; j < tr.n; j++) {
-        const x = tileX(i % R.W) + (r() - 0.5) * TS,
-          z = tileX(Math.floor(i / R.W)) + (r() - 0.5) * TS;
-        if (nearSite(x, z)) continue;
-        const hgt = tr.h[0] + r() * (tr.h[1] - tr.h[0]),
-          wd = tr.w * (0.7 + r() * 0.6);
-        e.set(0, r() * 6.28, 0);
+  const put = (list, x, z, sx, sy, lift, rx, ry, rz) => {
+    e.set(rx, ry, rz);
+    q.setFromEuler(e);
+    sc.set(sx, sy, sx);
+    v.set(x, T.height(x, z) + lift, z);
+    m.compose(v, q, sc);
+    for (let i = 0; i < 16; i++) list.push(m.elements[i]);
+  };
+  for (let ey = 0; ey < EW; ey++)
+    for (let ex = 0; ex < EW; ex++) {
+      const x = ex - MARGIN,
+        y = ey - MARGIN,
+        en = ey * EW + ex,
+        bi = land.biome[en],
+        bio = land.biomes[bi],
+        r = T.tileRand(x, y, 1),
+        x0 = x * TS - HALF,
+        z0 = y * TS - HALF,
+        far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8;
+      for (let n = Math.floor((bio.id === 'salt' ? 0.62 : 0.35) + r()); n > 0; n--) {
+        const px = x0 + r() * TS,
+          pz = z0 + r() * TS,
+          s = 0.3 + r() * r() * (1.5 + T.level(px, pz) * 1.6),
+          sy = s * (0.6 + r() * 0.6),
+          rx = r() * 3,
+          ry = r() * 6.28,
+          rz = r() * 3;
+        if (!nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
+      }
+      if (r() < 0.0125) {
+        const px = x0 + r() * TS,
+          pz = z0 + r() * TS,
+          s = 1.8 + r() * 1.6,
+          sy = s * (3 + r() * 2.5);
+        if (!nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s, r() * 0.15, r() * 6.28, r() * 0.15);
+      }
+      if (land.terrain[en] !== 3) continue;
+      const tr = bio.forest.tree;
+      for (let j = 0, n = far ? Math.ceil(tr.n / 2) : tr.n; j < n; j++) {
+        const px = x0 + r() * TS,
+          pz = z0 + r() * TS,
+          hgt = tr.h[0] + r() * (tr.h[1] - tr.h[0]),
+          wd = tr.w * (0.7 + r() * 0.6),
+          ry = r() * 6.28;
+        if (nearSite(px, pz)) continue;
+        e.set(0, ry, 0);
         q.setFromEuler(e);
         sc.set(wd, hgt, wd);
-        v.set(x, V.terrain.height(x, z) + hgt / 2 - 0.3, z);
+        v.set(px, T.height(px, pz) + hgt / 2 - 0.3, pz);
         m.compose(v, q, sc);
-        trees.setMatrixAt(n++, m);
+        for (let i = 0; i < 16; i++) trees[bi].push(m.elements[i]);
       }
-    trees.count = n;
-    staticGroup.add(trees);
-  }
-  for (const k in V.S.sites) {
-    const st = V.S.sites[k];
-    if (st.kind === 'spring') continue;
-    const x = tileX(k % R.W),
-      z = tileX(Math.floor(k / R.W)),
-      g = BUILD[st.kind](V.S);
-    g.position.set(x, V.terrain.height(x, z), z);
-    if (st.kind !== 'beacon') g.rotation.y = (k % 7) * 0.9;
+    }
+  const instances = (geom, mat, list) => {
+    if (!list.length) return;
+    const inst = new THREE.InstancedMesh(geom, mat, list.length / 16);
+    inst.instanceMatrix.array.set(list);
+    inst.frustumCulled = false; // its instances are spread over the whole land
+    staticGroup.add(inst);
+  };
+  pal.forEach((p, bi) => {
+    instances(new THREE.IcosahedronGeometry(1, 0), std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
+    instances(new THREE.ConeGeometry(1, 1, 6), std(land.biomes[bi].forest.tree.color), trees[bi]);
+  });
+  for (const site of land.sites) {
+    const st = site.st,
+      x = centre(site.x),
+      z = centre(site.y);
+    if (st.kind === 'spring') {
+      if (site.here) continue; // the springs of this region can change, and are drawn with the moving things
+      const w = new THREE.Mesh(
+        new THREE.CircleGeometry(4.6, 12).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0x3f8fc0 }),
+      );
+      w.position.set(x, T.height(x, z) + 0.3, z);
+      staticGroup.add(w);
+      continue;
+    }
+    const g = BUILD[st.kind](V.S);
+    g.position.set(x, T.height(x, z), z);
+    if (st.kind !== 'beacon') g.rotation.y = (site.k % 7) * 0.9;
     staticGroup.add(g);
   }
 }

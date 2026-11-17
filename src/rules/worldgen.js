@@ -2,7 +2,7 @@
 import { makeChar, spawn } from './character.js';
 import { AXES } from './civ.js';
 import { makeSpecies, placeCreatures, speciesFor } from './combat.js';
-import { GENERATORS, HOME, sketchOf, wrap } from './areas.js';
+import { GENERATORS, HOME, ensureAround, sketchOf, wrap } from './areas.js';
 import { crossings, makeSketch, worldNoise } from './world.js';
 import { C, H, VERSION, W, byId, clamp, idx, say, stream } from './core.js';
 import { makeItem } from './items.js';
@@ -421,6 +421,7 @@ function newGame(seed) {
   );
   say(s, 'Your camp has a well. A cloak, a lantern and fuel are stored here: open Pack to take them.');
   if (typeof INTRO_EXTRA === 'string') say(s, INTRO_EXTRA);
+  ensureAround(s);
   return s;
 }
 

@@ -1495,6 +1495,21 @@
     s.player.y = at.y;
     s.lastGround = s.terrain[idx(at.x, at.y)];
     s.onRoad = false;
+    ensureAround(s);
+  }
+  var mapOf = (s, id) => id === s.area ? s : s.areas[id].map;
+  function ensureAround(s) {
+    const here2 = outdoorRec(s);
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const cx = wrap(here2.cx + dx, s.world.cols), cy = wrap(here2.cy + dy, s.world.rows), id = regionId(s, cx, cy);
+        if (!s.areas[id]) s.areas[id] = { id, kind: "region", cx, cy, biome: sketchOf(s, cx, cy).biome };
+        const rec = s.areas[id];
+        if (id !== s.area && !rec.map) {
+          rec.map = GENERATORS.region(s, rec);
+          for (const f of AREA_FIELDS) if (rec.map[f] === void 0) rec.map[f] = AREA_DEFAULTS[f]();
+        }
+      }
   }
   var indoors = (s) => !!areaRec(s).indoor;
   var isDark = (s) => !!areaRec(s).dark;
@@ -4018,6 +4033,7 @@
     );
     say(s, "Your camp has a well. A cloak, a lantern and fuel are stored here: open Pack to take them.");
     if (typeof INTRO_EXTRA === "string") say(s, INTRO_EXTRA);
+    ensureAround(s);
     return s;
   }
 
@@ -4063,6 +4079,7 @@
       up(s);
       s.v++;
     }
+    ensureAround(s);
     return { state: s };
   }
 
@@ -4147,6 +4164,9 @@
     godOf,
     reveal,
     byId,
+    wrap,
+    mapOf,
+    ensureAround,
     campHere,
     regionId,
     outdoorRec,
@@ -4287,68 +4307,140 @@
 
   // src/view/terrain.js
   var PAD = { town: 15, vault: 11, beacon: 9, spring: 6 };
-  function makeTerrain(s) {
-    const r = mulberry2(s.seed ^ 5370206), T = new Float32Array(4096);
-    for (let i = 0; i < 4096; i++) T[i] = r();
-    const at = (ix, iz) => T[(ix * 73856093 ^ iz * 19349663) & 4095];
-    const noise = (x, z) => {
-      const x0 = Math.floor(x), z0 = Math.floor(z), tx = smooth(x - x0), tz = smooth(z - z0);
-      return (at(x0, z0) * (1 - tx) + at(x0 + 1, z0) * tx) * (1 - tz) + (at(x0, z0 + 1) * (1 - tx) + at(x0 + 1, z0 + 1) * tx) * tz;
+  var MARGIN = 22;
+  var EW = R.W + 2 * MARGIN;
+  var CC = CELL * 2;
+  var NC = Math.round(EW * TS / CC);
+  var EHALF = EW * TS / 2;
+  var SINK = 0.15;
+  function landAround(s) {
+    const rec = R.outdoorRec(s), w = s.world, W2 = R.W, got = {}, biomes = [], region = (dx, dy) => {
+      const k = dx + "," + dy;
+      if (!got[k]) {
+        const id = R.regionId(s, R.wrap(rec.cx + dx, w.cols), R.wrap(rec.cy + dy, w.rows)), biome = s.areas[id].biome;
+        if (!biomes.includes(biome)) biomes.push(biome);
+        got[k] = { map: R.mapOf(s, id), b: biomes.indexOf(biome) };
+      }
+      return got[k];
     };
-    const W2 = R.W, lv = new Float32Array(W2 * W2);
-    for (let y = 0; y < W2; y++)
-      for (let x = 0; x < W2; x++) {
+    region(0, 0);
+    const land = {
+      cx: rec.cx,
+      cy: rec.cy,
+      terrain: new Uint8Array(EW * EW),
+      elev: new Float32Array(EW * EW),
+      road: new Uint8Array(EW * EW),
+      biome: new Uint8Array(EW * EW),
+      siteAt: {},
+      sites: [],
+      // { x, y (tiles, may lie outside the region), k (tile index within its own region), st, here }
+      biomes
+    };
+    for (let ey = 0; ey < EW; ey++)
+      for (let ex = 0; ex < EW; ex++) {
+        const x = ex - MARGIN, y = ey - MARGIN, dx = Math.floor(x / W2), dy = Math.floor(y / W2), g = region(dx, dy), i = (y - dy * W2) * W2 + (x - dx * W2), e = ey * EW + ex;
+        land.terrain[e] = g.map.terrain[i];
+        land.elev[e] = g.map.elev[i];
+        land.road[e] = g.map.road[i] ? 1 : 0;
+        land.biome[e] = g.b;
+        const st = g.map.sites[i];
+        if (st) {
+          const site = { x, y, k: i, st, here: !dx && !dy };
+          land.sites.push(site);
+          land.siteAt[e] = site;
+        }
+      }
+    land.biomes = biomes.map((id) => R.byId(R.C.biomes, id));
+    return land;
+  }
+  function makeTerrain(s) {
+    const land = landAround(s), r = mulberry2(s.seed ^ 5370206), T = new Float32Array(4096);
+    for (let i = 0; i < 4096; i++) T[i] = r();
+    const noise = (per, salt) => {
+      const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
+      return (x, z) => {
+        const u = ((x + HALF) / WORLD + land.cx) * per, v = ((z + HALF) / WORLD + land.cy) * per, x0 = Math.floor(u), z0 = Math.floor(v), tx = smooth(u - x0), tz = smooth(v - z0);
+        return (at(x0, z0) * (1 - tx) + at(x0 + 1, z0) * tx) * (1 - tz) + (at(x0, z0 + 1) * (1 - tx) + at(x0 + 1, z0 + 1) * tx) * tz;
+      };
+    };
+    const nBig = noise(3, 1), nMid = noise(12, 2), nFine = noise(46, 3), tint = noise(25, 4);
+    const field = (g, ease) => (x, z) => {
+      const fx = clamp2((x + HALF) / TS - 0.5 + MARGIN, 0, EW - 1.001), fz = clamp2((z + HALF) / TS - 0.5 + MARGIN, 0, EW - 1.001), ix = Math.floor(fx), iz = Math.floor(fz), tx = ease ? smooth(fx - ix) : fx - ix, tz = ease ? smooth(fz - iz) : fz - iz;
+      return (g[iz * EW + ix] * (1 - tx) + g[iz * EW + ix + 1] * tx) * (1 - tz) + (g[(iz + 1) * EW + ix] * (1 - tx) + g[(iz + 1) * EW + ix + 1] * tx) * tz;
+    };
+    const lv = new Float32Array(EW * EW);
+    for (let y = 0; y < EW; y++)
+      for (let x = 0; x < EW; x++) {
         let a = 0, n = 0;
         for (let j = -1; j <= 1; j++)
           for (let i = -1; i <= 1; i++) {
             const xx = x + i, yy = y + j;
-            if (xx < 0 || yy < 0 || xx >= W2 || yy >= W2) continue;
-            a += s.elev[yy * W2 + xx];
+            if (xx < 0 || yy < 0 || xx >= EW || yy >= EW) continue;
+            a += land.elev[yy * EW + xx];
             n++;
           }
-        lv[y * W2 + x] = 0.55 * s.elev[y * W2 + x] + 0.45 * a / n;
+        lv[y * EW + x] = 0.55 * land.elev[y * EW + x] + 0.45 * a / n;
       }
-    const level = (x, z) => {
-      const fx = clamp2((x + HALF) / TS - 0.5, 0, W2 - 1.001), fz = clamp2((z + HALF) / TS - 0.5, 0, W2 - 1.001), ix = Math.floor(fx), iz = Math.floor(fz), tx = smooth(fx - ix), tz = smooth(fz - iz);
-      return (lv[iz * W2 + ix] * (1 - tx) + lv[iz * W2 + ix + 1] * tx) * (1 - tz) + (lv[(iz + 1) * W2 + ix] * (1 - tx) + lv[(iz + 1) * W2 + ix + 1] * tx) * tz;
-    };
+    const level = field(lv, true);
     const mask = (type) => {
-      const g = new Float32Array(W2 * W2);
-      for (let i = 0; i < W2 * W2; i++) g[i] = s.terrain[i] === type ? 1 : 0;
-      return (x, z) => {
-        const fx = clamp2((x + HALF) / TS - 0.5, 0, W2 - 1.001), fz = clamp2((z + HALF) / TS - 0.5, 0, W2 - 1.001), ix = Math.floor(fx), iz = Math.floor(fz), tx = fx - ix, tz = fz - iz;
-        return clamp2(
-          ((g[iz * W2 + ix] * (1 - tx) + g[iz * W2 + ix + 1] * tx) * (1 - tz) + (g[(iz + 1) * W2 + ix] * (1 - tx) + g[(iz + 1) * W2 + ix + 1] * tx) * tz - 0.3) / 0.4,
-          0,
-          1
-        );
-      };
+      const g = new Float32Array(EW * EW);
+      for (let i = 0; i < EW * EW; i++) g[i] = land.terrain[i] === type ? 1 : 0;
+      const f = field(g, false);
+      return (x, z) => clamp2((f(x, z) - 0.3) / 0.4, 0, 1);
     };
-    const masks = [mask(3), mask(4), mask(5)], rg = new Float32Array(W2 * W2);
-    for (const k in s.road) rg[k] = 1;
-    const roadAt = (x, z) => rg[toTile(z) * W2 + toTile(x)] && Math.max(Math.abs((x + HALF) % TS - TS / 2), Math.abs((z + HALF) % TS - TS / 2)) < TS * 0.5 ? 1 : 0;
+    const masks = [mask(3), mask(4), mask(5)];
+    const tileOf = (x) => Math.floor((x + HALF) / TS), etile = (x, z) => clamp2(tileOf(z) + MARGIN, 0, EW - 1) * EW + clamp2(tileOf(x) + MARGIN, 0, EW - 1), roadAt = (x, z) => land.road[etile(x, z)];
+    const share = land.biomes.map((_, b) => {
+      const g = new Float32Array(EW * EW), t = new Float32Array(EW * EW), B = 3;
+      for (let y = 0; y < EW; y++)
+        for (let x = 0; x < EW; x++) {
+          let a = 0;
+          for (let i = -B; i <= B; i++) a += land.biome[y * EW + clamp2(x + i, 0, EW - 1)] === b ? 1 : 0;
+          t[y * EW + x] = a / (2 * B + 1);
+        }
+      for (let y = 0; y < EW; y++)
+        for (let x = 0; x < EW; x++) {
+          let a = 0;
+          for (let i = -B; i <= B; i++) a += t[clamp2(y + i, 0, EW - 1) * EW + x];
+          g[y * EW + x] = a / (2 * B + 1);
+        }
+      return field(g, false);
+    });
     const raw = (x, z) => {
       const l = level(x, z);
-      return (l <= 1 ? l * 15 : 15 + (l - 1) * 34) + 14 * noise(x / 380 + 7, z / 380 + 7) + 7 * noise(x / 85 + 40, z / 85 + 40) * Math.max(0.15, 0.4 + l * 0.6) + 1.6 * noise(x / 22 + 90, z / 22 + 90);
+      return (l <= 1 ? l * 15 : 15 + (l - 1) * 34) + 14 * nBig(x, z) + 7 * nMid(x, z) * Math.max(0.15, 0.4 + l * 0.6) + 1.6 * nFine(x, z);
     };
-    const hg = new Float32Array((N + 1) * (N + 1)), gx = (i) => -HALF + i * CELL;
-    for (let iz = 0; iz <= N; iz++) for (let ix = 0; ix <= N; ix++) hg[iz * (N + 1) + ix] = raw(gx(ix), gx(iz));
-    for (const k in s.sites) {
-      const cx = tileX(k % W2), cz = tileX(Math.floor(k / W2)), ci = Math.round((cx + HALF) / CELL), cj = Math.round((cz + HALF) / CELL), h0 = hg[cj * (N + 1) + ci] - (s.sites[k].kind === "spring" ? 1.2 : 0), flat = PAD[s.sites[k].kind] || 8, rad = flat + 13, n = Math.ceil(rad / CELL);
+    const grid = (n, half, cell) => {
+      const h = new Float32Array((n + 1) * (n + 1));
+      for (let iz = 0; iz <= n; iz++)
+        for (let ix = 0; ix <= n; ix++) h[iz * (n + 1) + ix] = raw(-half + ix * cell, -half + iz * cell);
+      return { h, n, half, cell };
+    };
+    const fine = grid(N, HALF, CELL), coarse = grid(NC, EHALF, CC);
+    const padInto = (g, site) => {
+      const cx = (site.x + 0.5) * TS - HALF, cz = (site.y + 0.5) * TS - HALF, ci = Math.round((cx + g.half) / g.cell), cj = Math.round((cz + g.half) / g.cell), flat = Math.max(PAD[site.st.kind] || 8, g.cell * 1.1), rad = flat + 13, n = Math.ceil(rad / g.cell), h0 = raw(cx, cz) - (site.st.kind === "spring" ? 1.2 : 0);
       for (let j = -n; j <= n; j++)
         for (let i = -n; i <= n; i++) {
-          const d = Math.hypot(i, j) * CELL;
-          if (d >= rad || ci + i < 0 || ci + i > N) continue;
-          const q = (cj + j) * (N + 1) + ci + i;
-          if (q < 0 || q >= hg.length) continue;
-          hg[q] = lerp(hg[q], h0, d <= flat ? 1 : smooth(1 - (d - flat) / (rad - flat)));
+          const d = Math.hypot(i, j) * g.cell, a = ci + i, b = cj + j;
+          if (d >= rad || a < 0 || b < 0 || a > g.n || b > g.n) continue;
+          const q = b * (g.n + 1) + a;
+          g.h[q] = lerp(g.h[q], h0, d <= flat ? 1 : smooth(1 - (d - flat) / (rad - flat)));
         }
+    };
+    for (const site of land.sites) {
+      padInto(fine, site);
+      padInto(coarse, site);
     }
-    const height = (x, z) => {
-      const fx = clamp2((x + HALF) / CELL, 0, N - 1e-3), fz = clamp2((z + HALF) / CELL, 0, N - 1e-3), ix = Math.floor(fx), iz = Math.floor(fz), tx = fx - ix, tz = fz - iz, H2 = (a, b) => hg[b * (N + 1) + a];
+    const sample = (g, x, z) => {
+      const fx = clamp2((x + g.half) / g.cell, 0, g.n - 1e-3), fz = clamp2((z + g.half) / g.cell, 0, g.n - 1e-3), ix = Math.floor(fx), iz = Math.floor(fz), tx = fx - ix, tz = fz - iz, H2 = (a, b) => g.h[b * (g.n + 1) + a];
       return tx + tz <= 1 ? H2(ix, iz) + (H2(ix + 1, iz) - H2(ix, iz)) * tx + (H2(ix, iz + 1) - H2(ix, iz)) * tz : H2(ix + 1, iz + 1) + (H2(ix, iz + 1) - H2(ix + 1, iz + 1)) * (1 - tx) + (H2(ix + 1, iz) - H2(ix + 1, iz + 1)) * (1 - tz);
     };
-    return { height, level, noise, masks, roadAt, rand: r };
+    const inside2 = (x, z) => Math.abs(x) <= HALF && Math.abs(z) <= HALF, height = (x, z) => inside2(x, z) ? sample(fine, x, z) : sample(coarse, x, z) - SINK;
+    const tileRand = (x, y, salt) => {
+      const gx = R.wrap(land.cx * R.W + x, s.world.cols * R.W), gy = R.wrap(land.cy * R.H + y, s.world.rows * R.H);
+      return mulberry2(s.seed ^ Math.imul(gx + 1, 374761393) ^ Math.imul(gy + 1, 668265263) ^ Math.imul(salt, 2246822519) | 0);
+    };
+    return { land, fine, coarse, height, level, tint, masks, roadAt, share, tileRand, etile, tileOf, inside: inside2 };
   }
 
   // src/view/scene.js
@@ -4662,94 +4754,132 @@
     setGeometry(R.indoors(V.S));
     if (R.indoors(V.S)) return buildInterior();
     V.terrain = makeTerrain(V.S);
-    const b = R.biomeOf(V.S), cols = b.colors.map((c2) => new THREE.Color(c2)), lush = new THREE.Color(b.id === "taiga" ? 6126200 : 6261317), paved = new THREE.Color(9210502), c = new THREE.Color();
-    const springs = Object.keys(V.S.sites).filter((k) => V.S.sites[k].kind === "spring").map((k) => ({ x: tileX(k % R.W), z: tileX(Math.floor(k / R.W)) }));
-    const geo = new THREE.PlaneGeometry(WORLD, WORLD, N, N);
-    geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position, col = new Float32Array(pos.count * 3);
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i), z = pos.getZ(i);
-      pos.setY(i, V.terrain.height(x, z));
-      const l = V.terrain.level(x, z);
-      if (l <= 1) c.copy(cols[0]).lerp(cols[1], Math.max(0, l));
-      else c.copy(cols[1]).lerp(cols[2], Math.min(1, l - 1));
-      for (let mi = 0; mi < 3; mi++) {
-        const mv = V.terrain.masks[mi](x, z);
-        if (mv > 0) c.lerp(cols[3 + mi], mv * (mi === 0 ? 0.7 : 1));
+    const T = V.terrain, land = T.land, pal = land.biomes.map((b) => ({
+      cols: b.colors.map((c2) => new THREE.Color(c2)),
+      lush: new THREE.Color(b.id === "taiga" ? 6126200 : 6261317)
+    })), paved = new THREE.Color(9210502), c = new THREE.Color(), cb = new THREE.Color(), lush = new THREE.Color(), centre = (t) => (t + 0.5) * TS - HALF, springs = land.sites.filter((q2) => q2.st.kind === "spring").map((q2) => ({ x: centre(q2.x), z: centre(q2.y) }));
+    const colourAt = (x, z) => {
+      const l = T.level(x, z), mv = [T.masks[0](x, z), T.masks[1](x, z), T.masks[2](x, z)];
+      let total = 0;
+      c.setRGB(0, 0, 0);
+      lush.setRGB(0, 0, 0);
+      for (let b = 0; b < pal.length; b++) {
+        const w = pal.length === 1 ? 1 : T.share[b](x, z);
+        if (w < 2e-3) continue;
+        const cols = pal[b].cols;
+        if (l <= 1) cb.copy(cols[0]).lerp(cols[1], Math.max(0, l));
+        else cb.copy(cols[1]).lerp(cols[2], Math.min(1, l - 1));
+        for (let mi = 0; mi < 3; mi++) if (mv[mi] > 0) cb.lerp(cols[3 + mi], mv[mi] * (mi === 0 ? 0.7 : 1));
+        c.r += cb.r * w;
+        c.g += cb.g * w;
+        c.b += cb.b * w;
+        lush.r += pal[b].lush.r * w;
+        lush.g += pal[b].lush.g * w;
+        lush.b += pal[b].lush.b * w;
+        total += w;
       }
-      if (V.terrain.roadAt(x, z)) c.lerp(paved, 0.85);
-      c.multiplyScalar(0.88 + 0.2 * V.terrain.noise(x / 40 + 3, z / 40 + 3));
+      c.multiplyScalar(1 / total);
+      lush.multiplyScalar(1 / total);
+      if (T.roadAt(x, z)) c.lerp(paved, 0.85);
+      c.multiplyScalar(0.88 + 0.2 * T.tint(x, z));
       for (const s of springs) {
-        const d = Math.hypot(s.x - x, s.z - z);
+        const dx = s.x - x, dz = s.z - z;
+        if (dx > 34 || dx < -34 || dz > 34 || dz < -34) continue;
+        const d = Math.hypot(dx, dz);
         if (d < 34) c.lerp(lush, (1 - d / 34) * 0.8);
       }
-      col[i * 3] = c.r;
-      col[i * 3 + 1] = c.g;
-      col[i * 3 + 2] = c.b;
-    }
-    geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-    geo.computeVertexNormals();
-    staticGroup.add(
-      new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 }))
-    );
-    const r = V.terrain.rand, m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
-    const nearSite = (x, z) => {
-      const s = V.S.sites[toTile(z) * R.W + toTile(x)];
-      return s && Math.hypot(tileX(toTile(x)) - x, tileX(toTile(z)) - z) < 11;
+      return c;
     };
-    function scatter(geom, mat, count, fn) {
-      const inst = new THREE.InstancedMesh(geom, mat, count);
-      let n = 0;
-      for (let i = 0; i < count * 3 && n < count; i++) {
-        const x = (r() - 0.5) * (WORLD - 10), z = (r() - 0.5) * (WORLD - 10);
-        if (nearSite(x, z)) continue;
-        const o = fn(x, z, V.terrain.level(x, z));
-        if (!o) continue;
-        e.set(o.rx || 0, r() * 6.28, o.rz || 0);
-        q.setFromEuler(e);
-        sc.set(o.sx, o.sy, o.sx);
-        v.set(x, V.terrain.height(x, z) + o.lift, z);
-        m.compose(v, q, sc);
-        inst.setMatrixAt(n++, m);
+    const ground = (g, sink, hollow) => {
+      const geo = new THREE.PlaneGeometry(g.half * 2, g.half * 2, g.n, g.n);
+      geo.rotateX(-Math.PI / 2);
+      const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), keep = HALF - g.cell * 1.5;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), z = pos.getZ(i);
+        pos.setY(i, g.h[Math.round((z + g.half) / g.cell) * (g.n + 1) + Math.round((x + g.half) / g.cell)] - sink);
+        if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue;
+        const k = colourAt(x, z);
+        col[i * 3] = k.r;
+        col[i * 3 + 1] = k.g;
+        col[i * 3 + 2] = k.b;
       }
-      inst.count = n;
-      staticGroup.add(inst);
-    }
-    const rockCol = cols[2].clone().multiplyScalar(0.85);
-    scatter(new THREE.IcosahedronGeometry(1, 0), std(rockCol), b.id === "salt" ? 800 : 450, (x, z, l) => {
-      const s = 0.3 + r() * r() * (1.5 + l * 1.6);
-      return { sx: s, sy: s * (0.6 + r() * 0.6), lift: s * 0.2, rx: r() * 3, rz: r() * 3 };
-    });
-    scatter(new THREE.IcosahedronGeometry(1, 0), std(rockCol), 16, () => {
-      const s = 1.8 + r() * 1.6;
-      return { sx: s, sy: s * (3 + r() * 2.5), lift: s, rx: r() * 0.15, rz: r() * 0.15 };
-    });
-    const tr = b.forest.tree, ftiles = [];
-    for (let i = 0; i < V.S.terrain.length; i++) if (V.S.terrain[i] === 3) ftiles.push(i);
-    if (ftiles.length) {
-      const trees = new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1, 6), std(tr.color), ftiles.length * tr.n);
-      let n = 0;
-      for (const i of ftiles)
-        for (let j = 0; j < tr.n; j++) {
-          const x = tileX(i % R.W) + (r() - 0.5) * TS, z = tileX(Math.floor(i / R.W)) + (r() - 0.5) * TS;
-          if (nearSite(x, z)) continue;
-          const hgt = tr.h[0] + r() * (tr.h[1] - tr.h[0]), wd = tr.w * (0.7 + r() * 0.6);
-          e.set(0, r() * 6.28, 0);
+      if (hollow) {
+        const ix = geo.index.array, out = [], inner = (i) => Math.abs(pos.getX(i)) < keep && Math.abs(pos.getZ(i)) < keep;
+        for (let i = 0; i < ix.length; i += 3)
+          if (!(inner(ix[i]) && inner(ix[i + 1]) && inner(ix[i + 2]))) out.push(ix[i], ix[i + 1], ix[i + 2]);
+        geo.setIndex(out);
+      }
+      geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      geo.computeVertexNormals();
+      staticGroup.add(
+        new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 }))
+      );
+    };
+    ground(T.fine, 0, false);
+    ground(T.coarse, SINK, true);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []);
+    const nearSite = (x, z) => {
+      const site = land.siteAt[T.etile(x, z)];
+      return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;
+    };
+    const put = (list, x, z, sx, sy, lift, rx, ry, rz) => {
+      e.set(rx, ry, rz);
+      q.setFromEuler(e);
+      sc.set(sx, sy, sx);
+      v.set(x, T.height(x, z) + lift, z);
+      m.compose(v, q, sc);
+      for (let i = 0; i < 16; i++) list.push(m.elements[i]);
+    };
+    for (let ey = 0; ey < EW; ey++)
+      for (let ex = 0; ex < EW; ex++) {
+        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land.biome[en], bio = land.biomes[bi], r = T.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8;
+        for (let n = Math.floor((bio.id === "salt" ? 0.62 : 0.35) + r()); n > 0; n--) {
+          const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
+          if (!nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
+        }
+        if (r() < 0.0125) {
+          const px = x0 + r() * TS, pz = z0 + r() * TS, s = 1.8 + r() * 1.6, sy = s * (3 + r() * 2.5);
+          if (!nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s, r() * 0.15, r() * 6.28, r() * 0.15);
+        }
+        if (land.terrain[en] !== 3) continue;
+        const tr = bio.forest.tree;
+        for (let j = 0, n = far ? Math.ceil(tr.n / 2) : tr.n; j < n; j++) {
+          const px = x0 + r() * TS, pz = z0 + r() * TS, hgt = tr.h[0] + r() * (tr.h[1] - tr.h[0]), wd = tr.w * (0.7 + r() * 0.6), ry = r() * 6.28;
+          if (nearSite(px, pz)) continue;
+          e.set(0, ry, 0);
           q.setFromEuler(e);
           sc.set(wd, hgt, wd);
-          v.set(x, V.terrain.height(x, z) + hgt / 2 - 0.3, z);
+          v.set(px, T.height(px, pz) + hgt / 2 - 0.3, pz);
           m.compose(v, q, sc);
-          trees.setMatrixAt(n++, m);
+          for (let i = 0; i < 16; i++) trees[bi].push(m.elements[i]);
         }
-      trees.count = n;
-      staticGroup.add(trees);
-    }
-    for (const k in V.S.sites) {
-      const st = V.S.sites[k];
-      if (st.kind === "spring") continue;
-      const x = tileX(k % R.W), z = tileX(Math.floor(k / R.W)), g = BUILD[st.kind](V.S);
-      g.position.set(x, V.terrain.height(x, z), z);
-      if (st.kind !== "beacon") g.rotation.y = k % 7 * 0.9;
+      }
+    const instances = (geom, mat, list) => {
+      if (!list.length) return;
+      const inst = new THREE.InstancedMesh(geom, mat, list.length / 16);
+      inst.instanceMatrix.array.set(list);
+      inst.frustumCulled = false;
+      staticGroup.add(inst);
+    };
+    pal.forEach((p, bi) => {
+      instances(new THREE.IcosahedronGeometry(1, 0), std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
+      instances(new THREE.ConeGeometry(1, 1, 6), std(land.biomes[bi].forest.tree.color), trees[bi]);
+    });
+    for (const site of land.sites) {
+      const st = site.st, x = centre(site.x), z = centre(site.y);
+      if (st.kind === "spring") {
+        if (site.here) continue;
+        const w = new THREE.Mesh(
+          new THREE.CircleGeometry(4.6, 12).rotateX(-Math.PI / 2),
+          new THREE.MeshBasicMaterial({ color: 4165568 })
+        );
+        w.position.set(x, T.height(x, z) + 0.3, z);
+        staticGroup.add(w);
+        continue;
+      }
+      const g = BUILD[st.kind](V.S);
+      g.position.set(x, T.height(x, z), z);
+      if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
       staticGroup.add(g);
     }
   }
@@ -4969,6 +5099,7 @@
   var shown = { t: 0, far: 600 };
   var skyC = new THREE.Color();
   var dayC = new THREE.Color();
+  var mixC = new THREE.Color();
   var duskC = new THREE.Color(14260844);
   var nightC = new THREE.Color(1185831);
   var stormC = new THREE.Color(9277324);
@@ -5036,6 +5167,16 @@
     shown.t = lerp(shown.t, V.S.time, 0.06);
     const h = (360 + shown.t) / 60 % 24, b = R.biomeOf(V.S), day = smooth(clamp2((h - 5) / 2, 0, 1)) * (1 - smooth(clamp2((h - 18.5) / 2, 0, 1))), dusk = Math.max(0, 1 - Math.abs(h - 6) / 1.3, 1 - Math.abs(h - 19.4) / 1.5);
     dayC.setHex(b.sky);
+    if (V.terrain.share && V.terrain.share.length > 1) {
+      dayC.setRGB(0, 0, 0);
+      V.terrain.share.forEach((f, i) => {
+        const w = f(P.x, P.z);
+        mixC.setHex(V.terrain.land.biomes[i].sky);
+        dayC.r += mixC.r * w;
+        dayC.g += mixC.g * w;
+        dayC.b += mixC.b * w;
+      });
+    }
     skyC.copy(nightC).lerp(dayC, day).lerp(duskC, dusk * 0.55);
     if (R.isDark(V.S)) {
       const lit = R.stat(V.S, "nightSight", 0) > 0;
@@ -5922,8 +6063,12 @@
       return V.S;
     },
     P,
+    V,
     VIEW,
     input,
+    scene,
+    renderer,
+    buildStatic,
     // for tests and tinkering from the console: redraw everything after changing the state by hand
     refresh() {
       sync();

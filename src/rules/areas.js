@@ -42,6 +42,26 @@ function switchRegion(s, cx, cy, at) {
   s.player.y = at.y;
   s.lastGround = s.terrain[idx(at.x, at.y)];
   s.onRoad = false;
+  ensureAround(s);
+}
+// The map of any area: the live one if the player is in it, the parked one otherwise.
+const mapOf = (s, id) => (id === s.area ? s : s.areas[id].map);
+// The eight regions around the one the player is in are built before they are needed, so that they can be seen
+// from across the border. Built, not visited: nothing in them changes until the player walks in.
+function ensureAround(s) {
+  const here = outdoorRec(s);
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++) {
+      const cx = wrap(here.cx + dx, s.world.cols),
+        cy = wrap(here.cy + dy, s.world.rows),
+        id = regionId(s, cx, cy);
+      if (!s.areas[id]) s.areas[id] = { id, kind: 'region', cx, cy, biome: sketchOf(s, cx, cy).biome };
+      const rec = s.areas[id];
+      if (id !== s.area && !rec.map) {
+        rec.map = GENERATORS.region(s, rec);
+        for (const f of AREA_FIELDS) if (rec.map[f] === undefined) rec.map[f] = AREA_DEFAULTS[f]();
+      }
+    }
 }
 const indoors = (s) => !!areaRec(s).indoor;
 const isDark = (s) => !!areaRec(s).dark;
@@ -159,6 +179,8 @@ export {
   outdoorRec,
   regionOffset,
   switchRegion,
+  mapOf,
+  ensureAround,
   homePos,
   campHere,
   AREA_FIELDS,
