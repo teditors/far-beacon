@@ -19,8 +19,21 @@ import {
   terrainInfo,
 } from './map.js';
 import { gainXp, roll, weaponOf } from './progress.js';
-import { hasItem } from './quest.js';
-import { areaRec, inOverworld, indoors, isDark, sketchOf, switchRegion, wrap, worldMap, worldPos } from './areas.js';
+import { enterTown, hasItem, leaveTown } from './quest.js';
+import {
+  TOWN_GATE,
+  inTownBlock,
+  townDoor,
+  areaRec,
+  inOverworld,
+  indoors,
+  isDark,
+  sketchOf,
+  switchRegion,
+  wrap,
+  worldMap,
+  worldPos,
+} from './areas.js';
 import { carryCap, stat, waterCap } from './stats.js';
 import { advance } from './systems.js';
 
@@ -45,11 +58,20 @@ function move(s, dx, dy) {
   const out = nx < 0 || ny < 0 || nx >= W || ny >= H,
     was = s.lastGround,
     leftCamp = atCamp(s);
-  if (out && !inOverworld(s)) return false;
+  if (out && !inOverworld(s) && areaRec(s).kind !== 'town') return false;
   if (weight(s) > carryCap(s) + 1e-9) {
     say(s, 'You are carrying too much to move. Leave something here.', 'bad');
     return false;
   }
+  // The town: in by the gate from the tile south of it, out the same way, and nowhere else through its wall.
+  if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) {
+    const d = townDoor(s);
+    if (s.player.x === d.x && s.player.y === d.y && dx === 0 && dy === -1) return enterTown(s);
+    say(s, 'The wall of ' + s.town.name + '. The gate is in the south side.');
+    return false;
+  }
+  if (out && areaRec(s).kind === 'town')
+    return s.player.x === TOWN_GATE.x && s.player.y === TOWN_GATE.y && dx === 0 && dy === 1 ? leaveTown(s) : false;
   // Walking off the edge of a region brings you onto the facing edge of its neighbour; the world wraps around.
   // This is the one place a border is crossed, so that borders can be made seamless later.
   let back = null;
@@ -728,7 +750,6 @@ function actions(s) {
     if (st.kind === 'shrine' && !s.pact) a.push({ id: 'pactAsk', label: 'Approach the shrine', hint: 'hear the terms' });
     if (st.kind === 'shrine' && s.quest.dest === 'shrine' && hasItem(s, 'relic'))
       a.push({ id: 'offer', label: 'Offer the ' + s.quest.relic, hint: 'end the journey' });
-    if (st.kind === 'town') a.push({ id: 'enterTown', label: 'Enter ' + s.town.name, hint: 'talk, trade, rest' });
     if (st.kind === 'vault' && !st.open)
       a.push({
         id: 'unlock',
@@ -738,6 +759,8 @@ function actions(s) {
     if (st.kind === 'vault' && st.open)
       a.push({ id: 'enterVault', label: 'Go into the ' + s.quest.vault.name, hint: st.floors.length + ' levels, needs a light' });
   }
+  if (s.area === 'overworld' && s.town && p.x === townDoor(s).x && p.y === townDoor(s).y)
+    a.push({ id: 'enterTown', label: 'Enter ' + s.town.name, hint: 'the gate is just north' });
   const g = groundHere(s);
   if (!st && g.drink) a.push({ id: 'fill', label: 'Fill from the ' + g.name, hint: '15 min' });
   if (g.dig && !s.dug[here(s)]) a.push({ id: 'dig', label: 'Dig for water', hint: '1 h, -12 stamina' });

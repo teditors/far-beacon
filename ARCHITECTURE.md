@@ -81,6 +81,13 @@ first time the player arrives.
 - `crossings(seed, world, cx, cy)` (world.js) says where rivers and roads cross each of a region's four edges. Both
   neighbours get the same answer, and nothing else may put a river or road on a region's outermost tiles.
 - Mountain and hill thresholds are measured over the whole world, and biome fractions blend within 6 tiles of a border.
+- The eight regions around the player's are built ahead (`ensureAround`), unvisited, so the view can draw them. The
+  view (terrain.js) cuts one square of land from the nine regions: the player's at full detail plus a 22-tile margin
+  at half detail. Rocks, trees and ground noise are placed from world position, so they do not move at a border.
+- The town is built at world creation (`ensureTown`) and stands on the 5 x 5 outdoor tiles around its site, which
+  are impassable outdoors (`inTownBlock`). `move()` north from `townDoor(s)` enters it at `TOWN_GATE`; `move()` south
+  off the map from the gateway leaves it. The view draws the town's own grid in place and only shifts its origin
+  (`FR`, `applyFrame`) when the player goes through the gate; nothing is rebuilt.
 - The quest places (`s.town`, `s.goal`, `s.start`, the locked place) are all in the home region. `worldMap(s)` is
   the home map; `worldPos(s)` and `homePos` give positions in home coordinates from anywhere, for directions.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
@@ -147,7 +154,7 @@ node tools/check.js          everything, including a 40-world playtest and the b
 Planned next, in order, so changes now should not paint us into a corner:
 
 1. **Areas.** Done in v0.8: see "Areas" above.
-2. **Regions.** Started in v0.9: see "The world" above. Borders agree since v0.10. Still to do: a 5 x 5 world, towns and roads beyond
+2. **Regions.** Started in v0.9: see "The world" above. Borders agree since v0.10, and can be seen across since v0.11. Still to do: walk-in doors and stairs for the locked place, a 5 x 5 world, towns and roads beyond
    the home region, water guaranteed along routes, and borders you can see across (seamless travel).
 3. **Generated biomes** with a rare-trait slot, then side quests, creatures, races and classes,
    and unique items, all as content menus.

@@ -41,18 +41,25 @@ function mulberry(a) {
 }
 // Geometry of the area being shown. Outdoors a tile is TS metres; inside the town and the locked place it is
 // INDOOR_TS, so the same rules grid becomes a walkable building. setGeometry() switches between them.
-const INDOOR_TS = 4;
+const INDOOR_TS = 4,
+  TOWN_TS = ((2 * R.TOWN_R + 1) * TS) / R.W; // the town's own grid exactly fills its block of outdoor tiles
 const G = { ts: TS, half: HALF };
-function setGeometry(indoor) {
-  G.ts = indoor ? INDOOR_TS : TS;
+function setGeometry(kind) {
+  G.ts = kind === 'town' ? TOWN_TS : kind === 'vault' ? INDOOR_TS : TS;
   G.half = (R.W * G.ts) / 2;
 }
+// Where the origin of the view is, measured in the region's own coordinates. Outdoors it is the region's centre
+// (all zeros). In the town it is the middle of the town, so that the town's grid can be walked like any interior
+// while the land outside stays exactly where it was.
+const FR = { x: 0, y: 0, z: 0 };
 const tileX = (tx) => (tx + 0.5) * G.ts - G.half,
   toTile = (x) => clamp(Math.floor((x + G.half) / G.ts), 0, R.W - 1);
 
 export {
   G,
   INDOOR_TS,
+  TOWN_TS,
+  FR,
   setGeometry,
   OLD_KEYS,
   V,

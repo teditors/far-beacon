@@ -3,7 +3,7 @@ import { CONTENT } from '../content/index.js';
 const C = CONTENT,
   W = 36,
   H = 36,
-  VERSION = 8,
+  VERSION = 9,
   START = 6 * 60;
 const TERR = ['plain', 'hill', 'mountain', 'forest', 'river', 'special', 'wall', 'floor'];
 // Indoor ground: walls cannot be walked through; floor is the inside of towns and the locked place.

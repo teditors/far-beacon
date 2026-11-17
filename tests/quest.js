@@ -63,8 +63,13 @@ for (let seed = 1; seed <= 200; seed++) {
   s.player.hp = s.player.hpMax = 999;
   tally[shape] = (tally[shape] || 0) + 1;
   // the town: walk in, find the elder, buy a lantern if needed, walk out
-  go(s, s.town.x, s.town.y);
-  if (!R.enterTown(s)) trouble('could not enter the town');
+  // the wall keeps you out everywhere but at the gate: in from the tile south of it, walking north
+  const door = R.townDoor(s);
+  go(s, s.town.x - 3, s.town.y);
+  if (R.move(s, 1, 0) || s.area !== 'overworld') trouble('walked through the town wall');
+  go(s, door.x, door.y);
+  if (!R.move(s, 0, -1) || s.area !== 'town') trouble('could not walk in through the town gate');
+  if (s.player.x !== R.TOWN_GATE.x || s.player.y !== R.TOWN_GATE.y) trouble('did not arrive in the gateway');
   const elder = R.findHere(s, 'elder'),
     shop = R.findHere(s, 'shop'),
     gate = R.findHere(s, 'exit');
@@ -83,8 +88,11 @@ for (let seed = 1; seed <= 200; seed++) {
   }
   e = walkTo(s, gate.x, gate.y);
   if (e) trouble('town, to the gate: ' + e);
-  R.goUp(s);
-  if (s.area !== 'overworld') trouble('still in town after leaving');
+  e = walkTo(s, R.TOWN_GATE.x, R.TOWN_GATE.y);
+  if (e) trouble('town, to the gateway: ' + e);
+  R.move(s, 0, 1);
+  if (s.area !== 'overworld') trouble('still in town after walking out of the gate');
+  if (s.player.x !== door.x || s.player.y !== door.y) trouble('did not come out below the gate');
   // the key
   if (q.key === 'ruin') {
     go(s, q.keyTile % W, Math.floor(q.keyTile / W));

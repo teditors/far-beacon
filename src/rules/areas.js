@@ -44,6 +44,23 @@ function switchRegion(s, cx, cy, at) {
   s.onRoad = false;
   ensureAround(s);
 }
+// Build an area's map before anyone has been there, so that it can be seen from outside.
+function buildArea(s, rec) {
+  if (rec.id === s.area || rec.map) return;
+  rec.map = GENERATORS[rec.kind](s, rec);
+  for (const f of AREA_FIELDS) if (rec.map[f] === undefined) rec.map[f] = AREA_DEFAULTS[f]();
+}
+/* The town stands on a block of 5 x 5 outdoor tiles around its site, walled all round, with its gate in the middle of
+   the south wall. Outdoors those tiles cannot be walked on; the one way in is north from the tile below the gate. */
+const TOWN_R = 2,
+  TOWN_GATE = { x: W / 2, y: H - 1 }; // the gap in the town's own south wall
+const inTownBlock = (s, x, y) =>
+  s.area === HOME && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
+const townDoor = (s) => ({ x: s.town.x, y: s.town.y + TOWN_R + 1 });
+function ensureTown(s) {
+  if (!s.areas.town) s.areas.town = { id: 'town', kind: 'town', indoor: true, name: s.town.name };
+  buildArea(s, s.areas.town);
+}
 // The map of any area: the live one if the player is in it, the parked one otherwise.
 const mapOf = (s, id) => (id === s.area ? s : s.areas[id].map);
 // The eight regions around the one the player is in are built before they are needed, so that they can be seen
@@ -57,10 +74,7 @@ function ensureAround(s) {
         id = regionId(s, cx, cy);
       if (!s.areas[id]) s.areas[id] = { id, kind: 'region', cx, cy, biome: sketchOf(s, cx, cy).biome };
       const rec = s.areas[id];
-      if (id !== s.area && !rec.map) {
-        rec.map = GENERATORS.region(s, rec);
-        for (const f of AREA_FIELDS) if (rec.map[f] === undefined) rec.map[f] = AREA_DEFAULTS[f]();
-      }
+      buildArea(s, rec);
     }
 }
 const indoors = (s) => !!areaRec(s).indoor;
@@ -181,6 +195,12 @@ export {
   switchRegion,
   mapOf,
   ensureAround,
+  buildArea,
+  ensureTown,
+  inTownBlock,
+  townDoor,
+  TOWN_GATE,
+  TOWN_R,
   homePos,
   campHere,
   AREA_FIELDS,

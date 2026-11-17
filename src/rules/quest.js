@@ -6,7 +6,19 @@ import { C, H, W, byId, clamp, clock, idx, say, srand } from './core.js';
 import { autoEquip, fitWater } from './equipment.js';
 import { genItem, isCursed, itemName, makeItem } from './items.js';
 import { dirFrom, dirTo, reveal, siteHere, sightRadius } from './map.js';
-import { allMaps, areaRec, enterArea, homePos, inOverworld, leaveArea, worldMap, worldPos } from './areas.js';
+import {
+  HOME,
+  TOWN_GATE,
+  townDoor,
+  allMaps,
+  areaRec,
+  enterArea,
+  homePos,
+  inOverworld,
+  leaveArea,
+  worldMap,
+  worldPos,
+} from './areas.js';
 import { gainXp, roll } from './progress.js';
 import { stat } from './stats.js';
 import { advance } from './systems.js';
@@ -362,9 +374,10 @@ function unlock(s) {
 }
 /* Going in and out of places */
 function enterTown(s) {
-  const st = siteHere(s);
-  if (s.over || !st || st.kind !== 'town') return false;
-  enterArea(s, 'town', { kind: 'town', indoor: true, name: s.town.name });
+  const d = townDoor(s),
+    st = s.sites[idx(s.town.x, s.town.y)];
+  if (s.over || s.area !== HOME || s.player.x !== d.x || s.player.y !== d.y) return false;
+  enterArea(s, 'town', { kind: 'town', indoor: true, name: s.town.name }, TOWN_GATE);
   if (!st.entered) {
     st.entered = true;
     gainXp(s, 20);
@@ -411,15 +424,26 @@ function goDown(s) {
   say(s, 'Level ' + n + ' of ' + floors.length + (n === floors.length ? '. The air is older here.' : '.'));
   return true;
 }
+// Out through the gate: always onto the tile south of it, whatever way the town was entered.
+function leaveTown(s) {
+  if (s.over || areaRec(s).kind !== 'town') return false;
+  leaveArea(s);
+  const d = townDoor(s);
+  s.player.x = d.x;
+  s.player.y = d.y;
+  s.lastGround = s.terrain[idx(d.x, d.y)];
+  say(s, 'You leave ' + s.town.name + ' by the south gate.');
+  return true;
+}
 function goUp(s) {
   const st = siteHere(s);
   if (s.over || !st || (st.kind !== 'stairsUp' && st.kind !== 'exit')) return false;
   const leaving = areaRec(s);
+  if (leaving.kind === 'town') return leaveTown(s);
   advance(s, 10, 'rest');
   if (s.over) return true;
   leaveArea(s);
-  if (leaving.kind === 'town') say(s, 'You leave ' + s.town.name + ' by the south gate.');
-  else if (inOverworld(s)) say(s, 'You climb out into the ' + (clock(s).isDay ? 'daylight' : 'night') + '.');
+  if (inOverworld(s)) say(s, 'You climb out into the ' + (clock(s).isDay ? 'daylight' : 'night') + '.');
   else say(s, 'You climb back up to level ' + areaRec(s).level + '.');
   return true;
 }
@@ -450,6 +474,7 @@ export {
   unlock,
   findHere,
   enterTown,
+  leaveTown,
   enterVault,
   goToLevel,
   goDown,

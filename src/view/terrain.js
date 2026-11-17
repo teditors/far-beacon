@@ -2,7 +2,7 @@
    of the regions around it at half detail, so the land can be seen running on across every border. */
 import { CELL, HALF, N, R, TS, WORLD, clamp, lerp, mulberry, smooth } from './ctx.js';
 
-const PAD = { town: 15, vault: 11, beacon: 9, spring: 6 }; // metres of level ground under each kind of site
+const PAD = { town: 102, vault: 11, beacon: 9, spring: 6 }; // metres of level ground under each kind of site
 const MARGIN = 22, // tiles of the neighbouring regions that are drawn: a little further than the eye can see
   EW = R.W + 2 * MARGIN, // the drawn land is EW x EW tiles
   CC = CELL * 2, // the margin's ground mesh is half as fine

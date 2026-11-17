@@ -1,6 +1,6 @@
 /* Run control: saving, starting, acting, and the per-frame loop. */
-import { $, CODEX, EYE, G, KEY, OLD_KEYS, P, R, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
-import { buildDynamic, buildStatic, camera, hemi, lamp, renderer, scene, sun } from './scene.js';
+import { $, CODEX, EYE, FR, G, KEY, OLD_KEYS, P, R, TOWN_TS, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
+import { applyFrame, buildDynamic, buildStatic, camera, hemi, lamp, renderer, scene, sun } from './scene.js';
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
@@ -70,7 +70,10 @@ function placePlayer() {
   } else P.yaw = Math.atan2(-(tileX(V.S.town.x) - P.x), -(tileX(V.S.town.y) - P.z));
   shown.t = V.S.time;
   shown.area = V.S.area;
+  shown.land = landKey();
 }
+// What has to be built to show where the player is: a level of the locked place, or a region (with its town).
+const landKey = () => (R.areaRec(V.S).kind === 'vault' ? V.S.area : R.outdoorRec(V.S).id);
 function enter(state) {
   V.S = state;
   buildStatic();
@@ -90,7 +93,8 @@ const randomSeed = () => 10000 + Math.floor(Math.random() * 90000),
 // After anything that might move the player into another area, rebuild the scene for where they are now.
 function sync() {
   if (shown.area !== V.S.area) {
-    buildStatic();
+    if (shown.land !== landKey()) buildStatic();
+    else applyFrame(); // in or out of the town: the same scene, seen from the other origin
     placePlayer();
   }
 }
@@ -144,7 +148,8 @@ function tick(dt, now) {
     indoor = R.indoors(V.S),
     sp = VIEW.speed * (indoor ? 0.65 : clamp(mc.base / mc.mins, 0.3, 1.15));
   // outdoors you can walk off the edge of a region, into its neighbour
-  const open = R.inOverworld(V.S),
+  const inTown = R.areaRec(V.S).kind === 'town',
+    open = R.inOverworld(V.S) || inTown,
     lim = open ? G.half + 1 : G.half - 1,
     tileOf = open ? (x) => Math.floor((x + G.half) / G.ts) : toTile;
   let nx = clamp(P.x + dx * sp * dt, -lim, lim),
@@ -159,6 +164,19 @@ function tick(dt, now) {
     else if (!blocked(P.x, nz)) nx = P.x;
     else return;
   }
+  // the town's wall from outside: solid all round, except the gateway in the middle of the south side
+  if (!indoor && V.townAt) {
+    const t = V.townAt,
+      h = (R.W * TOWN_TS) / 2 + 0.7,
+      gx = t.x + (R.TOWN_GATE.x + 0.5) * TOWN_TS - (R.W * TOWN_TS) / 2,
+      wall = (x, z) =>
+        Math.abs(x - t.x) < h && Math.abs(z - t.z) < h && !(Math.abs(x - gx) < TOWN_TS / 2 - 0.5 && z > t.z + h - 6);
+    if (wall(nx, nz)) {
+      if (!wall(nx, P.z)) nz = P.z;
+      else if (!wall(P.x, nz)) nx = P.x;
+      else return;
+    }
+  }
   const tx = tileOf(nx),
     tz = tileOf(nz);
   if (tx !== V.S.player.x || tz !== V.S.player.y) {
@@ -171,10 +189,19 @@ function tick(dt, now) {
       render();
       return;
     }
-    if (V.S.area !== wasArea && R.inOverworld(V.S)) {
+    if (V.S.area !== wasArea && (inTown || R.areaRec(V.S).kind === 'town') && shown.land === landKey()) {
+      // through the town gate, either way: nothing moves but the origin
+      const was = { x: FR.x, y: FR.y, z: FR.z };
+      applyFrame();
+      nx += was.x - FR.x;
+      nz += was.z - FR.z;
+      P.y += was.y - FR.y;
+      shown.area = V.S.area;
+    } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {
       // crossed a border: same heading, same stride, on the facing edge of the next region
       buildStatic();
       shown.area = V.S.area;
+      shown.land = landKey();
       nx -= Math.floor(tx / R.W) * 2 * G.half;
       nz -= Math.floor(tz / R.H) * 2 * G.half;
     }
@@ -199,12 +226,12 @@ function frame() {
     day = smooth(clamp((h - 5) / 2, 0, 1)) * (1 - smooth(clamp((h - 18.5) / 2, 0, 1))),
     dusk = Math.max(0, 1 - Math.abs(h - 6) / 1.3, 1 - Math.abs(h - 19.4) / 1.5);
   dayC.setHex(b.sky);
-  if (V.terrain.share && V.terrain.share.length > 1) {
+  if (V.base.share && V.base.share.length > 1) {
     // near a border the sky shades from one biome's into the next
     dayC.setRGB(0, 0, 0);
-    V.terrain.share.forEach((f, i) => {
-      const w = f(P.x, P.z);
-      mixC.setHex(V.terrain.land.biomes[i].sky);
+    V.base.share.forEach((f, i) => {
+      const w = f(P.x + FR.x, P.z + FR.z);
+      mixC.setHex(V.base.land.biomes[i].sky);
       dayC.r += mixC.r * w;
       dayC.g += mixC.g * w;
       dayC.b += mixC.b * w;
@@ -230,13 +257,13 @@ function frame() {
     return finishFrame();
   }
   lamp.distance = 45;
-  const storm = V.S.weather.storm && !R.indoors(V.S);
+  const storm = V.S.weather.storm;
   if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
   scene.background.copy(skyC);
   scene.fog.color.copy(skyC);
   const sight = R.stat(V.S, 'nightSight', 0) > 0,
     far = storm ? 85 : lerp(sight ? 260 : 110, 620, day);
-  shown.far = lerp(shown.far, R.indoors(V.S) ? Math.min(far, 160) : far, 0.05);
+  shown.far = lerp(shown.far, far, 0.05);
   scene.fog.far = shown.far;
   scene.fog.near = Math.min(40, shown.far * 0.2);
   hemi.intensity = lerp(0.22, 0.78, day);

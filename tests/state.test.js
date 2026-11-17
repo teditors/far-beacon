@@ -54,6 +54,19 @@ for (let seed = 1; seed <= 150; seed++) {
   need(Object.values(s.sites).filter((x) => x.sure).length >= 3, 'seed ' + seed + ': fewer than three guaranteed springs');
   for (const c of s.creatures) if (!c.key) need(Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y)) >= 7, 'seed ' + seed + ': a creature starts too close');
   for (const k in s.sites) need(+k >= 0 && +k < R.W * R.H, 'seed ' + seed + ': a site is off the map');
+  // the town's walled block: nothing else stands in it, nobody can be in it, and the tile below its gate is on the map
+  const door = R.townDoor(s);
+  need(door.y < R.H - 1 && s.town.x >= 3 && s.town.x < R.W - 3 && s.town.y >= 3, 'seed ' + seed + ': the town is too near the edge');
+  for (const k in s.sites) if (s.sites[k].kind !== 'town') need(!R.inTownBlock(s, k % R.W, Math.floor(k / R.W)), 'seed ' + seed + ': a ' + s.sites[k].kind + ' stands inside the town walls');
+  for (const c of s.creatures) need(!R.inTownBlock(s, c.x, c.y), 'seed ' + seed + ': a creature starts inside the town walls');
+  need(!R.inTownBlock(s, p.x, p.y) && !R.passable(s, s.town.x, s.town.y) && R.passable(s, door.x, door.y), 'seed ' + seed + ': the town block is wrong');
+  need(s.areas.town && s.areas.town.map && s.areas.town.map.terrain.length === R.W * R.H, 'seed ' + seed + ': the town was not built ahead');
+}
+// 3a. a save from before the town had walls: a camp left on the town's tile ends up outside the gate
+{
+  const res = R.deserialize(fs.readFileSync(path.join(__dirname, 'fixtures', 'save-v8-camp-at-town.json'), 'utf8')), s = res.state, d = R.townDoor(s);
+  need(s.camp && s.camp.i === d.y * R.W + d.x && s.depots[s.camp.i], 'old save: the camp at the town was not moved to the gate');
+  need(s.player.x === d.x && s.player.y === d.y, 'old save: the traveller was left inside the town walls');
 }
 // 3b. the wider world: every region is sound, borders wrap, and a save with many regions round-trips
 let bigSave = 0, borderSame = 0, borderAll = 0, edgeAll = 0, edgeSame = 0, riverAll = 0, riverSame = 0, roadAll = 0, roadSame = 0;

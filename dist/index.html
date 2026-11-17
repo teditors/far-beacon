@@ -501,7 +501,7 @@
       if (!window.THREE)
         document.getElementById('log').innerHTML =
           '<li class="bad new">The 3D library did not load. Check your connection and reload the page.</li>';
-      var GAME_VERSION = 'v0.10';
+      var GAME_VERSION = 'v0.11';
       var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls and past messages are in Menu.';
     </script>
     <script>
@@ -1353,7 +1353,7 @@
   var C = CONTENT;
   var W = 36;
   var H = 36;
-  var VERSION = 8;
+  var VERSION = 9;
   var START = 6 * 60;
   var TERR = ["plain", "hill", "mountain", "forest", "river", "special", "wall", "floor"];
   var WALL = 6;
@@ -1497,6 +1497,19 @@
     s.onRoad = false;
     ensureAround(s);
   }
+  function buildArea(s, rec) {
+    if (rec.id === s.area || rec.map) return;
+    rec.map = GENERATORS[rec.kind](s, rec);
+    for (const f of AREA_FIELDS) if (rec.map[f] === void 0) rec.map[f] = AREA_DEFAULTS[f]();
+  }
+  var TOWN_R = 2;
+  var TOWN_GATE = { x: W / 2, y: H - 1 };
+  var inTownBlock = (s, x, y) => s.area === HOME && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
+  var townDoor = (s) => ({ x: s.town.x, y: s.town.y + TOWN_R + 1 });
+  function ensureTown(s) {
+    if (!s.areas.town) s.areas.town = { id: "town", kind: "town", indoor: true, name: s.town.name };
+    buildArea(s, s.areas.town);
+  }
   var mapOf = (s, id) => id === s.area ? s : s.areas[id].map;
   function ensureAround(s) {
     const here2 = outdoorRec(s);
@@ -1505,10 +1518,7 @@
         const cx = wrap(here2.cx + dx, s.world.cols), cy = wrap(here2.cy + dy, s.world.rows), id = regionId(s, cx, cy);
         if (!s.areas[id]) s.areas[id] = { id, kind: "region", cx, cy, biome: sketchOf(s, cx, cy).biome };
         const rec = s.areas[id];
-        if (id !== s.area && !rec.map) {
-          rec.map = GENERATORS.region(s, rec);
-          for (const f of AREA_FIELDS) if (rec.map[f] === void 0) rec.map[f] = AREA_DEFAULTS[f]();
-        }
+        buildArea(s, rec);
       }
   }
   var indoors = (s) => !!areaRec(s).indoor;
@@ -1742,7 +1752,7 @@
   var isShelter = (site) => !!site && (site.kind === "cave" || site.kind === "ruin" || site.kind === "well" || site.kind === "town" || site.kind === "vault");
   var inShelter = (s) => indoors(s) || isShelter(siteHere(s));
   var atCamp = (s) => campHere(s) === here(s);
-  var passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL;
+  var passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL && !inTownBlock(s, x, y);
   var DIRS = ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"];
   function dirTo(s, x, y) {
     const dx = x - s.player.x, dy = y - s.player.y;
@@ -2800,9 +2810,9 @@
     return true;
   }
   function enterTown(s) {
-    const st = siteHere(s);
-    if (s.over || !st || st.kind !== "town") return false;
-    enterArea(s, "town", { kind: "town", indoor: true, name: s.town.name });
+    const d = townDoor(s), st = s.sites[idx(s.town.x, s.town.y)];
+    if (s.over || s.area !== HOME || s.player.x !== d.x || s.player.y !== d.y) return false;
+    enterArea(s, "town", { kind: "town", indoor: true, name: s.town.name }, TOWN_GATE);
     if (!st.entered) {
       st.entered = true;
       gainXp(s, 20);
@@ -2844,15 +2854,25 @@
     say(s, "Level " + n + " of " + floors.length + (n === floors.length ? ". The air is older here." : "."));
     return true;
   }
+  function leaveTown(s) {
+    if (s.over || areaRec(s).kind !== "town") return false;
+    leaveArea(s);
+    const d = townDoor(s);
+    s.player.x = d.x;
+    s.player.y = d.y;
+    s.lastGround = s.terrain[idx(d.x, d.y)];
+    say(s, "You leave " + s.town.name + " by the south gate.");
+    return true;
+  }
   function goUp(s) {
     const st = siteHere(s);
     if (s.over || !st || st.kind !== "stairsUp" && st.kind !== "exit") return false;
     const leaving = areaRec(s);
+    if (leaving.kind === "town") return leaveTown(s);
     advance(s, 10, "rest");
     if (s.over) return true;
     leaveArea(s);
-    if (leaving.kind === "town") say(s, "You leave " + s.town.name + " by the south gate.");
-    else if (inOverworld(s)) say(s, "You climb out into the " + (clock(s).isDay ? "daylight" : "night") + ".");
+    if (inOverworld(s)) say(s, "You climb out into the " + (clock(s).isDay ? "daylight" : "night") + ".");
     else say(s, "You climb back up to level " + areaRec(s).level + ".");
     return true;
   }
@@ -2880,11 +2900,19 @@
     if (s.over) return false;
     let nx = s.player.x + dx, ny = s.player.y + dy;
     const out = nx < 0 || ny < 0 || nx >= W || ny >= H, was = s.lastGround, leftCamp = atCamp(s);
-    if (out && !inOverworld(s)) return false;
+    if (out && !inOverworld(s) && areaRec(s).kind !== "town") return false;
     if (weight(s) > carryCap(s) + 1e-9) {
       say(s, "You are carrying too much to move. Leave something here.", "bad");
       return false;
     }
+    if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) {
+      const d = townDoor(s);
+      if (s.player.x === d.x && s.player.y === d.y && dx === 0 && dy === -1) return enterTown(s);
+      say(s, "The wall of " + s.town.name + ". The gate is in the south side.");
+      return false;
+    }
+    if (out && areaRec(s).kind === "town")
+      return s.player.x === TOWN_GATE.x && s.player.y === TOWN_GATE.y && dx === 0 && dy === 1 ? leaveTown(s) : false;
     let back = null;
     if (out) {
       const rec = areaRec(s);
@@ -3496,7 +3524,6 @@
       if (st.kind === "shrine" && !s.pact) a.push({ id: "pactAsk", label: "Approach the shrine", hint: "hear the terms" });
       if (st.kind === "shrine" && s.quest.dest === "shrine" && hasItem(s, "relic"))
         a.push({ id: "offer", label: "Offer the " + s.quest.relic, hint: "end the journey" });
-      if (st.kind === "town") a.push({ id: "enterTown", label: "Enter " + s.town.name, hint: "talk, trade, rest" });
       if (st.kind === "vault" && !st.open)
         a.push({
           id: "unlock",
@@ -3506,6 +3533,8 @@
       if (st.kind === "vault" && st.open)
         a.push({ id: "enterVault", label: "Go into the " + s.quest.vault.name, hint: st.floors.length + " levels, needs a light" });
     }
+    if (s.area === "overworld" && s.town && p.x === townDoor(s).x && p.y === townDoor(s).y)
+      a.push({ id: "enterTown", label: "Enter " + s.town.name, hint: "the gate is just north" });
     const g = groundHere(s);
     if (!st && g.drink) a.push({ id: "fill", label: "Fill from the " + g.name, hint: "15 min" });
     if (g.dig && !s.dug[here(s)]) a.push({ id: "dig", label: "Dig for water", hint: "1 h, -12 stamina" });
@@ -4033,6 +4062,7 @@
     );
     say(s, "Your camp has a well. A cloak, a lantern and fuel are stored here: open Pack to take them.");
     if (typeof INTRO_EXTRA === "string") say(s, INTRO_EXTRA);
+    ensureTown(s);
     ensureAround(s);
     return s;
   }
@@ -4058,6 +4088,31 @@
       Object.assign(s.areas.overworld, { kind: "region", cx: s.world.home.cx, cy: s.world.home.cy, biome: s.biome, visited: true });
       s.camp = typeof s.camp === "number" ? { area: "overworld", i: s.camp } : null;
       s.speciesByBiome = { [s.biome]: s.species.map((_, i) => i) };
+    },
+    // 8 -> 9: the town now stands on the 5 x 5 tiles around its site, which can no longer be walked on outdoors.
+    // Anything left on those tiles, a camp, or the traveller, is moved to the tile south of the gate.
+    8: (s) => {
+      const home = s.area === "overworld" ? s : s.areas.overworld.map, W2 = 36, inBlock = (x, y) => Math.abs(x - s.town.x) <= 2 && Math.abs(y - s.town.y) <= 2, door = (s.town.y + 3) * W2 + s.town.x;
+      for (const k of Object.keys(home.depots)) {
+        if (!inBlock(k % W2, Math.floor(k / W2))) continue;
+        const d = home.depots[k], to = home.depots[door] || (home.depots[door] = { water: 0, fuel: 0, items: [] });
+        to.water += d.water || 0;
+        to.fuel += d.fuel || 0;
+        to.items.push(...d.items || []);
+        delete home.depots[k];
+      }
+      if (s.camp && s.camp.area === "overworld" && inBlock(s.camp.i % W2, Math.floor(s.camp.i / W2))) s.camp.i = door;
+      if (s.area === "overworld" && inBlock(s.player.x, s.player.y)) {
+        s.player.x = s.town.x;
+        s.player.y = s.town.y + 3;
+      }
+      for (const id in s.areas) {
+        const f = s.areas[id].from;
+        if (f && f.area === "overworld" && inBlock(f.x, f.y) && s.areas[id].kind === "town") {
+          f.x = s.town.x;
+          f.y = s.town.y + 3;
+        }
+      }
     }
   };
   function serialize(s) {
@@ -4079,6 +4134,7 @@
       up(s);
       s.v++;
     }
+    ensureTown(s);
     ensureAround(s);
     return { state: s };
   }
@@ -4167,6 +4223,11 @@
     wrap,
     mapOf,
     ensureAround,
+    townDoor,
+    inTownBlock,
+    TOWN_GATE,
+    TOWN_R,
+    leaveTown,
     campHere,
     regionId,
     outdoorRec,
@@ -4297,16 +4358,18 @@
     };
   }
   var INDOOR_TS = 4;
+  var TOWN_TS = (2 * R.TOWN_R + 1) * TS / R.W;
   var G = { ts: TS, half: HALF };
-  function setGeometry(indoor) {
-    G.ts = indoor ? INDOOR_TS : TS;
+  function setGeometry(kind) {
+    G.ts = kind === "town" ? TOWN_TS : kind === "vault" ? INDOOR_TS : TS;
     G.half = R.W * G.ts / 2;
   }
+  var FR = { x: 0, y: 0, z: 0 };
   var tileX = (tx) => (tx + 0.5) * G.ts - G.half;
   var toTile = (x) => clamp2(Math.floor((x + G.half) / G.ts), 0, R.W - 1);
 
   // src/view/terrain.js
-  var PAD = { town: 15, vault: 11, beacon: 9, spring: 6 };
+  var PAD = { town: 102, vault: 11, beacon: 9, spring: 6 };
   var MARGIN = 22;
   var EW = R.W + 2 * MARGIN;
   var CC = CELL * 2;
@@ -4510,36 +4573,6 @@
       g.add(o);
       return g;
     },
-    town() {
-      const g = new THREE.Group(), wall = std(12167562), roof = std(8011564), spots = [
-        [-9, -6, 1],
-        [-2, -9, 1.2],
-        [7, -7, 0.9],
-        [9, 2, 1.1],
-        [-8, 5, 1],
-        [0, 8, 1.2],
-        [6, 9, 0.8]
-      ];
-      for (const [x, z, k] of spots) {
-        const h = box(5 * k, 3 * k, 4.5 * k, wall, x, 1.5 * k, z), rf = new THREE.Mesh(new THREE.ConeGeometry(4.2 * k, 2.4 * k, 4), roof);
-        rf.position.set(x, 3 * k + 1.2 * k, z);
-        rf.rotation.y = Math.PI / 4;
-        g.add(h, rf);
-      }
-      const well = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.6, 1, 10), std(6117973));
-      well.position.y = 0.5;
-      g.add(well);
-      for (const [x, z] of [
-        [-2, -9],
-        [9, 2]
-      ]) {
-        const sm = new THREE.Mesh(new THREE.CylinderGeometry(1, 2.4, 170, 8, 1, true), glow(14275780, 0.42));
-        sm.material.side = THREE.DoubleSide;
-        sm.position.set(x, 88, z);
-        g.add(sm);
-      }
-      return g;
-    },
     vault(s) {
       const g = new THREE.Group(), id = s.quest.vault.id, st = std(id === "temple" ? 6060664 : id === "barrow" ? 6122058 : 5591630), dark = new THREE.MeshBasicMaterial({ color: 526603 });
       if (id === "castle") {
@@ -4650,46 +4683,61 @@
   };
   var FLAT = { height: () => 0 };
   var VAULT_STONE = { castle: 6973024, barrow: 6122058, temple: 5205612 };
-  function buildInterior() {
-    const rec = R.areaRec(V.S), town = rec.kind === "town", ts = G.ts, size = R.W * ts, T = V.S.terrain, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
-    V.terrain = FLAT;
+  function interiorGroup(map, rec, ts) {
+    const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T = map.terrain, at = (t) => (t + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 9407104 : 4078133));
-    staticGroup.add(floor);
+    floor.position.y = town ? 0.08 : 0;
+    group.add(floor);
     const stone = town ? 13220768 : VAULT_STONE[V.S.quest.vault.id], tiles = [];
     for (let y = 0; y < R.H; y++)
       for (let x = 0; x < R.W; x++) {
         if (!isWall(x, y)) continue;
-        if (!isWall(x + 1, y) || !isWall(x - 1, y) || !isWall(x, y + 1) || !isWall(x, y - 1) || !isWall(x + 1, y + 1) || !isWall(x - 1, y - 1) || !isWall(x + 1, y - 1) || !isWall(x - 1, y + 1))
+        if (!isWall(x + 1, y) || !isWall(x - 1, y) || !isWall(x, y + 1) || !isWall(x, y - 1) || !isWall(x + 1, y + 1) || !isWall(x - 1, y - 1) || !isWall(x + 1, y - 1) || !isWall(x - 1, y + 1) || town)
           tiles.push([x, y]);
       }
     const outer = (x, y) => x === 0 || y === 0 || x === R.W - 1 || y === R.H - 1;
     const groups = town ? [tiles.filter(([x, y]) => outer(x, y)), tiles.filter(([x, y]) => !outer(x, y))] : [tiles];
     groups.forEach((list, gi) => {
       const h = town ? gi === 0 ? 6 : 4.5 : 5, inst = new THREE.InstancedMesh(
-        new THREE.BoxGeometry(ts, h, ts),
+        new THREE.BoxGeometry(ts, h + (town ? 3 : 0), ts),
         std(town && gi === 0 ? 9274745 : stone),
         Math.max(1, list.length)
       ), m = new THREE.Matrix4();
       list.forEach(([x, y], i) => {
-        m.makeTranslation(tileX(x), h / 2, tileX(y));
+        m.makeTranslation(at(x), (h - (town ? 3 : 0)) / 2, at(y));
         inst.setMatrixAt(i, m);
       });
       inst.count = list.length;
-      staticGroup.add(inst);
+      inst.frustumCulled = false;
+      group.add(inst);
     });
     if (town) {
       const caps = groups[1], inst = new THREE.InstancedMesh(new THREE.BoxGeometry(ts * 1.02, 0.4, ts * 1.02), std(8011564), Math.max(1, caps.length)), m = new THREE.Matrix4();
       caps.forEach(([x, y], i) => {
-        m.makeTranslation(tileX(x), 4.7, tileX(y));
+        m.makeTranslation(at(x), 4.7, at(y));
         inst.setMatrixAt(i, m);
       });
       inst.count = caps.length;
-      staticGroup.add(inst);
+      inst.frustumCulled = false;
+      group.add(inst);
+      for (const k in map.sites) {
+        const st = map.sites[k];
+        if (st.kind !== "elder" && st.kind !== "inn") continue;
+        const sm = new THREE.Mesh(new THREE.CylinderGeometry(1, 2.4, 170, 8, 1, true), glow(14275780, 0.42));
+        sm.material.side = THREE.DoubleSide;
+        sm.position.set(
+          at(k % R.W) + (st.kind === "inn" ? 3 * ts : 0),
+          90,
+          at(Math.floor(k / R.W)) - (st.kind === "elder" ? 3 * ts : 0)
+        );
+        group.add(sm);
+      }
     } else {
       const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(1841688));
       ceiling.position.y = 5;
-      staticGroup.add(ceiling);
+      group.add(ceiling);
     }
+    return group;
   }
   function person(color, hat) {
     const g = new THREE.Group(), body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 1.5, 8), std(color)), head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 10, 8), std(14268566));
@@ -4703,14 +4751,14 @@
     }
     return g;
   }
-  function interiorSite(st) {
-    const ts = G.ts, g = new THREE.Group();
+  function interiorSite(st, ts, inTown) {
+    const g = new THREE.Group();
     if (st.kind === "elder") g.add(person(9055276, 5905436));
     else if (st.kind === "inn") g.add(person(8018478), box(1.6, 0.9, 0.8, std(5913890), 1.2, 0.45, 0));
     else if (st.kind === "shop")
       g.add(person(3104655), box(1.8, 0.9, 0.9, std(7031338), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(13214247), -0.4, 1.1, -1.1));
     else if (st.kind === "well") g.add(BUILD.well());
-    else if (st.kind === "exit" && R.areaRec(V.S).kind === "town")
+    else if (st.kind === "exit" && inTown)
       g.add(
         box(0.6, 5, 0.6, std(7037784), -ts / 2, 2.5, 0),
         box(0.6, 5, 0.6, std(7037784), ts / 2, 2.5, 0),
@@ -4747,14 +4795,30 @@
       g.add(box(ts * 0.6, 0.06, ts * 0.6, std(st.sprung ? 2762018 : 10103330), 0, 0.03, 0));
     return g;
   }
+  function applyFrame() {
+    const kind = R.areaRec(V.S).kind, inTown = kind === "town" && V.townAt;
+    if (kind === "vault") return;
+    FR.x = inTown ? V.townAt.x : 0;
+    FR.y = inTown ? V.townAt.y : 0;
+    FR.z = inTown ? V.townAt.z : 0;
+    setGeometry(inTown ? "town" : "region");
+    staticGroup.position.set(-FR.x, -FR.y, -FR.z);
+    V.terrain = inTown ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
+  }
   function buildStatic() {
     dispose(staticGroup);
     staticGroup = new THREE.Group();
     scene.add(staticGroup);
-    setGeometry(R.indoors(V.S));
-    if (R.indoors(V.S)) return buildInterior();
-    V.terrain = makeTerrain(V.S);
-    const T = V.terrain, land = T.land, pal = land.biomes.map((b) => ({
+    V.townAt = null;
+    if (R.areaRec(V.S).kind === "vault") {
+      setGeometry("vault");
+      FR.x = FR.y = FR.z = 0;
+      V.base = V.terrain = FLAT;
+      staticGroup.add(interiorGroup(V.S, R.areaRec(V.S), G.ts));
+      return;
+    }
+    V.base = makeTerrain(V.S);
+    const T = V.base, land = T.land, pal = land.biomes.map((b) => ({
       cols: b.colors.map((c2) => new THREE.Color(c2)),
       lush: new THREE.Color(b.id === "taiga" ? 6126200 : 6261317)
     })), paved = new THREE.Color(9210502), c = new THREE.Color(), cb = new THREE.Color(), lush = new THREE.Color(), centre = (t) => (t + 0.5) * TS - HALF, springs = land.sites.filter((q2) => q2.st.kind === "spring").map((q2) => ({ x: centre(q2.x), z: centre(q2.y) }));
@@ -4818,7 +4882,10 @@
     ground(T.fine, 0, false);
     ground(T.coarse, SINK, true);
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []);
+    const townSite = land.sites.find((q2) => q2.st.kind === "town"), townHalf = R.W * TOWN_TS / 2;
+    if (townSite) V.townAt = { x: centre(townSite.x), y: T.height(centre(townSite.x), centre(townSite.y)), z: centre(townSite.y) };
     const nearSite = (x, z) => {
+      if (V.townAt && Math.abs(x - V.townAt.x) < townHalf + 4 && Math.abs(z - V.townAt.z) < townHalf + 4) return true;
       const site = land.siteAt[T.etile(x, z)];
       return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;
     };
@@ -4877,46 +4944,67 @@
         staticGroup.add(w);
         continue;
       }
+      if (st.kind === "town") {
+        const g2 = interiorGroup(R.mapOf(V.S, "town"), V.S.areas.town, TOWN_TS);
+        g2.position.set(V.townAt.x, V.townAt.y, V.townAt.z);
+        staticGroup.add(g2);
+        continue;
+      }
       const g = BUILD[st.kind](V.S);
       g.position.set(x, T.height(x, z), z);
       if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
       staticGroup.add(g);
     }
+    applyFrame();
   }
   function buildDynamic() {
     dispose(dynGroup);
     dynGroup = new THREE.Group();
     scene.add(dynGroup);
+    const kind = R.areaRec(V.S).kind;
+    if (kind === "vault") return drawArea(V.S.area, "vault");
+    drawArea(R.outdoorRec(V.S).id, "region");
+    if (V.townAt && V.S.areas.town) drawArea("town", "town");
+  }
+  function drawArea(id, kind) {
+    const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind !== "region", ts = kind === "town" ? TOWN_TS : kind === "vault" ? G.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
     const at = (k, dx, dz) => {
-      const x = tileX(k % R.W) + (dx || 0), z = tileX(Math.floor(k / R.W)) + (dz || 0);
-      return [x, V.terrain.height(x, z), z];
+      let x = (k % R.W + 0.5) * ts - half + (dx || 0), z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0), y = 0;
+      if (kind === "town") {
+        x += V.townAt.x;
+        z += V.townAt.z;
+        y = V.townAt.y + 0.08;
+      } else if (kind === "region") y = V.base.height(x, z);
+      return [x - FR.x, y - FR.y, z - FR.z];
     };
-    for (const k in V.S.sites) {
-      const st = V.S.sites[k];
-      if (st.kind !== "spring") continue;
-      const [x, y, z] = at(+k), w = new THREE.Mesh(
-        new THREE.CircleGeometry(4.6, 16).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color: st.known && st.foul ? 7301685 : 4165568 })
-      );
-      w.position.set(x, y + 0.3, z);
-      dynGroup.add(w);
-      for (let i = 0; i < 7; i++) {
-        const a = i * 0.9 + +k % 5, d = 5.5 + i % 3 * 1.6, rx = x + Math.cos(a) * d, rz = z + Math.sin(a) * d, c = new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.4 + i % 3, 5), std(5798464));
-        c.position.set(rx, V.terrain.height(rx, rz) + 1.1, rz);
-        dynGroup.add(c);
+    const ground = (x, z) => V.terrain.height(x, z);
+    if (!indoor)
+      for (const k in map.sites) {
+        const st = map.sites[k];
+        if (st.kind !== "spring") continue;
+        const [x, y, z] = at(+k), w = new THREE.Mesh(
+          new THREE.CircleGeometry(4.6, 16).rotateX(-Math.PI / 2),
+          new THREE.MeshBasicMaterial({ color: st.known && st.foul ? 7301685 : 4165568 })
+        );
+        w.position.set(x, y + 0.3, z);
+        dynGroup.add(w);
+        for (let i = 0; i < 7; i++) {
+          const a = i * 0.9 + +k % 5, d = 5.5 + i % 3 * 1.6, rx = x + Math.cos(a) * d, rz = z + Math.sin(a) * d, c = new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.4 + i % 3, 5), std(5798464));
+          c.position.set(rx, ground(rx, rz) + 1.1, rz);
+          dynGroup.add(c);
+        }
       }
-    }
-    const indoor = R.indoors(V.S), off = indoor ? G.ts / 28 : 1;
     if (indoor)
-      for (const k in V.S.sites) {
-        const st = V.S.sites[k], [x, y, z] = at(+k), g = interiorSite(st);
+      for (const k in map.sites) {
+        const st = map.sites[k], [x, y, z] = at(+k), g = interiorSite(st, ts, kind === "town");
         g.position.set(x, y, z);
         if (st.kind === "elder" || st.kind === "inn" || st.kind === "shop") g.rotation.y = Math.atan2(P.x - x, P.z - z);
         dynGroup.add(g);
       }
-    for (const k in V.S.depots) {
-      if (+k === R.campHere(V.S)) continue;
-      const d = V.S.depots[k], relic = d.items.some((i) => i.base === "relic"), [x, y, z] = at(+k, 3.5 * off, 2.5 * off);
+    const camp = V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
+    for (const k in map.depots) {
+      if (+k === camp) continue;
+      const d = map.depots[k], relic = d.items.some((i) => i.base === "relic"), [x, y, z] = at(+k, 3.5 * off, 2.5 * off);
       if (relic) {
         dynGroup.add(box(1.2, 1, 1.2, std(7827818), x, y + 0.5, z));
         const r = new THREE.Mesh(new THREE.OctahedronGeometry(0.35), glow(16765562, 1));
@@ -4924,8 +5012,9 @@
         dynGroup.add(r);
       } else dynGroup.add(box(1.2, 1, 1.2, std(9067051), x, y + 0.5, z));
     }
-    for (const c of V.S.creatures) {
-      if (c.bound && !(V.S.combat && V.S.combat.cid === c.id)) continue;
+    for (const c of map.creatures) {
+      const fighting = current && V.S.combat && V.S.combat.cid === c.id;
+      if (c.bound && !fighting) continue;
       const sp = R.spOf(V.S, c), g = new THREE.Group(), col = sp.rare === "gilded" ? 14263584 : sp.rare === "docile" ? 8367738 : R.biomeOf(V.S).creatureTint, mat = std(col), k = (sp.rare === "elder" ? 1.45 : 1) * (0.9 + c.tier * 0.12), eye = new THREE.MeshBasicMaterial({ color: 16726831, fog: false });
       if (sp.form === "hound")
         g.add(
@@ -4963,28 +5052,29 @@
       }
       g.scale.setScalar(k * (sp.form === "wight" ? 0.85 : 1.1));
       let x, y, z;
-      if (V.S.combat && V.S.combat.cid === c.id) {
+      if (fighting) {
         x = P.x - Math.sin(P.yaw) * (indoor ? 3 : 7.5);
         z = P.z - Math.cos(P.yaw) * (indoor ? 3 : 7.5);
         P.pitch = 0;
-        y = V.terrain.height(x, z);
+        y = ground(x, z);
         g.rotation.y = P.yaw;
       } else {
         [x, y, z] = at(c.y * R.W + c.x, -4 * off, -5 * off);
         g.rotation.y = Math.atan2(P.x - x, P.z - z);
       }
-      for (const [ox2, oz] of [
-        [1.2, 0],
-        [-1.2, 0],
-        [0, 1.2],
-        [0, -1.2]
-      ])
-        y = Math.min(y, V.terrain.height(x + ox2, z + oz));
+      if (!indoor)
+        for (const [ox2, oz] of [
+          [1.2, 0],
+          [-1.2, 0],
+          [0, 1.2],
+          [0, -1.2]
+        ])
+          y = Math.min(y, ground(x + ox2, z + oz));
       g.position.set(x, y, z);
       dynGroup.add(g);
     }
-    if (R.campHere(V.S) !== null) {
-      const [x, y, z] = at(R.campHere(V.S), 5, 3), t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(14262858));
+    if (camp !== null) {
+      const [x, y, z] = at(camp, 5, 3), t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(14262858));
       t.position.set(x, y + 1.8, z);
       const sm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.6, 150, 8, 1, true), glow(15921902, 0.38));
       sm.material.side = THREE.DoubleSide;
@@ -5063,7 +5153,9 @@
     } else P.yaw = Math.atan2(-(tileX(V.S.town.x) - P.x), -(tileX(V.S.town.y) - P.z));
     shown.t = V.S.time;
     shown.area = V.S.area;
+    shown.land = landKey();
   }
+  var landKey = () => R.areaRec(V.S).kind === "vault" ? V.S.area : R.outdoorRec(V.S).id;
   function enter(state) {
     V.S = state;
     buildStatic();
@@ -5082,7 +5174,8 @@
   };
   function sync() {
     if (shown.area !== V.S.area) {
-      buildStatic();
+      if (shown.land !== landKey()) buildStatic();
+      else applyFrame();
       placePlayer();
     }
   }
@@ -5126,13 +5219,21 @@
       mag = 1;
     }
     const sn = Math.sin(P.yaw), cs = Math.cos(P.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx, mc = R.moveCost(V.S, V.S.player.x, V.S.player.y), indoor = R.indoors(V.S), sp = VIEW.speed * (indoor ? 0.65 : clamp2(mc.base / mc.mins, 0.3, 1.15));
-    const open = R.inOverworld(V.S), lim = open ? G.half + 1 : G.half - 1, tileOf = open ? (x) => Math.floor((x + G.half) / G.ts) : toTile;
+    const inTown = R.areaRec(V.S).kind === "town", open = R.inOverworld(V.S) || inTown, lim = open ? G.half + 1 : G.half - 1, tileOf = open ? (x) => Math.floor((x + G.half) / G.ts) : toTile;
     let nx = clamp2(P.x + dx * sp * dt, -lim, lim), nz = clamp2(P.z + dz * sp * dt, -lim, lim);
     const pad = indoor ? 0.6 : 0, blocked = (x, z) => !R.passable(V.S, toTile(x + Math.sign(x - P.x) * pad), toTile(z)) || !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P.z) * pad));
     if (indoor && blocked(nx, nz)) {
       if (!blocked(nx, P.z)) nz = P.z;
       else if (!blocked(P.x, nz)) nx = P.x;
       else return;
+    }
+    if (!indoor && V.townAt) {
+      const t = V.townAt, h = R.W * TOWN_TS / 2 + 0.7, gx = t.x + (R.TOWN_GATE.x + 0.5) * TOWN_TS - R.W * TOWN_TS / 2, wall = (x, z) => Math.abs(x - t.x) < h && Math.abs(z - t.z) < h && !(Math.abs(x - gx) < TOWN_TS / 2 - 0.5 && z > t.z + h - 6);
+      if (wall(nx, nz)) {
+        if (!wall(nx, P.z)) nz = P.z;
+        else if (!wall(P.x, nz)) nx = P.x;
+        else return;
+      }
     }
     const tx = tileOf(nx), tz = tileOf(nz);
     if (tx !== V.S.player.x || tz !== V.S.player.y) {
@@ -5143,9 +5244,17 @@
         render();
         return;
       }
-      if (V.S.area !== wasArea && R.inOverworld(V.S)) {
+      if (V.S.area !== wasArea && (inTown || R.areaRec(V.S).kind === "town") && shown.land === landKey()) {
+        const was = { x: FR.x, y: FR.y, z: FR.z };
+        applyFrame();
+        nx += was.x - FR.x;
+        nz += was.z - FR.z;
+        P.y += was.y - FR.y;
+        shown.area = V.S.area;
+      } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {
         buildStatic();
         shown.area = V.S.area;
+        shown.land = landKey();
         nx -= Math.floor(tx / R.W) * 2 * G.half;
         nz -= Math.floor(tz / R.H) * 2 * G.half;
       }
@@ -5167,11 +5276,11 @@
     shown.t = lerp(shown.t, V.S.time, 0.06);
     const h = (360 + shown.t) / 60 % 24, b = R.biomeOf(V.S), day = smooth(clamp2((h - 5) / 2, 0, 1)) * (1 - smooth(clamp2((h - 18.5) / 2, 0, 1))), dusk = Math.max(0, 1 - Math.abs(h - 6) / 1.3, 1 - Math.abs(h - 19.4) / 1.5);
     dayC.setHex(b.sky);
-    if (V.terrain.share && V.terrain.share.length > 1) {
+    if (V.base.share && V.base.share.length > 1) {
       dayC.setRGB(0, 0, 0);
-      V.terrain.share.forEach((f, i) => {
-        const w = f(P.x, P.z);
-        mixC.setHex(V.terrain.land.biomes[i].sky);
+      V.base.share.forEach((f, i) => {
+        const w = f(P.x + FR.x, P.z + FR.z);
+        mixC.setHex(V.base.land.biomes[i].sky);
         dayC.r += mixC.r * w;
         dayC.g += mixC.g * w;
         dayC.b += mixC.b * w;
@@ -5193,12 +5302,12 @@
       return finishFrame();
     }
     lamp.distance = 45;
-    const storm = V.S.weather.storm && !R.indoors(V.S);
+    const storm = V.S.weather.storm;
     if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
     scene.background.copy(skyC);
     scene.fog.color.copy(skyC);
     const sight = R.stat(V.S, "nightSight", 0) > 0, far = storm ? 85 : lerp(sight ? 260 : 110, 620, day);
-    shown.far = lerp(shown.far, R.indoors(V.S) ? Math.min(far, 160) : far, 0.05);
+    shown.far = lerp(shown.far, far, 0.05);
     scene.fog.far = shown.far;
     scene.fog.near = Math.min(40, shown.far * 0.2);
     hemi.intensity = lerp(0.22, 0.78, day);
