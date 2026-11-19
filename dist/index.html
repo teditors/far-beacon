@@ -7486,6 +7486,7 @@
   SWITCHES.push(["tiers", "Finer things far from home"]);
 
   // src/rules/plot.js
+  var HOME_TOWN_CHANCE = 0.25;
   function neighbours(s) {
     const h = s.world.home, out = [];
     for (let dy = -1; dy <= 1; dy++)
@@ -7572,7 +7573,7 @@
     };
     const dist2 = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
     const well = { area: HOME, x: s.start.x, y: s.start.y };
-    const t = move2("town", 0, 2, 3, well);
+    const t = r() < HOME_TOWN_CHANCE ? null : move2("town", 0, 2, 3, well);
     if (t) Object.assign(s.town, t);
     const townAt = t ? { area: t.area, x: t.x, y: t.y + 3 } : well;
     let keyAt = townAt;

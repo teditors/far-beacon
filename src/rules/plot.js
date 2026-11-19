@@ -7,6 +7,7 @@ import { HOME, buildArea, homePos, regionId, wrap, wrapDelta, worldPos } from '.
 import { dirFrom } from './map.js';
 import { SWITCHES } from './hooks.js';
 
+const HOME_TOWN_CHANCE = 0.25;
 function neighbours(s) {
   const h = s.world.home,
     out = [];
@@ -117,7 +118,8 @@ on('worldBorn', (s, d) => {
   // the well, the town, the key, the locked place, and where the relic goes.
   const well = { area: HOME, x: s.start.x, y: s.start.y };
   // the town, on a clear 5 x 5 block with a row below it for the way in
-  const t = move('town', 0, 2, 3, well);
+  // In some worlds the town stands at home, near the well, and the journey starts from there.
+  const t = r() < HOME_TOWN_CHANCE ? null : move('town', 0, 2, 3, well);
   if (t) Object.assign(s.town, t);
   const townAt = t ? { area: t.area, x: t.x, y: t.y + 3 } : well;
   let keyAt = townAt;

@@ -335,12 +335,14 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
 // The plot across the world: the town, the locked place, the destination and the key each in a region other than home,
 // along a chain of neighbouring regions, with water and a road on the way, and directions that point the right way.
 {
-  let spread = 0;
+  let spread = 0,
+    homeTown = 0;
   for (let i = 1; i <= 60; i++) {
     const s = R.newGame(i), v = R.findSite(s, 'vault'), g = s.quest.dest === 'beacon' ? s.goal : R.findSite(s, 'shrine');
-    const areas = [R.townArea(s), v.area, g.area];
+    const areas = [v.area, g.area];
     need(areas.every((a) => a && a !== 'overworld'), 'seed ' + i + ': a place stayed home: ' + areas);
-    if (new Set(areas).size === 3) spread++; // a region with no room for one sends it on to the next
+    if (R.townArea(s) === 'overworld') homeTown++;
+    if (new Set(areas.concat([R.townArea(s)])).size === 3) spread++; // a region with no room for one sends it on to the next
     if (s.quest.key === 'ruin') need(R.keyRuin(s).area !== 'overworld', 'seed ' + i + ': the key ruin is at home');
     if (s.quest.key === 'beast') need(R.beastOf(s) && R.beastOf(s).area !== 'overworld', 'seed ' + i + ': the beast is at home');
     // the objective points at the town, and the well has a known spring and a road on the way out
@@ -350,6 +352,7 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
     need(Object.keys(s.road).length > 0, 'seed ' + i + ': no road out from home');
   }
   need(spread >= 54, 'places in three different regions in only ' + spread + ' of 60 worlds');
+  need(homeTown >= 5 && homeTown <= 30, 'the town stayed home in ' + homeTown + ' of 60 worlds');
   need(R.findSite(R.newGame(5, { plot: true }), 'vault').area === 'overworld', 'NO=plot still moved the locked place');
 }
 // Hamlets: in some regions away from home, with water, shelter, a bed and goods.

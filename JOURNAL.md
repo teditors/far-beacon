@@ -2,7 +2,7 @@
 
 ## Summary
 
-Ten entries: Andrew's six asks first, then my own. Every check passes; the bot still wins.
+Eleven entries: Andrew's six asks first, then my own. Every check passes; the bot still wins.
 
 | # | Piece | Switch | Verdict |
 | --- | --- | --- | --- |
@@ -16,9 +16,10 @@ Ten entries: Andrew's six asks first, then my own. Every check passes; the bot s
 | C2.8 | Finer things far from home: Fine and Superb items | `tiers` | pearl |
 | C2.9 | Rare countries that change the land: Drowned, Dry, Burned | `regionrares` | maybe |
 | C2.10 | Frail classes set out with an extra waterskin and coin | `roster` | (balance) |
+| C2.11 | In a quarter of worlds the town is at home | `plot` | (balance) |
 
 **Bot win rate, commission 2's switchable pieces on vs off** (`NO=townlife,roster,plot,hamlets,tiers`), sets 5 /
-1000 / 2000: on 9, 16, 9 (34 / 450, 8%); off 24, 35, 32 (91 / 450, 20%). Almost all of the difference is the plot
+1000 / 2000: on 9, 16, 9 (34 / 450, 8%) before C2.10 and C2.11, 18, 17, 13 (48 / 450, 11%) after; off 24, 35, 32 (91 / 450, 20%). Almost all of the difference is the plot
 across the world (C2.4) and the frailer new classes (C2.3). The game is now a journey; it is clearly harder, and the
 bot, which now travels between regions, still wins about one world in twelve.
 
@@ -38,6 +39,12 @@ screen is now different every world and the new classes play differently in a fi
 ---
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
+
+## C2.11: sometimes the town is at home
+
+A variation of C2.4: in a quarter of worlds the town stands in the home region, near the well, and the chain of
+regions (key, locked place, destination) starts from home. It varies the shape of the journey and eases it. Bot win
+rate, sets 5 / 1000 / 2000: 18, 17, 13 (48 / 450, 11%), up from 40. Switch: part of `plot`.
 
 ## C2.10: frail classes set out better provided
 
