@@ -2,6 +2,39 @@
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
 
+## C2.4: the plot across the world
+
+**What it is.** The quest's places no longer all lie in the home region. You set out from the well at home; the town
+is in a region next to it, the key (in a ruin, or carried by the beast) in the next, the locked place in the next and
+the beacon or shrine in the next: a chain of regions, each sharing an edge with the one before, every place on the
+side of its region nearest the place before it. Old paved roads join them, one leg to the next, carrying across region
+borders, and sure springs lie every nine tiles or so along each leg: those on the way to the town are on your map
+from the start, the elder marks the rest. The opening line, the objective, directions and the compass all point
+across regions. Nothing about the world's size is assumed: the chain is built from neighbouring regions, and a region
+with no room for a place passes it on to the next.
+
+**In play.** The game is now a journey across the land instead of a tour of one map, which is what the other pieces
+(rare regions, lairs, generated biomes) were waiting for. It is much harder. Bot win rate, sets 5 / 1000 / 2000:
+8, 6, 5 with it; 22, 25, 25 without (19 vs 72 out of 450). The bot still wins sometimes.
+
+**The bot now travels.** Places are given to it in the frame of the region it stands in (`localPos`), so it walks
+off a region's edge toward them; it remembers water seen in the regions around; it commits to one water target
+(held in home coordinates, so a border does not change its mind); it hops from spring to spring when a target is
+beyond its water; and it makes for trees or shelter when freezing in a storm where no fire will light. Its
+path-finder no longer loops forever on a target in another region.
+
+**Commits.** "The plot across the world". Switch: `plot` (at creation).
+
+**Choices made without asking.**
+- Roads on every leg, and springs along them, after measuring: without roads almost every bot died of thirst or cold
+  on the way to the town. Roads that run along a border are laid on both sides of it, so roads still line up.
+- The beast clears the creatures near where it is put, and may stand in a Silent region (it came from elsewhere).
+- Old saves keep their old layout (everything at home); `area` fields default to home.
+- `travelTo(s, area, x, y)` was added for tests and tinkering; the tests use it to reach places in other regions.
+
+**Verdict: pearl**, with a balance warning: it needs easing (more water, or the town in the home region in some
+worlds) before it reaches main.
+
 ## C2.3: many races and classes
 
 **What it is.** A world now offers 2 to 12 races and 8 to 20 classes (it was 3 and 3), drawn with usual ones three

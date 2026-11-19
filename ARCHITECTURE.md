@@ -88,8 +88,11 @@ first time the player arrives.
   are impassable outdoors (`inTownBlock`). `move()` north from `townDoor(s)` enters it at `TOWN_GATE`; `move()` south
   off the map from the gateway leaves it. The view draws the town's own grid in place and only shifts its origin
   (`FR`, `applyFrame`) when the player goes through the gate; nothing is rebuilt.
-- The quest places (`s.town`, `s.goal`, `s.start`, the locked place) are all in the home region. `worldMap(s)` is
-  the home map; `worldPos(s)` and `homePos` give positions in home coordinates from anywhere, for directions.
+- Since commission 2 (the `plot` piece) the quest places are spread over the regions around home: `s.town.area`,
+  `s.goal.area`, `s.quest.keyArea` / `beastArea`, and the locked place's site lives in its region's map. Use
+  `findSite(s, kind)` (returns `area`), `townArea(s)`, `keyRuin(s)`, `beastOf(s)` and `mark(s, x, y, area)`; never
+  assume the home region. `localPos(s, area, x, y)` gives a place in the frame of the region the player is in, and
+  `homePos` in home coordinates, for directions. With `NO=plot` everything stays home as before.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
 - `inOverworld(s)` means "outdoors, in any region".
 

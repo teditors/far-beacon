@@ -67,7 +67,11 @@ function placePlayer() {
       }
     });
     P.yaw = [0, -Math.PI / 2, Math.PI, Math.PI / 2][best];
-  } else P.yaw = Math.atan2(-(tileX(V.S.town.x) - P.x), -(tileX(V.S.town.y) - P.z));
+  } else {
+    // face the town, wherever in the world it stands
+    const t = R.localPos(V.S, R.townArea(V.S), V.S.town.x, V.S.town.y);
+    P.yaw = Math.atan2(-(tileX(t.x) - P.x), -(tileX(t.y) - P.z));
+  }
   shown.t = V.S.time;
   shown.area = V.S.area;
   shown.land = landKey();

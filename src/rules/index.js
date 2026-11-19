@@ -95,6 +95,8 @@ import { newGame } from './worldgen.js';
 
 import { serialize, deserialize } from './save.js';
 import { SWITCHES, worldNotes } from './hooks.js';
+import { localPos, townArea } from './areas.js';
+import { keyRuin, beastOf } from './quest.js';
 import { yearOf } from './year.js';
 import './pantheon.js';
 import './artifacts.js';
@@ -111,9 +113,21 @@ import './lairs.js';
 import './farfinds.js';
 import { serviceInfo, useService } from './townlife.js';
 import { classMove } from './roster.js';
+import './plot.js'; // last: it moves quest places that earlier pieces may have changed
 
 const api = {
+  // for tests and tinkering: put the traveller on a tile of any outdoor region (from outdoors)
+  travelTo(s, area, x, y) {
+    const rec = s.areas[area];
+    if (rec && rec.kind === 'region' && s.area !== area) switchRegion(s, rec.cx, rec.cy, { x, y });
+    s.player.x = x;
+    s.player.y = y;
+  },
   worldNotes,
+  localPos,
+  townArea,
+  keyRuin,
+  beastOf,
   classMove,
   serviceInfo,
   useService,

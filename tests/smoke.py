@@ -34,14 +34,14 @@ async def main():
         async def press(text):
             await pg.locator('#actions button', has_text=text).first.click(); await pg.wait_for_timeout(200)
         # stand below the gate, look at the town from outside, then walk north through the gateway
-        await pg.evaluate("()=>{const g=window.__g,S=g.S,d=Rules.townDoor(S);S.creatures.forEach(c=>{c.cool=999;if(Math.abs(c.x-d.x)+Math.abs(c.y-d.y)<8){c.x=1;c.y=1}});S.player.x=d.x;S.player.y=d.y;S.player.coin=60;S.player.stamina=100;g.refresh();const t=g.V.townAt;g.P.x=t.x+1.9;g.P.z=t.z+92;g.P.yaw=0;g.P.pitch=0.1;}")
+        await pg.evaluate("()=>{const g=window.__g,S=g.S,d=Rules.townDoor(S);Rules.travelTo(S,Rules.townArea(S),d.x,d.y);S.creatures.forEach(c=>{c.cool=999;if(Math.abs(c.x-d.x)+Math.abs(c.y-d.y)<8){c.x=1;c.y=1}});S.player.x=d.x;S.player.y=d.y;S.player.coin=60;S.player.stamina=100;g.refresh();const t=g.V.townAt;g.P.x=t.x+1.9;g.P.z=t.z+92;g.P.yaw=0;g.P.pitch=0.1;}")
         await pg.wait_for_timeout(400); await shot('3-town-outside')
         # the wall is solid: walking at it away from the gate gets nowhere
         if await pg.evaluate("()=>!!window.__g.S.town.walled"):
             # a walled town's wall is solid away from its gates
             await pg.evaluate("()=>{const g=window.__g;g.P.x=g.V.townAt.x+30;}")
             await pg.keyboard.down('w'); await pg.wait_for_timeout(2500); await pg.keyboard.up('w')
-            assert await pg.evaluate("()=>{const g=window.__g;return g.S.area==='overworld'&&g.P.z>g.V.townAt.z+70}"), 'walked through the town wall'
+            assert await pg.evaluate("()=>{const g=window.__g;return g.S.area!=='town'&&g.P.z>g.V.townAt.z+70}"), 'walked through the town wall'
         await pg.evaluate("()=>{const g=window.__g,t=g.V.townAt;g.P.x=t.x+1.9;g.P.z=t.z+80;g.P.yaw=0;}")
         await pg.keyboard.down('w')
         for _ in range(80):
@@ -61,14 +61,14 @@ async def main():
         await pg.keyboard.down('w')
         for _ in range(80):
             await pg.wait_for_timeout(250)
-            if await pg.evaluate("()=>window.__g.S.area") == 'overworld': break
+            if await pg.evaluate("()=>window.__g.S.area") != 'town': break
         await pg.wait_for_timeout(800); await pg.keyboard.up('w'); steps.append('walk out of town')
-        assert await pg.evaluate("()=>window.__g.S.area") == 'overworld', 'did not walk out through the gate'
+        assert await pg.evaluate("()=>Rules.inOverworld(window.__g.S)"), 'did not walk out through the gate'
         st = await pg.evaluate("()=>{const g=window.__g,S=g.S,d=Rules.townDoor(S),t=g.V.townAt;return {ok:S.player.x===d.x&&S.player.y>=d.y, dz:g.P.z-t.z, dx:g.P.x-t.x}}")
         assert st['ok'] and 70 < st['dz'] < 110 and abs(st['dx'] - 1.9) < 2, 'not standing below the gate after walking out: %r' % st
         await shot('3-town-left')
         # the locked place: key and light by hand, then in, down a level, and the map
-        await pg.evaluate("()=>{const g=window.__g,S=g.S,v=Rules.findSite(S,'vault');if(!Rules.hasItem(S,'key'))S.player.items.push({id:9001,base:'key',known:true,label:'Key'});S.player.items.forEach(i=>{if(i.eq==='tool')delete i.eq});S.player.items.push({id:9002,base:'lantern',known:true,eq:'tool'});S.player.fuel=5;S.player.x=v.x;S.player.y=v.y;g.refresh();}")
+        await pg.evaluate("()=>{const g=window.__g,S=g.S,v=Rules.findSite(S,'vault');if(!Rules.hasItem(S,'key'))S.player.items.push({id:9001,base:'key',known:true,label:'Key'});S.player.items.forEach(i=>{if(i.eq==='tool')delete i.eq});S.player.items.push({id:9002,base:'lantern',known:true,eq:'tool'});S.player.fuel=5;Rules.travelTo(S,v.area,v.x,v.y);g.refresh();}")
         await press('Unlock'); await press('Go into'); steps.append('enter vault')
         assert (await pg.evaluate("()=>window.__g.S.area")).startswith('vault'), 'did not enter the vault'
         await pg.wait_for_timeout(300); await shot('5-vault')
@@ -79,7 +79,7 @@ async def main():
         await pg.click('#btn-map'); await pg.wait_for_timeout(150); await shot('6-vault-map'); await pg.click('#modal-close')
         await goto('stairsUp'); await press('Go up')
         await goto('exit'); await press('Climb out'); steps.append('climb out')
-        assert await pg.evaluate("()=>window.__g.S.area") == 'overworld', 'did not climb out'
+        assert await pg.evaluate("()=>Rules.inOverworld(window.__g.S)"), 'did not climb out'
         # a fight: put a hostile creature on the next tile east and walk into it
         await pg.evaluate("()=>{const g=window.__g,S=g.S;const c=S.creatures.find(c=>S.species[c.sp].rare!=='docile'&&!c.bound);S.player.x=Math.min(34,Math.max(1,S.player.x));c.x=S.player.x+1;c.y=S.player.y;c.cool=0;S.player.hp=S.player.hpMax=200;g.P.x=(S.player.x+0.5)*28-504;g.P.z=(S.player.y+0.5)*28-504;g.P.yaw=-Math.PI/2;}")
         await pg.keyboard.down('w')
@@ -95,7 +95,7 @@ async def main():
         steps.append('fight(%d turns)' % fought)
         await shot('4-after-fight')
         # walk east off the edge of the home region into the next one, then look at the world map
-        await pg.evaluate("()=>{const S=window.__g.S;S.combat=null;S.creatures.length=0;S.player.stamina=100;S.player.water=Rules.waterCap(S);document.getElementById('modal').hidden=true;}")
+        await pg.evaluate("()=>{const g=window.__g,S=g.S;Rules.travelTo(S,'overworld',18,18);g.refresh();S.combat=null;S.creatures.length=0;S.player.stamina=100;S.player.water=Rules.waterCap(S);document.getElementById('modal').hidden=true;}")
         crossed = False
         for y in range(4, 32, 3):
             ok = await pg.evaluate("y=>{const g=window.__g,S=g.S;if(S.area!=='overworld')return true;if(!Rules.passable(S,35,y))return false;S.player.x=35;S.player.y=y;g.refresh();g.P.x=35.5*28-504;g.P.z=(y+0.5)*28-504;g.P.yaw=-Math.PI/2;return true}", y)

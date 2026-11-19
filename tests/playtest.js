@@ -3,22 +3,34 @@ const { Rules } = require('./lib');
 { let a = 12345; Math.random = () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), a | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; } // repeatable runs
 const R=Rules,W=36;
 const dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
-const door=(s)=>R.townDoor(s); // the town is walled: the bot goes to the tile below its gate and walks in
+// Every place is given in the frame of the region the bot stands in, so places in other regions lie off its edges and
+// the bot walks toward them across borders.
+const loc=(s,p)=>p&&p.area?R.localPos(s,p.area,p.x,p.y):p;
+const door=(s)=>{const d=R.townDoor(s); return R.localPos(s,R.townArea(s),d.x,d.y);}; // the tile below the town's south side, where the road comes in
 let trail=[];
-function target(s){ const q=s.quest,v=R.findSite(s,'vault');
-  const loose=b=>{const l=R.findLoose(s,b); if(!l) return null; return l.area==='overworld'?{x:l.x,y:l.y}:v;};
+function target(s){ const q=s.quest,v0=R.findSite(s,'vault'),v=Object.assign({st:v0.st},loc(s,v0));
+  const loose=b=>{const l=R.findLoose(s,b); if(!l) return null; return s.areas[l.area].kind==='region'?loc(s,l):v;};
   if(!R.hasItem(s,'relic')){const l=loose('relic'); if(l) return l;} if(!R.hasItem(s,'key')&&!R.hasItem(s,'relic')&&!v.st.open){const l=loose('key'); if(l) return l;}
-  if(R.hasItem(s,'relic')) return q.dest==='beacon'?s.goal:R.findSite(s,'shrine');
+  if(R.hasItem(s,'relic')) return loc(s,q.dest==='beacon'?s.goal:R.findSite(s,'shrine'));
   if(v.st.open||R.hasItem(s,'key')) return v;
   if(!q.told) return door(s);
-  if(q.key==='beast'){const c=s.creatures.find(c=>c.id===q.beast); if(c) return c; return v;}
-  if(q.key==='ruin') return {x:q.keyTile%W,y:Math.floor(q.keyTile/W)};
+  if(q.key==='beast'){const b=R.beastOf(s); if(b) return Object.assign(loc(s,b),{id:b.c.id}); return v;}
+  if(q.key==='ruin') return loc(s,R.keyRuin(s));
   return v; }
-function knownWater(s){ let best=null,bd=1e9; for(const k in s.sites){const st=s.sites[k]; if(!st.seen)continue; const ok=st.kind==='well'||st.kind==='town'||(st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1))||(st.kind==='ruin'&&st.water>0.5); if(!ok)continue; const p=st.kind==='town'?door(s):{x:k%W,y:Math.floor(k/W)},d=dist(p,s.player); if(d<bd){bd=d;best=p;}}
+// Water it knows of: seen springs and wells here and in the regions around, in this region's frame.
+function farWater(s){ let best=null,bd=1e9; for(const id in s.areas){ if(id===s.area||s.areas[id].kind!=='region'||!s.areas[id].map) continue; const m=s.areas[id].map;
+  for(const k in m.sites){ const st=m.sites[k]; if(!st.seen||st.kind!=='spring'||(st.known&&st.foul)) continue; const p=R.localPos(s,id,k%W,Math.floor(k/W)),d=dist(p,s.player); if(d<bd){bd=d;best=p;} } } return best?{p:best,d:bd}:null; }
+// Every water it knows of, here and in the regions around, in this region's frame.
+function allWater(s){ const out=[]; for(const id in s.areas){ if(id===s.area||s.areas[id].kind!=='region'||!s.areas[id].map) continue; const m=s.areas[id].map;
+    for(const k in m.sites){ const st=m.sites[k]; if(st.seen&&st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1)) out.push(R.localPos(s,id,k%W,Math.floor(k/W))); } }
+  for(const k in s.sites){ const st=s.sites[k]; if(st.seen&&(st.kind==='well'||(st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1)))) out.push({x:k%W,y:Math.floor(k/W)}); }
+  return out; }
+function knownWater(s){ let best=null,bd=1e9; { const f=farWater(s); if(f){best=f.p;bd=f.d;} } for(const k in s.sites){const st=s.sites[k]; if(!st.seen)continue; const ok=st.kind==='well'||st.kind==='town'||(st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1))||(st.kind==='ruin'&&st.water>0.5); if(!ok)continue; const p=st.kind==='town'?door(s):{x:k%W,y:Math.floor(k/W)},d=dist(p,s.player); if(d<bd){bd=d;best=p;}}
   for(let i=0;i<W*W;i++) if(s.seen[i]&&s.terrain[i]===4&&R.terrainInfo(s,4).drink){const p={x:i%W,y:Math.floor(i/W)},d=dist(p,s.player); if(d<bd){bd=d;best=p;}} return best?{p:best,d:bd}:null; }
-function step(s,t){ const p=s.player; const opts=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({dx,dy,x:p.x+dx,y:p.y+dy})).filter(o=>o.x>=0&&o.y>=0&&o.x<W&&o.y<W&&R.passable(s,o.x,o.y));
+function step(s,t){ const p=s.player, out=(o)=>o.x<0||o.y<0||o.x>=W||o.y>=W; // outdoors the bot may step over a region's edge
+  const opts=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({dx,dy,x:p.x+dx,y:p.y+dy})).filter(o=>out(o)?R.inOverworld(s):R.passable(s,o.x,o.y));
   if(!opts.length) return false;
-  for(const o of opts){ const mc=R.moveCost(s,o.x,o.y); const hostile=s.creatures.some(c=>c.seen&&!c.bound&&s.species[c.sp].rare!=='docile'&&c.x===o.x&&c.y===o.y&&!(t.id&&c.id===t.id)); o.score=dist(o,t)*20+mc.mins+(hostile?400:0)+(trail.includes(o.y*W+o.x)?+(process.env.TP||70):0); }
+  for(const o of opts){ const mc=out(o)?{mins:15}:R.moveCost(s,o.x,o.y); const hostile=s.creatures.some(c=>c.seen&&!c.bound&&s.species[c.sp].rare!=='docile'&&c.x===o.x&&c.y===o.y&&!(t.id&&c.id===t.id)); o.score=dist(o,t)*20+mc.mins+(hostile?400:0)+(trail.includes(o.y*W+o.x)?+(process.env.TP||70):0); }
   trail.push(p.y*W+p.x); if(trail.length>10) trail.shift();
   opts.sort((a,b)=>a.score-b.score); return R.move(s,opts[0].dx,opts[0].dy); }
 function maintain(s,stats){ const p=s.player,st=R.siteHere(s);
@@ -30,7 +42,10 @@ function maintain(s,stats){ const p=s.player,st=R.siteHere(s);
   if(R.groundHere(s).gather&&p.fuel<4) R.gather(s);
   if(R.biome)0;
   if(R.biomeOf(s).melt&&p.water<1.5&&p.fuel>=2) R.melt(s);
-  if(p.warmth<35&&p.fuel>=1) R.fire(s); if(s.weather.storm&&!R.inShelter(s)&&!R.groundHere(s).blind&&p.warmth<60){ const ok=[[1,0],[-1,0],[0,1],[0,-1]].find(([dx,dy])=>{const x=p.x+dx,y=p.y+dy;return x>=0&&y>=0&&x<36&&y<36&&s.terrain[y*36+x]===3;}); if(ok)R.move(s,ok[0],ok[1]); }
+  if(p.warmth<35&&p.fuel>=1) R.fire(s);
+  // freezing in a storm in the open, where no fire will light: make for the nearest trees or shelter
+  if(p.warmth<40&&s.weather.storm&&!R.inShelter(s)&&!R.groundHere(s).blind&&R.inOverworld(s)){ let best=null,bd=9; for(let y=Math.max(0,p.y-6);y<=Math.min(W-1,p.y+6);y++) for(let x=Math.max(0,p.x-6);x<=Math.min(W-1,p.x+6);x++){ const i=y*W+x,st=s.sites[i]; if((s.terrain[i]===3&&R.terrainInfo(s,3).blind)||(st&&['cave','ruin','well'].includes(st.kind))){ const d=Math.abs(x-p.x)+Math.abs(y-p.y); if(d<bd){bd=d;best={x,y};} } }
+    if(best){ for(let k=0;k<bd&&!s.over&&!s.combat;k++) if(!bfsStep(s,best.x,best.y)) break; if(p.fuel>=1&&!s.combat) R.fire(s); } } if(s.weather.storm&&!R.inShelter(s)&&!R.groundHere(s).blind&&p.warmth<60){ const ok=[[1,0],[-1,0],[0,1],[0,-1]].find(([dx,dy])=>{const x=p.x+dx,y=p.y+dy;return x>=0&&y>=0&&x<36&&y<36&&s.terrain[y*36+x]===3;}); if(ok)R.move(s,ok[0],ok[1]); }
   if(R.atTown(s)&&st&&st.kind==='elder'&&!s.quest.told){R.talkElder(s);stats.town=R.clock(s).day;}
   if(R.atTown(s)&&st&&st.kind==='shop'){ stats.shopped=true;
     if(!R.stat(s,'nightSight',0)){const l=s.town.stock.find(i=>i.base==='lantern'); if(l&&p.coin>=R.itemValue(l)){R.buy(s,l.id);R.equip(s,l.id);}}
@@ -49,7 +64,8 @@ function fight(s,stats){ let g=0; while(s.combat&&!s.over&&g++<80){ const p=s.pl
   { const mv=R.actions(s).find(x=>x.id==='classMove'&&x.arg!=='vanish'); if(mv&&p.stamina>30&&R.classMove(s,mv.arg)) continue; } // a class's own fight move, when it can afford one
   if(a.includes('firebolt')&&p.mana>=2)R.firebolt(s); else if(a.includes('smite')&&p.mana>=2)R.smite(s); else if(a.includes('power')&&p.stamina>30)R.power(s); else R.attack(s);} }
 // Inside the town or the locked place: walk the shortest open path, one step per turn.
-function bfsStep(s,tx,ty){ const prev=new Array(W*W).fill(-1),start=s.player.y*W+s.player.x,goal=ty*W+tx,q=[start]; prev[start]=start;
+function bfsStep(s,tx,ty){ if(tx<0||ty<0||tx>=W||ty>=W) return step(s,{x:tx,y:ty}); // a target in another region: walk toward its edge
+  const prev=new Array(W*W).fill(-1),start=s.player.y*W+s.player.x,goal=ty*W+tx,q=[start]; prev[start]=start;
   while(q.length&&prev[goal]<0){ const i=q.shift(); for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const x=i%W+dx,y=Math.floor(i/W)+dy,j=y*W+x; if(R.passable(s,x,y)&&prev[j]<0){prev[j]=i;q.push(j);} } }
   if(prev[goal]<0) return false; let j=goal; while(prev[j]!==start&&j!==start) j=prev[j]; if(j===start) return true; return R.move(s,j%W-s.player.x,Math.floor(j/W)-s.player.y); }
 function interior(s,stats){ const p=s.player, rec=R.areaRec(s), at=(k)=>{const f=R.findHere(s,k); return f;}, onIt=(f)=>f&&f.x===p.x&&f.y===p.y;
@@ -71,17 +87,27 @@ function play(seed){ trail=[]; const s=R.newGame(seed,NO); const stats={seed,sea
     if(s.over){ if(s.over.won) break; stats.deaths.push({cause:s.over.cause+(s.over.by?':'+s.over.by:''),day:R.clock(s).day,goal:R.objective(s).text,cls:s.char.cls,lvl:s.player.level}); if(R.livesLeft(s)<=0)break; R.nextTraveller(s,R.makeChar(Math.random,s)); continue; }
     if(s.combat){ stats.fights++; fight(s,stats); continue; }
     maintain(s,stats); if(s.over||s.combat) continue;
-    if(s.area!=='overworld'){ interior(s,stats); continue; }
-    const p=s.player, v=R.findSite(s,'vault'), here=R.siteHere(s);
+    if(!R.inOverworld(s)){ interior(s,stats); continue; }
+    if(s.area!==stats.lastArea){ trail=[]; stats.lastArea=s.area; }
+    const p=s.player, v0=R.findSite(s,'vault'), v=Object.assign({st:v0.st},loc(s,v0)), here=R.siteHere(s);
     { const d=door(s); if(p.x===d.x&&p.y===d.y&&(!s.quest.told||p.water<R.waterCap(s)*0.85||(!R.stat(s,'nightSight',0)&&(v.st.open||R.hasItem(s,'key'))))){ stats.shopped=false; stats.rested=false; stats.drank=false; trail=[]; R.move(s,0,-1); continue; } }
     if(v.x===p.x&&v.y===p.y&&!R.hasItem(s,'relic')){ if(!v.st.open)R.unlock(s); if(v.st.open&&p.water<R.waterCap(s)*0.7){ stats.refill=true; } else if(v.st.open){ if(!R.stat(s,'nightSight',0)){ stats.noLight=(stats.noLight||0)+1; } else { if(p.hp<p.hpMax*0.6){ R.sleep(s); } R.enterVault(s); if(!stats.dungeon)stats.dungeon=R.clock(s).day; continue; } } }
     if(R.siteHere(s)&&R.siteHere(s).kind==='shrine'&&R.hasItem(s,'relic')) R.offer(s);
     // water safety: if water won't get us to the target, go to known water first
     let t=target(s); if(stats.refill){ const kw0=knownWater(s); if(kw0&&p.water<R.waterCap(s)*0.9) t=kw0.p; else stats.refill=false; } if(!R.stat(s,'nightSight',0)&&(v.st.open||R.hasItem(s,'key'))&&!R.hasItem(s,'relic')) t=door(s);
     const wr=R.stat(s,'waterDrain',s.tun.waterPerHour)*0.4, need=dist(p,t)*wr, kw=knownWater(s);
-    const back=kw?kw.d*wr:0; if(kw&&kw.d>0&&p.water<R.waterCap(s)-0.3&&p.water<Math.min(need,back+1.2)+0.3) t=kw.p;
+    const back=kw?kw.d*wr:0;
+    // once it decides to go for water it keeps to that water (held in home-region coordinates, so a border does not
+    // make it change its mind), until it has drunk or found the place dry
+    { const wp=R.worldPos(s), toLocal=(g)=>({x:g.x-wp.x+p.x,y:g.y-wp.y+p.y});
+      if(stats.wg){ const l=toLocal(stats.wg); if(p.water>=R.waterCap(s)-0.5||(l.x===p.x&&l.y===p.y&&++stats.wgAt>3)) stats.wg=null; else t=l; }
+      else if(kw&&kw.d>0&&p.water<R.waterCap(s)-0.3&&p.water<Math.min(need,back+1.2)+0.3){ t=kw.p; stats.wg={x:kw.p.x-p.x+wp.x,y:kw.p.y-p.y+wp.y}; stats.wgAt=0; }
+      else { // a long way to go: hop to the reachable water that is nearest the target
+        const range=p.water/wr-2, dt=dist(p,t);
+        if(dt>range){ let best=null; for(const w of allWater(s)){ const a=dist(p,w),b=dist(w,t); if(a>0&&a<=range&&b<dt-3&&(!best||b<dist(best,t))) best=w; }
+          if(best){ t=best; stats.wg={x:best.x-p.x+wp.x,y:best.y-p.y+wp.y}; stats.wgAt=0; } } } }
     // near the walled town a greedy walk gets caught on the wall, so there the bot plans its way round
-    const nearTown=Math.max(Math.abs(p.x-s.town.x),Math.abs(p.y-s.town.y))<=5;
+    const nearTown=s.area===R.townArea(s)&&Math.max(Math.abs(p.x-s.town.x),Math.abs(p.y-s.town.y))<=5;
     if(!(nearTown?bfsStep(s,t.x,t.y):step(s,t))){ R.rest(s); }
     const dd=dist(p,t); if(t===lastTarget&&dd>=lastD){ if(++noProg>40){stats.stuck=true;break;} } else noProg=0; lastTarget=t; lastD=dd;
   }

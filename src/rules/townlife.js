@@ -4,7 +4,7 @@
    in play: the people's services and the lessons' and blessing's modifiers stop). */
 import { C, H, W, WALL, FLOOR, byId, clock, godOf, idx, on, say, srand, stream } from './core.js';
 import './interiors.js'; // the old town generator, kept for the switch
-import { GENERATORS, HOME, mapOf, worldMap, worldPos, homePos, outdoorRec } from './areas.js';
+import { GENERATORS, HOME, mapOf, townArea, worldMap, worldPos, homePos, outdoorRec } from './areas.js';
 import { AXES, learn, traitText } from './civ.js';
 import { dirFrom, siteHere, SITE_NAME } from './map.js';
 import { findSite, mark } from './quest.js';
@@ -248,7 +248,7 @@ function rumour(s) {
           ),
         );
     for (const k in m.sites)
-      if (m.sites[k].kind === 'spring' && m.sites[k].sure && !m.sites[k].known && id === HOME)
+      if (m.sites[k].kind === 'spring' && m.sites[k].sure && !m.sites[k].known && id === townArea(s))
         out.push(() => {
           m.sites[k].known = true;
           markIn(s, id, +k);
@@ -261,9 +261,9 @@ function rumour(s) {
   if (sh && !s.known.god)
     out.push(
       () => (
-        mark(s, sh.x, sh.y),
+        mark(s, sh.x, sh.y, sh.area),
         '"There is a shrine to the ' +
-          dirOf(s, HOME, sh.x, sh.y) +
+          dirOf(s, sh.area, sh.x, sh.y) +
           '. To ' +
           godOf(s).name +
           '. My mother would go there to ask for rain."'
@@ -287,7 +287,7 @@ function rumour(s) {
       learn(s, ax);
       return '"The ' + s.civ.name + '? ' + tx.label + ', my grandfather said. ' + tx.text + '"';
     });
-  const home = worldMap(s).creatures.filter((c) => !s.species[c.sp].met);
+  const home = mapOf(s, townArea(s)).creatures.filter((c) => !s.species[c.sp].met);
   if (home.length)
     out.push(() => {
       const sp = s.species[pick(home).sp];
@@ -401,7 +401,7 @@ function useService(s, optId, arg) {
     else it.suf = 'warding';
     say(s, 'The smith hands it back: ' + itemName(it) + '.', 'good');
   } else if (optId === 'mapHome') {
-    const m = worldMap(s);
+    const m = mapOf(s, townArea(s));
     m.seen.fill(1);
     for (const k in m.sites) m.sites[k].seen = true;
     say(s, 'A good map, on oiled cloth. Every place in this country is on it now.', 'good');
@@ -409,7 +409,7 @@ function useService(s, optId, arg) {
     let n = 0;
     for (const id in s.areas) {
       const m = mapOf(s, id);
-      if (id === HOME || s.areas[id].kind !== 'region' || !m) continue;
+      if (id === townArea(s) || s.areas[id].kind !== 'region' || !m) continue;
       for (const k in m.sites) if (['spring', 'ruin', 'cave'].includes(m.sites[k].kind)) markIn(s, id, +k), n++;
     }
     say(s, 'A map of the lands beyond, with ' + n + ' places marked. Half of it may even be right.', 'good');
@@ -426,7 +426,7 @@ on('did', (s, d) => {
   if (st && st.kind === 'temple' && !s.known.god) {
     s.known.god = true;
     const sh = findSite(s, 'shrine');
-    if (sh) mark(s, sh.x, sh.y);
+    if (sh) mark(s, sh.x, sh.y, sh.area);
   }
   if (st && st.kind === 'grave' && !st.read) {
     st.read = true;

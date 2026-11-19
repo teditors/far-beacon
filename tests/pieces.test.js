@@ -1,5 +1,5 @@
 // Checks for the commission's pieces: each one's own promises, in a few lines each.
-const { Rules: R } = require('./lib');
+const { Rules: R, goPlace } = require('./lib');
 const errs = [];
 const need = (c, m) => { if (!c) errs.push(m); };
 const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { const s = R.newGame(i); if (fn(s)) return s; } return null; };
@@ -26,7 +26,7 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   need(s, 'no world with a vow against fire');
   if (s) {
     const shrine = R.findSite(s, 'shrine');
-    s.player.x = shrine.x; s.player.y = shrine.y;
+    goPlace(s, shrine);
     need(R.pact(s), 'could not swear');
     const gift = R.byId(P.gifts, s.godRoll.gifts[0]).mods[0], before = R.godOf(s).mods.length;
     s.player.fuel = 3; s.player.warmth = 50;
@@ -47,7 +47,7 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
     for (const id in s.areas) if (s.areas[id].map) for (const k in s.areas[id].map.depots) n += s.areas[id].map.depots[k].items.filter((x) => x.art).length;
     need(n === 1, 'seed ' + i + ': the far artifact is in ' + n + ' places');
     const v = R.findSite(s, 'vault');
-    s.player.x = v.x; s.player.y = v.y; v.st.open = true; s.player.fuel = 5;
+    goPlace(s, v); v.st.open = true; s.player.fuel = 5;
     s.player.items.push(Object.assign({}, s.town.stock[0], { base: 'lantern', id: 999, eq: 'tool' }));
     need(R.enterVault(s), 'seed ' + i + ': could not enter the vault');
     for (let lv = 1; lv < v.st.floors.length; lv++) { const st = R.findHere(s, 'stairsDown'); s.player.x = st.x; s.player.y = st.y; s.combat = null; R.goDown(s); }
@@ -73,7 +73,7 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
       if (!s.areas[id] || !mapOf(s, id)) continue; // not built yet (a wide world)
       const m = mapOf(s, id), rr = s.regionRares[id], springs = Object.values(m.sites).filter((x) => x.kind === 'spring');
       seen[rr] = 1;
-      if (rr === 'empty') need(!m.creatures.length, 'seed ' + i + ': a silent region has creatures');
+      if (rr === 'empty') need(!m.creatures.filter((c) => !c.key).length, 'seed ' + i + ': a silent region has creatures');
       if (rr === 'sweet') need(springs.every((x) => !x.foul), 'seed ' + i + ': a sweet-watered region has a foul spring');
       if (rr === 'bitter') need(springs.every((x) => x.foul || x.sure), 'seed ' + i + ': a bitter region has a sweet spring');
       if (rr === 'teeming') need(m.creatures.length > 5, 'seed ' + i + ': a teeming region has few creatures');
@@ -135,7 +135,7 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   need(u && u.town.stock.filter((x) => x.mark).length >= 3, 'the people who never fell sell no marked gear');
   // walk in, find the elder, talk
   const d = R.townDoor(u);
-  u.player.x = d.x; u.player.y = d.y; u.creatures = [];
+  goPlace(u, { area: R.townArea(u), x: d.x, y: d.y }); u.creatures = [];
   need(R.move(u, 0, -1) && u.area === 'town', 'could not enter the town');
   const el = R.findHere(u, 'elder');
   u.player.x = el.x; u.player.y = el.y;
@@ -148,7 +148,7 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   let paid = 0, lied = 0, kinds = {};
   for (let i = 1; i <= 40; i++) {
     const s = R.newGame(i), d = R.townDoor(s);
-    s.player.x = d.x; s.player.y = d.y; s.creatures = [];
+    goPlace(s, { area: R.townArea(s), x: d.x, y: d.y }); s.creatures = [];
     R.move(s, 0, -1);
     const inn = R.findHere(s, 'inn');
     s.player.x = inn.x; s.player.y = inn.y;
@@ -217,7 +217,7 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
     need(s, 'no world has a first level of kind ' + kind);
     if (!s) continue;
     const v = R.findSite(s, 'vault');
-    s.player.x = v.x; s.player.y = v.y; v.st.open = true; s.player.fuel = 5; s.creatures = [];
+    goPlace(s, v); v.st.open = true; s.player.fuel = 5; s.creatures = [];
     s.player.items.push({ id: 998, base: 'lantern', known: true, carried: 0, eq: 'tool' });
     need(R.enterVault(s) && R.areaRec(s).floor === kind, kind + ': could not go in');
     need(s.log.slice(-3).some((l) => l.msg === R.C.floorKinds.list.concat(R.C.floorKinds.rare).find((k) => k.id === kind).text), kind + ': not told on arrival');
@@ -274,7 +274,7 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
     need(m.terrain[(R.H - 1) * R.W + 18] !== R.WALL, 'seed ' + i + ': the south way in is walled');
     // walk in, then visit everyone
     const d = R.townDoor(s);
-    s.player.x = d.x; s.player.y = d.y; s.creatures = [];
+    goPlace(s, { area: R.townArea(s), x: d.x, y: d.y }); s.creatures = [];
     need(R.move(s, 0, -1) && s.area === 'town', 'seed ' + i + ': could not walk in');
     s.player.coin = 999;
     for (const k in s.sites) {
@@ -324,5 +324,25 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   need(s.player.water >= 1, 'a hunter got no water from a kill');
   need(R.newGame(5, { roster: true }).offer.classes.length === 3, 'NO=roster still offers many classes');
 }
+// The plot across the world: the town, the locked place, the destination and the key each in a region other than home,
+// along a chain of neighbouring regions, with water and a road on the way, and directions that point the right way.
+{
+  let spread = 0;
+  for (let i = 1; i <= 60; i++) {
+    const s = R.newGame(i), v = R.findSite(s, 'vault'), g = s.quest.dest === 'beacon' ? s.goal : R.findSite(s, 'shrine');
+    const areas = [R.townArea(s), v.area, g.area];
+    need(areas.every((a) => a && a !== 'overworld'), 'seed ' + i + ': a place stayed home: ' + areas);
+    if (new Set(areas).size === 3) spread++; // a region with no room for one sends it on to the next
+    if (s.quest.key === 'ruin') need(R.keyRuin(s).area !== 'overworld', 'seed ' + i + ': the key ruin is at home');
+    if (s.quest.key === 'beast') need(R.beastOf(s) && R.beastOf(s).area !== 'overworld', 'seed ' + i + ': the beast is at home');
+    // the objective points at the town, and the well has a known spring and a road on the way out
+    const l = R.localPos(s, R.townArea(s), s.town.x, s.town.y), dir = R.objective(s).dir;
+    const want = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east'][((Math.round(Math.atan2(l.y - s.player.y, l.x - s.player.x) / (Math.PI / 4)) % 8) + 8) % 8];
+    need(dir === want, 'seed ' + i + ': the objective says ' + dir + ' but the town is ' + want);
+    need(Object.keys(s.road).length > 0, 'seed ' + i + ': no road out from home');
+  }
+  need(spread >= 54, 'places in three different regions in only ' + spread + ' of 60 worlds');
+  need(R.findSite(R.newGame(5, { plot: true }), 'vault').area === 'overworld', 'NO=plot still moved the locked place');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot');

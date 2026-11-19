@@ -19,7 +19,7 @@ import {
   terrainInfo,
 } from './map.js';
 import { gainXp, roll, weaponOf } from './progress.js';
-import { enterTown, hasItem, leaveTown } from './quest.js';
+import { enterTown, findSite, hasItem, leaveTown } from './quest.js';
 import {
   TOWN_GATE,
   inTownBlock,
@@ -33,6 +33,7 @@ import {
   wrap,
   worldMap,
   worldPos,
+  homePos,
 } from './areas.js';
 import { carryCap, stat, waterCap } from './stats.js';
 import { advance } from './systems.js';
@@ -506,7 +507,7 @@ function search(s) {
       s.player.coin += n;
       found.push(n + ' coin');
     }
-    if (s.quest.keyTile === here(s)) {
+    if (s.quest.keyTile === here(s) && (s.quest.keyArea || 'overworld') === s.area) {
       const k = makeItem(s, 'key', null, null, true);
       k.label = 'Key to the ' + s.quest.vault.name;
       d().items.push(k);
@@ -782,9 +783,10 @@ function forecast(s) {
 }
 function shrineBearing(s) {
   if (stat(s, 'shrineSense', 0) <= 0) return null;
-  const m = worldMap(s);
-  for (const k in m.sites) if (m.sites[k].kind === 'shrine') return dirFrom(worldPos(s), k % W, Math.floor(k / W));
-  return null;
+  const sh = findSite(s, 'shrine');
+  if (!sh) return null;
+  const p = homePos(s, sh.area, sh.x, sh.y);
+  return dirFrom(worldPos(s), p.x, p.y);
 }
 function wellfinder(s) {
   if (indoors(s) || stat(s, 'wellfinder', 0) <= 0) return null;

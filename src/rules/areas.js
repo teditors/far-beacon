@@ -55,8 +55,9 @@ function buildArea(s, rec) {
    open; a walled one has gates where its main streets meet the wall, always including the south one. */
 const TOWN_R = 2,
   TOWN_GATE = { x: W / 2, y: H - 1 }; // the gap in the town's own south wall
+const townArea = (s) => (s.town && s.town.area) || HOME; // the region the town stands in
 const inTownBlock = (s, x, y) =>
-  s.area === HOME && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
+  s.area === townArea(s) && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
 const townDoor = (s) => ({ x: s.town.x, y: s.town.y + TOWN_R + 1 });
 /* The town's own map exactly fills its block of outdoor tiles: each outdoor tile spans W / (2 * TOWN_R + 1) town tiles.
    Walking into the block from any side enters the town on the facing edge, at the matching place along it; walking off
@@ -195,6 +196,16 @@ function forgetMaps(s) {
   }
 }
 
+// A place in any region, in the frame of the region the player is in (or the door they came in by), going the short way
+// round the world. For directions and for walking toward places in other regions.
+function localPos(s, area, x, y) {
+  const here = outdoorRec(s),
+    there = s.areas[area] || here;
+  return {
+    x: x + wrapDelta(there.cx, here.cx, s.world.cols) * W,
+    y: y + wrapDelta(there.cy, here.cy, s.world.rows) * H,
+  };
+}
 // A place in any area, in home-region coordinates (for giving directions to it from anywhere).
 function homePos(s, areaId, x, y) {
   let rec = s.areas[areaId],
@@ -230,6 +241,8 @@ export {
   townEntry,
   townExit,
   homePos,
+  localPos,
+  townArea,
   campHere,
   AREA_FIELDS,
   GENERATORS,
