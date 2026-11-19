@@ -242,7 +242,7 @@ function arrive(s) {
       shrine: 'A shrine to ' + godOf(s).name + ', raised by ' + (s.known.civ ? civOf(s).name : 'a lost people') + '.',
       well: 'The well at your first camp.',
     }[st.kind];
-    say(s, txt);
+    if (txt) say(s, txt); // a piece's own kind of place tells itself
   }
 }
 function survey(s) {
@@ -339,7 +339,7 @@ function fill(s) {
     return true;
   }
   if (!st) return false;
-  if (st.kind === 'well' || st.kind === 'town') {
+  if (st.kind === 'well' || st.kind === 'town' || st.kind === 'hamlet') {
     advance(s, 15, 'rest');
     topUp(s);
     say(s, 'You fill up at the well.');
@@ -723,6 +723,7 @@ function actions(s) {
       a.push({ id: 'townAsk', section: 'shop', label: 'Trade with ' + s.town.merchant, hint: 'buy, sell, appraise' });
     if (
       st.kind === 'well' ||
+      st.kind === 'hamlet' ||
       (st.kind === 'ruin' && st.water > 0.05 && !st.foulWater) ||
       (st.kind === 'spring' && (!st.known || !st.foul))
     )

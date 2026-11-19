@@ -23,7 +23,7 @@ function farWater(s){ let best=null,bd=1e9; for(const id in s.areas){ if(id===s.
 // Every water it knows of, here and in the regions around, in this region's frame.
 function allWater(s){ const out=[]; for(const id in s.areas){ if(id===s.area||s.areas[id].kind!=='region'||!s.areas[id].map) continue; const m=s.areas[id].map;
     for(const k in m.sites){ const st=m.sites[k]; if(st.seen&&st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1)) out.push(R.localPos(s,id,k%W,Math.floor(k/W))); } }
-  for(const k in s.sites){ const st=s.sites[k]; if(st.seen&&(st.kind==='well'||(st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1)))) out.push({x:k%W,y:Math.floor(k/W)}); }
+  for(const k in s.sites){ const st=s.sites[k]; if(st.seen&&(st.kind==='well'||st.kind==='hamlet'||(st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1)))) out.push({x:k%W,y:Math.floor(k/W)}); }
   return out; }
 function knownWater(s){ let best=null,bd=1e9; { const f=farWater(s); if(f){best=f.p;bd=f.d;} } for(const k in s.sites){const st=s.sites[k]; if(!st.seen)continue; const ok=st.kind==='well'||st.kind==='town'||(st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1))||(st.kind==='ruin'&&st.water>0.5); if(!ok)continue; const p=st.kind==='town'?door(s):{x:k%W,y:Math.floor(k/W)},d=dist(p,s.player); if(d<bd){bd=d;best=p;}}
   for(let i=0;i<W*W;i++) if(s.seen[i]&&s.terrain[i]===4&&R.terrainInfo(s,4).drink){const p={x:i%W,y:Math.floor(i/W)},d=dist(p,s.player); if(d<bd){bd=d;best=p;}} return best?{p:best,d:bd}:null; }
@@ -34,7 +34,7 @@ function step(s,t){ const p=s.player, out=(o)=>o.x<0||o.y<0||o.x>=W||o.y>=W; // 
   trail.push(p.y*W+p.x); if(trail.length>10) trail.shift();
   opts.sort((a,b)=>a.score-b.score); return R.move(s,opts[0].dx,opts[0].dy); }
 function maintain(s,stats){ const p=s.player,st=R.siteHere(s);
-  if(st){ if(st.kind==='spring'||st.kind==='well'||st.kind==='town'||(st.kind==='ruin'&&st.water>0.05)){ if(st.kind==='spring'&&st.known&&st.foul){ if(p.fuel>=1)R.boil(s);} else if(st.kind==='ruin'&&st.foulWater){ if(p.fuel>=1)R.boil(s);} else R.fill(s);} 
+  if(st){ if(st.kind==='spring'||st.kind==='well'||st.kind==='hamlet'||st.kind==='town'||(st.kind==='ruin'&&st.water>0.05)){ if(st.kind==='spring'&&st.known&&st.foul){ if(p.fuel>=1)R.boil(s);} else if(st.kind==='ruin'&&st.foulWater){ if(p.fuel>=1)R.boil(s);} else R.fill(s);} 
     if(['ruin','cave','cache'].includes(st.kind)&&!st.searched&&p.stamina>35) { R.search(s); stats.searches++; }
  }
   const d=R.depotHere(s); if(d){ for(const it of d.items.slice()){ const b=R.byId(R.C.bases,it.base); if(b.quest||b.consumable||(R.slotOf(it)&&!p.items.some(i=>i.eq===R.slotOf(it))&&R.weight(s)+R.itemWeight(s,it)<R.carryCap(s)*0.7)||it.base==='waterskin') R.takeItem(s,it.id);} if(d.fuel)R.transfer(s,'fuel',-9); if(d.water)R.transfer(s,'water',-9);}

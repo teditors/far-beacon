@@ -27,7 +27,12 @@ const groundHere = (s) => terrainInfo(s, s.terrain[here(s)]);
 const siteHere = (s) => s.sites[here(s)] || null;
 const isShelter = (site) =>
   !!site &&
-  (site.kind === 'cave' || site.kind === 'ruin' || site.kind === 'well' || site.kind === 'town' || site.kind === 'vault');
+  (site.kind === 'cave' ||
+    site.kind === 'ruin' ||
+    site.kind === 'well' ||
+    site.kind === 'town' ||
+    site.kind === 'vault' ||
+    site.kind === 'hamlet');
 const inShelter = (s) => indoors(s) || isShelter(siteHere(s));
 const atCamp = (s) => campHere(s) === here(s);
 const passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL && !inTownBlock(s, x, y);

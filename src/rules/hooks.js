@@ -10,7 +10,9 @@ const NOTES = [];
 const SKETCHERS = [];
 // ACTIONS: functions (s, site, list) that may push buttons onto the list of actions for where the player stands.
 const ACTIONS = [];
+// TALK: { info(s), use(s, option, arg) } for people a piece puts in the world; the first whose info(s) answers speaks.
+const TALK = [];
 const LOADERS = [];
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
-export { NOTES, SWITCHES, SKETCHERS, LOADERS, ACTIONS, worldNotes };
+export { NOTES, SWITCHES, SKETCHERS, LOADERS, ACTIONS, TALK, worldNotes };

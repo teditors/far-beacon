@@ -344,5 +344,32 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   need(spread >= 54, 'places in three different regions in only ' + spread + ' of 60 worlds');
   need(R.findSite(R.newGame(5, { plot: true }), 'vault').area === 'overworld', 'NO=plot still moved the locked place');
 }
+// Hamlets: in some regions away from home, with water, shelter, a bed and goods.
+{
+  let n = 0, used = 0;
+  for (let i = 1; i <= 20; i++) {
+    const s = R.newGame(i);
+    for (const id in s.areas) {
+      const m = s.areas[id].map;
+      if (!m || !m.sites || id === 'overworld') continue;
+      for (const k in m.sites) {
+        if (m.sites[k].kind !== 'hamlet') continue;
+        n++;
+        if (used) continue;
+        goPlace(s, { area: id, x: k % R.W, y: Math.floor(k / R.W) });
+        s.player.water = 0; s.player.coin = 50; s.creatures = [];
+        need(R.inShelter(s), 'a hamlet is not shelter');
+        need(R.fill(s) && s.player.water > 1, 'no water at a hamlet');
+        need(R.actions(s).some((a) => a.section === 'hamlet'), 'no button to talk in a hamlet');
+        const info = R.serviceInfo(s);
+        need(info && info.options.length >= 3, 'a hamlet has nothing to offer');
+        s.player.hp = 1;
+        need(R.useService(s, 'bed') && s.player.hp === s.player.hpMax, 'a bed in a hamlet did not heal');
+        used++;
+      }
+    }
+  }
+  need(n > 20 && used, 'only ' + n + ' hamlets in 20 worlds');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets');

@@ -544,6 +544,7 @@ const MAPC = {
   elder: '#b8443c',
   inn: '#8a6a1f',
   shop: '#2f7fb5',
+  hamlet: '#d8c9a0',
   trap: '#e0302a',
 };
 const INDOOR_COLS = { 6: '#3a3631', 7: '#9a948a' };

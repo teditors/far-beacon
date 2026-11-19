@@ -11,7 +11,7 @@ import { findSite, mark } from './quest.js';
 import { isCursed, itemName, makeItem } from './items.js';
 import { gainXp } from './progress.js';
 import { SOURCES, stat } from './stats.js';
-import { ACTIONS, NOTES, SWITCHES } from './hooks.js';
+import { ACTIONS, NOTES, SWITCHES, TALK } from './hooks.js';
 
 const L = () => C.townLife;
 const SERVICE_IDS = () => L().services.map((x) => x.id);
@@ -298,6 +298,10 @@ function rumour(s) {
 
 // What a person says and offers: { title, text: [...], options: [{ id, label, price, arg, note }] }.
 function serviceInfo(s) {
+  for (const t of TALK) {
+    const i = t.info(s);
+    if (i) return i;
+  }
   const st = siteHere(s);
   if (!st || s.off.townlife || s.area !== 'town') return null;
   const p = s.player,
@@ -370,6 +374,7 @@ function serviceInfo(s) {
   return { title: st.name + ', ' + sv.role, text, options: opt };
 }
 function useService(s, optId, arg) {
+  for (const t of TALK) if (t.info(s)) return t.use(s, optId, arg);
   const info = serviceInfo(s),
     o = info && info.options.find((x) => x.id === optId && (arg === undefined || x.arg === arg));
   if (!o || s.over) return false;
@@ -469,4 +474,4 @@ NOTES.push((s) => {
   return out;
 });
 
-export { serviceInfo, useService };
+export { serviceInfo, useService, rumour };

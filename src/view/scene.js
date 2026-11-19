@@ -57,6 +57,30 @@ const BUILD = {
     g.add(m, d);
     return g;
   },
+  hamlet() {
+    // a few small houses round a well
+    const g = new THREE.Group(),
+      wall = std(0xb8a888),
+      roof = std(0x6a4a32);
+    g.add(BUILD.well());
+    for (const [x, z, r] of [
+      [-5, -3, 0.3],
+      [4, -4, -0.4],
+      [5, 4, 1.2],
+      [-4, 5, 2],
+    ]) {
+      const h = new THREE.Group();
+      h.add(box(4, 2.6, 3.2, wall, 0, 1.3, 0));
+      const top = new THREE.Mesh(new THREE.ConeGeometry(3.2, 2, 4), roof);
+      top.position.y = 3.6;
+      top.rotation.y = Math.PI / 4;
+      h.add(top);
+      h.position.set(x, 0, z);
+      h.rotation.y = r;
+      g.add(h);
+    }
+    return g;
+  },
   cache() {
     const g = new THREE.Group(),
       s = std(0x6b675f);

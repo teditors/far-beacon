@@ -24,6 +24,7 @@ import lairs from './lairs.js';
 import farfinds from './farfinds.js';
 import townlife from './townlife.js';
 import roster from './roster.js';
+import hamlets from './hamlets.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -51,4 +52,5 @@ export const CONTENT = Object.assign(
   farfinds,
   townlife,
   roster,
+  hamlets,
 );

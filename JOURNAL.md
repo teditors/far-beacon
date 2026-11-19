@@ -2,6 +2,25 @@
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
 
+## C2.6: hamlets
+
+**What it is.** About half the regions away from home have a hamlet: a few turf-roofed houses round a well, by a road
+when there is one. You can draw water there, sleep under a roof, pay 3 coin for a bed by the fire (eight hours, you
+wake whole), buy wood, a salve, a tonic, a draught or a waterskin, and hear a rumour that marks a real place (the same
+rumours as the townsfolk of C2.2). Told when you first walk in, listed in the Journal, drawn as houses round a well,
+and marked on the map.
+
+**In play.** The country between the places of the story has people in it, and the long legs of C2.4 have somewhere
+to stop. Bot win rate, sets 5 / 1000 / 2000: 7, 5, 5 (17, against 19 before: the bot does not seek them out).
+
+**Commits.** "Hamlets". Switch: `hamlets` (when a region is built; in play it stops the trading and beds).
+
+**Shared bricks.** `TALK` in hooks.js: `{ info(s), use(s, option, arg) }` for anyone a piece puts in the world; the
+one dialog (`serviceInfo` / `useService`) asks them first. `arrive()` no longer says anything for a kind of place it
+does not know, so a piece's own kind of place can speak for itself.
+
+**Verdict: pearl.** Cheap, and the world feels inhabited.
+
 ## C2.5: one map
 
 **What it is.** Outdoors, the Map screen is now the whole world as one continuous map, drawn tile by tile from every

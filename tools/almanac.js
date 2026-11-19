@@ -541,6 +541,13 @@ section('The roster', ['roster'], () => {
   );
 });
 
+section('Hamlets', ['hamlets'], () => {
+  const X = C.hamlets;
+  line(Math.round(X.chance * 100) + '% of regions away from home have a hamlet: a well, shelter, a bed for ' + X.bed + ' coin, wood for ' + X.fuel + ', and a rumour. Named ' + X.a.join('/') + ' + ' + X.b.join('/') + '.');
+  line();
+  table(['Goods', 'Price'], X.goods.map((g) => [g.base, g.price]));
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

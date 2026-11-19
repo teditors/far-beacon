@@ -113,6 +113,7 @@ import './lairs.js';
 import './farfinds.js';
 import { serviceInfo, useService } from './townlife.js';
 import { classMove } from './roster.js';
+import './hamlets.js';
 import './plot.js'; // last: it moves quest places that earlier pieces may have changed
 
 const api = {
