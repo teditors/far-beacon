@@ -2,6 +2,25 @@
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
 
+## C2.5: one map
+
+**What it is.** Outdoors, the Map screen is now the whole world as one continuous map, drawn tile by tile from every
+region you have seen, with fog where you have not been, the roads, every place you know of, your camp and you.
+There is no grid of squares and no border lines (you see a border only where the land itself changes). It is
+centred on you and wraps around like the world. Drag to look around; + and - zoom from a close view to more than the
+whole world; "Centre on me" brings it back. Inside the town or the locked place the map shows that place as before.
+
+**In play.** You can see the whole journey at once: the road to the town, the springs the elder marked across three
+regions, the locked place two countries away. No change for the bot.
+
+**Commits.** "One map". No switch: it replaces the old map screen.
+
+**Choices made without asking.** The zoom and pan are kept between openings of the map (in the view, not the save).
+The rare-country marks of C1 piece 5 are gone from the map with the grid; rare countries are still told in the log
+and the Journal.
+
+**Verdict: pearl.**
+
 ## C2.4: the plot across the world
 
 **What it is.** The quest's places no longer all lie in the home region. You set out from the well at home; the town
