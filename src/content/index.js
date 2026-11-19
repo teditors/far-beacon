@@ -14,6 +14,7 @@ import artifacts from './artifacts.js';
 import regionRares from './regionrares.js';
 import specials from './specials.js';
 import exotics from './exotics.js';
+import towns from './towns.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -31,4 +32,5 @@ export const CONTENT = Object.assign(
   regionRares,
   specials,
   exotics,
+  towns,
 );

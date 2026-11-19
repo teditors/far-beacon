@@ -3,6 +3,33 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 8: town cultures
+
+**What it is.** The town's living people are now a trade and a custom. Trades: smiths (weapons and armor cheaper, and
+more of them), herbalists (cheap salves and draughts), weavers, charcoal-burners (cheap, plentiful fuel) or traders
+(they buy at a better price). Customs: hospitable (a bed costs almost nothing), suspicious of strangers (everything
+costs more, but the elder marks every spring near the town), pious (the elder marks the shrine and tells the god's
+terms), keepers of old lore (the elder tells you everything about the lost people) or thrifty. One town in eight is
+rare: a town of pilgrims (free beds, the shrine marked), or **the people who never fell**: the town is of the lost
+people themselves, named in their tongue, with their own marked gear in the shop, and the elder says "You think the
+Urashki are gone? We are the Urashki. We only stopped building." You are told the town's culture at the gate.
+
+**In play.** The town is no longer the same shop in every world, and the elder's first talk gives different help.
+Bot win rate, sets 5 / 1000 / 2000: 15, 24, 23 with cultures; 16, 23, 21 without (62 vs 60: no change).
+
+**Commits.** "Town cultures". Switch: `towns`.
+
+**Shared bricks.** The town's prices now go through the stat stack as `town.innPrice`, `town.fuelPrice`,
+`town.appraisePrice`, `town.sellRate`, `town.buy` and `town.buy.<weapon|armor|consumable|gear>`, read with
+`priceOf(s, key)` and `buyPrice(s, item)` in quest.js; `sellPrice(item, s)` takes the state. The shop screen uses them.
+
+**Choices made without asking.**
+- "Lost-people slots reused for the living" is done only for the rare unfallen town (name, people, marked gear). A
+  living culture with its own five traits would be the next step, once there are towns beyond home.
+- The elder's extra help happens on the first talk only, after the quest is given.
+
+**Verdict: pearl** for the unfallen town; **maybe** for the trades and customs, which are useful but quiet.
+
 ## Piece 7: exotic races and classes
 
 **What it is.** One world in five offers an exotic race in place of one of the usual three, and one in five an exotic

@@ -1881,6 +1881,100 @@
     ]
   };
 
+  // src/content/towns.js
+  var towns_default = {
+    townCulture: {
+      rareChance: 0.12,
+      trades: [
+        {
+          id: "smiths",
+          name: "smiths",
+          text: "Weapons and armor are cheap here, and there are more of them.",
+          mods: [
+            { stat: "town.buy.weapon", op: "mul", value: 0.7 },
+            { stat: "town.buy.armor", op: "mul", value: 0.7 }
+          ],
+          stock: { bases: ["sword", "spear", "axe", "leather", "mail"], n: 2 }
+        },
+        {
+          id: "herbalists",
+          name: "herbalists",
+          text: "Salves, tonics and draughts are cheap and plentiful.",
+          mods: [{ stat: "town.buy.consumable", op: "mul", value: 0.6 }],
+          stock: { bases: ["salve", "tonic", "draught", "salve"], n: 4 }
+        },
+        {
+          id: "weavers",
+          name: "weavers",
+          text: "Cloaks, packs and waterskins are cheap here.",
+          mods: [{ stat: "town.buy.gear", op: "mul", value: 0.8 }],
+          stock: { bases: ["cloak", "waterskin", "framepack"], n: 2 }
+        },
+        {
+          id: "charcoal",
+          name: "charcoal-burners",
+          text: "Fuel is cheap and there is a great deal of it.",
+          mods: [{ stat: "town.fuelPrice", op: "mul", value: 0.5 }],
+          fuel: 12
+        },
+        {
+          id: "traders",
+          name: "traders",
+          text: "They buy anything, at a better price than most.",
+          mods: [{ stat: "town.sellRate", op: "mul", value: 1.5 }],
+          stock: { bases: ["compass", "spyglass", "rope", "lantern"], n: 2 }
+        }
+      ],
+      customs: [
+        {
+          id: "hospitable",
+          name: "hospitable",
+          text: "A bed at the inn costs almost nothing.",
+          mods: [{ stat: "town.innPrice", op: "mul", value: 0.4 }]
+        },
+        {
+          id: "suspicious",
+          name: "suspicious of strangers",
+          text: "Everything costs more, but the elder marks every spring near the town on your map.",
+          mods: [{ stat: "town.buy", op: "mul", value: 1.3 }],
+          elder: "springs"
+        },
+        { id: "pious", name: "pious", text: "The elder tells you of the god of this land and marks its shrine.", elder: "shrine" },
+        {
+          id: "lore",
+          name: "keepers of old lore",
+          text: "The elder tells you everything known about the lost people.",
+          elder: "lore"
+        },
+        {
+          id: "thrifty",
+          name: "thrifty",
+          text: "Appraisal is free, and they drive a hard bargain when buying.",
+          mods: [
+            { stat: "town.appraisePrice", op: "mul", value: 0 },
+            { stat: "town.sellRate", op: "mul", value: 0.75 }
+          ]
+        }
+      ],
+      rares: [
+        {
+          id: "unfallen",
+          name: "the people who never fell",
+          text: "This town is of the lost people themselves: they did not fall, they only stopped building. They tell you all they are, and their shop is full of their own marked gear.",
+          elder: "lore",
+          marked: 3
+        },
+        {
+          id: "pilgrims",
+          name: "pilgrims",
+          text: "A town of pilgrims to the shrine. They tell you its terms and mark it, and every bed is free.",
+          elder: "shrine",
+          mods: [{ stat: "town.innPrice", op: "mul", value: 0 }]
+        }
+      ]
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -1897,7 +1991,8 @@
     artifacts_default,
     regionrares_default,
     specials_default,
-    exotics_default
+    exotics_default,
+    towns_default
   );
 
   // src/rules/core.js
@@ -3177,8 +3272,15 @@
     if (it.art && C.artifacts) v += C.artifacts.value;
     return Math.max(1, v);
   }
+  var townNum = (s, k) => stat(s, "town." + k, C.town[k]);
+  var priceOf = (s, k) => Math.max(0, Math.round(townNum(s, k)));
+  var wareKind = (it) => {
+    const b = byId(C.bases, it.base);
+    return b.weapon ? "weapon" : b.consumable ? "consumable" : ["armor", "cloak", "boots"].includes(b.slot) ? "armor" : "gear";
+  };
+  var buyPrice = (s, it) => Math.max(1, Math.round(itemValue(it) * stat(s, "town.buy", 1) * stat(s, "town.buy." + wareKind(it), 1)));
   function makeQuest(s, r, townP, vaultP, a0, goalP) {
-    const Q = C.quest, T = C.town, pick = (a) => a[Math.floor(r() * a.length)];
+    const Q = C.quest, T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
     const race = pick(C.races.filter((e) => !e.exotic)), q = s.quest = {
       key: pick(Q.keys),
       vault: pick(Q.vaults),
@@ -3191,17 +3293,17 @@
     s.town = {
       x: townP.x,
       y: townP.y,
-      name: pick(T.a) + pick(T.b),
+      name: pick(T2.a) + pick(T2.b),
       race: race.id,
       elder: pick(race.names),
       merchant: pick(race.names),
-      fuel: T.fuel,
+      fuel: T2.fuel,
       stock: [],
       speech: []
     };
     while (s.town.merchant === s.town.elder) s.town.merchant = pick(race.names);
-    for (const b of T.staples) s.town.stock.push(makeItem(s, b, null, null, true));
-    for (let i = 0; i < T.stock; i++) {
+    for (const b of T2.staples) s.town.stock.push(makeItem(s, b, null, null, true));
+    for (let i = 0; i < T2.stock; i++) {
       const it = genItem(s, { noConsumables: i < 3 });
       it.known = true;
       s.town.stock.push(it);
@@ -3369,7 +3471,7 @@
     if (s.over || !atTown(s)) return false;
     const t = s.town, i = t.stock.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const price = itemValue(t.stock[i]);
+    const price = buyPrice(s, t.stock[i]);
     if (s.player.coin < price) {
       say(s, "You cannot afford that.");
       return false;
@@ -3384,21 +3486,21 @@
   function buyFuel(s) {
     const t = s.town;
     if (s.over || !atTown(s) || t.fuel < 1) return false;
-    if (s.player.coin < C.town.fuelPrice) {
+    if (s.player.coin < priceOf(s, "fuelPrice")) {
       say(s, "You cannot afford that.");
       return false;
     }
-    s.player.coin -= C.town.fuelPrice;
+    s.player.coin -= priceOf(s, "fuelPrice");
     t.fuel--;
     s.player.fuel += 1;
     return true;
   }
-  var sellPrice = (it) => itemValue(it) ? it.known ? Math.max(1, Math.floor(itemValue(it) * C.town.sellRate)) : 3 : 0;
+  var sellPrice = (it, s) => itemValue(it) ? it.known ? Math.max(1, Math.floor(itemValue(it) * (s ? townNum(s, "sellRate") : C.town.sellRate))) : 3 : 0;
   function sell(s, id) {
     if (s.over || !atTown(s)) return false;
     const i = s.player.items.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const it = s.player.items[i], price = sellPrice(it);
+    const it = s.player.items[i], price = sellPrice(it, s);
     if (!price) {
       say(s, "No one here will buy that.");
       return false;
@@ -3416,22 +3518,22 @@
     if (s.over || !atTown(s)) return false;
     const it = s.player.items.find((x) => x.id === id);
     if (!it || it.known) return false;
-    if (s.player.coin < C.town.appraisePrice) {
+    if (s.player.coin < priceOf(s, "appraisePrice")) {
       say(s, "You cannot afford that.");
       return false;
     }
-    s.player.coin -= C.town.appraisePrice;
+    s.player.coin -= priceOf(s, "appraisePrice");
     it.known = true;
     say(s, s.town.merchant + " turns it over twice: " + itemName(it) + ".", isCursed(it) ? "bad" : "good");
     return true;
   }
   function inn(s) {
     if (s.over || !atTown(s)) return false;
-    if (s.player.coin < C.town.innPrice) {
+    if (s.player.coin < priceOf(s, "innPrice")) {
       say(s, "You cannot afford a bed.");
       return false;
     }
-    s.player.coin -= C.town.innPrice;
+    s.player.coin -= priceOf(s, "innPrice");
     const p = s.player, w = p.water;
     for (let i = 0; i < 8 && !s.over; i++) restHour(s);
     if (s.over) return true;
@@ -4837,20 +4939,20 @@
   var statsOf = (list) => new Set(list.flatMap((e) => e.mods.map((m) => m.stat)));
   var sum = (list) => list.reduce((a, e) => a + e.worth, 0);
   function rollGod(seed) {
-    const r = stream(seed, "pantheon"), pick = (a) => a[Math.floor(r() * a.length)], T = P(), rare = r() < T.rareChance ? pick(T.rares) : null, gifts = [pick(T.gifts)];
+    const r = stream(seed, "pantheon"), pick = (a) => a[Math.floor(r() * a.length)], T2 = P(), rare = r() < T2.rareChance ? pick(T2.rares) : null, gifts = [pick(T2.gifts)];
     if (rare && rare.id !== "generous") {
-      const other = T.gifts.filter((g) => g.domain !== gifts[0].domain);
+      const other = T2.gifts.filter((g) => g.domain !== gifts[0].domain);
       gifts.push(pick(other));
     }
     let vow = null;
-    if (rare && rare.id === "jealous" || !rare && r() < T.vowChance) vow = pick(T.vows);
+    if (rare && rare.id === "jealous" || !rare && r() < T2.vowChance) vow = pick(T2.vows);
     let costs = [];
     if (!rare || rare.id === "twin") {
-      const taken = statsOf(gifts), ok = T.costs.filter((c) => ![...statsOf([c])].some((st) => taken.has(st))), n = gifts.length, combos = n === 1 ? ok.map((c) => [c]) : ok.flatMap((a, i) => ok.slice(i + 1).map((b) => [a, b])), score = (cs) => Math.abs(sum(gifts) + (vow ? vow.worth : 0) + sum(cs) - T.target), fit = combos.filter((cs) => score(cs) <= T.spread);
-      costs = fit.length ? pick(fit) : score([]) <= T.spread ? [] : combos.sort((a, b) => score(a) - score(b))[0] || [];
+      const taken = statsOf(gifts), ok = T2.costs.filter((c) => ![...statsOf([c])].some((st) => taken.has(st))), n = gifts.length, combos = n === 1 ? ok.map((c) => [c]) : ok.flatMap((a, i) => ok.slice(i + 1).map((b) => [a, b])), score = (cs) => Math.abs(sum(gifts) + (vow ? vow.worth : 0) + sum(cs) - T2.target), fit = combos.filter((cs) => score(cs) <= T2.spread);
+      costs = fit.length ? pick(fit) : score([]) <= T2.spread ? [] : combos.sort((a, b) => score(a) - score(b))[0] || [];
     }
-    const dom = byId(T.domains, gifts[0].domain), one = (d) => pick(T.names.a) + pick(T.names.b) + ", " + pick(d.titles);
-    const name = rare && rare.id === "twin" ? pick(T.names.a) + pick(T.names.b) + " and " + pick(T.names.a) + pick(T.names.b) + ", the Twins" : one(dom);
+    const dom = byId(T2.domains, gifts[0].domain), one = (d) => pick(T2.names.a) + pick(T2.names.b) + ", " + pick(d.titles);
+    const name = rare && rare.id === "twin" ? pick(T2.names.a) + pick(T2.names.b) + " and " + pick(T2.names.a) + pick(T2.names.b) + ", the Twins" : one(dom);
     return {
       name,
       domain: dom.id,
@@ -4863,11 +4965,11 @@
   function rolledGod(s) {
     const g = s.godRoll;
     if (!g || s.off.godslots) return null;
-    const T = P(), gifts = g.gifts.map((id) => byId(T.gifts, id)), costs = g.costs.map((id) => byId(T.costs, id)), vow = g.vow ? byId(T.vows, g.vow) : null, rare = g.rare ? byId(T.rares, g.rare) : null, broken = !!s.pactBroken;
+    const T2 = P(), gifts = g.gifts.map((id) => byId(T2.gifts, id)), costs = g.costs.map((id) => byId(T2.costs, id)), vow = g.vow ? byId(T2.vows, g.vow) : null, rare = g.rare ? byId(T2.rares, g.rare) : null, broken = !!s.pactBroken;
     return {
       id: s.god,
       name: g.name,
-      color: byId(T.domains, g.domain).color,
+      color: byId(T2.domains, g.domain).color,
       rolled: true,
       vow,
       rare,
@@ -5070,6 +5172,90 @@
     }))
   );
 
+  // src/rules/towns.js
+  var T = () => C.townCulture;
+  var partsOf = (s) => {
+    const c = s.townCulture;
+    if (!c || s.off.towns) return [];
+    return [byId(T().trades, c.trade), byId(T().customs, c.custom), c.rare ? byId(T().rares, c.rare) : null].filter(Boolean);
+  };
+  var describe = (s) => {
+    const c = s.townCulture, tr = byId(T().trades, c.trade), cu = byId(T().customs, c.custom), ra = c.rare ? byId(T().rares, c.rare) : null;
+    return (ra ? s.town.name + " is a town of " + ra.name + ". " + ra.text + " " : "") + "Its people are " + tr.name + ", and " + cu.name + ". " + tr.text + " " + cu.text;
+  };
+  on("worldBorn", (s, d) => {
+    if (d.off.towns) return;
+    const r = stream(s.seed, "townCulture"), pick = (a) => a[Math.floor(r() * a.length)], X = T(), rare = r() < X.rareChance ? pick(X.rares) : null, trade = pick(X.trades), custom = pick(X.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
+    s.townCulture = { trade: trade.id, custom: custom.id, rare: rare ? rare.id : null };
+    if (trade.stock)
+      for (let i = 0; i < trade.stock.n; i++) s.town.stock.push(makeItem(s, pick(trade.stock.bases), null, null, true));
+    if (trade.fuel) s.town.fuel += trade.fuel;
+    if (rare && rare.marked) {
+      const st = byId(C.civ.style, s.civ.style);
+      s.town.name = pick(st.a) + pick(st.b) + pick(st.c);
+      s.town.elder = pick(st.a) + pick(st.b);
+      s.town.merchant = pick(st.a) + pick(st.b);
+      s.town.lost = true;
+      for (let i = 0; i < rare.marked; i++) {
+        const it = genItem(s, { civ: true, noConsumables: true });
+        it.mark = s.civ.affinity;
+        it.markName = s.civ.name;
+        it.known = true;
+        s.town.stock.push(it);
+      }
+    }
+  });
+  SOURCES.push({
+    id: "towns",
+    fn(s, out) {
+      for (const p of partsOf(s)) for (const m of p.mods || []) out.push(m);
+    }
+  });
+  on("did", (s, d) => {
+    if (!s.townCulture || s.off.towns) return;
+    if (s.area === "town" && !s.townCulture.told) {
+      s.townCulture.told = true;
+      say(s, describe(s), "good");
+    }
+    if (d.id !== "talkElder" || s.townCulture.elderDone) return;
+    s.townCulture.elderDone = true;
+    const sp = s.town.speech;
+    for (const p of partsOf(s)) {
+      if (p.elder === "lore") {
+        for (const ax of AXES) learn(s, ax);
+        s.known.civ = true;
+        sp.push(
+          s.town.lost ? '"You think the ' + s.civ.name + " are gone? We are the " + s.civ.name + '. We only stopped building. Ask, and I will tell you all we were."' : '"We keep the old lore here. Sit, and I will tell you all we know of the ' + s.civ.name + '."'
+        );
+      }
+      if (p.elder === "shrine") {
+        const sh = findSite(s, "shrine");
+        if (sh) {
+          mark(s, sh.x, sh.y);
+          s.known.god = true;
+          sp.push('"The shrine of ' + godOf(s).name + " is marked on your map. Its terms are these: " + godOf(s).terms + '"');
+        }
+      }
+      if (p.elder === "springs") {
+        const m = worldMap(s);
+        let n = 0;
+        for (const k in m.sites)
+          if (m.sites[k].kind === "spring" && Math.max(Math.abs(k % W - s.town.x), Math.abs(Math.floor(k / W) - s.town.y)) <= 8) {
+            m.sites[k].known = true;
+            mark(s, k % W, Math.floor(k / W));
+            n++;
+          }
+        sp.push(
+          '"We do not trust strangers. But nobody should die of thirst: here are the ' + n + ' springs near us, and which are foul."'
+        );
+      }
+    }
+  });
+  SWITCHES.push(["towns", "Town cultures"]);
+  NOTES.push(
+    (s) => s.townCulture && s.townCulture.told && !s.off.towns ? [{ label: "The people of " + s.town.name, text: describe(s) }] : []
+  );
+
   // src/rules/index.js
   var api = {
     worldNotes,
@@ -5184,6 +5370,8 @@
     findHere,
     offer,
     itemValue,
+    buyPrice,
+    priceOf,
     hasItem,
     atTown,
     findSite,
@@ -5375,10 +5563,10 @@
     return land;
   }
   function makeTerrain(s) {
-    const land = landAround(s), r = mulberry2(s.seed ^ 5370206), T = new Float32Array(4096);
-    for (let i = 0; i < 4096; i++) T[i] = r();
+    const land = landAround(s), r = mulberry2(s.seed ^ 5370206), T2 = new Float32Array(4096);
+    for (let i = 0; i < 4096; i++) T2[i] = r();
     const noise = (per, salt) => {
-      const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
+      const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T2[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
       return (x, z) => {
         const u = ((x + HALF) / WORLD + land.cx) * per, v = ((z + HALF) / WORLD + land.cy) * per, x0 = Math.floor(u), z0 = Math.floor(v), tx = smooth(u - x0), tz = smooth(v - z0);
         return (at(x0, z0) * (1 - tx) + at(x0 + 1, z0) * tx) * (1 - tz) + (at(x0, z0 + 1) * (1 - tx) + at(x0 + 1, z0 + 1) * tx) * tz;
@@ -5642,7 +5830,7 @@
   var FLAT = { height: () => 0 };
   var VAULT_STONE = { castle: 6973024, barrow: 6122058, temple: 5205612 };
   function interiorGroup(map, rec, ts) {
-    const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T = map.terrain, at = (t) => (t + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
+    const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T2 = map.terrain, at = (t) => (t + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T2[y * R.W + x] === R.WALL;
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 9407104 : 4078133));
     floor.position.y = town ? 0.08 : 0;
     group.add(floor);
@@ -5776,17 +5964,17 @@
       return;
     }
     V.base = makeTerrain(V.S);
-    const T = V.base, land = T.land, pal = land.biomes.map((b) => ({
+    const T2 = V.base, land = T2.land, pal = land.biomes.map((b) => ({
       cols: b.colors.map((c2) => new THREE.Color(c2)),
       lush: new THREE.Color(b.id === "taiga" ? 6126200 : 6261317)
     })), paved = new THREE.Color(9210502), c = new THREE.Color(), cb = new THREE.Color(), lush = new THREE.Color(), centre = (t) => (t + 0.5) * TS - HALF, springs = land.sites.filter((q2) => q2.st.kind === "spring").map((q2) => ({ x: centre(q2.x), z: centre(q2.y) }));
     const colourAt = (x, z) => {
-      const l = T.level(x, z), mv = [T.masks[0](x, z), T.masks[1](x, z), T.masks[2](x, z)];
+      const l = T2.level(x, z), mv = [T2.masks[0](x, z), T2.masks[1](x, z), T2.masks[2](x, z)];
       let total = 0;
       c.setRGB(0, 0, 0);
       lush.setRGB(0, 0, 0);
       for (let b = 0; b < pal.length; b++) {
-        const w = pal.length === 1 ? 1 : T.share[b](x, z);
+        const w = pal.length === 1 ? 1 : T2.share[b](x, z);
         if (w < 2e-3) continue;
         const cols = pal[b].cols;
         if (l <= 1) cb.copy(cols[0]).lerp(cols[1], Math.max(0, l));
@@ -5802,8 +5990,8 @@
       }
       c.multiplyScalar(1 / total);
       lush.multiplyScalar(1 / total);
-      if (T.roadAt(x, z)) c.lerp(paved, 0.85);
-      c.multiplyScalar(0.88 + 0.2 * T.tint(x, z));
+      if (T2.roadAt(x, z)) c.lerp(paved, 0.85);
+      c.multiplyScalar(0.88 + 0.2 * T2.tint(x, z));
       for (const s of springs) {
         const dx = s.x - x, dz = s.z - z;
         if (dx > 34 || dx < -34 || dz > 34 || dz < -34) continue;
@@ -5837,29 +6025,29 @@
         new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 }))
       );
     };
-    ground(T.fine, 0, false);
-    ground(T.coarse, SINK, true);
+    ground(T2.fine, 0, false);
+    ground(T2.coarse, SINK, true);
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []);
     const townSite = land.sites.find((q2) => q2.st.kind === "town"), townHalf = R.W * TOWN_TS / 2;
-    if (townSite) V.townAt = { x: centre(townSite.x), y: T.height(centre(townSite.x), centre(townSite.y)), z: centre(townSite.y) };
+    if (townSite) V.townAt = { x: centre(townSite.x), y: T2.height(centre(townSite.x), centre(townSite.y)), z: centre(townSite.y) };
     const nearSite = (x, z) => {
       if (V.townAt && Math.abs(x - V.townAt.x) < townHalf + 4 && Math.abs(z - V.townAt.z) < townHalf + 4) return true;
-      const site = land.siteAt[T.etile(x, z)];
+      const site = land.siteAt[T2.etile(x, z)];
       return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;
     };
     const put = (list, x, z, sx, sy, lift, rx, ry, rz) => {
       e.set(rx, ry, rz);
       q.setFromEuler(e);
       sc.set(sx, sy, sx);
-      v.set(x, T.height(x, z) + lift, z);
+      v.set(x, T2.height(x, z) + lift, z);
       m.compose(v, q, sc);
       for (let i = 0; i < 16; i++) list.push(m.elements[i]);
     };
     for (let ey = 0; ey < EW; ey++)
       for (let ex = 0; ex < EW; ex++) {
-        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land.biome[en], bio = land.biomes[bi], r = T.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8;
+        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land.biome[en], bio = land.biomes[bi], r = T2.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8;
         for (let n = Math.floor((bio.id === "salt" ? 0.62 : 0.35) + r()); n > 0; n--) {
-          const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
+          const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T2.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
           if (!nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
         }
         if (r() < 0.0125) {
@@ -5874,7 +6062,7 @@
           e.set(0, ry, 0);
           q.setFromEuler(e);
           sc.set(wd, hgt, wd);
-          v.set(px, T.height(px, pz) + hgt / 2 - 0.3, pz);
+          v.set(px, T2.height(px, pz) + hgt / 2 - 0.3, pz);
           m.compose(v, q, sc);
           for (let i = 0; i < 16; i++) trees[bi].push(m.elements[i]);
         }
@@ -5898,7 +6086,7 @@
           new THREE.CircleGeometry(4.6, 12).rotateX(-Math.PI / 2),
           new THREE.MeshBasicMaterial({ color: 4165568 })
         );
-        w.position.set(x, T.height(x, z) + 0.3, z);
+        w.position.set(x, T2.height(x, z) + 0.3, z);
         staticGroup.add(w);
         continue;
       }
@@ -5909,7 +6097,7 @@
         continue;
       }
       const g = BUILD[st.kind](V.S);
-      g.position.set(x, T.height(x, z), z);
+      g.position.set(x, T2.height(x, z), z);
       if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
       staticGroup.add(g);
     }
@@ -6591,7 +6779,7 @@
   }
   function openTown(section) {
     if (section === "elder" && !V.S.quest.told) act(() => R.talkElder(V.S));
-    const t = V.S.town, p = V.S.player, T = R.C.town, race = R.byId(R.C.races, t.race).name.toLowerCase(), re = (fn) => () => {
+    const t = V.S.town, p = V.S.player, T2 = R.C.town, race = R.byId(R.C.races, t.race).name.toLowerCase(), re = (fn) => () => {
       act(fn);
       if (!V.S.over) openTown(section);
     };
@@ -6604,23 +6792,23 @@
         ]),
         el("div", { cls: "row" }, [
           btn(
-            "Buy, " + R.itemValue(it),
+            "Buy, " + R.buyPrice(V.S, it),
             re(() => R.buy(V.S, it.id)),
-            "small" + (p.coin >= R.itemValue(it) ? " sel" : "")
+            "small" + (p.coin >= R.buyPrice(V.S, it) ? " sel" : "")
           )
         ])
       ])
     );
-    const mine = p.items.filter((it) => R.sellPrice(it) > 0).map(
+    const mine = p.items.filter((it) => R.sellPrice(it, V.S) > 0).map(
       (it) => el("li", { cls: "item" }, [
         el("div", null, [el("strong", { text: R.itemName(it) }), el("span", { cls: "wt", text: it.eq ? "worn" : "" })]),
         el("div", { cls: "row" }, [
           it.known ? null : btn(
-            "Appraise, " + T.appraisePrice,
+            "Appraise, " + R.priceOf(V.S, "appraisePrice"),
             re(() => R.appraise(V.S, it.id))
           ),
           btn(
-            "Sell, " + R.sellPrice(it),
+            "Sell, " + R.sellPrice(it, V.S),
             re(() => R.sell(V.S, it.id))
           )
         ])
@@ -6644,7 +6832,7 @@
         coin,
         el("div", { cls: "row" }, [
           btn(
-            "A bed for the night, " + T.innPrice + " coin",
+            "A bed for the night, " + R.priceOf(V.S, "innPrice") + " coin",
             re(() => R.inn(V.S)),
             "primary"
           ),
@@ -6656,7 +6844,7 @@
         coin,
         el("div", { cls: "row" }, [
           btn(
-            "Fuel, " + T.fuelPrice + " coin each (" + t.fuel + " left)",
+            "Fuel, " + R.priceOf(V.S, "fuelPrice") + " coin each (" + t.fuel + " left)",
             re(() => R.buyFuel(V.S))
           )
         ]),

@@ -57,6 +57,15 @@ function itemValue(it) {
   if (it.art && C.artifacts) v += C.artifacts.value;
   return Math.max(1, v);
 }
+// The town's prices go through the modifier stack, as stats named town.<number> (a town's culture can change them).
+const townNum = (s, k) => stat(s, 'town.' + k, C.town[k]);
+const priceOf = (s, k) => Math.max(0, Math.round(townNum(s, k)));
+const wareKind = (it) => {
+  const b = byId(C.bases, it.base);
+  return b.weapon ? 'weapon' : b.consumable ? 'consumable' : ['armor', 'cloak', 'boots'].includes(b.slot) ? 'armor' : 'gear';
+};
+const buyPrice = (s, it) =>
+  Math.max(1, Math.round(itemValue(it) * stat(s, 'town.buy', 1) * stat(s, 'town.buy.' + wareKind(it), 1)));
 function makeQuest(s, r, townP, vaultP, a0, goalP) {
   const Q = C.quest,
     T = C.town,
@@ -285,7 +294,7 @@ function buy(s, id) {
   const t = s.town,
     i = t.stock.findIndex((x) => x.id === id);
   if (i < 0) return false;
-  const price = itemValue(t.stock[i]);
+  const price = buyPrice(s, t.stock[i]);
   if (s.player.coin < price) {
     say(s, 'You cannot afford that.');
     return false;
@@ -300,22 +309,23 @@ function buy(s, id) {
 function buyFuel(s) {
   const t = s.town;
   if (s.over || !atTown(s) || t.fuel < 1) return false;
-  if (s.player.coin < C.town.fuelPrice) {
+  if (s.player.coin < priceOf(s, 'fuelPrice')) {
     say(s, 'You cannot afford that.');
     return false;
   }
-  s.player.coin -= C.town.fuelPrice;
+  s.player.coin -= priceOf(s, 'fuelPrice');
   t.fuel--;
   s.player.fuel += 1;
   return true;
 }
-const sellPrice = (it) => (itemValue(it) ? (it.known ? Math.max(1, Math.floor(itemValue(it) * C.town.sellRate)) : 3) : 0);
+const sellPrice = (it, s) =>
+  itemValue(it) ? (it.known ? Math.max(1, Math.floor(itemValue(it) * (s ? townNum(s, 'sellRate') : C.town.sellRate))) : 3) : 0;
 function sell(s, id) {
   if (s.over || !atTown(s)) return false;
   const i = s.player.items.findIndex((x) => x.id === id);
   if (i < 0) return false;
   const it = s.player.items[i],
-    price = sellPrice(it);
+    price = sellPrice(it, s);
   if (!price) {
     say(s, 'No one here will buy that.');
     return false;
@@ -333,22 +343,22 @@ function appraise(s, id) {
   if (s.over || !atTown(s)) return false;
   const it = s.player.items.find((x) => x.id === id);
   if (!it || it.known) return false;
-  if (s.player.coin < C.town.appraisePrice) {
+  if (s.player.coin < priceOf(s, 'appraisePrice')) {
     say(s, 'You cannot afford that.');
     return false;
   }
-  s.player.coin -= C.town.appraisePrice;
+  s.player.coin -= priceOf(s, 'appraisePrice');
   it.known = true;
   say(s, s.town.merchant + ' turns it over twice: ' + itemName(it) + '.', isCursed(it) ? 'bad' : 'good');
   return true;
 }
 function inn(s) {
   if (s.over || !atTown(s)) return false;
-  if (s.player.coin < C.town.innPrice) {
+  if (s.player.coin < priceOf(s, 'innPrice')) {
     say(s, 'You cannot afford a bed.');
     return false;
   }
-  s.player.coin -= C.town.innPrice;
+  s.player.coin -= priceOf(s, 'innPrice');
   const p = s.player,
     w = p.water;
   for (let i = 0; i < 8 && !s.over; i++) restHour(s);
@@ -462,6 +472,8 @@ export {
   mark,
   findSite,
   itemValue,
+  buyPrice,
+  priceOf,
   makeQuest,
   findLoose,
   objective,

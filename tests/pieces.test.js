@@ -124,5 +124,23 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   const nm = R.nameFor(Math.random, 'lostborn', lb), st = R.byId(R.C.civ.style, lb.civ.style);
   need(st.a.some((a) => nm.startsWith(a)), 'a Lostborn name does not come from the lost people: ' + nm);
 }
+// Town cultures: prices follow the culture, the people who never fell tell all, and the switch restores prices.
+{
+  const s = findSeed((s) => s.townCulture.custom === 'hospitable');
+  need(R.priceOf(s, 'innPrice') < R.C.town.innPrice, 'a hospitable town does not lower the price of a bed');
+  s.off.towns = true;
+  need(R.priceOf(s, 'innPrice') === R.C.town.innPrice, 'the towns switch does not restore prices');
+  const u = findSeed((s) => s.townCulture.rare === 'unfallen');
+  need(u && u.town.stock.filter((x) => x.mark).length >= 3, 'the people who never fell sell no marked gear');
+  // walk in, find the elder, talk
+  const d = R.townDoor(u);
+  u.player.x = d.x; u.player.y = d.y; u.creatures = [];
+  need(R.move(u, 0, -1) && u.area === 'town', 'could not enter the town');
+  const el = R.findHere(u, 'elder');
+  u.player.x = el.x; u.player.y = el.y;
+  need(R.talkElder(u), 'could not talk to the elder');
+  need(R.AXES.every((a) => u.civKnown[a]), 'the people who never fell did not tell all they were');
+  need(!R.newGame(5, { towns: true }).townCulture, 'NO=towns still rolled a culture');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns');

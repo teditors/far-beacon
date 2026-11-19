@@ -354,15 +354,15 @@ function openTown(section) {
       ]),
       el('div', { cls: 'row' }, [
         btn(
-          'Buy, ' + R.itemValue(it),
+          'Buy, ' + R.buyPrice(V.S, it),
           re(() => R.buy(V.S, it.id)),
-          'small' + (p.coin >= R.itemValue(it) ? ' sel' : ''),
+          'small' + (p.coin >= R.buyPrice(V.S, it) ? ' sel' : ''),
         ),
       ]),
     ]),
   );
   const mine = p.items
-    .filter((it) => R.sellPrice(it) > 0)
+    .filter((it) => R.sellPrice(it, V.S) > 0)
     .map((it) =>
       el('li', { cls: 'item' }, [
         el('div', null, [el('strong', { text: R.itemName(it) }), el('span', { cls: 'wt', text: it.eq ? 'worn' : '' })]),
@@ -370,11 +370,11 @@ function openTown(section) {
           it.known
             ? null
             : btn(
-                'Appraise, ' + T.appraisePrice,
+                'Appraise, ' + R.priceOf(V.S, 'appraisePrice'),
                 re(() => R.appraise(V.S, it.id)),
               ),
           btn(
-            'Sell, ' + R.sellPrice(it),
+            'Sell, ' + R.sellPrice(it, V.S),
             re(() => R.sell(V.S, it.id)),
           ),
         ]),
@@ -400,7 +400,7 @@ function openTown(section) {
       coin,
       el('div', { cls: 'row' }, [
         btn(
-          'A bed for the night, ' + T.innPrice + ' coin',
+          'A bed for the night, ' + R.priceOf(V.S, 'innPrice') + ' coin',
           re(() => R.inn(V.S)),
           'primary',
         ),
@@ -412,7 +412,7 @@ function openTown(section) {
       coin,
       el('div', { cls: 'row' }, [
         btn(
-          'Fuel, ' + T.fuelPrice + ' coin each (' + t.fuel + ' left)',
+          'Fuel, ' + R.priceOf(V.S, 'fuelPrice') + ' coin each (' + t.fuel + ' left)',
           re(() => R.buyFuel(V.S)),
         ),
       ]),

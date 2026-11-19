@@ -400,6 +400,20 @@ section('Exotic races and classes', ['exotics', 'exoticRaces', 'exoticClasses'],
   line();
 });
 
+section('Town cultures', ['townCulture'], () => {
+  const X = C.townCulture;
+  line(
+    'The living people of the town: one trade and one custom, and ' +
+      Math.round(X.rareChance * 100) +
+      '% of the time a rare culture as well. Their numbers act on the town\'s prices (town.* stats); told at the gate.',
+  );
+  line();
+  const row = (x) => [x.name, x.text, mods(x.mods), [x.stock ? '+' + x.stock.n + ' of ' + x.stock.bases.join('/') : '', x.fuel ? '+' + x.fuel + ' fuel' : '', x.elder ? 'elder: ' + x.elder : '', x.marked ? x.marked + ' marked items' : ''].filter(Boolean).join('; ')];
+  table(['Trade', 'Text', 'Modifiers', 'Other'], X.trades.map(row));
+  table(['Custom', 'Text', 'Modifiers', 'Other'], X.customs.map(row));
+  table(['Rare', 'Text', 'Modifiers', 'Other'], X.rares.map(row));
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

@@ -81,6 +81,8 @@ import {
   hasItem,
   inn,
   itemValue,
+  buyPrice,
+  priceOf,
   objective,
   offer,
   sell,
@@ -99,6 +101,7 @@ import './artifacts.js';
 import { regionRareOf, regionName } from './regionrares.js';
 import { specialOf } from './specials.js';
 import './exotics.js';
+import './towns.js';
 
 const api = {
   worldNotes,
@@ -213,6 +216,8 @@ const api = {
   findHere,
   offer,
   itemValue,
+  buyPrice,
+  priceOf,
   hasItem,
   atTown,
   findSite,
