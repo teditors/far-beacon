@@ -5,6 +5,7 @@ import { C, byId, clamp, on, say, srand, stream } from './core.js';
 import { spawn } from './character.js';
 import { enemyTurn, foe, spOf, strike } from './combat.js';
 import { roll } from './progress.js';
+import { makeItem } from './items.js';
 import { SYSTEMS } from './systems.js';
 import { waterCap } from './stats.js';
 import { ACTIONS, NOTES, SWITCHES } from './hooks.js';
@@ -90,6 +91,13 @@ function setOut(s) {
     p.coin += st.coin || 0;
     p.fuel += st.fuel || 0;
     p.water = Math.min(waterCap(s), p.water + (st.water || 0));
+  }
+  const fr = X().frail,
+    cls = byId(C.classes, s.char.cls);
+  if (fr && cls.hd <= fr.hd) {
+    for (const b of fr.items) p.items.push(makeItem(s, b, null, null, true));
+    p.coin += fr.coin;
+    p.water = Math.min(waterCap(s), p.water + 3);
   }
   if (byId(C.classes, s.char.cls).sworn) {
     s.pact = s.god;

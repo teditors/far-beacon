@@ -12,6 +12,8 @@
 export default {
   roster: {
     offer: { races: [2, 12], classes: [8, 20], weights: { usual: 3, hybrid: 0.2, exotic: 0.6 } },
+    // a frail class (hit die this or less) sets out with more to keep it alive: an extra waterskin and some coin
+    frail: { hd: 6, items: ['waterskin'], coin: 10 },
     races: [
       {
         id: 'gnome',

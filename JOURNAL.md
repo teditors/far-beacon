@@ -2,7 +2,7 @@
 
 ## Summary
 
-Nine entries: Andrew's six asks first, then my own. Every check passes; the bot still wins.
+Ten entries: Andrew's six asks first, then my own. Every check passes; the bot still wins.
 
 | # | Piece | Switch | Verdict |
 | --- | --- | --- | --- |
@@ -15,6 +15,7 @@ Nine entries: Andrew's six asks first, then my own. Every check passes; the bot 
 | C2.7 | Easier legs: springs every seven tiles | (balance) | |
 | C2.8 | Finer things far from home: Fine and Superb items | `tiers` | pearl |
 | C2.9 | Rare countries that change the land: Drowned, Dry, Burned | `regionrares` | maybe |
+| C2.10 | Frail classes set out with an extra waterskin and coin | `roster` | (balance) |
 
 **Bot win rate, commission 2's switchable pieces on vs off** (`NO=townlife,roster,plot,hamlets,tiers`), sets 5 /
 1000 / 2000: on 9, 16, 9 (34 / 450, 8%); off 24, 35, 32 (91 / 450, 20%). Almost all of the difference is the plot
@@ -37,6 +38,12 @@ screen is now different every world and the new classes play differently in a fi
 ---
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
+
+## C2.10: frail classes set out better provided
+
+A balance change to C2.3: a class with a hit die of d6 or less (Wizard, Rogue, Bard, Merchant, Scout, Herbalist,
+Druid, Necromancer, Witch...) sets out with an extra waterskin, its skins topped up and 10 more coin. Bot win rate,
+sets 5 / 1000 / 2000: 12, 15, 13 (40 / 450), up from 34. Switch: part of `roster`.
 
 ## C2.9: rare countries that change the land
 

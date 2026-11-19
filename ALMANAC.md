@@ -650,6 +650,8 @@ Townsfolk tell rumours that mark real places (a lair, the far artifact, a sweet 
 
 A world offers 2 to 12 races and 8 to 20 classes, drawn with weights: usual 3, hybrid 0.2, exotic 0.6. The first traveller is one of them.
 
+A frail class (hit die d6 or less) sets out with waterskin, 10 more coin and its skins topped up.
+
 Hybrids (45), one for every pair of usual races, with half of each parent's modifiers: Human-dwarf, Human-elf, Human-halfling, Human-orc, Human-gnome, Human-highlander, Human-riverfolk, Human-plainsfolk, Human-forest-born, Dwarf-elf, Dwarf-halfling, Dwarf-orc, Dwarf-gnome, Dwarf-highlander, Dwarf-riverfolk, Dwarf-plainsfolk, Dwarf-forest-born, Elf-halfling, Elf-orc, Elf-gnome, Elf-highlander, Elf-riverfolk, Elf-plainsfolk, Elf-forest-born, Halfling-orc, Halfling-gnome, Halfling-highlander, Halfling-riverfolk, Halfling-plainsfolk, Halfling-forest-born, orc-gnome, orc-highlander, orc-riverfolk, orc-plainsfolk, orc-forest-born, Gnome-highlander, Gnome-riverfolk, Gnome-plainsfolk, Gnome-forest-born, Highlander-riverfolk, Highlander-plainsfolk, Highlander-forest-born, Riverfolk-plainsfolk, Riverfolk-forest-born, Plainsfolk-forest-born.
 
 | Race | Kind | Beyond its modifiers |

@@ -324,6 +324,12 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   c.hp = 1;
   for (let k = 0; k < 50 && s.combat; k++) { s.player.hp = 50; R.attack(s); c.hp = Math.min(c.hp, 1); }
   need(s.player.water >= 1, 'a hunter got no water from a kill');
+  {
+    const f = R.newGame(11), ch = R.makeChar(Math.random, f);
+    ch.cls = 'merchant';
+    R.setCharacter(f, ch);
+    need(f.player.items.filter((i) => i.base === 'waterskin').length >= 3, 'a frail class set out without its extra waterskin');
+  }
   need(R.newGame(5, { roster: true }).offer.classes.length === 3, 'NO=roster still offers many classes');
 }
 // The plot across the world: the town, the locked place, the destination and the key each in a region other than home,

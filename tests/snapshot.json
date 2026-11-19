@@ -5,7 +5,7 @@
   "sites": "68ebf02154e2",
   "quest": "6d1b709600a3",
   "creatures": "b1d04e9ce164",
-  "all": "fc2072ef2676"
+  "all": "6422e2974911"
  },
  "2": {
   "terrain": "0bc812ae173e",
@@ -29,7 +29,7 @@
   "sites": "bd49f9d5da78",
   "quest": "e52d770cd585",
   "creatures": "aaac9da53bcf",
-  "all": "0903d50d6cc6"
+  "all": "be6ea6ae0d7e"
  },
  "1000": {
   "terrain": "8502998fe14e",
@@ -37,6 +37,6 @@
   "sites": "cedf51816d79",
   "quest": "ac687bd5fb18",
   "creatures": "0a77fd8266dc",
-  "all": "a8b50bf5c9c8"
+  "all": "4e5a070d393e"
  }
 }

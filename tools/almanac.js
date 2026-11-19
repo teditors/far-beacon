@@ -531,6 +531,8 @@ section('The roster', ['roster'], () => {
     'A world offers ' + X.offer.races.join(' to ') + ' races and ' + X.offer.classes.join(' to ') + ' classes, drawn with weights: usual ' + X.offer.weights.usual + ', hybrid ' + X.offer.weights.hybrid + ', exotic ' + X.offer.weights.exotic + '. The first traveller is one of them.',
   );
   line();
+  line('A frail class (hit die d' + X.frail.hd + ' or less) sets out with ' + X.frail.items.join(', ') + ', ' + X.frail.coin + ' more coin and its skins topped up.');
+  line();
   line('Hybrids (' + hy.length + '), one for every pair of usual races, with half of each parent\'s modifiers: ' + hy.map((r) => r.name).join(', ') + '.');
   line();
   const extra = (e) => [e.start ? 'starts with ' + JSON.stringify(e.start) : '', e.tick ? 'each hour ' + JSON.stringify(e.tick) : '', e.onKill ? 'on a kill ' + JSON.stringify(e.onKill) : ''].filter(Boolean).join('; ');
