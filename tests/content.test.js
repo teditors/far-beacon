@@ -50,6 +50,7 @@ for (const x of C.oddWeather.list) x.mods.forEach((m) => mods.push(['weather ' +
 for (const x of C.floorKinds.list) (x.mods || []).forEach((m) => mods.push(['floor ' + x.id, m]));
 for (const k in C.relicNatures) C.relicNatures[k].mods.forEach((m) => mods.push(['relic ' + k, m]));
 for (const r of C.quest.relics) need(C.relicNatures[r], 'relic ' + r + ' has no nature');
+for (const x of [...C.townLife.lessons, C.townLife.blessing, C.townLife.mule]) x.mods.forEach((m) => mods.push(['town life ' + (x.id || 'blessing'), m]));
 for (const a of C.abilities) a.mods(12).forEach((m) => mods.push(['ability ' + a.id, m]));
 for (const [who, m] of mods) { need(known.has(m.stat), who + ' modifies unknown stat ' + m.stat); need(['add', 'mul', 'max'].includes(m.op), who + ' has unknown op ' + m.op); }
 if (errs.length) { console.log('content problems:\n  ' + errs.join('\n  ')); process.exit(1); }

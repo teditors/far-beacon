@@ -335,7 +335,36 @@ function openPact() {
   ]);
 }
 // The town's people, one at a time: section is 'elder', 'inn' or 'shop', matching where you are standing.
+// Anyone else in town: what they say and what they offer, from R.serviceInfo.
+function openService() {
+  const info = R.serviceInfo(V.S);
+  if (!info) return;
+  openModal(info.title, [
+    ...info.text.map((t) => el('p', { text: t })),
+    info.options.length ? el('p', { cls: 'note', text: 'You have ' + V.S.player.coin + ' coin.' }) : null,
+    el(
+      'ul',
+      { cls: 'items' },
+      info.options.map((o) =>
+        el('li', { cls: 'item' }, [
+          el('div', null, [el('strong', { text: o.label }), o.note ? el('p', { text: o.note }) : null]),
+          el('div', { cls: 'row' }, [
+            btn(
+              o.price ? o.price + ' coin' : 'Yes',
+              () => {
+                act(() => R.useService(V.S, o.id, o.arg));
+                if (!V.S.over) openService();
+              },
+              'small' + (V.S.player.coin >= o.price ? ' sel' : ''),
+            ),
+          ]),
+        ]),
+      ),
+    ),
+  ]);
+}
 function openTown(section) {
+  if (!['elder', 'inn', 'shop'].includes(section)) return openService();
   if (section === 'elder' && !V.S.quest.told) act(() => R.talkElder(V.S));
   const t = V.S.town,
     p = V.S.player,

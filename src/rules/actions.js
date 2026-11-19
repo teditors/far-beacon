@@ -36,6 +36,7 @@ import {
 } from './areas.js';
 import { carryCap, stat, waterCap } from './stats.js';
 import { advance } from './systems.js';
+import { ACTIONS as ACTION_HOOKS } from './hooks.js';
 
 /* Actions */
 function moveCost(s, x, y) {
@@ -704,6 +705,7 @@ function actions(s) {
     return a;
   }
   if (s.char.cls === 'cleric' && p.hp < p.hpMax && p.mana >= 3) a.push({ id: 'mend', label: 'Mend', hint: 'heal, 3 mana' });
+  for (const f of ACTION_HOOKS) f(s, st, a); // buttons added by pieces (people in town, ...)
   if (!indoors(s)) a.push({ id: 'survey', label: 'Survey', hint: '30 min' });
   if (st) {
     if (st.kind === 'exit' && areaRec(s).kind !== 'town') a.push({ id: 'goUp', label: 'Climb out', hint: 'back outside' });

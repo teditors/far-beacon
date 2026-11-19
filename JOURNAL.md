@@ -2,6 +2,45 @@
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
 
+## C2.2: town life
+
+**What it is.** A town now has a size: a hamlet, a village, a market town or a city. Its layout is generated:
+main streets run out from the square to the edges (a ring road in towns and cities), and buildings stand on lots
+along both sides of each street, so no two towns look alike. Beside the elder, the inn and the shop there are
+services, each a building with a person at the door under a painted sign:
+- **the healer** (all wounds, cold and weariness, for 6 coin);
+- **the priest** of a temple to this world's god, who tells you the god's terms, marks the shrine, and gives a
+  day's blessing;
+- **the old campaigner**, who teaches lessons from a menu (foraging, the long march, swordwork, sleeping rough...),
+  at most three per traveller, which die with them;
+- **the smith**, who hones a weapon to Keen, reinforces armor, or strips a curse;
+- **the mapmaker**, who sells a map of this country or of the lands beyond;
+- **the stablehand**, who sells a pack mule (carry 10 more).
+
+A hamlet has one service, a city six. The town's culture (C1 piece 8) decides some of them: smiths always have a
+smithy, herbalists a healer, pious towns and pilgrims a temple, traders and lore-keepers a mapmaker. Townsfolk
+stand about the streets with names and trades, and each has something to say: a rumour that marks a real place
+(a lair, the far artifact, a sweet spring, the shrine, a rare country), a trait of the lost people, a warning about
+a creature, or just talk. Villages and bigger have a graveyard with epitaphs that name this world's storms and
+creatures. Bigger towns sell more and are more often walled.
+
+**In play.** The town is somewhere to spend coin and time, and something to read. Bot win rate, sets 5 / 1000 /
+2000: 21, 36, 27 with it; 24, 31, 27 without (84 vs 82). The bot uses only the elder, the shop and the inn.
+
+**Commits.** "Town life". Switch: `townlife`.
+
+**Shared bricks.** `ACTIONS` in hooks.js: a piece can add buttons for where the player stands. `serviceInfo(s)` and
+`useService(s, option, arg)` let the view show any person's talk and offers with one generic dialog.
+
+**Choices made without asking.**
+- The elder's hall is always the first lot on the north street, so "the hall on the north side of the square" stays
+  true.
+- Service prices go through the stat stack (`town.heal`, `town.bless`...), so town cultures can change them later.
+- The pack mule is a new item base with no slot (it works while you have it), added by this piece's module.
+- Lessons are stored on the character (`s.char.lessons`), the blessing as `s.blessUntil`; both optional.
+
+**Verdict: pearl.** It is the biggest single change to what a town is. Next: people who move about, and a market.
+
 ## C2.1: open towns, walked into from any side, with no buttons
 
 **What it is.** The "Enter <town>" and "Leave <town>" buttons are gone. Three towns in four have no wall at all: walk

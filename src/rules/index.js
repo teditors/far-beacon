@@ -109,9 +109,12 @@ import './floors.js';
 import './relics.js';
 import './lairs.js';
 import './farfinds.js';
+import { serviceInfo, useService } from './townlife.js';
 
 const api = {
   worldNotes,
+  serviceInfo,
+  useService,
   stormOfNow: stormOf,
   askErrand,
   claimErrand,
@@ -293,6 +296,7 @@ const ACTIONS = [
   'offer',
   'askErrand',
   'claimErrand',
+  'useService',
 ];
 for (const k of ACTIONS) {
   const fn = api[k];

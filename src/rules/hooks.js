@@ -8,7 +8,9 @@ const NOTES = [];
 // built, so a piece can change what each region will be. LOADERS: functions (s) run when a save is loaded, before
 // anything else, so a piece can rebuild what it derives from the seed.
 const SKETCHERS = [];
+// ACTIONS: functions (s, site, list) that may push buttons onto the list of actions for where the player stands.
+const ACTIONS = [];
 const LOADERS = [];
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
-export { NOTES, SWITCHES, SKETCHERS, LOADERS, worldNotes };
+export { NOTES, SWITCHES, SKETCHERS, LOADERS, ACTIONS, worldNotes };

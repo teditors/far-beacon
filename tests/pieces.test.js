@@ -263,5 +263,37 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   }
   need(extra > 10, 'far finds turned up extra only ' + extra + ' times');
 }
+// Town life: sizes, people at their doors, services that do what they say, rumours, and the switch.
+{
+  const sizes = {}, used = {};
+  for (let i = 1; i <= 40; i++) {
+    const s = R.newGame(i), m = R.mapOf(s, 'town');
+    sizes[s.town.size] = 1;
+    for (const id of s.town.services) need(Object.values(m.sites).some((x) => x.kind === id), 'seed ' + i + ': no door for the ' + id);
+    need(m.terrain[(R.H - 1) * R.W + 18] !== R.WALL, 'seed ' + i + ': the south way in is walled');
+    // walk in, then visit everyone
+    const d = R.townDoor(s);
+    s.player.x = d.x; s.player.y = d.y; s.creatures = [];
+    need(R.move(s, 0, -1) && s.area === 'town', 'seed ' + i + ': could not walk in');
+    s.player.coin = 999;
+    for (const k in s.sites) {
+      const st = s.sites[k];
+      if (!R.C.townLife.services.some((x) => x.id === st.kind) && st.kind !== 'folk') continue;
+      s.player.x = k % R.W; s.player.y = Math.floor(k / R.W);
+      const info = R.serviceInfo(s);
+      need(info && info.text.length, 'seed ' + i + ': ' + st.kind + ' has nothing to say');
+      if (st.kind === 'folk') continue;
+      need(R.actions(s).some((a) => a.id === 'townAsk'), 'seed ' + i + ': no button to talk to the ' + st.kind);
+      for (const o of info.options.slice(0, 2)) {
+        const coin = s.player.coin;
+        need(R.useService(s, o.id, o.arg) && s.player.coin === coin - o.price, 'seed ' + i + ': ' + o.id + ' at the ' + st.kind + ' did not work');
+        used[o.id] = 1;
+      }
+    }
+  }
+  need(Object.keys(sizes).length === 4, 'not every town size turned up: ' + Object.keys(sizes));
+  for (const k of ['heal', 'bless', 'learn', 'mapHome', 'mule']) need(used[k], 'no service ' + k + ' was ever used');
+  need(!R.newGame(5, { townlife: true }).town.size, 'NO=townlife still rolled a town size');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life');

@@ -2453,6 +2453,166 @@
     farFinds: { chance: 0.45 }
   };
 
+  // src/content/townlife.js
+  var townlife_default = {
+    townLife: {
+      sizes: [
+        { id: "hamlet", name: "a hamlet", w: 2, services: 1, folk: 2, stock: -2, walled: 0.1, graveyard: false },
+        { id: "village", name: "a village", w: 4, services: 2, folk: 4, stock: 0, walled: 0.2, graveyard: true },
+        { id: "town", name: "a market town", w: 3, services: 4, folk: 6, stock: 2, walled: 0.3, graveyard: true },
+        { id: "city", name: "a city", w: 1, services: 6, folk: 9, stock: 4, walled: 0.6, graveyard: true }
+      ],
+      services: [
+        {
+          id: "healer",
+          role: "the healer",
+          color: 15262416,
+          hat: 8034906,
+          always: ["herbalists"],
+          text: "Herbs hang from the beams. Everything smells of bitter leaf."
+        },
+        {
+          id: "temple",
+          role: "the priest",
+          color: 14271098,
+          hat: 16777215,
+          always: ["pious", "pilgrims"],
+          text: "A small temple to this land's god, lit by one lamp."
+        },
+        {
+          id: "trainer",
+          role: "the old campaigner",
+          color: 6965818,
+          hat: 3811866,
+          always: [],
+          text: "A yard of beaten earth, a rack of poles, and an old traveller who has seen worse than you."
+        },
+        {
+          id: "smith",
+          role: "the smith",
+          color: 3815994,
+          hat: 9054746,
+          always: ["smiths"],
+          text: "Heat, hammering, and a forge that never goes out."
+        },
+        {
+          id: "mapmaker",
+          role: "the mapmaker",
+          color: 3104655,
+          hat: 13214247,
+          always: ["traders", "lore"],
+          text: "Every wall is covered in maps, half of them wrong."
+        },
+        {
+          id: "stable",
+          role: "the stablehand",
+          color: 9071162,
+          hat: 5917226,
+          always: ["weavers"],
+          text: "Mules, a goat, the smell of hay."
+        }
+      ],
+      prices: { heal: 6, bless: 6, mapHome: 8, mapNear: 15, improve: 15, uncurse: 10, mule: 30 },
+      lessonsOffered: 3,
+      maxLessons: 3,
+      lessons: [
+        {
+          id: "forage",
+          name: "Foraging",
+          price: 12,
+          text: "You find twice the wood.",
+          mods: [{ stat: "gatherYield", op: "add", value: 1 }]
+        },
+        {
+          id: "march",
+          name: "The long march",
+          price: 14,
+          text: "Every step costs a little less.",
+          mods: [{ stat: "staminaCost", op: "mul", value: 0.9 }]
+        },
+        {
+          id: "storms",
+          name: "Dressing for storms",
+          price: 10,
+          text: "Storms chill you less.",
+          mods: [{ stat: "stormCold", op: "mul", value: 0.6 }]
+        },
+        {
+          id: "sip",
+          name: "Sip, don't gulp",
+          price: 12,
+          text: "Your water goes a little further.",
+          mods: [{ stat: "waterDrain", op: "mul", value: 0.92 }]
+        },
+        { id: "blade", name: "Swordwork", price: 15, text: "To hit +1.", mods: [{ stat: "hit", op: "add", value: 1 }] },
+        { id: "guard", name: "Keeping your guard", price: 15, text: "Armor +1.", mods: [{ stat: "ac", op: "add", value: 1 }] },
+        {
+          id: "eyes",
+          name: "Reading the land",
+          price: 10,
+          text: "Survey range +1.",
+          mods: [{ stat: "surveyRadius", op: "add", value: 1 }]
+        },
+        {
+          id: "sleep",
+          name: "Sleeping rough",
+          price: 10,
+          text: "Rest restores more.",
+          mods: [{ stat: "restGain", op: "mul", value: 1.15 }]
+        }
+      ],
+      blessing: {
+        hours: 24,
+        text: "for a day, water goes further and rest restores more",
+        mods: [
+          { stat: "waterDrain", op: "mul", value: 0.85 },
+          { stat: "restGain", op: "mul", value: 1.2 }
+        ]
+      },
+      mule: {
+        id: "mule",
+        name: "Pack Mule",
+        wt: 0,
+        w: 0,
+        plain: true,
+        value: 30,
+        text: "Follows you and carries a load.",
+        mods: [{ stat: "carryCap", op: "add", value: 10 }]
+      },
+      epitaphs: [
+        "They went out for water and did not come back.",
+        "Beloved. Lost in the {storm}.",
+        "Killed by a {species}.",
+        "Walked to the {dir} to see what was there.",
+        "Kept the well for forty years.",
+        "Taken by the cold in a hard winter.",
+        "She found the {site} and never told us where."
+      ],
+      folkRoles: [
+        "a carter",
+        "a washerwoman",
+        "a goatherd",
+        "a drunk",
+        "a child",
+        "a pilgrim",
+        "a mason",
+        "a fisher",
+        "a beggar",
+        "a guard",
+        "a weaver",
+        "an old woman"
+      ],
+      flavour: [
+        '"Fine weather for it, if you like weather."',
+        '"Mind the well, it is deeper than it looks."',
+        '"The ruins? Leave them be. Nothing good ever came out of a ruin."',
+        '"My grandmother saw the beacon lit, once. She said it turned the clouds gold."',
+        '"Buy something, or get out of my light."',
+        '"They say the old people could talk to the springs."'
+      ]
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -2477,7 +2637,8 @@
     floors_default,
     relics_default,
     lairs_default,
-    farfinds_default
+    farfinds_default,
+    townlife_default
   );
 
   // src/rules/core.js
@@ -3182,6 +3343,7 @@
   // src/rules/hooks.js
   var NOTES = [];
   var SKETCHERS = [];
+  var ACTIONS = [];
   var LOADERS = [];
   var SWITCHES = [];
   var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
@@ -3992,16 +4154,16 @@
     if (s.over || !atTown(s)) return false;
     const t = s.town, i = t.stock.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const price = buyPrice(s, t.stock[i]);
-    if (s.player.coin < price) {
+    const price2 = buyPrice(s, t.stock[i]);
+    if (s.player.coin < price2) {
       say(s, "You cannot afford that.");
       return false;
     }
-    s.player.coin -= price;
+    s.player.coin -= price2;
     const it = t.stock.splice(i, 1)[0];
     s.player.items.push(it);
     autoEquip(s, it);
-    say(s, "You buy the " + itemName(it) + " for " + price + " coin.");
+    say(s, "You buy the " + itemName(it) + " for " + price2 + " coin.");
     return true;
   }
   function buyFuel(s) {
@@ -4021,8 +4183,8 @@
     if (s.over || !atTown(s)) return false;
     const i = s.player.items.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const it = s.player.items[i], price = sellPrice(it, s);
-    if (!price) {
+    const it = s.player.items[i], price2 = sellPrice(it, s);
+    if (!price2) {
       say(s, "No one here will buy that.");
       return false;
     }
@@ -4030,9 +4192,9 @@
     delete it.eq;
     it.known = true;
     s.town.stock.push(it);
-    s.player.coin += price;
+    s.player.coin += price2;
     fitWater(s);
-    say(s, "You sell the " + itemName(it) + " for " + price + " coin.");
+    say(s, "You sell the " + itemName(it) + " for " + price2 + " coin.");
     return true;
   }
   function appraise(s, id) {
@@ -4765,6 +4927,7 @@
       return a;
     }
     if (s.char.cls === "cleric" && p.hp < p.hpMax && p.mana >= 3) a.push({ id: "mend", label: "Mend", hint: "heal, 3 mana" });
+    for (const f of ACTIONS) f(s, st, a);
     if (!indoors(s)) a.push({ id: "survey", label: "Survey", hint: "30 min" });
     if (st) {
       if (st.kind === "exit" && areaRec(s).kind !== "town") a.push({ id: "goUp", label: "Climb out", hint: "back outside" });
@@ -6200,9 +6363,370 @@
   });
   SWITCHES.push(["farfinds", "Richer far country"]);
 
+  // src/rules/townlife.js
+  var L2 = () => C.townLife;
+  var SERVICE_IDS = () => L2().services.map((x) => x.id);
+  var price = (s, k) => Math.max(0, Math.round(stat(s, "town." + k, L2().prices[k])));
+  if (!C.bases.some((b) => b.id === "mule")) {
+    const m = L2().mule;
+    C.bases.push({ id: m.id, name: m.name, wt: m.wt, w: m.w, plain: true, mods: m.mods, text: m.text });
+    C.value.mule = m.value;
+  }
+  for (const sv of L2().services) SITE_NAME[sv.id] = sv.role.replace(/^the /, "") + "'s door";
+  Object.assign(SITE_NAME, { folk: "townsperson", grave: "grave" });
+  on("worldBorn", (s, d) => {
+    if (d.off.townlife) return;
+    const r = stream(s.seed, "townlife"), X2 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
+    let t = X2.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X2.sizes[0];
+    for (const e of X2.sizes)
+      if ((t -= e.w) < 0) {
+        size = e;
+        break;
+      }
+    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X2.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
+    while (want.length < size.services && rest2.length) want.push(rest2.splice(Math.floor(r() * rest2.length), 1)[0]);
+    const ls = X2.lessons.map((l) => l.id);
+    s.town.size = size.id;
+    s.town.services = want;
+    s.town.lessons = [];
+    while (s.town.lessons.length < X2.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
+    if (size.stock < 0) s.town.stock.splice(5, -size.stock);
+    for (let i = 0; i < size.stock; i++) {
+      const b = pick(["sword", "spear", "cloak", "boots", "framepack", "compass", "spyglass", "salve", "tonic", "draught"]);
+      s.town.stock.push(makeItem(s, b, null, null, true));
+    }
+  });
+  var oldTown = GENERATORS.town;
+  GENERATORS.town = (s, rec) => {
+    if (s.off.townlife || !s.town.size) return oldTown(s, rec);
+    const X2 = L2(), size = byId(X2.sizes, s.town.size), r = stream(s.seed, "area:town2"), rw = stream(s.seed, "town:walls"), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring(x, y), used = new Array(W * H).fill(0);
+    if (walled)
+      for (let i = 0; i < W; i++)
+        for (const [x, y] of [
+          [i, 0],
+          [i, H - 1],
+          [0, i],
+          [W - 1, i]
+        ])
+          terrain[idx(x, y)] = WALL;
+    const lots = [];
+    for (const [ax, ay] of [
+      [0, -1],
+      [0, 1],
+      [1, 0],
+      [-1, 0]
+    ])
+      for (const side of [-1, 1]) {
+        let pos = plaza + 1;
+        while (pos < 15) {
+          const len = 3 + Math.floor(r() * 3), depth = 3 + Math.floor(r() * 3), cells = [];
+          let door = null;
+          for (let a = 0; a < len; a++)
+            for (let b = 0; b < depth; b++) {
+              const along = pos + a, across = 3 + b;
+              const x = c + ax * along + (ax ? 0 : side * across), y = c + ay * along + (ay ? 0 : side * across);
+              cells.push([x, y]);
+            }
+          {
+            const along = pos + Math.floor(len / 2);
+            door = { x: c + ax * along + (ax ? 0 : side * 2), y: c + ay * along + (ay ? 0 : side * 2) };
+          }
+          const ok = cells.every(([x, y]) => {
+            if (x < 2 || y < 2 || x > W - 3 || y > H - 3 || street(x, y)) return false;
+            for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (used[idx(x + i, y + j)]) return false;
+            return true;
+          });
+          if (ok) {
+            for (const [x, y] of cells) used[idx(x, y)] = 1;
+            lots.push({ cells, door, dist: pos, arm: ay < 0 ? "N" : ay > 0 ? "S" : ax > 0 ? "E" : "W" });
+            pos += len + 1;
+          } else pos += 1;
+        }
+      }
+    lots.sort((a, b) => a.dist - b.dist || (a.arm === "N" ? -1 : 0));
+    const names = byId(C.races, s.town.race).names.slice(), taken = /* @__PURE__ */ new Set([s.town.elder, s.town.merchant]), nameOf = () => {
+      const free = names.filter((n2) => !taken.has(n2)), n = free.length ? pick(free) : pick(names) + " the Younger";
+      taken.add(n);
+      return n;
+    };
+    const build = (lot, site) => {
+      for (const [x, y] of lot.cells) terrain[idx(x, y)] = WALL;
+      if (site) sites[idx(lot.door.x, lot.door.y)] = Object.assign({ seen: true }, site);
+    };
+    const north = lots.findIndex((l) => l.arm === "N");
+    const order = [lots.splice(north >= 0 ? north : 0, 1)[0], ...lots.splice(0)];
+    const queue = [
+      { kind: "elder" },
+      { kind: "inn" },
+      { kind: "shop" },
+      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X2.services, id).role }))
+    ];
+    let li = 0;
+    for (const q of queue) if (order[li]) build(order[li++], q);
+    if (size.graveyard && order[li]) {
+      const lot = order[li++], sp = s.species.filter((x) => !x.named), fill3 = (t) => t.replace("{storm}", byId(C.biomes, s.biome).storm.name).replace("{species}", sp.length ? pick(sp).name : "wolf").replace("{dir}", pick(["north", "south", "east", "west"])).replace("{site}", pick(["spring", "ruin", "cave"])), nm = byId(C.races, s.town.race).names;
+      lot.cells.forEach(([x, y], i) => {
+        if ((x + y) % 2 === 0 && i % 2 === 0)
+          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill3(pick(X2.epitaphs)) };
+      });
+    }
+    const fill2 = { hamlet: 0.35, village: 0.55, town: 0.8, city: 1 }[size.id];
+    for (; li < order.length; li++) if (r() < fill2) build(order[li], null);
+    sites[idx(c, c)] = { kind: "well", seen: true };
+    for (let n = 0, tries = 0; n < size.folk && tries < 300; tries++) {
+      const x = 2 + Math.floor(r() * (W - 4)), y = 2 + Math.floor(r() * (H - 4)), k = idx(x, y);
+      if (terrain[k] !== FLOOR || sites[k] || Math.abs(x - c) <= 1 && Math.abs(y - c) <= 1) continue;
+      let nearDoor = false;
+      for (const key in sites) if (Math.abs(key % W - x) + Math.abs(Math.floor(key / W) - y) <= 1) nearDoor = true;
+      if (nearDoor) continue;
+      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X2.folkRoles) };
+      n++;
+    }
+    if (walled) {
+      const ends = [
+        [c, H - 1],
+        [c, 0],
+        [0, c],
+        [W - 1, c]
+      ], n = 2 + Math.floor(rw() * 3);
+      for (let k = 0; k < n; k++) {
+        terrain[idx(ends[k][0], ends[k][1])] = FLOOR;
+        sites[idx(ends[k][0], ends[k][1])] = { kind: "gate", seen: true };
+      }
+    }
+    rec.walled = walled;
+    s.town.walled = walled;
+    rec.entry = { x: c, y: H - 2 };
+    return { terrain, sites, seen: new Array(W * H).fill(1) };
+  };
+  var svc = (kind) => byId(L2().services, kind);
+  var learned = (s) => s.char && s.char.lessons || [];
+  var blessed = (s) => s.blessUntil && s.time < s.blessUntil;
+  var dirOf = (s, area, x, y) => {
+    const p = homePos(s, area, x, y);
+    return dirFrom(worldPos(s), p.x, p.y);
+  };
+  var markIn = (s, area, k) => {
+    const m = mapOf(s, area);
+    if (!m) return;
+    const x = k % W, y = Math.floor(k / W);
+    for (let j = -1; j <= 1; j++)
+      for (let i = -1; i <= 1; i++) if (x + i >= 0 && y + j >= 0 && x + i < W && y + j < H) m.seen[idx(x + i, y + j)] = 1;
+    if (m.sites[k]) m.sites[k].seen = true;
+  };
+  function rumour(s) {
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], out = [];
+    for (const id in s.areas) {
+      const a = s.areas[id], m = mapOf(s, id);
+      if (a.kind !== "region" || !m || !m.creatures) continue;
+      for (const c of m.creatures)
+        if (c.lair && !c.seen)
+          out.push(
+            () => (markIn(s, id, c.y * W + c.x), '"They say the ' + s.species[c.sp].name + " lies in a cave to the " + dirOf(s, id, c.x, c.y) + ', on a hoard. Nobody who went for it came back."')
+          );
+      for (const k in m.depots)
+        if (m.depots[k].items.some((i) => i.art))
+          out.push(
+            () => (markIn(s, id, +k), '"My uncle swore there is a cache to the ' + dirOf(s, id, k % W, Math.floor(k / W)) + " with something in it the " + s.civ.name + ' made. I have marked where he said."')
+          );
+      for (const k in m.sites)
+        if (m.sites[k].kind === "spring" && m.sites[k].sure && !m.sites[k].known && id === HOME)
+          out.push(() => {
+            m.sites[k].known = true;
+            markIn(s, id, +k);
+            return '"There is a sweet spring to the ' + dirOf(s, id, k % W, Math.floor(k / W)) + '. Drink there, not from the others."';
+          });
+    }
+    const sh = findSite(s, "shrine");
+    if (sh && !s.known.god)
+      out.push(
+        () => (mark(s, sh.x, sh.y), '"There is a shrine to the ' + dirOf(s, HOME, sh.x, sh.y) + ". To " + godOf(s).name + '. My mother would go there to ask for rain."')
+      );
+    for (const id in s.regionRares || {})
+      if (s.areas[id] && !s.areas[id].rareTold)
+        out.push(
+          () => '"Do not go into the country to the ' + dirOf(s, id, 18, 18) + ". It is not like here. " + byId(C.regionRares.list, s.regionRares[id]).text + '"'
+        );
+    const left = AXES.filter((a) => !s.civKnown[a]);
+    if (left.length)
+      out.push(() => {
+        const ax = pick(left), tx = traitText(ax, s.civ[ax]);
+        learn(s, ax);
+        return '"The ' + s.civ.name + "? " + tx.label + ", my grandfather said. " + tx.text + '"';
+      });
+    const home = worldMap(s).creatures.filter((c) => !s.species[c.sp].met);
+    if (home.length)
+      out.push(() => {
+        const sp = s.species[pick(home).sp];
+        return '"Watch out for the ' + sp.name + ". " + byId(C.creature.tempers, sp.temper).text + '"';
+      });
+    return out.length && srand(s) < 0.8 ? pick(out)() : pick(L2().flavour);
+  }
+  function serviceInfo(s) {
+    const st = siteHere(s);
+    if (!st || s.off.townlife || s.area !== "town") return null;
+    const p = s.player, opt = [], text = [];
+    if (st.kind === "folk") {
+      if (!st.said) st.said = rumour(s);
+      return { title: st.name + ", " + st.role, text: [st.said], options: [] };
+    }
+    if (st.kind === "grave") return { title: "A grave", text: ["Here lies " + st.name + ". " + st.text], options: [] };
+    const sv = svc(st.kind);
+    if (!sv) return null;
+    text.push(sv.text);
+    if (st.kind === "healer")
+      opt.push({ id: "heal", label: "Be healed", price: price(s, "heal"), note: "all wounds, cold and weariness" });
+    if (st.kind === "temple") {
+      text.push(
+        '"Our god is ' + godOf(s).name + ". Its terms are these: " + godOf(s).terms + ' Its shrine is marked on your map."'
+      );
+      if (!blessed(s)) opt.push({ id: "bless", label: "Ask a blessing", price: price(s, "bless"), note: L2().blessing.text });
+      else text.push("You carry the blessing still.");
+    }
+    if (st.kind === "trainer") {
+      if (learned(s).length >= L2().maxLessons) text.push('"You have learned all you will learn from me. Go and use it."');
+      else
+        for (const id of s.town.lessons || [])
+          if (!learned(s).includes(id)) {
+            const l = byId(L2().lessons, id);
+            opt.push({ id: "learn", arg: id, label: l.name, price: l.price, note: l.text });
+          }
+    }
+    if (st.kind === "smith")
+      for (const it of p.items) {
+        const b = byId(C.bases, it.base);
+        if (it.known && isCursed(it))
+          opt.push({ id: "uncurse", arg: it.id, label: "Strip the curse from the " + itemName(it), price: price(s, "uncurse") });
+        else if (b.weapon && !it.pre)
+          opt.push({
+            id: "improve",
+            arg: it.id,
+            label: "Hone the " + itemName(it),
+            price: price(s, "improve"),
+            note: "it becomes Keen"
+          });
+        else if (["armor", "cloak"].includes(b.slot) && !it.suf)
+          opt.push({
+            id: "improve",
+            arg: it.id,
+            label: "Reinforce the " + itemName(it),
+            price: price(s, "improve"),
+            note: "of Warding"
+          });
+      }
+    if (st.kind === "mapmaker") {
+      opt.push({
+        id: "mapHome",
+        label: "A map of this country",
+        price: price(s, "mapHome"),
+        note: "shows every place in the land around the town"
+      });
+      opt.push({
+        id: "mapNear",
+        label: "A map of the lands beyond",
+        price: price(s, "mapNear"),
+        note: "marks the springs, ruins and caves of the countries next to this one"
+      });
+    }
+    if (st.kind === "stable" && !p.items.some((i) => i.base === "mule"))
+      opt.push({ id: "mule", label: "Buy a pack mule", price: price(s, "mule"), note: "carry 10 more" });
+    return { title: st.name + ", " + sv.role, text, options: opt };
+  }
+  function useService(s, optId, arg) {
+    const info = serviceInfo(s), o = info && info.options.find((x) => x.id === optId && (arg === void 0 || x.arg === arg));
+    if (!o || s.over) return false;
+    const p = s.player;
+    if (p.coin < o.price) {
+      say(s, "You cannot afford that.");
+      return false;
+    }
+    p.coin -= o.price;
+    if (optId === "heal") {
+      p.hp = p.hpMax;
+      p.warmth = 100;
+      p.stamina = 100;
+      say(s, "Poultices, a hot drink and a hard bench. You feel whole.", "good");
+    } else if (optId === "bless") {
+      s.blessUntil = s.time + L2().blessing.hours * 60;
+      say(s, "The priest marks your forehead with ash: " + L2().blessing.text + ".", "good");
+    } else if (optId === "learn") {
+      s.char.lessons = learned(s).concat([o.arg]);
+      say(s, "You learn " + byId(L2().lessons, o.arg).name.toLowerCase() + ". " + byId(L2().lessons, o.arg).text, "good");
+      gainXp(s, 10);
+    } else if (optId === "improve" || optId === "uncurse") {
+      const it = p.items.find((i) => i.id === o.arg), b = byId(C.bases, it.base);
+      if (optId === "uncurse") {
+        if (it.pre && byId(C.affixes, it.pre).cursed) it.pre = null;
+        if (it.suf && byId(C.affixes, it.suf).cursed) it.suf = null;
+      } else if (b.weapon) it.pre = "keen";
+      else it.suf = "warding";
+      say(s, "The smith hands it back: " + itemName(it) + ".", "good");
+    } else if (optId === "mapHome") {
+      const m = worldMap(s);
+      m.seen.fill(1);
+      for (const k in m.sites) m.sites[k].seen = true;
+      say(s, "A good map, on oiled cloth. Every place in this country is on it now.", "good");
+    } else if (optId === "mapNear") {
+      let n = 0;
+      for (const id in s.areas) {
+        const m = mapOf(s, id);
+        if (id === HOME || s.areas[id].kind !== "region" || !m) continue;
+        for (const k in m.sites) if (["spring", "ruin", "cave"].includes(m.sites[k].kind)) markIn(s, id, +k), n++;
+      }
+      say(s, "A map of the lands beyond, with " + n + " places marked. Half of it may even be right.", "good");
+    } else if (optId === "mule") {
+      p.items.push(makeItem(s, "mule", null, null, true));
+      say(s, "A grey mule with a patient face. It will carry what you cannot.", "good");
+    }
+    return true;
+  }
+  on("did", (s, d) => {
+    if (d.id !== "move" || s.off.townlife) return;
+    const st = siteHere(s);
+    if (st && st.kind === "temple" && !s.known.god) {
+      s.known.god = true;
+      const sh = findSite(s, "shrine");
+      if (sh) mark(s, sh.x, sh.y);
+    }
+    if (st && st.kind === "grave" && !st.read) {
+      st.read = true;
+      say(s, "A grave. Here lies " + st.name + ". " + st.text);
+    }
+  });
+  ACTIONS.push((s, st, a) => {
+    if (!st || s.area !== "town" || s.off.townlife) return;
+    if (svc(st.kind)) a.push({ id: "townAsk", section: st.kind, label: "Talk to " + st.name, hint: svc(st.kind).role });
+    if (st.kind === "folk") a.push({ id: "townAsk", section: "folk", label: "Talk to " + st.name, hint: st.role });
+  });
+  SOURCES.push({
+    id: "townlife",
+    fn(s, out) {
+      for (const id of learned(s)) for (const m of byId(L2().lessons, id).mods) out.push(m);
+      if (blessed(s)) for (const m of L2().blessing.mods) out.push(m);
+    }
+  });
+  SWITCHES.push(["townlife", "Town life"]);
+  NOTES.push((s) => {
+    if (!s.town.size || s.off.townlife) return [];
+    const out = [
+      {
+        label: s.town.name + ", " + byId(L2().sizes, s.town.size).name,
+        text: "Here you can find " + ["the elder", "the inn", "a shop"].concat(s.town.services.map((id) => svc(id).role)).join(", ") + "."
+      }
+    ];
+    if (learned(s).length)
+      out.push({
+        label: "Lessons learned",
+        text: learned(s).map((id) => byId(L2().lessons, id).name).join(", ") + "."
+      });
+    return out;
+  });
+
   // src/rules/index.js
   var api = {
     worldNotes,
+    serviceInfo,
+    useService,
     stormOfNow: stormOf,
     askErrand,
     claimErrand,
@@ -6349,7 +6873,7 @@
       ...SWITCHES
     ]
   };
-  var ACTIONS = [
+  var ACTIONS2 = [
     "move",
     "survey",
     "rest",
@@ -6383,9 +6907,10 @@
     "goUp",
     "offer",
     "askErrand",
-    "claimErrand"
+    "claimErrand",
+    "useService"
   ];
-  for (const k of ACTIONS) {
+  for (const k of ACTIONS2) {
     const fn = api[k];
     api[k] = function(s) {
       if (s.combat) return false;
@@ -6393,7 +6918,7 @@
     };
   }
   for (const k of [
-    ...ACTIONS,
+    ...ACTIONS2,
     "attack",
     "power",
     "firebolt",
@@ -6854,7 +7379,12 @@
     else if (st.kind === "shop")
       g.add(person(3104655), box(1.8, 0.9, 0.9, std(7031338), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(13214247), -0.4, 1.1, -1.1));
     else if (st.kind === "well") g.add(BUILD.well());
-    else if ((st.kind === "exit" || st.kind === "gate") && inTown)
+    else if (st.kind === "folk") g.add(person(6974042));
+    else if (st.kind === "grave") g.add(box(0.5, 1, 0.2, std(9079430), 0, 0.5, 0), box(1.2, 0.15, 2, std(5920336), 0, 0.08, 0.9));
+    else if (R.C.townLife && R.byId(R.C.townLife.services, st.kind)) {
+      const sv = R.byId(R.C.townLife.services, st.kind);
+      g.add(person(sv.color, sv.hat), box(1.4, 0.8, 0.12, std(sv.hat), 0, 3.4, -ts / 2 + 0.2));
+    } else if ((st.kind === "exit" || st.kind === "gate") && inTown)
       g.add(
         box(0.6, 5, 0.6, std(7037784), -ts / 2, 2.5, 0),
         box(0.6, 5, 0.6, std(7037784), ts / 2, 2.5, 0),
@@ -7737,7 +8267,35 @@
       ])
     ]);
   }
+  function openService() {
+    const info = R.serviceInfo(V.S);
+    if (!info) return;
+    openModal(info.title, [
+      ...info.text.map((t) => el("p", { text: t })),
+      info.options.length ? el("p", { cls: "note", text: "You have " + V.S.player.coin + " coin." }) : null,
+      el(
+        "ul",
+        { cls: "items" },
+        info.options.map(
+          (o) => el("li", { cls: "item" }, [
+            el("div", null, [el("strong", { text: o.label }), o.note ? el("p", { text: o.note }) : null]),
+            el("div", { cls: "row" }, [
+              btn(
+                o.price ? o.price + " coin" : "Yes",
+                () => {
+                  act(() => R.useService(V.S, o.id, o.arg));
+                  if (!V.S.over) openService();
+                },
+                "small" + (V.S.player.coin >= o.price ? " sel" : "")
+              )
+            ])
+          ])
+        )
+      )
+    ]);
+  }
   function openTown(section) {
+    if (!["elder", "inn", "shop"].includes(section)) return openService();
     if (section === "elder" && !V.S.quest.told) act(() => R.talkElder(V.S));
     const t = V.S.town, p = V.S.player, T2 = R.C.town, race = R.byId(R.C.races, t.race).name.toLowerCase(), re = (fn) => () => {
       act(fn);

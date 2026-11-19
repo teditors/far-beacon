@@ -508,6 +508,22 @@ section('Far finds', ['farFinds'], () => {
   line();
 });
 
+section('Town life', ['townLife'], () => {
+  const X = C.townLife;
+  line('The size of a town sets how many services and townsfolk it has, how much is for sale, and how likely a wall is. Every town has the elder, the inn and the shop; services are added from those its culture calls for (always), then at random.');
+  line();
+  table(['Size', 'Chance weight', 'Services', 'Townsfolk', 'Extra stock', 'Walled', 'Graveyard'], X.sizes.map((z) => [z.name, z.w, z.services, z.folk, z.stock, pct(z.walled).replace('+', ''), z.graveyard ? 'yes' : '']));
+  table(['Service', 'Person', 'Always in a town of', 'Text'], X.services.map((v) => [v.id, v.role, v.always.join(', '), v.text]));
+  table(['Price', 'Coin'], Object.keys(X.prices).map((k) => [k, X.prices[k]]));
+  line('A trainer offers ' + X.lessonsOffered + ' lessons, and a traveller learns at most ' + X.maxLessons + '. Lessons die with the traveller.');
+  line();
+  table(['Lesson', 'Price', 'Text', 'Modifiers'], X.lessons.map((l) => [l.name, l.price, l.text, mods(l.mods)]));
+  line('A blessing lasts ' + X.blessing.hours + ' hours: ' + mods(X.blessing.mods) + '. A pack mule: ' + mods(X.mule.mods) + '.');
+  line();
+  line('Townsfolk tell rumours that mark real places (a lair, the far artifact, a sweet spring, the shrine, a rare country), teach a trait of the lost people, or warn of a creature; otherwise one of ' + X.flavour.length + ' lines of talk. Graves carry one of ' + X.epitaphs.length + ' epitaphs.');
+  line();
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {
