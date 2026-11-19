@@ -3,6 +3,26 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 5: rare regions
+
+**What it is.** A region away from home sometimes (15%, about one or two per world) is a rare country: Glowing (you can
+see by the ground at night), Heavy (every step is harder), Sweet-watered or Bitter (every spring sweet, or all foul
+save one), Silent (no creatures at all), Teeming (six more), Hallowed (rest restores half again), Parched, Rich (every
+cache full) or Hollow (storms bite twice as hard). Its name goes before the biome, "Silent Snowbound Taiga", you are
+told as you walk in, it is listed in the Journal, and a violet mark appears on its square of the world map.
+
+**In play.** Travel away from home has surprises, good and bad, and they are told plainly. Bot win rate unchanged
+(21 / 23 / 25 on sets 5 / 1000 / 2000): the bot stays at home, and home is never rare.
+
+**Commits.** "Rare regions". Switch: `regionrares`.
+
+**Choices made without asking.**
+- Home is never rare, so the quest's region stays readable; rares are a reason to travel.
+- One small view change: the violet mark on the world map, for rare countries you have walked into.
+
+**Verdict: maybe.** It works and it is cheap, but in a 3 x 3 world you seldom go far enough to meet one. It will be
+worth more once there are reasons to travel (side quests, the far artifact, towns beyond home).
+
 ## Piece 4: named artifacts
 
 **What it is.** Every world has three artifacts, each a common thing with a power no affix has, named for the lost

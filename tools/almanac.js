@@ -361,6 +361,20 @@ section('Named artifacts', ['artifacts'], () => {
   );
 });
 
+section('Rare regions', ['regionRares'], () => {
+  const X = C.regionRares;
+  line(
+    'Each region except home has a ' +
+      Math.round(X.chance * 100) +
+      '% chance of one of these. Its name goes before the biome ("Glowing High Moor"), and you are told on walking in.',
+  );
+  line();
+  table(
+    ['Rare', 'Text', 'Modifiers', 'When built'],
+    X.list.map((x) => [x.name, x.text, mods(x.mods), x.gen ? fields(x.gen, []) : '']),
+  );
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

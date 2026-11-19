@@ -1707,6 +1707,50 @@
     }
   };
 
+  // src/content/regionrares.js
+  var regionrares_default = {
+    regionRares: {
+      chance: 0.15,
+      list: [
+        {
+          id: "glowing",
+          name: "Glowing",
+          text: "The ground here gives off a faint light at night: enough to see by.",
+          mods: [{ stat: "nightSight", op: "add", value: 1, when: "night" }]
+        },
+        {
+          id: "heavy",
+          name: "Heavy",
+          text: "The air is thick and the ground pulls at you: every step is harder work.",
+          mods: [{ stat: "staminaCost", op: "mul", value: 1.3 }]
+        },
+        { id: "sweet", name: "Sweet-watered", text: "Every spring here is sweet.", gen: { springs: "sweet" } },
+        { id: "bitter", name: "Bitter", text: "Every spring here is foul, save one.", gen: { springs: "foul" } },
+        { id: "empty", name: "Silent", text: "Nothing lives here. Not one creature.", gen: { noCreatures: true } },
+        { id: "teeming", name: "Teeming", text: "Creatures are everywhere here.", gen: { moreCreatures: 6 } },
+        {
+          id: "sacred",
+          name: "Hallowed",
+          text: "An old peace lies on this country: rest here restores far more.",
+          mods: [{ stat: "restGain", op: "mul", value: 1.5 }]
+        },
+        {
+          id: "parched",
+          name: "Parched",
+          text: "The air here dries you out: you need much more water.",
+          mods: [{ stat: "waterDrain", op: "mul", value: 1.35 }]
+        },
+        { id: "rich", name: "Rich", text: "Every cache here is full.", gen: { richCaches: true } },
+        {
+          id: "hollow",
+          name: "Hollow",
+          text: "The wind never stops: storms here bite twice as hard.",
+          mods: [{ stat: "stormCold", op: "mul", value: 2 }]
+        }
+      ]
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -1720,7 +1764,8 @@
     quest_default,
     years_default,
     pantheon_default,
-    artifacts_default
+    artifacts_default,
+    regionrares_default
   );
 
   // src/rules/core.js
@@ -4747,9 +4792,82 @@
     ] : []
   );
 
+  // src/rules/regionrares.js
+  var RR = () => C.regionRares;
+  var regionRareOf = (s, id) => s.regionRares && s.regionRares[id] && !s.off.regionrares ? byId(RR().list, s.regionRares[id]) : null;
+  var regionName = (s, rec) => {
+    const r = regionRareOf(s, rec.id);
+    return (r ? r.name + " " : "") + byId(C.biomes, rec.biome).name;
+  };
+  on("worldBorn", (s, d) => {
+    if (d.off.regionrares) return;
+    const r = stream(s.seed, "regionRares"), w = s.world;
+    s.regionRares = {};
+    for (let cy = 0; cy < w.rows; cy++)
+      for (let cx = 0; cx < w.cols; cx++) {
+        const roll2 = r(), pick = r();
+        if (cx === w.home.cx && cy === w.home.cy) continue;
+        if (roll2 < RR().chance) s.regionRares[regionId(s, cx, cy)] = RR().list[Math.floor(pick * RR().list.length)].id;
+      }
+  });
+  {
+    const region = GENERATORS.region;
+    GENERATORS.region = (s, rec) => {
+      const m = region(s, rec), rr = regionRareOf(s, rec.id), g = rr && rr.gen;
+      if (!g) return m;
+      for (const k in m.sites) {
+        const st = m.sites[k];
+        if (st.kind === "spring" && g.springs) st.foul = g.springs === "foul" && !st.sure;
+        if (st.kind === "cache" && g.richCaches) {
+          st.loot = true;
+          st.fuel += 2;
+          st.water += 2;
+        }
+      }
+      if (g.noCreatures) m.creatures = [];
+      if (g.moreCreatures) {
+        const danger = sketchOf(s, rec.cx, rec.cy).danger, n = m.creatures.length;
+        placeCreatures(s, stream(s.seed, "teeming:" + rec.id), m, {
+          count: g.moreCreatures,
+          species: speciesFor(s, rec.biome),
+          far: () => 0,
+          avoid: (x, y) => x < 3 || y < 3 || x > 32 || y > 32,
+          tier: () => clamp(1 + danger, 1, 3)
+        });
+        m.creatures.slice(n).forEach((c, i) => c.id = 300 + i);
+      }
+      return m;
+    };
+  }
+  SOURCES.push({
+    id: "regionrares",
+    fn(s, out) {
+      const rr = regionRareOf(s, outdoorRec(s).id);
+      if (!rr) return;
+      const d = clock(s).isDay ? "day" : "night";
+      for (const m of rr.mods || []) if (!m.when || m.when === d) out.push(m);
+    }
+  });
+  on("did", (s, d) => {
+    if (d.id !== "move") return;
+    const rec = outdoorRec(s), rr = regionRareOf(s, rec.id);
+    if (!rr || rec.rareTold) return;
+    rec.rareTold = true;
+    say(s, "This is " + regionName(s, rec) + ": a rare country. " + rr.text, "good");
+  });
+  SWITCHES.push(["regionrares", "Rare regions"]);
+  NOTES.push(
+    (s) => Object.keys(s.regionRares || {}).filter((id) => s.areas[id] && s.areas[id].rareTold).map((id) => ({
+      label: regionName(s, s.areas[id]) + " (rare country)",
+      text: regionRareOf(s, id) ? regionRareOf(s, id).text : ""
+    }))
+  );
+
   // src/rules/index.js
   var api = {
     worldNotes,
+    regionRareOf,
+    regionName,
     yearOf,
     findLoose,
     passable,
@@ -6491,6 +6609,10 @@
           g.arc((cx + 0.5) * cell, (cy + 0.5) * cell, 4, 0, 7);
           g.fill();
         }
+        if (rec && rec.rareTold && R.regionRareOf(V.S, rec.id)) {
+          g.fillStyle = "#c9a0ff";
+          g.fillRect((cx + 0.5) * cell - 3, cy * cell + 6, 6, 6);
+        }
       }
     g.strokeStyle = "#fff";
     g.lineWidth = 2;
@@ -6752,13 +6874,13 @@
       for (const t of e.changedTouches) {
         if (t.identifier === moveId) {
           let dx = t.clientX - ox, dy = t.clientY - oy;
-          const d = Math.hypot(dx, dy), RR = 50;
-          if (d > RR) {
-            dx *= RR / d;
-            dy *= RR / d;
+          const d = Math.hypot(dx, dy), RR2 = 50;
+          if (d > RR2) {
+            dx *= RR2 / d;
+            dy *= RR2 / d;
           }
-          input.fx = dx / RR;
-          input.fy = -dy / RR;
+          input.fx = dx / RR2;
+          input.fy = -dy / RR2;
           knob.style.transform = "translate(" + dx + "px," + dy + "px)";
         } else if (t.identifier === lookId) {
           look(t.clientX - tlx, t.clientY - tly, 6e-3);

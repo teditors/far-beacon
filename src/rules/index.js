@@ -96,9 +96,12 @@ import { SWITCHES, worldNotes } from './hooks.js';
 import { yearOf } from './year.js';
 import './pantheon.js';
 import './artifacts.js';
+import { regionRareOf, regionName } from './regionrares.js';
 
 const api = {
   worldNotes,
+  regionRareOf,
+  regionName,
   yearOf,
   findLoose,
   passable,

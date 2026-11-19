@@ -627,6 +627,10 @@ function drawWorld() {
         g.arc((cx + 0.5) * cell, (cy + 0.5) * cell, 4, 0, 7);
         g.fill();
       }
+      if (rec && rec.rareTold && R.regionRareOf(V.S, rec.id)) {
+        g.fillStyle = '#c9a0ff'; // a rare country you have been to
+        g.fillRect((cx + 0.5) * cell - 3, cy * cell + 6, 6, 6);
+      }
     }
   g.strokeStyle = '#fff';
   g.lineWidth = 2;

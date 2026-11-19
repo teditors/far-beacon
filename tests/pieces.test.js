@@ -62,5 +62,32 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   need(R.stat(s, 'moveTime', 1) === before, 'the artifacts switch does not turn powers off');
   need(!R.newGame(5, { artifacts: true }).artifacts, 'NO=artifacts still rolled artifacts');
 }
+// Rare regions: never home, built as promised, and told when you walk in.
+{
+  const mapOf = (s, id) => (id === s.area ? s : s.areas[id].map);
+  let seen = {};
+  for (let i = 1; i <= 120; i++) {
+    const s = R.newGame(i);
+    need(!s.regionRares.overworld, 'seed ' + i + ': the home region is rare');
+    for (const id in s.regionRares) {
+      if (!s.areas[id] || !mapOf(s, id)) continue; // not built yet (a wide world)
+      const m = mapOf(s, id), rr = s.regionRares[id], springs = Object.values(m.sites).filter((x) => x.kind === 'spring');
+      seen[rr] = 1;
+      if (rr === 'empty') need(!m.creatures.length, 'seed ' + i + ': a silent region has creatures');
+      if (rr === 'sweet') need(springs.every((x) => !x.foul), 'seed ' + i + ': a sweet-watered region has a foul spring');
+      if (rr === 'bitter') need(springs.every((x) => x.foul || x.sure), 'seed ' + i + ': a bitter region has a sweet spring');
+      if (rr === 'teeming') need(m.creatures.length > 5, 'seed ' + i + ': a teeming region has few creatures');
+    }
+  }
+  need(Object.keys(seen).length === R.C.regionRares.list.length, 'not every rare region turned up in 120 worlds');
+  const s = findSeed((s) => Object.values(s.regionRares).includes('heavy'));
+  const id = Object.keys(s.regionRares).find((k) => s.regionRares[k] === 'heavy'), rec = s.areas[id], before = R.stat(s, 'staminaCost', 1);
+  R.switchRegion(s, rec.cx, rec.cy, { x: 18, y: 18 });
+  s.player.stamina = 100; s.creatures = [];
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (R.move(s, dx, dy)) break;
+  need(rec.rareTold && s.log.some((l) => /rare country/.test(l.msg)), 'walking into a rare region did not tell you');
+  need(R.stat(s, 'staminaCost', 1) > before * 1.2 || R.stat(s, 'staminaCost', 1) > 1.2, 'a heavy region is not heavy');
+  need(!R.newGame(5, { regionrares: true }).regionRares, 'NO=regionrares still rolled rare regions');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions');
