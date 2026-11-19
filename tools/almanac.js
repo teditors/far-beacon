@@ -91,7 +91,7 @@ section('Classes', ['classes'], () => {
   table(
     ['Class', 'Hit die', 'Casts from', 'Kit', 'In a fight', 'Modifiers'],
     C.classes.map((c) => [
-      c.name,
+      c.name + (c.exotic ? ' (exotic)' : ''),
       'd' + c.hd,
       c.caster ? c.caster + ' (' + c.manaPer + ' mana a level)' : '',
       c.kit.join(', '),
@@ -386,6 +386,18 @@ section('Creature specials', ['specials'], () => {
     ['Special', 'Text', 'Numbers'],
     X.list.map((x) => [x.id, x.text, fields(x, ['id', 'text'])]),
   );
+});
+
+section('Exotic races and classes', ['exotics', 'exoticRaces', 'exoticClasses'], () => {
+  const X = C.exotics;
+  line(
+    'The races and classes marked "(exotic)" above are offered only now and then: ' +
+      Math.round(X.raceChance * 100) +
+      '% of worlds offer one exotic race, and ' +
+      Math.round(X.classChance * 100) +
+      '% one exotic class, in place of one of the usual three. The Lostborn take their names from the lost people of the world; the Votary sets out already sworn to its god.',
+  );
+  line();
 });
 
 /* ---------------- writing it out ---------------- */

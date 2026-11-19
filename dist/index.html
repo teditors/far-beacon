@@ -1771,6 +1771,116 @@
     }
   };
 
+  // src/content/exotics.js
+  var exotics_default = {
+    exotics: { raceChance: 0.2, classChance: 0.2 },
+    exoticRaces: [
+      {
+        id: "lostborn",
+        exotic: true,
+        name: "Lostborn",
+        adj: { int: 1, wis: 1, con: -1 },
+        text: "Descended from the lost people of this world. Their ruins give up their secrets to you: you search them faster and find more.",
+        mods: [
+          { stat: "searchTime", op: "mul", value: 0.6 },
+          { stat: "luck", op: "add", value: 0.2 }
+        ],
+        namesFrom: "civ",
+        names: ["Ashki", "Temur", "Rinpo", "Melic"]
+      },
+      {
+        id: "ashborn",
+        exotic: true,
+        name: "Ashborn",
+        adj: { con: 2, cha: -1, dex: -1 },
+        text: "Born of a fire that went out. Cold hardly touches you, but you burn through water.",
+        mods: [
+          { stat: "cold", op: "mul", value: 0.5 },
+          { stat: "waterDrain", op: "mul", value: 1.2 }
+        ],
+        names: ["Cinder", "Smoke", "Ember", "Soot", "Kiln", "Brand"]
+      },
+      {
+        id: "saltkin",
+        exotic: true,
+        name: "Saltkin",
+        adj: { con: 1, str: 1, cha: -2 },
+        text: "A people of the dry places: you need little water, but the cold is cruel to you.",
+        mods: [
+          { stat: "waterDrain", op: "mul", value: 0.6 },
+          { stat: "cold", op: "mul", value: 1.35 }
+        ],
+        names: ["Hesh", "Ruma", "Tazi", "Okar", "Sefa", "Imri"]
+      },
+      {
+        id: "mothfolk",
+        exotic: true,
+        name: "Mothfolk",
+        adj: { dex: 2, wis: 1, str: -3 },
+        text: "Small, pale and wide-eyed: you see in the dark, but carry little.",
+        mods: [
+          { stat: "nightSight", op: "add", value: 1 },
+          { stat: "carryCap", op: "add", value: -3 }
+        ],
+        names: ["Pale", "Flit", "Hush", "Dusk", "Wane", "Lune"]
+      },
+      {
+        id: "stonekin",
+        exotic: true,
+        name: "Stone-kin",
+        adj: { str: 2, con: 1, dex: -2 },
+        text: "Heavy and hard: blows glance off you and you carry a great deal, but you are slow.",
+        mods: [
+          { stat: "ac", op: "add", value: 2 },
+          { stat: "carryCap", op: "add", value: 4 },
+          { stat: "moveTime", op: "mul", value: 1.1 }
+        ],
+        names: ["Flint", "Slate", "Granit", "Tor", "Basalt", "Cairn"]
+      }
+    ],
+    exoticClasses: [
+      {
+        id: "votary",
+        exotic: true,
+        name: "Votary",
+        text: "Sworn to this world's god before setting out: you begin bound by its pact, and always know which way its shrine lies. Starts with a staff and a warming draught.",
+        kit: ["staff", "draught"],
+        hd: 8,
+        sworn: true,
+        fight: "Nothing special.",
+        mods: [{ stat: "shrineSense", op: "add", value: 1 }]
+      },
+      {
+        id: "delver",
+        exotic: true,
+        name: "Delver",
+        text: "A robber of ruins: searches in half the time, is never caught by a trap, and has an eye for what is worth taking. Starts with a dagger, a rope and a lantern.",
+        kit: ["dagger", "rope", "lantern"],
+        hd: 6,
+        fight: "Nothing special.",
+        mods: [
+          { stat: "searchTime", op: "mul", value: 0.5 },
+          { stat: "trapSafe", op: "add", value: 1 },
+          { stat: "luck", op: "add", value: 0.2 }
+        ]
+      },
+      {
+        id: "nomad",
+        exotic: true,
+        name: "Nomad",
+        text: "Born on the move: needs less water, carries more, and never tires on flat ground. Starts with a spear, boots and a frame pack.",
+        kit: ["spear", "boots", "framepack"],
+        hd: 8,
+        fight: "Nothing special.",
+        mods: [
+          { stat: "waterDrain", op: "mul", value: 0.85 },
+          { stat: "carryCap", op: "add", value: 3 },
+          { stat: "moveTime.plain", op: "mul", value: 0.85 }
+        ]
+      }
+    ]
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -1786,7 +1896,8 @@
     pantheon_default,
     artifacts_default,
     regionrares_default,
-    specials_default
+    specials_default,
+    exotics_default
   );
 
   // src/rules/core.js
@@ -2455,6 +2566,45 @@
     return t;
   }
 
+  // src/rules/hooks.js
+  var NOTES = [];
+  var SWITCHES = [];
+  var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
+
+  // src/rules/exotics.js
+  if (!C.races.some((r) => r.exotic)) C.races.push(...C.exoticRaces);
+  if (!C.classes.some((r) => r.exotic)) C.classes.push(...C.exoticClasses);
+  on("worldBorn", (s, d) => {
+    if (d.off.exotics) return;
+    const r = stream(s.seed, "exotics"), X = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
+    if (r() < X.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
+    if (r() < X.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
+    sworn(s);
+  });
+  function sworn(s) {
+    if (!s.char || !byId(C.classes, s.char.cls).sworn) return;
+    s.pact = s.god;
+    s.pactBroken = false;
+  }
+  on("did", (s, d) => {
+    if (d.id !== "setCharacter" && d.id !== "nextTraveller") return;
+    if (!byId(C.classes, s.char.cls).sworn) return;
+    sworn(s);
+    say(s, "You set out sworn to the god of this land.", "good");
+  });
+  SWITCHES.push(["exotics", "Exotic races and classes"]);
+  NOTES.push((s) => {
+    const ex = [...s.offer.races.map((id) => byId(C.races, id)), ...s.offer.classes.map((id) => byId(C.classes, id))].filter(
+      (e) => e.exotic
+    );
+    return ex.map((e) => ({ label: "Rare among travellers here: " + e.name, text: e.text }));
+  });
+  function exoticName(rnd, race, s) {
+    if (race.namesFrom !== "civ" || !s || !s.civ) return null;
+    const st = byId(C.civ.style, s.civ.style), pick = (a) => a[Math.floor(rnd() * a.length)];
+    return pick(st.a) + pick(st.b);
+  }
+
   // src/rules/character.js
   function rollAbilities(rnd) {
     const o = {};
@@ -2464,13 +2614,13 @@
     }
     return o;
   }
-  var nameFor = (rnd, raceId) => {
-    const n = byId(C.races, raceId).names;
-    return n[Math.floor(rnd() * n.length)];
+  var nameFor = (rnd, raceId, s) => {
+    const race = byId(C.races, raceId), n = race.names;
+    return race.namesFrom && exoticName(rnd, race, s) || n[Math.floor(rnd() * n.length)];
   };
   function makeChar(rnd, s) {
     const race = s.offer.races[Math.floor(rnd() * s.offer.races.length)], cls = s.offer.classes[Math.floor(rnd() * s.offer.classes.length)];
-    return { name: nameFor(rnd, race), race, cls, abil: rollAbilities(rnd) };
+    return { name: nameFor(rnd, race, s), race, cls, abil: rollAbilities(rnd) };
   }
   function scores(ch) {
     const adj = byId(C.races, ch.race).adj, o = {};
@@ -2565,11 +2715,6 @@
     );
     return true;
   }
-
-  // src/rules/hooks.js
-  var NOTES = [];
-  var SWITCHES = [];
-  var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 
   // src/rules/specials.js
   var cache = {};
@@ -3034,7 +3179,7 @@
   }
   function makeQuest(s, r, townP, vaultP, a0, goalP) {
     const Q = C.quest, T = C.town, pick = (a) => a[Math.floor(r() * a.length)];
-    const race = pick(C.races), q = s.quest = {
+    const race = pick(C.races.filter((e) => !e.exotic)), q = s.quest = {
       key: pick(Q.keys),
       vault: pick(Q.vaults),
       relic: pick(Q.relics) + " of the " + s.civ.name,
@@ -4583,7 +4728,8 @@
       }
       return a.slice(0, n);
     };
-    s.offer = { races: draw(C.races, C.offer.races), classes: draw(C.classes, C.offer.classes) };
+    const usual = (list) => list.filter((e) => !e.exotic);
+    s.offer = { races: draw(usual(C.races), C.offer.races), classes: draw(usual(C.classes), C.offer.classes) };
     s.species = makeSpecies(s, rnd("species"), biome.id);
     s.speciesByBiome = { [biome.id]: s.species.map((_, i) => i) };
     s.creatures = [];
@@ -5108,7 +5254,19 @@
       return fn.apply(null, arguments);
     };
   }
-  for (const k of [...ACTIONS, "attack", "power", "firebolt", "smite", "mend", "flee", "identify", "useItem"]) {
+  for (const k of [
+    ...ACTIONS,
+    "attack",
+    "power",
+    "firebolt",
+    "smite",
+    "mend",
+    "flee",
+    "identify",
+    "useItem",
+    "setCharacter",
+    "nextTraveller"
+  ]) {
     const fn = api[k];
     api[k] = function(s) {
       const site = siteHereKind(s), r = fn.apply(null, arguments);
@@ -6240,7 +6398,7 @@
             R.byId(all, id).name,
             () => {
               ch[key] = id;
-              if (key === "race") ch.name = R.nameFor(Math.random, id);
+              if (key === "race") ch.name = R.nameFor(Math.random, id, V.S);
               paint();
             },
             "small" + (id === ch[key] ? " sel" : "")
@@ -6255,7 +6413,7 @@
         el("div", { cls: "row" }, [
           el("strong", { text: ch.name }),
           btn("Another name", () => {
-            ch.name = R.nameFor(Math.random, ch.race);
+            ch.name = R.nameFor(Math.random, ch.race, V.S);
             paint();
           })
         ]),

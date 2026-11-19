@@ -106,5 +106,23 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   s.off.specials = true;
   need(!R.specialOf(s, s.species[c.sp]).id, 'the specials switch does not turn them off');
 }
+// Exotic races and classes: offered now and then, never as a town's people, and a votary sets out sworn.
+{
+  let n = 0;
+  for (let i = 1; i <= 100; i++) {
+    const s = R.newGame(i);
+    need(!R.byId(R.C.races, s.town.race).exotic, 'seed ' + i + ': a town of an exotic race');
+    if ([...s.offer.races, ...s.offer.classes].some((id) => R.byId([...R.C.races, ...R.C.classes], id).exotic)) n++;
+  }
+  need(n > 15 && n < 60, 'exotics offered in ' + n + ' of 100 worlds');
+  const s = findSeed((s) => s.offer.classes.includes('votary'));
+  const ch = R.makeChar(Math.random, s);
+  ch.cls = 'votary';
+  R.setCharacter(s, ch);
+  need(s.pact === s.god, 'a votary does not set out sworn');
+  const lb = findSeed((s) => s.offer.races.includes('lostborn'));
+  const nm = R.nameFor(Math.random, 'lostborn', lb), st = R.byId(R.C.civ.style, lb.civ.style);
+  need(st.a.some((a) => nm.startsWith(a)), 'a Lostborn name does not come from the lost people: ' + nm);
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics');

@@ -399,7 +399,8 @@ function newGame(seed, off) {
     }
     return a.slice(0, n);
   };
-  s.offer = { races: draw(C.races, C.offer.races), classes: draw(C.classes, C.offer.classes) };
+  const usual = (list) => list.filter((e) => !e.exotic); // exotic races and classes are offered only now and then
+  s.offer = { races: draw(usual(C.races), C.offer.races), classes: draw(usual(C.classes), C.offer.classes) };
   s.species = makeSpecies(s, rnd('species'), biome.id);
   s.speciesByBiome = { [biome.id]: s.species.map((_, i) => i) };
   s.creatures = [];

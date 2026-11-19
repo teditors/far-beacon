@@ -98,6 +98,7 @@ import './pantheon.js';
 import './artifacts.js';
 import { regionRareOf, regionName } from './regionrares.js';
 import { specialOf } from './specials.js';
+import './exotics.js';
 
 const api = {
   worldNotes,
@@ -283,7 +284,19 @@ for (const k of ACTIONS) {
   };
 }
 // Every action the player takes is announced as 'did' ({ id, site }), so a piece can react to what the player does.
-for (const k of [...ACTIONS, 'attack', 'power', 'firebolt', 'smite', 'mend', 'flee', 'identify', 'useItem']) {
+for (const k of [
+  ...ACTIONS,
+  'attack',
+  'power',
+  'firebolt',
+  'smite',
+  'mend',
+  'flee',
+  'identify',
+  'useItem',
+  'setCharacter',
+  'nextTraveller',
+]) {
   const fn = api[k];
   api[k] = function (s) {
     const site = siteHereKind(s),

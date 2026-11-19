@@ -3,6 +3,28 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 7: exotic races and classes
+
+**What it is.** One world in five offers an exotic race in place of one of the usual three, and one in five an exotic
+class. Races: the Lostborn (descended from this world's lost people, named in their tongue, quick and lucky in their
+ruins), the Ashborn (cold hardly touches you, water burns away), the Saltkin (little water, cruel cold), the Mothfolk
+(see in the dark, carry little) and the Stone-kin (armored and strong, slow). Classes: the Votary (sets out already
+sworn to this world's god, and always knows where its shrine is), the Delver (a ruin-robber) and the Nomad.
+
+**In play.** The character screen is sometimes a surprise, and two of the exotics are tied to the world itself: the
+Lostborn to its lost people, the Votary to its rolled god (and its vow). Bot win rate, sets 5 / 1000 / 2000: 16, 23,
+21 with exotics; 22, 23, 16 without (60 vs 61: no change).
+
+**Commits.** "Exotic races and classes". Switch: `exotics`.
+
+**Choices made without asking.**
+- The exotics are pushed into `C.races` and `C.classes` when the module loads, marked `exotic`, so every lookup finds
+  them; the offer draw and the town's people filter them out, so no existing world's offer or town changes.
+- The first traveller of a world (made in newGame) is never exotic; the character screen and later travellers can be.
+- The idea of hybrid races (half-this, half-that) is left for later: the texts would need writing per pair.
+
+**Verdict: maybe.** The Votary and the Lostborn are the good ones; the other three are plain stat bundles.
+
 ## Piece 6: creature specials
 
 **What it is.** Half of all species now have a special besides their form: plated (hard to hit), a thief (each hit

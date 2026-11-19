@@ -120,7 +120,7 @@ function openCreate(next) {
             R.byId(all, id).name,
             () => {
               ch[key] = id;
-              if (key === 'race') ch.name = R.nameFor(Math.random, id);
+              if (key === 'race') ch.name = R.nameFor(Math.random, id, V.S);
               paint();
             },
             'small' + (id === ch[key] ? ' sel' : ''),
@@ -140,7 +140,7 @@ function openCreate(next) {
       el('div', { cls: 'row' }, [
         el('strong', { text: ch.name }),
         btn('Another name', () => {
-          ch.name = R.nameFor(Math.random, ch.race);
+          ch.name = R.nameFor(Math.random, ch.race, V.S);
           paint();
         }),
       ]),

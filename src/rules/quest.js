@@ -61,7 +61,7 @@ function makeQuest(s, r, townP, vaultP, a0, goalP) {
   const Q = C.quest,
     T = C.town,
     pick = (a) => a[Math.floor(r() * a.length)];
-  const race = pick(C.races),
+  const race = pick(C.races.filter((e) => !e.exotic)),
     q = (s.quest = {
       key: pick(Q.keys),
       vault: pick(Q.vaults),

@@ -6,6 +6,7 @@ import { describeMods, makeItem } from './items.js';
 import { dirTo, here, reveal } from './map.js';
 import { amod, manaMax } from './progress.js';
 import { waterCap } from './stats.js';
+import { exoticName } from './exotics.js';
 
 /* Characters */
 function rollAbilities(rnd) {
@@ -16,14 +17,15 @@ function rollAbilities(rnd) {
   }
   return o;
 }
-const nameFor = (rnd, raceId) => {
-  const n = byId(C.races, raceId).names;
-  return n[Math.floor(rnd() * n.length)];
+const nameFor = (rnd, raceId, s) => {
+  const race = byId(C.races, raceId),
+    n = race.names;
+  return (race.namesFrom && exoticName(rnd, race, s)) || n[Math.floor(rnd() * n.length)];
 };
 function makeChar(rnd, s) {
   const race = s.offer.races[Math.floor(rnd() * s.offer.races.length)],
     cls = s.offer.classes[Math.floor(rnd() * s.offer.classes.length)];
-  return { name: nameFor(rnd, race), race, cls, abil: rollAbilities(rnd) };
+  return { name: nameFor(rnd, race, s), race, cls, abil: rollAbilities(rnd) };
 }
 function scores(ch) {
   const adj = byId(C.races, ch.race).adj,
