@@ -3,6 +3,31 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 4: named artifacts
+
+**What it is.** Every world has three artifacts, each a common thing with a power no affix has, named for the lost
+people: "Dewcatcher, Waterskin of the Urashki" fills itself with water; "Hush, Cloak of the Temug" means creatures
+never hunt you; "Emberheart" keeps you from ever growing colder than a hearth would let you; "Longstride" boots,
+"Peakwalker" rope, a Tireless pack that gives stamina back as you walk, a Starglass, a Widowmaker blade, a Bulwark.
+One is for sale in the town's shop (about 50 to 60 coin), one lies beside the relic at the bottom of the locked place,
+and one is in a cache in the farthest country. You are told when you step onto one and when you first hold one.
+
+**In play.** A reason to save coin, a reward for the deepest level, and a reason to go far from home. Bot win rate,
+three seed sets (5 / 1000 / 2000): 21, 23, 25 with artifacts; 20, 28, 20 without. Noise: the bot neither buys them
+nor goes far, and the one by the relic is picked up only at the very end.
+
+**Commits.** "Named artifacts". Switch: `artifacts` (rolls none at creation; at runtime, switches their powers off).
+
+**Choices made without asking.**
+- Three per world, each power different. The far one goes in the cache nearest the middle of a region at the
+  greatest distance from home (any neighbour in a 3 x 3 world).
+- Artifacts are always known: a named thing should not be a mystery.
+- Generators are wrapped from the piece's own module (`GENERATORS.vault`, `GENERATORS.region`) rather than edited.
+  Small edits elsewhere: `itemName` and `describeItem` (items.js), `itemValue` (quest.js), and one condition in
+  `stepCreatures` (combat.js) for the new `quiet` stat.
+
+**Verdict: pearl.** Named things are what people remember from a roguelike run.
+
 ## Piece 3: rolled gods
 
 **What it is.** The god of a world is no longer one of three: it is rolled from a gift, a cost and, half the time, a

@@ -301,6 +301,7 @@ function stepCreatures(s) {
     const chase =
       sp.rare !== 'docile' &&
       c.cool === 0 &&
+      stat(s, 'quiet', 0) <= 0 &&
       ((sp.temper === 'hunter' && d <= 5 && srand(s) < 0.6) || (sp.temper === 'territorial' && d <= 2)) &&
       lineOfSight(s, c.x, c.y, p.x, p.y);
     if (chase && d > 0) {

@@ -95,6 +95,7 @@ import { serialize, deserialize } from './save.js';
 import { SWITCHES, worldNotes } from './hooks.js';
 import { yearOf } from './year.js';
 import './pantheon.js';
+import './artifacts.js';
 
 const api = {
   worldNotes,

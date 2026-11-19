@@ -10,5 +10,19 @@ import items from './items.js';
 import quest from './quest.js';
 import years from './years.js';
 import pantheon from './pantheon.js';
+import artifacts from './artifacts.js';
 
-export const CONTENT = Object.assign({}, tuning, characters, biomes, gods, peoples, creatures, items, quest, years, pantheon);
+export const CONTENT = Object.assign(
+  {},
+  tuning,
+  characters,
+  biomes,
+  gods,
+  peoples,
+  creatures,
+  items,
+  quest,
+  years,
+  pantheon,
+  artifacts,
+);

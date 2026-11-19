@@ -37,5 +37,30 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
     need(!R.godOf(s).rolled, 'switching rolled gods off did not bring the written god back');
   }
 }
+// Artifacts: one in the shop, one in a far region's cache, one with the relic; their powers work and switch off.
+{
+  for (let i = 1; i <= 20; i++) {
+    const s = R.newGame(i);
+    need(s.town.stock.filter((x) => x.art).length === 1, 'seed ' + i + ': no artifact in the shop');
+    need(!s.artifacts.region, 'seed ' + i + ': the far artifact was not placed when its region was built');
+    let n = 0;
+    for (const id in s.areas) if (s.areas[id].map) for (const k in s.areas[id].map.depots) n += s.areas[id].map.depots[k].items.filter((x) => x.art).length;
+    need(n === 1, 'seed ' + i + ': the far artifact is in ' + n + ' places');
+    const v = R.findSite(s, 'vault');
+    s.player.x = v.x; s.player.y = v.y; v.st.open = true; s.player.fuel = 5;
+    s.player.items.push(Object.assign({}, s.town.stock[0], { base: 'lantern', id: 999, eq: 'tool' }));
+    need(R.enterVault(s), 'seed ' + i + ': could not enter the vault');
+    for (let lv = 1; lv < v.st.floors.length; lv++) { const st = R.findHere(s, 'stairsDown'); s.player.x = st.x; s.player.y = st.y; s.combat = null; R.goDown(s); }
+    const relicD = Object.values(s.depots).find((d) => d.items.some((x) => x.base === 'relic'));
+    need(relicD && relicD.items.some((x) => x.art), 'seed ' + i + ': no artifact beside the relic');
+  }
+  const s = findSeed((s) => s.town.stock.some((x) => x.art === 'stride'));
+  const it = s.town.stock.find((x) => x.art === 'stride'), before = R.stat(s, 'moveTime', 1);
+  s.player.items.push(it); it.eq = R.slotOf(it);
+  need(R.stat(s, 'moveTime', 1) < before, 'Longstride does not speed you');
+  s.off.artifacts = true;
+  need(R.stat(s, 'moveTime', 1) === before, 'the artifacts switch does not turn powers off');
+  need(!R.newGame(5, { artifacts: true }).artifacts, 'NO=artifacts still rolled artifacts');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods');
+console.log('pieces ok: year, rolled gods, artifacts');

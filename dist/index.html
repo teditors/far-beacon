@@ -1617,8 +1617,111 @@
     }
   };
 
+  // src/content/artifacts.js
+  var artifacts_default = {
+    artifacts: {
+      count: 3,
+      // one in the town's shop, one beside the relic, one in a cache in a far region
+      value: 45,
+      // price in the shop, on top of the base
+      powers: [
+        {
+          id: "wellspring",
+          names: ["Dewcatcher", "the Unfailing", "Wellspring"],
+          for: ["waterskin", "staff", "cloak"],
+          text: "Fills itself: a third of a measure of water every hour.",
+          tick: { water: 0.33 },
+          mods: [{ stat: "waterCap", op: "add", value: 1 }]
+        },
+        {
+          id: "ember",
+          names: ["Emberheart", "the Banked Coal", "Hearthkeeper"],
+          for: ["cloak", "lantern"],
+          text: "You never grow colder than a hearth would let you.",
+          tick: { warmthFloor: 40 },
+          mods: []
+        },
+        {
+          id: "stride",
+          names: ["Longstride", "the Wayfarer", "Milestealer"],
+          for: ["boots", "staff"],
+          text: "Ground passes under you: much less time and effort on every step.",
+          mods: [
+            { stat: "moveTime", op: "mul", value: 0.75 },
+            { stat: "staminaCost", op: "mul", value: 0.8 }
+          ]
+        },
+        {
+          id: "peak",
+          names: ["Peakwalker", "the Goat-King", "Cloudstep"],
+          for: ["boots", "rope"],
+          text: "Mountains are no harder than hills, and hills hardly slow you.",
+          mods: [
+            { stat: "moveTime.mountain", op: "mul", value: 0.35 },
+            { stat: "moveTime.hill", op: "mul", value: 0.6 }
+          ]
+        },
+        {
+          id: "quiet",
+          names: ["Hush", "the Unheard", "Mothwing"],
+          for: ["cloak", "boots", "dagger"],
+          text: "Creatures never hunt you or guard their ground against you. They fight only if you walk into them.",
+          mods: [{ stat: "quiet", op: "add", value: 1 }]
+        },
+        {
+          id: "vigil",
+          names: ["Tireless", "the Long Watch", "Second Wind"],
+          for: ["framepack", "leather", "mail"],
+          text: "Your strength comes back as you walk: stamina every hour on the move.",
+          tick: { stamina: 6 },
+          mods: []
+        },
+        {
+          id: "seer",
+          names: ["Farsight", "the Open Eye", "Starglass"],
+          for: ["spyglass", "compass", "lantern"],
+          text: "See far when you survey, and see in the dark without fuel.",
+          mods: [
+            { stat: "surveyRadius", op: "add", value: 4 },
+            { stat: "nightSight", op: "add", value: 1 }
+          ]
+        },
+        {
+          id: "slayer",
+          names: ["Widowmaker", "the Red Tooth", "Lastword"],
+          for: ["dagger", "sword", "spear", "axe"],
+          text: "It finds the gap in anything: to hit +2, damage +3.",
+          mods: [
+            { stat: "hit", op: "add", value: 2 },
+            { stat: "dmg", op: "add", value: 3 }
+          ]
+        },
+        {
+          id: "bulwark",
+          names: ["the Unbroken", "Stonehide", "Bulwark"],
+          for: ["leather", "mail", "cloak"],
+          text: "Blows slide off it: armor +4.",
+          mods: [{ stat: "ac", op: "add", value: 4 }]
+        }
+      ]
+    }
+  };
+
   // src/content/index.js
-  var CONTENT = Object.assign({}, tuning_default, characters_default, biomes_default, gods_default, peoples_default, creatures_default, items_default, quest_default, years_default, pantheon_default);
+  var CONTENT = Object.assign(
+    {},
+    tuning_default,
+    characters_default,
+    biomes_default,
+    gods_default,
+    peoples_default,
+    creatures_default,
+    items_default,
+    quest_default,
+    years_default,
+    pantheon_default,
+    artifacts_default
+  );
 
   // src/rules/core.js
   var C = CONTENT;
@@ -1932,6 +2035,7 @@
   function itemName(it) {
     const b = byId(C.bases, it.base);
     if (it.label) return it.label;
+    if (it.artName) return it.artName;
     if (!it.known) return b.name + " (unstudied)";
     if (b.mystery) return C.flasks[it.effect].name;
     const p = it.pre ? byId(C.affixes, it.pre).name + " " : "", f = it.suf ? " " + byId(C.affixes, it.suf).name : "";
@@ -2000,11 +2104,13 @@
     let mods = (b.mods || []).slice();
     const ax = itemAffixes(it);
     for (const a of ax) mods = mods.concat(a.mods);
+    const pw = it.art && C.artifacts ? byId(C.artifacts.powers, it.art) : null;
     let t = b.weapon ? b.weapon.dice[0] + "d" + b.weapon.dice[1] + " damage" + (b.weapon.finesse ? ", uses Dexterity" : "") : "";
     {
       const dm = describeMods(mods);
       t += (t && dm ? ", " : "") + dm;
     }
+    if (pw) t = pw.text + (t ? " Also: " + t : "");
     for (const a of ax)
       if (a.wtMul !== void 0) t += (t ? ", " : "") + (a.wtMul === 0 ? "weighs nothing" : "weighs " + a.wtMul + " times normal");
     return t;
@@ -2645,7 +2751,7 @@
       if (c.cool > 0) c.cool--;
       let d = Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y));
       let moved = false;
-      const chase = sp.rare !== "docile" && c.cool === 0 && (sp.temper === "hunter" && d <= 5 && srand(s) < 0.6 || sp.temper === "territorial" && d <= 2) && lineOfSight(s, c.x, c.y, p.x, p.y);
+      const chase = sp.rare !== "docile" && c.cool === 0 && stat(s, "quiet", 0) <= 0 && (sp.temper === "hunter" && d <= 5 && srand(s) < 0.6 || sp.temper === "territorial" && d <= 2) && lineOfSight(s, c.x, c.y, p.x, p.y);
       if (chase && d > 0) {
         const dx = Math.sign(p.x - c.x), dy = Math.sign(p.y - c.y), nx = Math.abs(p.x - c.x) >= Math.abs(p.y - c.y) ? c.x + dx : c.x, ny = nx === c.x ? c.y + dy : c.y;
         if (s.terrain[idx(nx, ny)] !== 2 && passable(s, nx, ny)) {
@@ -2812,6 +2918,7 @@
     let v = C.value[it.base] || 5;
     for (const id of [it.pre, it.suf]) if (id) v += byId(C.affixes, id).cursed ? -4 : 8;
     if (it.mark) v += 6;
+    if (it.art && C.artifacts) v += C.artifacts.value;
     return Math.max(1, v);
   }
   function makeQuest(s, r, townP, vaultP, a0, goalP) {
@@ -4543,6 +4650,102 @@
     if (!g || !s.known.god) return [];
     return [{ label: "The god: " + g.name + (g.rare ? " (" + g.rare.name.toLowerCase() + ", rare)" : ""), text: g.terms }];
   });
+
+  // src/rules/artifacts.js
+  var A = () => C.artifacts;
+  var powerOf = (it) => it && it.art ? byId(A().powers, it.art) : null;
+  function makeArtifact(s, r, used) {
+    const pick = (a) => a[Math.floor(r() * a.length)], free = A().powers.filter((p) => !used.includes(p.id)), pw = pick(free.length ? free : A().powers), base = pick(pw.for), it = makeItem(s, base, null, null, true);
+    used.push(pw.id);
+    it.art = pw.id;
+    const nm = pick(pw.names);
+    it.artName = nm.charAt(0).toUpperCase() + nm.slice(1) + ", " + byId(C.bases, base).name + " of the " + s.civ.name;
+    return it;
+  }
+  on("worldBorn", (s, d) => {
+    if (d.off.artifacts) return;
+    const r = stream(s.seed, "artifacts"), used = [], n = A().count;
+    s.artifacts = { found: [] };
+    if (n >= 1) s.town.stock.push(makeArtifact(s, r, used));
+    if (n >= 2) s.artifacts.vault = makeArtifact(s, r, used);
+    if (n >= 3) {
+      const w = s.world, far = [];
+      for (let cy2 = 0; cy2 < w.rows; cy2++)
+        for (let cx2 = 0; cx2 < w.cols; cx2++)
+          if (sketchOf(s, cx2, cy2).danger === Math.max(...w.sketch.map((e) => e.danger))) far.push([cx2, cy2]);
+      const [cx, cy] = far[Math.floor(r() * far.length)];
+      if (cx !== w.home.cx || cy !== w.home.cy) s.artifacts.region = { id: "r" + cx + "_" + cy, item: makeArtifact(s, r, used) };
+    }
+  });
+  {
+    const vault = GENERATORS.vault;
+    GENERATORS.vault = (s, rec) => {
+      const m = vault(s, rec);
+      if (s.artifacts && s.artifacts.vault && rec.level === rec.levels) {
+        for (const k in m.depots)
+          if (m.depots[k].items.some((i) => i.base === "relic")) {
+            m.depots[k].items.push(s.artifacts.vault);
+            delete s.artifacts.vault;
+            break;
+          }
+      }
+      return m;
+    };
+    const region = GENERATORS.region;
+    GENERATORS.region = (s, rec) => {
+      const m = region(s, rec), a = s.artifacts && s.artifacts.region;
+      if (a && a.id === rec.id) {
+        let at = null;
+        for (const k in m.sites)
+          if (m.sites[k].kind === "cache" && (at === null || Math.abs(k % W - 18) + Math.abs(Math.floor(k / W) - 18) < Math.abs(at % W - 18) + Math.abs(Math.floor(at / W) - 18)))
+            at = +k;
+        if (at === null) at = idx(clamp(18, 0, W - 1), clamp(18, 0, H - 1));
+        const d = m.depots || (m.depots = {});
+        (d[at] = d[at] || { water: 0, fuel: 0, items: [] }).items.push(a.item);
+        delete s.artifacts.region;
+      }
+      return m;
+    };
+  }
+  SOURCES.push({
+    id: "artifacts",
+    fn(s, out) {
+      for (const it of s.player.items) if (it.art && active(it)) for (const m of powerOf(it).mods) out.push(m);
+    }
+  });
+  SYSTEMS.push({
+    id: "artifacts",
+    fn(s, dt, ctx) {
+      const p = s.player;
+      for (const it of p.items) {
+        const pw = powerOf(it);
+        if (s.off.artifacts || !pw || !pw.tick || !active(it)) continue;
+        if (pw.tick.water) p.water = Math.min(waterCap(s), p.water + pw.tick.water * dt);
+        if (pw.tick.warmthFloor && !s.off.warmth) p.warmth = Math.max(p.warmth, pw.tick.warmthFloor);
+        if (pw.tick.stamina && ctx.activity === "move") p.stamina = Math.min(100, p.stamina + pw.tick.stamina * dt);
+      }
+    }
+  });
+  on("did", (s, d) => {
+    if (!s.artifacts) return;
+    const dep = s.depots[idx(s.player.x, s.player.y)];
+    if (d.id === "move" && dep && dep.items.some((i) => i.art))
+      say(s, "Something old and remarkable lies here: " + dep.items.find((i) => i.art).artName + ". Open Pack to take it.", "good");
+    for (const it of s.player.items)
+      if (it.art && !s.artifacts.found.includes(it.artName)) {
+        s.artifacts.found.push(it.artName);
+        say(s, "You hold " + it.artName + ". " + powerOf(it).text, "good");
+      }
+  });
+  SWITCHES.push(["artifacts", "Named artifacts"]);
+  NOTES.push(
+    (s) => s.artifacts ? [
+      {
+        label: "Artifacts",
+        text: "Three remarkable things were made by the " + s.civ.name + ": one is for sale in " + s.town.name + ", one lies with the relic, and one is in a cache in the farthest country." + (s.artifacts.found.length ? " You have held: " + s.artifacts.found.join("; ") + "." : "")
+      }
+    ] : []
+  );
 
   // src/rules/index.js
   var api = {

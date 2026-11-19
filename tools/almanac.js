@@ -346,6 +346,21 @@ section('Rolled gods', ['pantheon'], () => {
   line();
 });
 
+section('Named artifacts', ['artifacts'], () => {
+  const A = C.artifacts;
+  line(
+    A.count +
+      ' per world, each with a different power: one for sale in the town (' +
+      A.value +
+      ' coin on top of its base), one beside the relic, one in a cache in the farthest region. Named "<Name>, <Base> of the <lost people>".',
+  );
+  line();
+  table(
+    ['Power', 'Names', 'Can be', 'Does', 'Modifiers', 'Each hour'],
+    A.powers.map((p) => [p.id, p.names.join('; '), p.for.join(', '), p.text, mods(p.mods), p.tick ? JSON.stringify(p.tick) : '']),
+  );
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

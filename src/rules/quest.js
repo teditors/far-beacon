@@ -54,6 +54,7 @@ function itemValue(it) {
   let v = C.value[it.base] || 5;
   for (const id of [it.pre, it.suf]) if (id) v += byId(C.affixes, id).cursed ? -4 : 8;
   if (it.mark) v += 6;
+  if (it.art && C.artifacts) v += C.artifacts.value;
   return Math.max(1, v);
 }
 function makeQuest(s, r, townP, vaultP, a0, goalP) {
