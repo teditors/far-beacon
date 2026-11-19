@@ -4,7 +4,9 @@ import { AXES } from './civ.js';
 import { makeSpecies, placeCreatures, speciesFor } from './combat.js';
 import { GENERATORS, HOME, ensureTown, ensureAround, sketchOf, wrap } from './areas.js';
 import { crossings, makeSketch, worldNoise } from './world.js';
-import { C, H, VERSION, W, byId, clamp, idx, say, stream } from './core.js';
+import { C, H, VERSION, W, byId, clamp, emit, idx, say, stream } from './core.js';
+import { rollYear, yearTuning } from './year.js';
+import { SKETCHERS } from './hooks.js';
 import { makeItem } from './items.js';
 import { dirTo } from './map.js';
 import { makeQuest } from './quest.js';
@@ -257,8 +259,11 @@ GENERATORS.region = (s, rec) => {
 };
 
 /* World generation */
-function newGame(seed) {
+function newGame(seed, off) {
   seed = seed >>> 0 || 1;
+  off = Object.assign({}, off); // switches that also apply while the world is made (see s.off)
+  const year = rollYear(seed, off),
+    tun = yearTuning(JSON.parse(JSON.stringify(C.tun)), year);
   // Each part of the world draws from its own named random stream, so adding a new step to one part
   // never reshuffles the others: a seed keeps its terrain when, say, a new kind of site is added.
   const rnd = (name) => stream(seed, name),
@@ -271,7 +276,7 @@ function newGame(seed) {
     rW = rnd('weather'),
     rO = rnd('offer'),
     pickWith = (rng) => (a) => a[Math.floor(rng() * a.length)];
-  const biome = pickWith(rnd('biome'))(C.biomes),
+  let biome = pickWith(rnd('biome'))(C.biomes.filter((b) => !b.gen)),
     god = pickWith(rnd('god'))(C.gods),
     civ = {};
   {
@@ -283,8 +288,10 @@ function newGame(seed) {
   const habit = byId(C.civ.habit, civ.habit),
     age = byId(C.civ.age, civ.age),
     doom = byId(C.civ.doom, civ.doom);
-  const world = makeSketch(seed, C.tun.world.cols, C.tun.world.rows, biome.id),
-    { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
+  const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
+  for (const f of SKETCHERS) f(seed, world, off); // a piece may change what the regions are before land is built
+  biome = byId(C.biomes, world.sketch[world.home.cy * world.cols + world.home.cx].biome);
+  const { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
   // You start in the middle. The town, the locked place and the beacon lie in three different directions.
   const sx = 17 + Math.floor(rL() * 3),
     sy = 17 + Math.floor(rL() * 3),
@@ -381,10 +388,11 @@ function newGame(seed) {
     over: null,
     cause: null,
     nextId: 1,
-    tun: JSON.parse(JSON.stringify(C.tun)),
-    off: {},
+    tun,
+    off,
     stats: { moves: 0, trips: 0 },
   };
+  if (year) s.year = year.id;
   s.weather.changeAt = (360 + rW() * 600) * s.tun.stormGap;
   const draw = (list, n) => {
     const a = list.map((e) => e.id);
@@ -394,7 +402,8 @@ function newGame(seed) {
     }
     return a.slice(0, n);
   };
-  s.offer = { races: draw(C.races, C.offer.races), classes: draw(C.classes, C.offer.classes) };
+  const usual = (list) => list.filter((e) => !e.exotic); // exotic races and classes are offered only now and then
+  s.offer = { races: draw(usual(C.races), C.offer.races), classes: draw(usual(C.classes), C.offer.classes) };
   s.species = makeSpecies(s, rnd('species'), biome.id);
   s.speciesByBiome = { [biome.id]: s.species.map((_, i) => i) };
   s.creatures = [];
@@ -420,6 +429,7 @@ function newGame(seed) {
       ' there is a town. Find it: its people know what this land is waiting for.',
   );
   say(s, 'Your camp has a well. A cloak, a lantern and fuel are stored here: open Pack to take them.');
+  emit(s, 'worldBorn', { rnd, off });
   if (typeof INTRO_EXTRA === 'string') say(s, INTRO_EXTRA);
   ensureTown(s);
   ensureAround(s);

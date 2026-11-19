@@ -501,7 +501,7 @@
       if (!window.THREE)
         document.getElementById('log').innerHTML =
           '<li class="bad new">The 3D library did not load. Check your connection and reload the page.</li>';
-      var GAME_VERSION = 'v0.11';
+      var GAME_VERSION = 'v0.12';
       var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls and past messages are in Menu.';
     </script>
     <script>
@@ -1204,7 +1204,8 @@
       { id: "flask", name: "Flask", wt: 0.3, w: 4, consumable: true, mystery: true },
       { id: "key", name: "Key", wt: 0.1, w: 0, plain: true, quest: "Opens the way down." },
       { id: "relic", name: "Relic", wt: 1, w: 0, plain: true, quest: "What this land is waiting for. Carry it where it belongs." },
-      { id: "campkit", name: "Camp Kit", wt: 5, w: 0, plain: true, mods: [] }
+      { id: "campkit", name: "Camp Kit", wt: 5, w: 0, plain: true, mods: [] },
+      { id: "parcel", name: "Parcel", wt: 1, w: 0, plain: true, quest: "Someone at the inn is waiting for this." }
     ],
     flasks: [
       { name: "Flask of Springwater", use: { water: 2 } },
@@ -1346,8 +1347,1138 @@
     }
   };
 
+  // src/content/years.js
+  var years_default = {
+    year: {
+      rareChance: 0.15,
+      common: [
+        { id: "ordinary", name: "An ordinary year", text: "Nothing out of the way.", w: 3 },
+        {
+          id: "drought",
+          name: "A year of drought",
+          text: "The heat dries you out: you need more water.",
+          w: 2,
+          mods: [{ stat: "waterDrain", op: "mul", value: 1.15 }]
+        },
+        {
+          id: "hardwinter",
+          name: "A hard winter",
+          text: "Everything is colder, and storms come more often.",
+          w: 2,
+          mods: [{ stat: "cold", op: "mul", value: 1.25 }],
+          tun: { stormGap: ["mul", 0.8] }
+        },
+        {
+          id: "mild",
+          name: "A mild year",
+          text: "The cold bites less than it should.",
+          w: 2,
+          mods: [{ stat: "cold", op: "mul", value: 0.75 }]
+        },
+        { id: "stormy", name: "A year of storms", text: "Storms come twice as often.", w: 2, tun: { stormGap: ["mul", 0.5] } },
+        { id: "still", name: "A still year", text: "Storms are rare.", w: 2, tun: { stormGap: ["mul", 2] } },
+        { id: "summer", name: "A long summer", text: "Days run from five until nine at night.", w: 2, day: [5, 21] },
+        { id: "longnight", name: "A year of long nights", text: "Days run only from eight until six.", w: 2, day: [8, 18] },
+        {
+          id: "lean",
+          name: "A lean year",
+          text: "Little to eat: rest restores less, and lanterns burn more oil.",
+          w: 2,
+          mods: [{ stat: "restGain", op: "mul", value: 0.85 }],
+          tun: { lanternFuelPerHour: ["mul", 1.5] }
+        },
+        {
+          id: "plenty",
+          name: "A year of plenty",
+          text: "Rest comes easy, and caves and caches are fuller.",
+          w: 2,
+          mods: [
+            { stat: "restGain", op: "mul", value: 1.15 },
+            { stat: "luck", op: "add", value: 0.15 }
+          ]
+        }
+      ],
+      rare: [
+        {
+          id: "wide",
+          name: "A wide world",
+          text: "This world is five regions across and five down, not three: the far country is further, and stranger.",
+          tun: { world: ["set", { cols: 5, rows: 5 }] }
+        },
+        {
+          id: "twomoons",
+          name: "A year of two moons",
+          text: "The nights are bright enough to see by.",
+          mods: [{ stat: "nightSight", op: "add", value: 1, when: "night" }]
+        },
+        {
+          id: "thinair",
+          name: "A year of thin air",
+          text: "Every step is harder work, but the air is so clear you see much further.",
+          mods: [
+            { stat: "staminaCost", op: "mul", value: 1.15 },
+            { stat: "surveyRadius", op: "add", value: 3 }
+          ]
+        },
+        {
+          id: "heavy",
+          name: "A year of heavy ground",
+          text: "The land pulls at you: travel is slower, but you can carry more before it tells.",
+          mods: [
+            { stat: "moveTime", op: "mul", value: 1.15 },
+            { stat: "carryCap", op: "add", value: 5 }
+          ]
+        },
+        {
+          id: "longdark",
+          name: "The long dark",
+          text: "The sun is up only from ten until four. The dark is strangely mild.",
+          day: [10, 16],
+          mods: [{ stat: "cold", op: "mul", value: 0.8, when: "night" }]
+        }
+      ]
+    }
+  };
+
+  // src/content/pantheon.js
+  var pantheon_default = {
+    pantheon: {
+      target: 1,
+      spread: 1,
+      vowChance: 0.5,
+      rareChance: 0.12,
+      names: {
+        a: ["Ush", "Karn", "Nym", "Ilu", "Teth", "Var", "Oss", "Mir", "Zeb", "Ahn", "Sul", "Ekh"],
+        b: ["et", "a", "os", "ir", "un", "ael", "eth", "is"]
+      },
+      domains: [
+        { id: "water", color: 14260026, titles: ["the Dry Mother", "Who Drinks Last", "of the Cracked Lip"] },
+        { id: "heights", color: 12575743, titles: ["of the High Places", "the Goat-Footed", "Who Sits on Peaks"] },
+        { id: "night", color: 10120160, titles: ["the Lidless", "of the Long Dark", "Who Walks at Night"] },
+        { id: "hearth", color: 14705210, titles: ["the Banked Fire", "of the Warm Stone", "Keeper of Embers"] },
+        { id: "road", color: 13218426, titles: ["of the Long Road", "the Untiring", "Who Never Stops"] },
+        { id: "war", color: 11546672, titles: ["the Red Hand", "of the Broken Shield", "Who Counts the Slain"] },
+        { id: "harvest", color: 8367690, titles: ["of the Full Granary", "the Gatherer", "Who Feeds the Fire"] },
+        { id: "sight", color: 6277336, titles: ["the Far-Seeing", "of the Open Eye", "Who Marks the Map"] }
+      ],
+      gifts: [
+        {
+          id: "drinkless",
+          domain: "water",
+          worth: 3,
+          text: "You need little more than half the water.",
+          mods: [{ stat: "waterDrain", op: "mul", value: 0.55 }]
+        },
+        {
+          id: "sipper",
+          domain: "water",
+          worth: 2,
+          text: "You need less water.",
+          mods: [{ stat: "waterDrain", op: "mul", value: 0.75 }]
+        },
+        {
+          id: "climber",
+          domain: "heights",
+          worth: 2,
+          text: "Hills and mountains cost you far less time.",
+          mods: [
+            { stat: "moveTime.hill", op: "mul", value: 0.6 },
+            { stat: "moveTime.mountain", op: "mul", value: 0.6 }
+          ]
+        },
+        {
+          id: "darksight",
+          domain: "night",
+          worth: 2,
+          text: "You see in the dark.",
+          mods: [{ stat: "nightSight", op: "add", value: 1 }]
+        },
+        {
+          id: "nightwarm",
+          domain: "night",
+          worth: 1,
+          text: "The night cold bites less.",
+          mods: [{ stat: "cold", op: "mul", value: 0.6, when: "night" }]
+        },
+        {
+          id: "warmblood",
+          domain: "hearth",
+          worth: 2,
+          text: "The cold bites less.",
+          mods: [{ stat: "cold", op: "mul", value: 0.6 }]
+        },
+        {
+          id: "stormproof",
+          domain: "hearth",
+          worth: 1,
+          text: "Storms cannot chill you.",
+          mods: [{ stat: "stormCold", op: "mul", value: 0 }]
+        },
+        {
+          id: "swift",
+          domain: "road",
+          worth: 2,
+          text: "You travel faster everywhere.",
+          mods: [{ stat: "moveTime", op: "mul", value: 0.85 }]
+        },
+        {
+          id: "tireless",
+          domain: "road",
+          worth: 2,
+          text: "Every step costs you less.",
+          mods: [{ stat: "staminaCost", op: "mul", value: 0.8 }]
+        },
+        { id: "sure", domain: "war", worth: 2, text: "Your blows land more often.", mods: [{ stat: "hit", op: "add", value: 2 }] },
+        { id: "heavy", domain: "war", worth: 2, text: "Your blows land harder.", mods: [{ stat: "dmg", op: "add", value: 2 }] },
+        { id: "warded", domain: "war", worth: 2, text: "Blows glance off you.", mods: [{ stat: "ac", op: "add", value: 2 }] },
+        {
+          id: "gatherer",
+          domain: "harvest",
+          worth: 1,
+          text: "You gather twice the wood.",
+          mods: [{ stat: "gatherYield", op: "add", value: 1 }]
+        },
+        {
+          id: "restful",
+          domain: "harvest",
+          worth: 2,
+          text: "Rest restores far more.",
+          mods: [{ stat: "restGain", op: "mul", value: 1.35 }]
+        },
+        {
+          id: "bearer",
+          domain: "harvest",
+          worth: 2,
+          text: "You can carry much more.",
+          mods: [{ stat: "carryCap", op: "add", value: 6 }]
+        },
+        {
+          id: "farsight",
+          domain: "sight",
+          worth: 2,
+          text: "You see much further when you survey.",
+          mods: [{ stat: "surveyRadius", op: "add", value: 3 }]
+        },
+        {
+          id: "dowser",
+          domain: "sight",
+          worth: 1,
+          text: "You always know which way the nearest spring lies, and sweet from foul on sight.",
+          mods: [
+            { stat: "wellfinder", op: "add", value: 1 },
+            { stat: "tasteWater", op: "add", value: 1 }
+          ]
+        }
+      ],
+      costs: [
+        {
+          id: "smallskin",
+          worth: -3,
+          text: "You can never carry more than 4 water.",
+          mods: [{ stat: "waterCap", op: "max", value: 4 }]
+        },
+        {
+          id: "dayburn",
+          worth: -2,
+          text: "By day you need much more water.",
+          mods: [{ stat: "waterDrain", op: "mul", value: 1.4, when: "day" }]
+        },
+        {
+          id: "flatfoot",
+          worth: -1,
+          text: "Flat ground costs you more time.",
+          mods: [{ stat: "moveTime.plain", op: "mul", value: 1.3 }]
+        },
+        { id: "chilled", worth: -2, text: "The cold bites harder.", mods: [{ stat: "cold", op: "mul", value: 1.3 }] },
+        { id: "weary", worth: -2, text: "Every step costs you more.", mods: [{ stat: "staminaCost", op: "mul", value: 1.15 }] },
+        { id: "burdened", worth: -2, text: "You can carry less.", mods: [{ stat: "carryCap", op: "add", value: -4 }] },
+        { id: "exposed", worth: -1, text: "Blows find you more easily.", mods: [{ stat: "ac", op: "add", value: -2 }] },
+        {
+          id: "myopic",
+          worth: -1,
+          text: "You see less far when you survey.",
+          mods: [{ stat: "surveyRadius", op: "add", value: -2 }]
+        },
+        { id: "sleepless", worth: -1, text: "Rest restores less.", mods: [{ stat: "restGain", op: "mul", value: 0.8 }] },
+        { id: "slow", worth: -2, text: "You travel slower everywhere.", mods: [{ stat: "moveTime", op: "mul", value: 1.15 }] }
+      ],
+      // A vow names the actions that break it, and optionally the kind of site you must be standing at.
+      vows: [
+        { id: "nofire", worth: -1, text: "You must never light a fire.", breaks: ["fire"] },
+        { id: "noboil", worth: -1, text: "You must never boil water.", breaks: ["boil"] },
+        { id: "noflee", worth: -1, text: "You must never run from a fight.", breaks: ["flee"] },
+        { id: "nobed", worth: -1, text: "You must never sleep in a bed at an inn.", breaks: ["inn"] },
+        { id: "nograve", worth: -1, text: "You must never disturb the ruins of the dead.", breaks: ["search"], at: "ruin" }
+      ],
+      rares: [
+        { id: "generous", name: "A generous god", text: "It asks nothing in return." },
+        { id: "twin", name: "Twin gods", text: "Two gods share the shrine: two gifts, and two costs." },
+        { id: "jealous", name: "A jealous god", text: "It gives twice over, and binds you with a vow." }
+      ]
+    }
+  };
+
+  // src/content/artifacts.js
+  var artifacts_default = {
+    artifacts: {
+      count: 3,
+      // one in the town's shop, one beside the relic, one in a cache in a far region
+      value: 45,
+      // price in the shop, on top of the base
+      powers: [
+        {
+          id: "wellspring",
+          names: ["Dewcatcher", "the Unfailing", "Wellspring"],
+          for: ["waterskin", "staff", "cloak"],
+          text: "Fills itself: a third of a measure of water every hour.",
+          tick: { water: 0.33 },
+          mods: [{ stat: "waterCap", op: "add", value: 1 }]
+        },
+        {
+          id: "ember",
+          names: ["Emberheart", "the Banked Coal", "Hearthkeeper"],
+          for: ["cloak", "lantern"],
+          text: "You never grow colder than a hearth would let you.",
+          tick: { warmthFloor: 40 },
+          mods: []
+        },
+        {
+          id: "stride",
+          names: ["Longstride", "the Wayfarer", "Milestealer"],
+          for: ["boots", "staff"],
+          text: "Ground passes under you: much less time and effort on every step.",
+          mods: [
+            { stat: "moveTime", op: "mul", value: 0.75 },
+            { stat: "staminaCost", op: "mul", value: 0.8 }
+          ]
+        },
+        {
+          id: "peak",
+          names: ["Peakwalker", "the Goat-King", "Cloudstep"],
+          for: ["boots", "rope"],
+          text: "Mountains are no harder than hills, and hills hardly slow you.",
+          mods: [
+            { stat: "moveTime.mountain", op: "mul", value: 0.35 },
+            { stat: "moveTime.hill", op: "mul", value: 0.6 }
+          ]
+        },
+        {
+          id: "quiet",
+          names: ["Hush", "the Unheard", "Mothwing"],
+          for: ["cloak", "boots", "dagger"],
+          text: "Creatures never hunt you or guard their ground against you. They fight only if you walk into them.",
+          mods: [{ stat: "quiet", op: "add", value: 1 }]
+        },
+        {
+          id: "vigil",
+          names: ["Tireless", "the Long Watch", "Second Wind"],
+          for: ["framepack", "leather", "mail"],
+          text: "Your strength comes back as you walk: stamina every hour on the move.",
+          tick: { stamina: 6 },
+          mods: []
+        },
+        {
+          id: "seer",
+          names: ["Farsight", "the Open Eye", "Starglass"],
+          for: ["spyglass", "compass", "lantern"],
+          text: "See far when you survey, and see in the dark without fuel.",
+          mods: [
+            { stat: "surveyRadius", op: "add", value: 4 },
+            { stat: "nightSight", op: "add", value: 1 }
+          ]
+        },
+        {
+          id: "slayer",
+          names: ["Widowmaker", "the Red Tooth", "Lastword"],
+          for: ["dagger", "sword", "spear", "axe"],
+          text: "It finds the gap in anything: to hit +2, damage +3.",
+          mods: [
+            { stat: "hit", op: "add", value: 2 },
+            { stat: "dmg", op: "add", value: 3 }
+          ]
+        },
+        {
+          id: "bulwark",
+          names: ["the Unbroken", "Stonehide", "Bulwark"],
+          for: ["leather", "mail", "cloak"],
+          text: "Blows slide off it: armor +4.",
+          mods: [{ stat: "ac", op: "add", value: 4 }]
+        }
+      ]
+    }
+  };
+
+  // src/content/regionrares.js
+  var regionrares_default = {
+    regionRares: {
+      chance: 0.15,
+      list: [
+        {
+          id: "glowing",
+          name: "Glowing",
+          text: "The ground here gives off a faint light at night: enough to see by.",
+          mods: [{ stat: "nightSight", op: "add", value: 1, when: "night" }]
+        },
+        {
+          id: "heavy",
+          name: "Heavy",
+          text: "The air is thick and the ground pulls at you: every step is harder work.",
+          mods: [{ stat: "staminaCost", op: "mul", value: 1.3 }]
+        },
+        { id: "sweet", name: "Sweet-watered", text: "Every spring here is sweet.", gen: { springs: "sweet" } },
+        { id: "bitter", name: "Bitter", text: "Every spring here is foul, save one.", gen: { springs: "foul" } },
+        { id: "empty", name: "Silent", text: "Nothing lives here. Not one creature.", gen: { noCreatures: true } },
+        { id: "teeming", name: "Teeming", text: "Creatures are everywhere here.", gen: { moreCreatures: 6 } },
+        {
+          id: "sacred",
+          name: "Hallowed",
+          text: "An old peace lies on this country: rest here restores far more.",
+          mods: [{ stat: "restGain", op: "mul", value: 1.5 }]
+        },
+        {
+          id: "parched",
+          name: "Parched",
+          text: "The air here dries you out: you need much more water.",
+          mods: [{ stat: "waterDrain", op: "mul", value: 1.35 }]
+        },
+        { id: "rich", name: "Rich", text: "Every cache here is full.", gen: { richCaches: true } },
+        {
+          id: "hollow",
+          name: "Hollow",
+          text: "The wind never stops: storms here bite twice as hard.",
+          mods: [{ stat: "stormCold", op: "mul", value: 2 }]
+        }
+      ]
+    }
+  };
+
+  // src/content/specials.js
+  var specials_default = {
+    specials: {
+      chance: 0.5,
+      list: [
+        { id: "plated", text: "It is plated like a beetle: hard to hit.", ac: 3 },
+        { id: "thief", text: "It goes for your water: every hit spills some.", steal: 1 },
+        { id: "regen", text: "Its wounds close as you watch.", regen: 2 },
+        { id: "twice", text: "It strikes twice, quick and light.", attacks: 2, hpMul: 0.75 },
+        { id: "nocturnal", text: "It hunts only by night. By day it sleeps.", nightOnly: true },
+        { id: "frost", text: "Its touch is ice.", chill: 10 },
+        { id: "venom", text: "Its bite saps your strength.", venom: 8 },
+        { id: "swift", text: "It is very fast: almost impossible to outrun.", fleePenalty: 0.3 },
+        { id: "coward", text: "It is a coward: badly hurt, it runs.", fleesAt: 0.35 },
+        { id: "hoarder", text: "It hoards coin in its lair.", coin: 15 },
+        { id: "huge", text: "It is huge: twice as hard to kill.", hpMul: 2 }
+      ]
+    }
+  };
+
+  // src/content/exotics.js
+  var exotics_default = {
+    exotics: { raceChance: 0.2, classChance: 0.2 },
+    exoticRaces: [
+      {
+        id: "lostborn",
+        exotic: true,
+        name: "Lostborn",
+        adj: { int: 1, wis: 1, con: -1 },
+        text: "Descended from the lost people of this world. Their ruins give up their secrets to you: you search them faster and find more.",
+        mods: [
+          { stat: "searchTime", op: "mul", value: 0.6 },
+          { stat: "luck", op: "add", value: 0.2 }
+        ],
+        namesFrom: "civ",
+        names: ["Ashki", "Temur", "Rinpo", "Melic"]
+      },
+      {
+        id: "ashborn",
+        exotic: true,
+        name: "Ashborn",
+        adj: { con: 2, cha: -1, dex: -1 },
+        text: "Born of a fire that went out. Cold hardly touches you, but you burn through water.",
+        mods: [
+          { stat: "cold", op: "mul", value: 0.5 },
+          { stat: "waterDrain", op: "mul", value: 1.2 }
+        ],
+        names: ["Cinder", "Smoke", "Ember", "Soot", "Kiln", "Brand"]
+      },
+      {
+        id: "saltkin",
+        exotic: true,
+        name: "Saltkin",
+        adj: { con: 1, str: 1, cha: -2 },
+        text: "A people of the dry places: you need little water, but the cold is cruel to you.",
+        mods: [
+          { stat: "waterDrain", op: "mul", value: 0.6 },
+          { stat: "cold", op: "mul", value: 1.35 }
+        ],
+        names: ["Hesh", "Ruma", "Tazi", "Okar", "Sefa", "Imri"]
+      },
+      {
+        id: "mothfolk",
+        exotic: true,
+        name: "Mothfolk",
+        adj: { dex: 2, wis: 1, str: -3 },
+        text: "Small, pale and wide-eyed: you see in the dark, but carry little.",
+        mods: [
+          { stat: "nightSight", op: "add", value: 1 },
+          { stat: "carryCap", op: "add", value: -3 }
+        ],
+        names: ["Pale", "Flit", "Hush", "Dusk", "Wane", "Lune"]
+      },
+      {
+        id: "stonekin",
+        exotic: true,
+        name: "Stone-kin",
+        adj: { str: 2, con: 1, dex: -2 },
+        text: "Heavy and hard: blows glance off you and you carry a great deal, but you are slow.",
+        mods: [
+          { stat: "ac", op: "add", value: 2 },
+          { stat: "carryCap", op: "add", value: 4 },
+          { stat: "moveTime", op: "mul", value: 1.1 }
+        ],
+        names: ["Flint", "Slate", "Granit", "Tor", "Basalt", "Cairn"]
+      }
+    ],
+    exoticClasses: [
+      {
+        id: "votary",
+        exotic: true,
+        name: "Votary",
+        text: "Sworn to this world's god before setting out: you begin bound by its pact, and always know which way its shrine lies. Starts with a staff and a warming draught.",
+        kit: ["staff", "draught"],
+        hd: 8,
+        sworn: true,
+        fight: "Nothing special.",
+        mods: [{ stat: "shrineSense", op: "add", value: 1 }]
+      },
+      {
+        id: "delver",
+        exotic: true,
+        name: "Delver",
+        text: "A robber of ruins: searches in half the time, is never caught by a trap, and has an eye for what is worth taking. Starts with a dagger, a rope and a lantern.",
+        kit: ["dagger", "rope", "lantern"],
+        hd: 6,
+        fight: "Nothing special.",
+        mods: [
+          { stat: "searchTime", op: "mul", value: 0.5 },
+          { stat: "trapSafe", op: "add", value: 1 },
+          { stat: "luck", op: "add", value: 0.2 }
+        ]
+      },
+      {
+        id: "nomad",
+        exotic: true,
+        name: "Nomad",
+        text: "Born on the move: needs less water, carries more, and never tires on flat ground. Starts with a spear, boots and a frame pack.",
+        kit: ["spear", "boots", "framepack"],
+        hd: 8,
+        fight: "Nothing special.",
+        mods: [
+          { stat: "waterDrain", op: "mul", value: 0.85 },
+          { stat: "carryCap", op: "add", value: 3 },
+          { stat: "moveTime.plain", op: "mul", value: 0.85 }
+        ]
+      }
+    ]
+  };
+
+  // src/content/towns.js
+  var towns_default = {
+    townCulture: {
+      rareChance: 0.12,
+      trades: [
+        {
+          id: "smiths",
+          name: "smiths",
+          text: "Weapons and armor are cheap here, and there are more of them.",
+          mods: [
+            { stat: "town.buy.weapon", op: "mul", value: 0.7 },
+            { stat: "town.buy.armor", op: "mul", value: 0.7 }
+          ],
+          stock: { bases: ["sword", "spear", "axe", "leather", "mail"], n: 2 }
+        },
+        {
+          id: "herbalists",
+          name: "herbalists",
+          text: "Salves, tonics and draughts are cheap and plentiful.",
+          mods: [{ stat: "town.buy.consumable", op: "mul", value: 0.6 }],
+          stock: { bases: ["salve", "tonic", "draught", "salve"], n: 4 }
+        },
+        {
+          id: "weavers",
+          name: "weavers",
+          text: "Cloaks, packs and waterskins are cheap here.",
+          mods: [{ stat: "town.buy.gear", op: "mul", value: 0.8 }],
+          stock: { bases: ["cloak", "waterskin", "framepack"], n: 2 }
+        },
+        {
+          id: "charcoal",
+          name: "charcoal-burners",
+          text: "Fuel is cheap and there is a great deal of it.",
+          mods: [{ stat: "town.fuelPrice", op: "mul", value: 0.5 }],
+          fuel: 12
+        },
+        {
+          id: "traders",
+          name: "traders",
+          text: "They buy anything, at a better price than most.",
+          mods: [{ stat: "town.sellRate", op: "mul", value: 1.5 }],
+          stock: { bases: ["compass", "spyglass", "rope", "lantern"], n: 2 }
+        }
+      ],
+      customs: [
+        {
+          id: "hospitable",
+          name: "hospitable",
+          text: "A bed at the inn costs almost nothing.",
+          mods: [{ stat: "town.innPrice", op: "mul", value: 0.4 }]
+        },
+        {
+          id: "suspicious",
+          name: "suspicious of strangers",
+          text: "Everything costs more, but the elder marks every spring near the town on your map.",
+          mods: [{ stat: "town.buy", op: "mul", value: 1.3 }],
+          elder: "springs"
+        },
+        { id: "pious", name: "pious", text: "The elder tells you of the god of this land and marks its shrine.", elder: "shrine" },
+        {
+          id: "lore",
+          name: "keepers of old lore",
+          text: "The elder tells you everything known about the lost people.",
+          elder: "lore"
+        },
+        {
+          id: "thrifty",
+          name: "thrifty",
+          text: "Appraisal is free, and they drive a hard bargain when buying.",
+          mods: [
+            { stat: "town.appraisePrice", op: "mul", value: 0 },
+            { stat: "town.sellRate", op: "mul", value: 0.75 }
+          ]
+        }
+      ],
+      rares: [
+        {
+          id: "unfallen",
+          name: "the people who never fell",
+          text: "This town is of the lost people themselves: they did not fall, they only stopped building. They tell you all they are, and their shop is full of their own marked gear.",
+          elder: "lore",
+          marked: 3
+        },
+        {
+          id: "pilgrims",
+          name: "pilgrims",
+          text: "A town of pilgrims to the shrine. They tell you its terms and mark it, and every bed is free.",
+          elder: "shrine",
+          mods: [{ stat: "town.innPrice", op: "mul", value: 0 }]
+        }
+      ]
+    }
+  };
+
+  // src/content/errands.js
+  var errands_default = {
+    errands: {
+      liarChance: 0.15,
+      itemChance: 0.5,
+      // an honest reward includes a good item this often
+      givers: ["a carter", "a widow", "a tinker", "a scribe", "a herder", "an old soldier", "a miller", "a ferryman"],
+      tells: [
+        "who will not meet your eye",
+        "whose purse looks very thin",
+        "who smiles a little too much",
+        "who keeps glancing at the door"
+      ],
+      kinds: [
+        {
+          id: "slay",
+          text: '"A {species} has been taking {victims} out in the {region}, to the {dir}. Kill it, and I will pay you {reward} coin."',
+          victims: ["goats", "travellers", "the post rider", "my dogs", "children, they say"],
+          reward: [16, 26]
+        },
+        {
+          id: "fetch",
+          text: '"My {thing} is in {asite} in the {region}, to the {dir}. Bring it back to me here and I will pay you {reward} coin."',
+          things: ["brother's satchel", "box of letters", "father's ledger", "seed-corn", "mother's ring", "bundle of deeds"],
+          reward: [14, 22]
+        },
+        {
+          id: "find",
+          text: '"Nobody has been to the {site} in the {region}, to the {dir}, in years. Go there, come back and tell me what you saw: {reward} coin."',
+          reward: [10, 18]
+        }
+      ]
+    }
+  };
+
+  // src/content/weather.js
+  var weather_default = {
+    oddWeather: {
+      chance: 0.15,
+      list: [
+        {
+          id: "hail",
+          name: "hailstorm",
+          cold: 8,
+          hurt: 2,
+          mods: [{ stat: "moveTime", op: "mul", value: 1.3 }],
+          text: "Hail hurts out in the open. Get under cover."
+        },
+        {
+          id: "ash",
+          name: "fall of ash",
+          cold: 3,
+          mods: [{ stat: "waterDrain", op: "mul", value: 1.4 }],
+          text: "Grey ash falls from a clear sky. It gets in your throat."
+        },
+        {
+          id: "fog",
+          name: "thick fog",
+          cold: 2,
+          mods: [{ stat: "moveTime", op: "mul", value: 1.15 }],
+          text: "A white fog, so thick you cannot see your feet."
+        },
+        {
+          id: "warm",
+          name: "warm wind",
+          cold: -8,
+          mods: [{ stat: "waterDrain", op: "mul", value: 1.2 }],
+          text: "A warm wind out of nowhere, full of dust. It warms you through, and dries you out."
+        },
+        {
+          id: "stars",
+          name: "shower of falling stars",
+          cold: 0,
+          star: true,
+          mods: [],
+          text: "The sky is full of falling stars. One comes down not far off."
+        }
+      ]
+    }
+  };
+
+  // src/content/biomeparts.js
+  var biomeparts_default = {
+    biomeGen: {
+      perWorld: 2,
+      // generated biomes per world
+      regionChance: 0.5,
+      // chance that a region away from home is one of them
+      homeChance: 0.25,
+      // chance that the home region is
+      rareChance: 0.12,
+      climates: [
+        {
+          id: "hot",
+          words: ["Sun", "Red", "Amber", "Burnt"],
+          blurb: "Hot days, cold nights.",
+          sky: 13882050,
+          tint: 7227946,
+          lush: 9079365,
+          rocky: 0.62,
+          ground: ["#cdbf9c", "#b0966a", "#7a6650"],
+          day: { cold: 0, warm: 6, mods: [{ stat: "waterDrain", op: "mul", value: 1.4 }] },
+          night: { cold: 6, warm: 0, mods: [] },
+          storm: {
+            name: "dust storm",
+            cold: 0,
+            mods: [
+              { stat: "moveTime", op: "mul", value: 1.6 },
+              { stat: "waterDrain", op: "mul", value: 1.3 }
+            ]
+          }
+        },
+        {
+          id: "temperate",
+          words: ["Green", "Long", "Elder", "Hollow"],
+          blurb: "Mild days and cool nights.",
+          sky: 11846860,
+          tint: 3813162,
+          ground: ["#8aa06a", "#6d8457", "#6a6860"],
+          day: { cold: 2, warm: 3, mods: [] },
+          night: { cold: 7, warm: 0, mods: [] },
+          storm: { name: "rainstorm", cold: 9, mods: [{ stat: "moveTime", op: "mul", value: 1.2 }] }
+        },
+        {
+          id: "cold",
+          words: ["Frost", "White", "Rime", "Snow"],
+          blurb: "Always cold. Snow can be melted for water if you have fuel.",
+          sky: 13030363,
+          tint: 3885660,
+          lush: 6126200,
+          melt: 3,
+          ground: ["#dfe6e8", "#a3b7b3", "#6c7b85"],
+          day: { cold: 6, warm: 2, mods: [] },
+          night: { cold: 12, warm: 0, mods: [] },
+          storm: { name: "blizzard", cold: 14, mods: [{ stat: "moveTime", op: "mul", value: 1.5 }] }
+        },
+        {
+          id: "wet",
+          words: ["Mist", "Grey", "Weeping", "Rain"],
+          blurb: "Damp and grey. Rain and cold nights.",
+          sky: 11188155,
+          tint: 3813162,
+          ground: ["#7c9463", "#5f7653", "#55585e"],
+          day: { cold: 3, warm: 2, mods: [] },
+          night: { cold: 8, warm: 0, mods: [] },
+          storm: { name: "rainstorm", cold: 10, mods: [{ stat: "moveTime", op: "mul", value: 1.25 }] }
+        },
+        {
+          id: "ashen",
+          words: ["Ash", "Cinder", "Black", "Smoke"],
+          blurb: "Dark ground, still warm underfoot. The air is dry.",
+          sky: 12102304,
+          tint: 14209216,
+          rocky: 0.7,
+          ground: ["#6e6660", "#5a5450", "#3e3936"],
+          day: { cold: 1, warm: 5, mods: [{ stat: "waterDrain", op: "mul", value: 1.15 }] },
+          night: { cold: 5, warm: 0, mods: [] },
+          storm: {
+            name: "ash storm",
+            cold: 4,
+            mods: [
+              { stat: "waterDrain", op: "mul", value: 1.4 },
+              { stat: "moveTime", op: "mul", value: 1.3 }
+            ]
+          }
+        },
+        {
+          id: "steppe",
+          words: ["Wind", "Tall", "Pale", "Wide"],
+          blurb: "Open sky and endless wind.",
+          sky: 13159632,
+          tint: 4864554,
+          ground: ["#b8b48a", "#9a9670", "#7a7466"],
+          day: { cold: 3, warm: 4, mods: [] },
+          night: { cold: 9, warm: 0, mods: [] },
+          storm: { name: "gale", cold: 9, mods: [{ stat: "moveTime", op: "mul", value: 1.4 }] }
+        }
+      ],
+      landforms: [
+        { id: "flat", hills: 0.12, mountains: 0.03, nouns: ["Flats", "Plain", "Levels", "Pans"] },
+        { id: "rolling", hills: 0.3, mountains: 0.05, nouns: ["Downs", "Wolds", "Steppe", "Moor"] },
+        { id: "rugged", hills: 0.28, mountains: 0.12, nouns: ["Crags", "Heights", "Fells", "Teeth"] },
+        { id: "broken", hills: 0.4, mountains: 0.08, nouns: ["Breaks", "Badlands", "Knolls", "Barrens"] }
+      ],
+      waters: [
+        {
+          id: "dry",
+          climates: ["hot", "ashen", "steppe"],
+          blurb: "Water is scarce.",
+          springs: 4,
+          foul: 0.15,
+          color: "#dccfa6",
+          river: { name: "dry wash", count: 2, moveMin: 12, moveSta: 1.6, dig: 2, mods: [] }
+        },
+        {
+          id: "streams",
+          climates: ["temperate", "wet", "steppe"],
+          blurb: "Water everywhere, much of it foul.",
+          springs: 7,
+          foul: 0.4,
+          color: "#3f7fa8",
+          river: { name: "stream", count: 3, moveMin: 30, moveSta: 4, wet: 8, drink: true, mods: [] }
+        },
+        {
+          id: "frozen",
+          climates: ["cold"],
+          blurb: "The rivers are frozen hard.",
+          springs: 2,
+          foul: 0.1,
+          color: "#bfe0f0",
+          river: { name: "frozen river", count: 2, moveMin: 11, moveSta: 1.6, mods: [{ stat: "cold", op: "mul", value: 1.3 }] }
+        },
+        {
+          id: "sweet",
+          climates: ["temperate", "wet", "steppe", "cold"],
+          blurb: "Clear brooks and sweet springs.",
+          springs: 6,
+          foul: 0.05,
+          color: "#5a9ac0",
+          river: { name: "clear brook", count: 2, moveMin: 24, moveSta: 3, wet: 4, drink: true, mods: [] }
+        },
+        {
+          id: "brackish",
+          climates: ["wet", "hot", "ashen"],
+          blurb: "The creeks are brackish and the springs often foul.",
+          springs: 5,
+          foul: 0.55,
+          color: "#6f7f6a",
+          river: { name: "brackish creek", count: 3, moveMin: 26, moveSta: 3.5, wet: 6, mods: [] }
+        }
+      ],
+      woodlands: [
+        {
+          id: "thorn",
+          climates: ["hot", "steppe", "ashen"],
+          color: "#9c8a5c",
+          forest: {
+            name: "thorn scrub",
+            frac: 0.07,
+            moveMin: 18,
+            moveSta: 2.5,
+            gather: true,
+            mods: [],
+            tree: { color: 7232580, h: [1, 2.2], w: 0.9, n: 6 }
+          }
+        },
+        {
+          id: "birch",
+          climates: ["temperate", "wet"],
+          color: "#4c6a3c",
+          forest: {
+            name: "birch copse",
+            frac: 0.12,
+            moveMin: 20,
+            moveSta: 2.5,
+            gather: true,
+            blind: true,
+            mods: [
+              { stat: "cold", op: "mul", value: 0.6 },
+              { stat: "stormCold", op: "mul", value: 0.4 }
+            ],
+            tree: { color: 8231514, h: [5, 9], w: 1.5, n: 7 }
+          }
+        },
+        {
+          id: "pine",
+          climates: ["cold", "temperate"],
+          color: "#b4c6bd",
+          forest: {
+            name: "pine forest",
+            frac: 0.28,
+            moveMin: 22,
+            moveSta: 3,
+            gather: true,
+            blind: true,
+            mods: [
+              { stat: "cold", op: "mul", value: 0.55 },
+              { stat: "stormCold", op: "mul", value: 0.3 }
+            ],
+            tree: { color: 3099196, h: [7, 13], w: 2.2, n: 8 }
+          }
+        },
+        {
+          id: "deadwood",
+          climates: ["ashen", "hot", "cold"],
+          color: "#5a5048",
+          forest: {
+            name: "dead wood",
+            frac: 0.1,
+            moveMin: 18,
+            moveSta: 2.2,
+            gather: true,
+            mods: [],
+            tree: { color: 4866104, h: [3, 6], w: 0.6, n: 4 }
+          }
+        },
+        {
+          id: "fern",
+          climates: ["wet", "temperate"],
+          color: "#4f7a3a",
+          forest: {
+            name: "fern brake",
+            frac: 0.18,
+            moveMin: 24,
+            moveSta: 3,
+            gather: true,
+            blind: true,
+            mods: [{ stat: "stormCold", op: "mul", value: 0.5 }],
+            tree: { color: 5208634, h: [2, 4], w: 2.2, n: 9 }
+          }
+        },
+        {
+          id: "grass",
+          climates: ["steppe"],
+          color: "#a8a060",
+          forest: {
+            name: "tall grass",
+            frac: 0.15,
+            moveMin: 18,
+            moveSta: 2.2,
+            blind: true,
+            mods: [],
+            tree: { color: 11577440, h: [0.8, 1.4], w: 1.2, n: 9 }
+          }
+        }
+      ],
+      grounds: [
+        {
+          id: "saltpan",
+          climates: ["hot", "steppe"],
+          color: "#f1ecdf",
+          special: {
+            name: "salt pan",
+            frac: 0.1,
+            moveMin: 12,
+            moveSta: 1.8,
+            mods: [{ stat: "waterDrain", op: "mul", value: 1.25 }]
+          }
+        },
+        {
+          id: "bog",
+          climates: ["wet", "temperate"],
+          color: "#4b5637",
+          special: { name: "bog", frac: 0.1, moveMin: 35, moveSta: 6, wet: 5, mods: [] }
+        },
+        {
+          id: "lake",
+          climates: ["cold"],
+          color: "#d3ebf6",
+          special: { name: "frozen lake", frac: 0.07, moveMin: 11, moveSta: 1.6, mods: [{ stat: "cold", op: "mul", value: 1.3 }] }
+        },
+        {
+          id: "ashfield",
+          climates: ["ashen", "hot"],
+          color: "#3a3634",
+          special: { name: "ash field", frac: 0.1, moveMin: 14, moveSta: 2, mods: [{ stat: "waterDrain", op: "mul", value: 1.2 }] }
+        },
+        {
+          id: "meadow",
+          climates: ["temperate", "steppe", "wet"],
+          color: "#c8a0c0",
+          special: {
+            name: "flower meadow",
+            frac: 0.08,
+            moveMin: 15,
+            moveSta: 1.8,
+            mods: [{ stat: "restGain", op: "mul", value: 1.4 }]
+          }
+        },
+        {
+          id: "hotsprings",
+          climates: ["cold", "ashen", "wet"],
+          color: "#a0c8c0",
+          special: { name: "hot springs", frac: 0.05, moveMin: 20, moveSta: 2.5, mods: [{ stat: "warm", op: "add", value: 15 }] }
+        },
+        {
+          id: "glass",
+          climates: ["hot", "ashen"],
+          color: "#d8e0e0",
+          special: {
+            name: "glass plain",
+            frac: 0.08,
+            moveMin: 10,
+            moveSta: 1.2,
+            mods: [{ stat: "surveyRadius", op: "add", value: 1 }]
+          }
+        }
+      ],
+      rares: [
+        { id: "strange", word: "Strange-hued", text: "The colours here are wrong: violet grass, green stone.", hue: 150 },
+        {
+          id: "giant",
+          word: "Great-wooded",
+          text: "The trees here are giants, and there are more of them.",
+          treeMul: 2.5,
+          forestMul: 1.5
+        }
+      ]
+    }
+  };
+
+  // src/content/floors.js
+  var floors_default = {
+    floorKinds: {
+      chance: 0.3,
+      rareChance: 0.08,
+      list: [
+        {
+          id: "flooded",
+          text: "Black water stands knee-deep on this level. It is drinkable, and it is very cold.",
+          pools: 3,
+          mods: [
+            { stat: "moveTime", op: "mul", value: 1.5 },
+            { stat: "cold", op: "mul", value: 2.5 }
+          ]
+        },
+        { id: "ossuary", text: "Bones are stacked to the ceiling here, and some of them are standing up.", guards: 3 },
+        {
+          id: "archive",
+          text: "An archive: shelves of tablets, and a plan of the level carved by the door.",
+          reveal: true,
+          items: 2
+        }
+      ],
+      rare: { id: "sleepers", text: "The guardians of this level are asleep, and nothing you do will wake them.", sleep: true }
+    }
+  };
+
+  // src/content/relics.js
+  var relics_default = {
+    relicNatures: {
+      Ember: {
+        text: "It is warm in your hands: the cold bites half as hard while you carry it.",
+        mods: [{ stat: "cold", op: "mul", value: 0.5 }]
+      },
+      Lens: {
+        text: "Through it the dark is clear and the land is near: you see at night, and further when you survey.",
+        mods: [
+          { stat: "nightSight", op: "add", value: 1 },
+          { stat: "surveyRadius", op: "add", value: 3 }
+        ]
+      },
+      Horn: {
+        text: "It sounds when you strike, and whatever you fight falters: to hit +2, damage +1.",
+        mods: [
+          { stat: "hit", op: "add", value: 2 },
+          { stat: "dmg", op: "add", value: 1 }
+        ]
+      },
+      Crown: {
+        text: "It is heavy, and it guards whoever bears it: armor +2, but every step costs more.",
+        mods: [
+          { stat: "ac", op: "add", value: 2 },
+          { stat: "staminaCost", op: "mul", value: 1.2 }
+        ]
+      },
+      Bell: {
+        text: "Its faint note keeps creatures from hunting you while you carry it.",
+        mods: [{ stat: "quiet", op: "add", value: 1 }]
+      }
+    }
+  };
+
+  // src/content/lairs.js
+  var lairs_default = {
+    lairs: {
+      chance: 0.35,
+      names: ["Old", "Grey", "Lame", "One-Eyed", "Hollow", "Last", "Pale", "Great"],
+      hoard: { coin: [20, 40], items: 2 }
+    }
+  };
+
+  // src/content/farfinds.js
+  var farfinds_default = {
+    farFinds: { chance: 0.45 }
+  };
+
   // src/content/index.js
-  var CONTENT = Object.assign({}, tuning_default, characters_default, biomes_default, gods_default, peoples_default, creatures_default, items_default, quest_default);
+  var CONTENT = Object.assign(
+    {},
+    tuning_default,
+    characters_default,
+    biomes_default,
+    gods_default,
+    peoples_default,
+    creatures_default,
+    items_default,
+    quest_default,
+    years_default,
+    pantheon_default,
+    artifacts_default,
+    regionrares_default,
+    specials_default,
+    exotics_default,
+    towns_default,
+    errands_default,
+    weather_default,
+    biomeparts_default,
+    floors_default,
+    relics_default,
+    lairs_default,
+    farfinds_default
+  );
 
   // src/rules/core.js
   var C = CONTENT;
@@ -1358,7 +2489,16 @@
   var TERR = ["plain", "hill", "mountain", "forest", "river", "special", "wall", "floor"];
   var WALL = 6;
   var FLOOR = 7;
-  var byId = (list, id) => list.find((e) => e.id === id);
+  var idIndex = /* @__PURE__ */ new WeakMap();
+  var byId = (list, id) => {
+    let ix = idIndex.get(list);
+    if (!ix || ix.n !== list.length) {
+      ix = { n: list.length, m: /* @__PURE__ */ new Map() };
+      for (const e of list) if (!ix.m.has(e.id)) ix.m.set(e.id, e);
+      idIndex.set(list, ix);
+    }
+    return ix.m.get(id);
+  };
   var idx = (x, y) => y * W + x;
   var clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   function mulberry(seed) {
@@ -1398,10 +2538,30 @@
     const m = START + s.time;
     const mod = m % 1440;
     const hour = Math.floor(mod / 60);
-    return { day: Math.floor(m / 1440) + 1, hour, min: Math.floor(mod % 60), isDay: hour >= 6 && hour < 20 };
+    const dawn = s.tun && s.tun.dawn !== void 0 ? s.tun.dawn : 6, dusk = s.tun && s.tun.dusk !== void 0 ? s.tun.dusk : 20;
+    return { day: Math.floor(m / 1440) + 1, hour, min: Math.floor(mod % 60), isDay: hour >= dawn && hour < dusk };
   }
+  var godMakers = [];
   var biomeOf = (s) => byId(C.biomes, s.biome);
-  var godOf = (s) => byId(C.gods, s.god);
+  var godOf = (s) => {
+    for (const f of godMakers) {
+      const g = f(s);
+      if (g) return g;
+    }
+    return byId(C.gods, s.god);
+  };
+  var stormMakers = [];
+  var stormOf = (s) => {
+    for (const f of stormMakers) {
+      const st = f(s);
+      if (st) return st;
+    }
+    return biomeOf(s).storm;
+  };
+  var siteHereKind = (s) => {
+    const st = s.sites[s.player.y * W + s.player.x];
+    return st ? st.kind : null;
+  };
 
   // src/rules/civ.js
   var AXES = ["habit", "age", "style", "affinity", "doom"];
@@ -1649,6 +2809,7 @@
   function itemName(it) {
     const b = byId(C.bases, it.base);
     if (it.label) return it.label;
+    if (it.artName) return it.artName;
     if (!it.known) return b.name + " (unstudied)";
     if (b.mystery) return C.flasks[it.effect].name;
     const p = it.pre ? byId(C.affixes, it.pre).name + " " : "", f = it.suf ? " " + byId(C.affixes, it.suf).name : "";
@@ -1717,11 +2878,13 @@
     let mods = (b.mods || []).slice();
     const ax = itemAffixes(it);
     for (const a of ax) mods = mods.concat(a.mods);
+    const pw = it.art && C.artifacts ? byId(C.artifacts.powers, it.art) : null;
     let t = b.weapon ? b.weapon.dice[0] + "d" + b.weapon.dice[1] + " damage" + (b.weapon.finesse ? ", uses Dexterity" : "") : "";
     {
       const dm = describeMods(mods);
       t += (t && dm ? ", " : "") + dm;
     }
+    if (pw) t = pw.text + (t ? " Also: " + t : "");
     for (const a of ax)
       if (a.wtMul !== void 0) t += (t ? ", " : "") + (a.wtMul === 0 ? "weighs nothing" : "weighs " + a.wtMul + " times normal");
     return t;
@@ -1869,7 +3032,7 @@
       id: "weather",
       fn(s, out) {
         if (indoors(s)) return;
-        if (s.weather.storm) for (const m of biomeOf(s).storm.mods) out.push(m);
+        if (s.weather.storm) for (const m of stormOf(s).mods) out.push(m);
       }
     },
     {
@@ -1877,7 +3040,7 @@
       fn(s, out) {
         if (!s.pact) return;
         const d = clock(s).isDay ? "day" : "night";
-        for (const m of byId(C.gods, s.pact).mods) if (!m.when || m.when === d) out.push(m);
+        for (const m of godOf(s).mods) if (!m.when || m.when === d) out.push(m);
       }
     },
     {
@@ -2000,6 +3163,47 @@
     return t;
   }
 
+  // src/rules/hooks.js
+  var NOTES = [];
+  var SKETCHERS = [];
+  var LOADERS = [];
+  var SWITCHES = [];
+  var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
+
+  // src/rules/exotics.js
+  if (!C.races.some((r) => r.exotic)) C.races.push(...C.exoticRaces);
+  if (!C.classes.some((r) => r.exotic)) C.classes.push(...C.exoticClasses);
+  on("worldBorn", (s, d) => {
+    if (d.off.exotics) return;
+    const r = stream(s.seed, "exotics"), X2 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
+    if (r() < X2.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
+    if (r() < X2.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
+    sworn(s);
+  });
+  function sworn(s) {
+    if (!s.char || !byId(C.classes, s.char.cls).sworn) return;
+    s.pact = s.god;
+    s.pactBroken = false;
+  }
+  on("did", (s, d) => {
+    if (d.id !== "setCharacter" && d.id !== "nextTraveller") return;
+    if (!byId(C.classes, s.char.cls).sworn) return;
+    sworn(s);
+    say(s, "You set out sworn to the god of this land.", "good");
+  });
+  SWITCHES.push(["exotics", "Exotic races and classes"]);
+  NOTES.push((s) => {
+    const ex = [...s.offer.races.map((id) => byId(C.races, id)), ...s.offer.classes.map((id) => byId(C.classes, id))].filter(
+      (e) => e.exotic
+    );
+    return ex.map((e) => ({ label: "Rare among travellers here: " + e.name, text: e.text }));
+  });
+  function exoticName(rnd, race, s) {
+    if (race.namesFrom !== "civ" || !s || !s.civ) return null;
+    const st = byId(C.civ.style, s.civ.style), pick = (a) => a[Math.floor(rnd() * a.length)];
+    return pick(st.a) + pick(st.b);
+  }
+
   // src/rules/character.js
   function rollAbilities(rnd) {
     const o = {};
@@ -2009,13 +3213,13 @@
     }
     return o;
   }
-  var nameFor = (rnd, raceId) => {
-    const n = byId(C.races, raceId).names;
-    return n[Math.floor(rnd() * n.length)];
+  var nameFor = (rnd, raceId, s) => {
+    const race = byId(C.races, raceId), n = race.names;
+    return race.namesFrom && exoticName(rnd, race, s) || n[Math.floor(rnd() * n.length)];
   };
   function makeChar(rnd, s) {
     const race = s.offer.races[Math.floor(rnd() * s.offer.races.length)], cls = s.offer.classes[Math.floor(rnd() * s.offer.classes.length)];
-    return { name: nameFor(rnd, race), race, cls, abil: rollAbilities(rnd) };
+    return { name: nameFor(rnd, race, s), race, cls, abil: rollAbilities(rnd) };
   }
   function scores(ch) {
     const adj = byId(C.races, ch.race).adj, o = {};
@@ -2111,6 +3315,20 @@
     return true;
   }
 
+  // src/rules/specials.js
+  var cache = {};
+  function specialOf(s, sp) {
+    if (!sp || s.off.specials || sp.named) return NONE;
+    const key = s.seed + ":" + sp.name;
+    if (!(key in cache)) {
+      const r = stream(s.seed, "special:" + sp.name), X2 = C.specials;
+      cache[key] = r() < X2.chance ? X2.list[Math.floor(r() * X2.list.length)].id : null;
+    }
+    return cache[key] ? byId(C.specials.list, cache[key]) : NONE;
+  }
+  var NONE = {};
+  SWITCHES.push(["specials", "Creature specials"]);
+
   // src/rules/combat.js
   function makeSpecies(s, r, biomeId) {
     const cr = C.creature, pick = (a) => a[Math.floor(r() * a.length)], out = [], used = {};
@@ -2142,7 +3360,7 @@
     }
   }
   function makeCreature(s, id, spi, x, y, tier) {
-    const sp = s.species[spi], f = byId(C.creature.forms, sp.form), eld = sp.rare === "elder" ? 1.5 : 1, hp = Math.round((f.hp[0] + f.hp[1] * (tier - 1)) * eld);
+    const sp = s.species[spi], f = byId(C.creature.forms, sp.form), eld = sp.rare === "elder" ? 1.5 : 1, spc = specialOf(s, sp), hp = Math.max(1, Math.round((f.hp[0] + f.hp[1] * (tier - 1)) * eld * (spc.hpMul || 1)));
     return {
       id,
       sp: spi,
@@ -2151,7 +3369,7 @@
       tier,
       hp,
       hpMax: hp,
-      ac: f.ac + tier,
+      ac: f.ac + tier + (spc.ac || 0),
       hit: f.hit + tier + (eld > 1 ? 1 : 0),
       add: tier - 1,
       cool: 0,
@@ -2174,7 +3392,7 @@
     c.seen = true;
     clog(
       s,
-      (enemyFirst ? aOrAn(sp.name, true) + " is on you! " : aOrAn(sp.name, true) + " bars your way. ") + (sp.met ? "" : formOf(s, c).text),
+      (enemyFirst ? aOrAn(sp.name, true) + " is on you! " : aOrAn(sp.name, true) + " bars your way. ") + (sp.met ? "" : formOf(s, c).text + (specialOf(s, sp).text ? " " + specialOf(s, sp).text : "")),
       "bad"
     );
     sp.met = true;
@@ -2204,6 +3422,14 @@
   function hurt(s, c, dmg, lead) {
     const sp = spOf(s, c);
     c.hp -= dmg;
+    const spc = specialOf(s, sp);
+    if (c.hp > 0 && spc.fleesAt && c.hp < c.hpMax * spc.fleesAt && !c.key && !c.warden) {
+      s.combat = null;
+      s.creatures = s.creatures.filter((x) => x.id !== c.id);
+      say(s, lead + " for " + dmg + ". The " + sp.name + " turns tail and is gone.", "good");
+      gainXp(s, Math.round(formOf(s, c).xp * c.tier / 2));
+      return;
+    }
     if (c.hp > 0) {
       clog(s, lead + " for " + dmg + ".");
       return;
@@ -2218,7 +3444,7 @@
       say(s, "It leaves behind: " + itemName(it) + ". Open Pack to take it.", "good");
     }
     {
-      const n = c.tier * roll(s, 1, 6);
+      const n = c.tier * roll(s, 1, 6) + (spc.coin || 0);
       s.player.coin += n;
       say(s, "You find " + n + " coin on it.");
     }
@@ -2239,7 +3465,13 @@
   function enemyTurn(s) {
     const c = foe(s);
     if (!c || s.over) return;
-    const sp = spOf(s, c), f = formOf(s, c), p = s.player, d20 = roll(s, 1, 20);
+    const spc = specialOf(s, spOf(s, c));
+    if (spc.regen && c.hp < c.hpMax) c.hp = Math.min(c.hpMax, c.hp + spc.regen);
+    for (let k = 1; k < (spc.attacks || 1) && s.combat && !s.over; k++) enemyBlow(s, c);
+    if (s.combat && !s.over) enemyBlow(s, c);
+  }
+  function enemyBlow(s, c) {
+    const spc = specialOf(s, spOf(s, c)), sp = spOf(s, c), f = formOf(s, c), p = s.player, d20 = roll(s, 1, 20);
     if (d20 === 1 || d20 !== 20 && d20 + c.hit < playerAC(s)) {
       clog(s, "The " + sp.name + " misses you.");
       return;
@@ -2254,6 +3486,18 @@
     if (f.venom) {
       p.stamina = Math.max(0, p.stamina - f.venom);
       extra = " Venom saps you.";
+    }
+    if (spc.chill && !s.off.warmth) {
+      p.warmth = Math.max(0, p.warmth - spc.chill);
+      extra = " Cold floods in.";
+    }
+    if (spc.venom) {
+      p.stamina = Math.max(0, p.stamina - spc.venom);
+      extra = " Venom saps you.";
+    }
+    if (spc.steal && p.water > 0) {
+      p.water = Math.max(0, p.water - spc.steal);
+      extra += " Water spills from your skins.";
     }
     if (p.hp <= 0) {
       p.hp = 0;
@@ -2341,7 +3585,7 @@
   function flee(s) {
     const c = foe(s);
     if (!c || s.over) return false;
-    const f = formOf(s, c), sp = spOf(s, c), ch = s.char.cls === "rogue" ? 1 : 0.65 + amod(scores(s.char).dex) * 0.05 - (f.fleePenalty || 0);
+    const f = formOf(s, c), sp = spOf(s, c), ch = s.char.cls === "rogue" ? 1 : 0.65 + amod(scores(s.char).dex) * 0.05 - (f.fleePenalty || 0) - (specialOf(s, sp).fleePenalty || 0);
     s.player.stamina = Math.max(0, s.player.stamina - 5);
     if (srand(s) < ch) {
       c.cool = 5;
@@ -2362,7 +3606,7 @@
       if (c.cool > 0) c.cool--;
       let d = Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y));
       let moved = false;
-      const chase = sp.rare !== "docile" && c.cool === 0 && (sp.temper === "hunter" && d <= 5 && srand(s) < 0.6 || sp.temper === "territorial" && d <= 2) && lineOfSight(s, c.x, c.y, p.x, p.y);
+      const chase = sp.rare !== "docile" && c.cool === 0 && stat(s, "quiet", 0) <= 0 && !(specialOf(s, sp).nightOnly && clock(s).isDay) && (sp.temper === "hunter" && d <= 5 && srand(s) < 0.6 || sp.temper === "territorial" && d <= 2) && lineOfSight(s, c.x, c.y, p.x, p.y);
       if (chase && d > 0) {
         const dx = Math.sign(p.x - c.x), dy = Math.sign(p.y - c.y), nx = Math.abs(p.x - c.x) >= Math.abs(p.y - c.y) ? c.x + dx : c.x, ny = nx === c.x ? c.y + dy : c.y;
         if (s.terrain[idx(nx, ny)] !== 2 && passable(s, nx, ny)) {
@@ -2376,7 +3620,7 @@
         c.seen = true;
         say(
           s,
-          (dirTo(s, c.x, c.y) === "here" ? "Something moves right beside you" : "Something moves to the " + dirTo(s, c.x, c.y)) + ": " + aOrAn(sp.name) + ". " + (sp.rare === "docile" ? "It watches you without interest." : byId(C.creature.tempers, sp.temper).text),
+          (dirTo(s, c.x, c.y) === "here" ? "Something moves right beside you" : "Something moves to the " + dirTo(s, c.x, c.y)) + ": " + aOrAn(sp.name) + ". " + (sp.rare === "docile" ? "It watches you without interest." : byId(C.creature.tempers, sp.temper).text) + (specialOf(s, sp).text ? " " + specialOf(s, sp).text : ""),
           sp.rare === "docile" ? "" : "bad"
         );
       }
@@ -2401,18 +3645,19 @@
           return;
         }
         if (s.time >= s.weather.changeAt) {
+          const was = stormOf(s).name;
           s.weather.storm = !s.weather.storm;
           s.weather.changeAt = s.time + (s.weather.storm ? 180 + srand(s) * 240 : (480 + srand(s) * 720) * s.tun.stormGap);
           if (!isDark(s) && !indoors(s))
             say(
               s,
-              s.weather.storm ? aOrAn(biomeOf(s).storm.name, true) + " breaks over you." : "The " + biomeOf(s).storm.name + " passes.",
+              s.weather.storm ? aOrAn(stormOf(s).name, true) + " breaks over you." : "The " + was + " passes.",
               s.weather.storm ? "bad" : "good"
             );
           else if (!isDark(s))
             say(
               s,
-              s.weather.storm ? "Outside the walls, " + aOrAn(biomeOf(s).storm.name) + " has begun." : "Outside, the " + biomeOf(s).storm.name + " has passed."
+              s.weather.storm ? "Outside the walls, " + aOrAn(stormOf(s).name) + " has begun." : "Outside, the " + was + " has passed."
             );
         }
       }
@@ -2433,7 +3678,7 @@
     {
       id: "warmth",
       fn(s, dt) {
-        const cold = stat(s, "cold", phase(s).cold * s.tun.coldScale) + (s.weather.storm ? stat(s, "stormCold", biomeOf(s).storm.cold * s.tun.coldScale) : 0);
+        const cold = stat(s, "cold", phase(s).cold * s.tun.coldScale) + (s.weather.storm ? stat(s, "stormCold", stormOf(s).cold * s.tun.coldScale) : 0);
         const warm = stat(s, "warm", phase(s).warm);
         s.player.warmth = clamp(s.player.warmth + (warm - cold) * dt, 0, 100);
         if (s.player.warmth <= 0) {
@@ -2529,11 +3774,19 @@
     let v = C.value[it.base] || 5;
     for (const id of [it.pre, it.suf]) if (id) v += byId(C.affixes, id).cursed ? -4 : 8;
     if (it.mark) v += 6;
+    if (it.art && C.artifacts) v += C.artifacts.value;
     return Math.max(1, v);
   }
+  var townNum = (s, k) => stat(s, "town." + k, C.town[k]);
+  var priceOf = (s, k) => Math.max(0, Math.round(townNum(s, k)));
+  var wareKind = (it) => {
+    const b = byId(C.bases, it.base);
+    return b.weapon ? "weapon" : b.consumable ? "consumable" : ["armor", "cloak", "boots"].includes(b.slot) ? "armor" : "gear";
+  };
+  var buyPrice = (s, it) => Math.max(1, Math.round(itemValue(it) * stat(s, "town.buy", 1) * stat(s, "town.buy." + wareKind(it), 1)));
   function makeQuest(s, r, townP, vaultP, a0, goalP) {
-    const Q = C.quest, T = C.town, pick = (a) => a[Math.floor(r() * a.length)];
-    const race = pick(C.races), q = s.quest = {
+    const Q = C.quest, T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
+    const race = pick(C.races.filter((e) => !e.exotic)), q = s.quest = {
       key: pick(Q.keys),
       vault: pick(Q.vaults),
       relic: pick(Q.relics) + " of the " + s.civ.name,
@@ -2545,17 +3798,17 @@
     s.town = {
       x: townP.x,
       y: townP.y,
-      name: pick(T.a) + pick(T.b),
+      name: pick(T2.a) + pick(T2.b),
       race: race.id,
       elder: pick(race.names),
       merchant: pick(race.names),
-      fuel: T.fuel,
+      fuel: T2.fuel,
       stock: [],
       speech: []
     };
     while (s.town.merchant === s.town.elder) s.town.merchant = pick(race.names);
-    for (const b of T.staples) s.town.stock.push(makeItem(s, b, null, null, true));
-    for (let i = 0; i < T.stock; i++) {
+    for (const b of T2.staples) s.town.stock.push(makeItem(s, b, null, null, true));
+    for (let i = 0; i < T2.stock; i++) {
       const it = genItem(s, { noConsumables: i < 3 });
       it.known = true;
       s.town.stock.push(it);
@@ -2723,7 +3976,7 @@
     if (s.over || !atTown(s)) return false;
     const t = s.town, i = t.stock.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const price = itemValue(t.stock[i]);
+    const price = buyPrice(s, t.stock[i]);
     if (s.player.coin < price) {
       say(s, "You cannot afford that.");
       return false;
@@ -2738,21 +3991,21 @@
   function buyFuel(s) {
     const t = s.town;
     if (s.over || !atTown(s) || t.fuel < 1) return false;
-    if (s.player.coin < C.town.fuelPrice) {
+    if (s.player.coin < priceOf(s, "fuelPrice")) {
       say(s, "You cannot afford that.");
       return false;
     }
-    s.player.coin -= C.town.fuelPrice;
+    s.player.coin -= priceOf(s, "fuelPrice");
     t.fuel--;
     s.player.fuel += 1;
     return true;
   }
-  var sellPrice = (it) => itemValue(it) ? it.known ? Math.max(1, Math.floor(itemValue(it) * C.town.sellRate)) : 3 : 0;
+  var sellPrice = (it, s) => itemValue(it) ? it.known ? Math.max(1, Math.floor(itemValue(it) * (s ? townNum(s, "sellRate") : C.town.sellRate))) : 3 : 0;
   function sell(s, id) {
     if (s.over || !atTown(s)) return false;
     const i = s.player.items.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const it = s.player.items[i], price = sellPrice(it);
+    const it = s.player.items[i], price = sellPrice(it, s);
     if (!price) {
       say(s, "No one here will buy that.");
       return false;
@@ -2770,22 +4023,22 @@
     if (s.over || !atTown(s)) return false;
     const it = s.player.items.find((x) => x.id === id);
     if (!it || it.known) return false;
-    if (s.player.coin < C.town.appraisePrice) {
+    if (s.player.coin < priceOf(s, "appraisePrice")) {
       say(s, "You cannot afford that.");
       return false;
     }
-    s.player.coin -= C.town.appraisePrice;
+    s.player.coin -= priceOf(s, "appraisePrice");
     it.known = true;
     say(s, s.town.merchant + " turns it over twice: " + itemName(it) + ".", isCursed(it) ? "bad" : "good");
     return true;
   }
   function inn(s) {
     if (s.over || !atTown(s)) return false;
-    if (s.player.coin < C.town.innPrice) {
+    if (s.player.coin < priceOf(s, "innPrice")) {
       say(s, "You cannot afford a bed.");
       return false;
     }
-    s.player.coin -= C.town.innPrice;
+    s.player.coin -= priceOf(s, "innPrice");
     const p = s.player, w = p.water;
     for (let i = 0; i < 8 && !s.over; i++) restHour(s);
     if (s.over) return true;
@@ -3059,7 +4312,7 @@
   function survey(s) {
     if (s.over || indoors(s)) return false;
     if (s.weather.storm) {
-      say(s, "You can see nothing through the " + biomeOf(s).storm.name + ".");
+      say(s, "You can see nothing through the " + stormOf(s).name + ".");
       return false;
     }
     const t = s.terrain[here(s)], blindG = groundHere(s).blind;
@@ -3115,7 +4368,7 @@
       return false;
     }
     if (s.weather.storm && !inShelter(s) && !groundHere(s).blind) {
-      say(s, "No fire will hold in this " + biomeOf(s).storm.name + " out in the open. Find shelter or trees.");
+      say(s, "No fire will hold in this " + stormOf(s).name + " out in the open. Find shelter or trees.");
       return false;
     }
     s.player.fuel -= 1;
@@ -3549,7 +4802,7 @@
     return a;
   }
   function forecast(s) {
-    const n = biomeOf(s).storm.name;
+    const n = stormOf(s).name;
     if (s.off.weather) return "Clear";
     if (s.weather.storm) return n.charAt(0).toUpperCase() + n.slice(1);
     if (!clock(s).isDay) return "Night sky";
@@ -3701,7 +4954,7 @@
 
   // src/rules/world.js
   function makeSketch(seed, cols, rows, homeBiome) {
-    const r = stream(seed, "sketch"), ids = C.biomes.map((b) => b.id), home = { cx: cols >> 1, cy: rows >> 1 }, sketch = [];
+    const r = stream(seed, "sketch"), ids = C.biomes.filter((b) => !b.gen).map((b) => b.id), home = { cx: cols >> 1, cy: rows >> 1 }, sketch = [];
     for (let cy = 0; cy < rows; cy++)
       for (let cx = 0; cx < cols; cx++)
         sketch.push({
@@ -3737,14 +4990,56 @@
     return { river, at, forward, road, roadAt };
   }
   function crossings(seed, world, cx, cy) {
-    const E = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S = edgeRoll(seed, "h:" + cx + ":" + cy), N2 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
+    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S = edgeRoll(seed, "h:" + cx + ":" + cy), N2 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
     return [
-      { side: "east", river: E.river, road: E.road, inflow: !E.forward, x: W - 1, y: E.at, x2: W - 1, y2: E.roadAt },
+      { side: "east", river: E2.river, road: E2.road, inflow: !E2.forward, x: W - 1, y: E2.at, x2: W - 1, y2: E2.roadAt },
       { side: "west", river: Wst.river, road: Wst.road, inflow: Wst.forward, x: 0, y: Wst.at, x2: 0, y2: Wst.roadAt },
       { side: "south", river: S.river, road: S.road, inflow: !S.forward, x: S.at, y: H - 1, x2: S.roadAt, y2: H - 1 },
       { side: "north", river: N2.river, road: N2.road, inflow: N2.forward, x: N2.at, y: 0, x2: N2.roadAt, y2: 0 }
     ];
   }
+
+  // src/rules/year.js
+  var Y = () => C.year;
+  var yearOf = (s) => s.year ? byId(Y().common, s.year) || byId(Y().rare, s.year) : null;
+  var isRareYear = (y) => !!y && Y().rare.includes(y);
+  function rollYear(seed, off) {
+    if (off && off.year) return null;
+    const r = stream(seed, "year"), pickW = (list) => {
+      let t = list.reduce((a, e) => a + (e.w || 1), 0) * r();
+      for (const e of list) if ((t -= e.w || 1) < 0) return e;
+      return list[list.length - 1];
+    };
+    return r() < Y().rareChance ? pickW(Y().rare) : pickW(Y().common);
+  }
+  function yearTuning(tun, y) {
+    if (!y) return tun;
+    for (const k in y.tun || {}) {
+      const [op, v] = y.tun[k];
+      tun[k] = op === "mul" ? tun[k] * v : JSON.parse(JSON.stringify(v));
+    }
+    if (y.day) [tun.dawn, tun.dusk] = y.day;
+    return tun;
+  }
+  SOURCES.push({
+    id: "year",
+    fn(s, out) {
+      const y = yearOf(s), d = clock(s).isDay ? "day" : "night";
+      if (y) {
+        for (const m of y.mods || []) if (!m.when || m.when === d) out.push(m);
+      }
+    }
+  });
+  SWITCHES.push(["year", "The year"]);
+  NOTES.push((s) => {
+    const y = yearOf(s);
+    return y ? [{ label: y.name + (isRareYear(y) ? " (rare)" : ""), text: y.text }] : [];
+  });
+  on("worldBorn", (s) => {
+    const y = yearOf(s);
+    if (y && y.id !== "ordinary")
+      say(s, (isRareYear(y) ? "A rare year: " + y.name.toLowerCase() : y.name) + ". " + y.text, isRareYear(y) ? "good" : "");
+  });
 
   // src/rules/worldgen.js
   var heightCache = {};
@@ -3927,10 +5222,12 @@
     });
     return map;
   };
-  function newGame(seed) {
+  function newGame(seed, off) {
     seed = seed >>> 0 || 1;
+    off = Object.assign({}, off);
+    const year = rollYear(seed, off), tun = yearTuning(JSON.parse(JSON.stringify(C.tun)), year);
     const rnd = (name) => stream(seed, name), rT = rnd("terrain"), rL = rnd("layout"), rV = rnd("vault"), rS = rnd("sites"), rR = rnd("roads"), rRun = rnd("run"), rW = rnd("weather"), rO = rnd("offer"), pickWith = (rng) => (a) => a[Math.floor(rng() * a.length)];
-    const biome = pickWith(rnd("biome"))(C.biomes), god = pickWith(rnd("god"))(C.gods), civ = {};
+    let biome = pickWith(rnd("biome"))(C.biomes.filter((b) => !b.gen)), god = pickWith(rnd("god"))(C.gods), civ = {};
     {
       const pick = pickWith(rnd("people"));
       for (const ax of AXES) civ[ax] = pick(C.civ[ax]).id;
@@ -3938,7 +5235,10 @@
       civ.name = pick(st.a) + pick(st.b) + pick(st.c);
     }
     const habit = byId(C.civ.habit, civ.habit), age = byId(C.civ.age, civ.age), doom = byId(C.civ.doom, civ.doom);
-    const world = makeSketch(seed, C.tun.world.cols, C.tun.world.rows, biome.id), { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
+    const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
+    for (const f of SKETCHERS) f(seed, world, off);
+    biome = byId(C.biomes, world.sketch[world.home.cy * world.cols + world.home.cx].biome);
+    const { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
     const sx = 17 + Math.floor(rL() * 3), sy = 17 + Math.floor(rL() * 3), a0 = rL() * 6.283;
     const polar = (ang, rad) => ({
       x: clamp(Math.round(sx + Math.cos(ang) * rad), 2, W - 3),
@@ -3955,11 +5255,11 @@
     sites[idx(gx, gy)] = { kind: "beacon" };
     sites[idx(townP.x, townP.y)] = { kind: "town" };
     {
-      const F = C.quest.floors;
+      const F2 = C.quest.floors;
       sites[idx(vaultP.x, vaultP.y)] = {
         kind: "vault",
         open: false,
-        floors: [F[Math.floor(rV() * F.length)], F[Math.floor(rV() * F.length)], "guard"]
+        floors: [F2[Math.floor(rV() * F2.length)], F2[Math.floor(rV() * F2.length)], "guard"]
       };
     }
     const place = makePlacer(rS, terrain, sites);
@@ -4024,10 +5324,11 @@
       over: null,
       cause: null,
       nextId: 1,
-      tun: JSON.parse(JSON.stringify(C.tun)),
-      off: {},
+      tun,
+      off,
       stats: { moves: 0, trips: 0 }
     };
+    if (year) s.year = year.id;
     s.weather.changeAt = (360 + rW() * 600) * s.tun.stormGap;
     const draw = (list, n) => {
       const a = list.map((e) => e.id);
@@ -4037,7 +5338,8 @@
       }
       return a.slice(0, n);
     };
-    s.offer = { races: draw(C.races, C.offer.races), classes: draw(C.classes, C.offer.classes) };
+    const usual = (list) => list.filter((e) => !e.exotic);
+    s.offer = { races: draw(usual(C.races), C.offer.races), classes: draw(usual(C.classes), C.offer.classes) };
     s.species = makeSpecies(s, rnd("species"), biome.id);
     s.speciesByBiome = { [biome.id]: s.species.map((_, i) => i) };
     s.creatures = [];
@@ -4061,6 +5363,7 @@
       "Somewhere to the " + dirTo(s, townP.x, townP.y) + " there is a town. Find it: its people know what this land is waiting for."
     );
     say(s, "Your camp has a well. A cloak, a lantern and fuel are stored here: open Pack to take them.");
+    emit(s, "worldBorn", { rnd, off });
     if (typeof INTRO_EXTRA === "string") say(s, INTRO_EXTRA);
     ensureTown(s);
     ensureAround(s);
@@ -4128,6 +5431,7 @@
     if (!s || typeof s !== "object" || typeof s.v !== "number" || !s.player || !s.terrain)
       return { error: "That text is not a saved game." };
     if (s.v > VERSION) return { error: "That save comes from a newer version of the game." };
+    for (const f of LOADERS) f(s);
     while (s.v < VERSION) {
       const up = MIGRATIONS[s.v];
       if (!up) return { error: "That save is from version " + s.v + ", which this version can no longer read." };
@@ -4139,8 +5443,748 @@
     return { state: s };
   }
 
+  // src/rules/pantheon.js
+  var P = () => C.pantheon;
+  var statsOf = (list) => new Set(list.flatMap((e) => e.mods.map((m) => m.stat)));
+  var sum = (list) => list.reduce((a, e) => a + e.worth, 0);
+  function rollGod(seed) {
+    const r = stream(seed, "pantheon"), pick = (a) => a[Math.floor(r() * a.length)], T2 = P(), rare = r() < T2.rareChance ? pick(T2.rares) : null, gifts = [pick(T2.gifts)];
+    if (rare && rare.id !== "generous") {
+      const other = T2.gifts.filter((g) => g.domain !== gifts[0].domain);
+      gifts.push(pick(other));
+    }
+    let vow = null;
+    if (rare && rare.id === "jealous" || !rare && r() < T2.vowChance) vow = pick(T2.vows);
+    let costs = [];
+    if (!rare || rare.id === "twin") {
+      const taken = statsOf(gifts), ok = T2.costs.filter((c) => ![...statsOf([c])].some((st) => taken.has(st))), n = gifts.length, combos = n === 1 ? ok.map((c) => [c]) : ok.flatMap((a, i) => ok.slice(i + 1).map((b) => [a, b])), score = (cs) => Math.abs(sum(gifts) + (vow ? vow.worth : 0) + sum(cs) - T2.target), fit = combos.filter((cs) => score(cs) <= T2.spread);
+      costs = fit.length ? pick(fit) : score([]) <= T2.spread ? [] : combos.sort((a, b) => score(a) - score(b))[0] || [];
+    }
+    const dom = byId(T2.domains, gifts[0].domain), one = (d) => pick(T2.names.a) + pick(T2.names.b) + ", " + pick(d.titles);
+    const name = rare && rare.id === "twin" ? pick(T2.names.a) + pick(T2.names.b) + " and " + pick(T2.names.a) + pick(T2.names.b) + ", the Twins" : one(dom);
+    return {
+      name,
+      domain: dom.id,
+      gifts: gifts.map((g) => g.id),
+      costs: costs.map((c) => c.id),
+      vow: vow ? vow.id : null,
+      rare: rare ? rare.id : null
+    };
+  }
+  function rolledGod(s) {
+    const g = s.godRoll;
+    if (!g || s.off.godslots) return null;
+    const T2 = P(), gifts = g.gifts.map((id) => byId(T2.gifts, id)), costs = g.costs.map((id) => byId(T2.costs, id)), vow = g.vow ? byId(T2.vows, g.vow) : null, rare = g.rare ? byId(T2.rares, g.rare) : null, broken = !!s.pactBroken;
+    return {
+      id: s.god,
+      name: g.name,
+      color: byId(T2.domains, g.domain).color,
+      rolled: true,
+      vow,
+      rare,
+      terms: [
+        ...gifts.map((x) => x.text),
+        ...costs.map((x) => x.text),
+        vow ? vow.text + " Break that, and the gift is gone." : "",
+        rare ? rare.text : "",
+        broken ? "(You broke your vow. The gift is gone.)" : ""
+      ].filter(Boolean).join(" "),
+      mods: [...broken ? [] : gifts.flatMap((x) => x.mods), ...costs.flatMap((x) => x.mods)]
+    };
+  }
+  godMakers.push(rolledGod);
+  on("worldBorn", (s, d) => {
+    if (!d.off.godslots) s.godRoll = rollGod(s.seed);
+  });
+  on("did", (s, d) => {
+    if (d.id === "pact") {
+      s.pactBroken = false;
+      return;
+    }
+    const g = rolledGod(s);
+    if (!s.pact || !g || !g.vow || s.pactBroken || !g.vow.breaks.includes(d.id)) return;
+    if (g.vow.at && d.site !== g.vow.at) return;
+    s.pactBroken = true;
+    say(s, "You have broken your vow. " + g.name + " turns away from you: the gift is gone, and the cost is not.", "bad");
+  });
+  SWITCHES.push(["godslots", "Rolled gods"]);
+  NOTES.push((s) => {
+    const g = rolledGod(s);
+    if (!g || !s.known.god) return [];
+    return [{ label: "The god: " + g.name + (g.rare ? " (" + g.rare.name.toLowerCase() + ", rare)" : ""), text: g.terms }];
+  });
+
+  // src/rules/artifacts.js
+  var A = () => C.artifacts;
+  var powerOf = (it) => it && it.art ? byId(A().powers, it.art) : null;
+  function makeArtifact(s, r, used) {
+    const pick = (a) => a[Math.floor(r() * a.length)], free = A().powers.filter((p) => !used.includes(p.id)), pw = pick(free.length ? free : A().powers), base = pick(pw.for), it = makeItem(s, base, null, null, true);
+    used.push(pw.id);
+    it.art = pw.id;
+    const nm = pick(pw.names);
+    it.artName = nm.charAt(0).toUpperCase() + nm.slice(1) + ", " + byId(C.bases, base).name + " of the " + s.civ.name;
+    return it;
+  }
+  on("worldBorn", (s, d) => {
+    if (d.off.artifacts) return;
+    const r = stream(s.seed, "artifacts"), used = [], n = A().count;
+    s.artifacts = { found: [] };
+    if (n >= 1) s.town.stock.push(makeArtifact(s, r, used));
+    if (n >= 2) s.artifacts.vault = makeArtifact(s, r, used);
+    if (n >= 3) {
+      const w = s.world, far = [];
+      for (let cy2 = 0; cy2 < w.rows; cy2++)
+        for (let cx2 = 0; cx2 < w.cols; cx2++)
+          if (sketchOf(s, cx2, cy2).danger === Math.max(...w.sketch.map((e) => e.danger))) far.push([cx2, cy2]);
+      const [cx, cy] = far[Math.floor(r() * far.length)];
+      if (cx !== w.home.cx || cy !== w.home.cy) s.artifacts.region = { id: "r" + cx + "_" + cy, item: makeArtifact(s, r, used) };
+    }
+  });
+  {
+    const vault = GENERATORS.vault;
+    GENERATORS.vault = (s, rec) => {
+      const m = vault(s, rec);
+      if (s.artifacts && s.artifacts.vault && rec.level === rec.levels) {
+        for (const k in m.depots)
+          if (m.depots[k].items.some((i) => i.base === "relic")) {
+            m.depots[k].items.push(s.artifacts.vault);
+            delete s.artifacts.vault;
+            break;
+          }
+      }
+      return m;
+    };
+    const region = GENERATORS.region;
+    GENERATORS.region = (s, rec) => {
+      const m = region(s, rec), a = s.artifacts && s.artifacts.region;
+      if (a && a.id === rec.id) {
+        let at = null;
+        for (const k in m.sites)
+          if (m.sites[k].kind === "cache" && (at === null || Math.abs(k % W - 18) + Math.abs(Math.floor(k / W) - 18) < Math.abs(at % W - 18) + Math.abs(Math.floor(at / W) - 18)))
+            at = +k;
+        if (at === null) at = idx(clamp(18, 0, W - 1), clamp(18, 0, H - 1));
+        const d = m.depots || (m.depots = {});
+        (d[at] = d[at] || { water: 0, fuel: 0, items: [] }).items.push(a.item);
+        delete s.artifacts.region;
+      }
+      return m;
+    };
+  }
+  SOURCES.push({
+    id: "artifacts",
+    fn(s, out) {
+      for (const it of s.player.items) if (it.art && active(it)) for (const m of powerOf(it).mods) out.push(m);
+    }
+  });
+  SYSTEMS.push({
+    id: "artifacts",
+    fn(s, dt, ctx) {
+      const p = s.player;
+      for (const it of p.items) {
+        const pw = powerOf(it);
+        if (s.off.artifacts || !pw || !pw.tick || !active(it)) continue;
+        if (pw.tick.water) p.water = Math.min(waterCap(s), p.water + pw.tick.water * dt);
+        if (pw.tick.warmthFloor && !s.off.warmth) p.warmth = Math.max(p.warmth, pw.tick.warmthFloor);
+        if (pw.tick.stamina && ctx.activity === "move") p.stamina = Math.min(100, p.stamina + pw.tick.stamina * dt);
+      }
+    }
+  });
+  on("did", (s, d) => {
+    if (!s.artifacts) return;
+    const dep = s.depots[idx(s.player.x, s.player.y)];
+    if (d.id === "move" && dep && dep.items.some((i) => i.art))
+      say(s, "Something old and remarkable lies here: " + dep.items.find((i) => i.art).artName + ". Open Pack to take it.", "good");
+    for (const it of s.player.items)
+      if (it.art && !s.artifacts.found.includes(it.artName)) {
+        s.artifacts.found.push(it.artName);
+        say(s, "You hold " + it.artName + ". " + powerOf(it).text, "good");
+      }
+  });
+  SWITCHES.push(["artifacts", "Named artifacts"]);
+  NOTES.push(
+    (s) => s.artifacts ? [
+      {
+        label: "Artifacts",
+        text: "Three remarkable things were made by the " + s.civ.name + ": one is for sale in " + s.town.name + ", one lies with the relic, and one is in a cache in the farthest country." + (s.artifacts.found.length ? " You have held: " + s.artifacts.found.join("; ") + "." : "")
+      }
+    ] : []
+  );
+
+  // src/rules/regionrares.js
+  var RR = () => C.regionRares;
+  var regionRareOf = (s, id) => s.regionRares && s.regionRares[id] && !s.off.regionrares ? byId(RR().list, s.regionRares[id]) : null;
+  var regionName = (s, rec) => {
+    const r = regionRareOf(s, rec.id);
+    return (r ? r.name + " " : "") + byId(C.biomes, rec.biome).name;
+  };
+  on("worldBorn", (s, d) => {
+    if (d.off.regionrares) return;
+    const r = stream(s.seed, "regionRares"), w = s.world;
+    s.regionRares = {};
+    for (let cy = 0; cy < w.rows; cy++)
+      for (let cx = 0; cx < w.cols; cx++) {
+        const roll2 = r(), pick = r();
+        if (cx === w.home.cx && cy === w.home.cy) continue;
+        if (roll2 < RR().chance) s.regionRares[regionId(s, cx, cy)] = RR().list[Math.floor(pick * RR().list.length)].id;
+      }
+  });
+  {
+    const region = GENERATORS.region;
+    GENERATORS.region = (s, rec) => {
+      const m = region(s, rec), rr = regionRareOf(s, rec.id), g = rr && rr.gen;
+      if (!g) return m;
+      for (const k in m.sites) {
+        const st = m.sites[k];
+        if (st.kind === "spring" && g.springs) st.foul = g.springs === "foul" && !st.sure;
+        if (st.kind === "cache" && g.richCaches) {
+          st.loot = true;
+          st.fuel += 2;
+          st.water += 2;
+        }
+      }
+      if (g.noCreatures) m.creatures = [];
+      if (g.moreCreatures) {
+        const danger = sketchOf(s, rec.cx, rec.cy).danger, n = m.creatures.length;
+        placeCreatures(s, stream(s.seed, "teeming:" + rec.id), m, {
+          count: g.moreCreatures,
+          species: speciesFor(s, rec.biome),
+          far: () => 0,
+          avoid: (x, y) => x < 3 || y < 3 || x > 32 || y > 32,
+          tier: () => clamp(1 + danger, 1, 3)
+        });
+        m.creatures.slice(n).forEach((c, i) => c.id = 300 + i);
+      }
+      return m;
+    };
+  }
+  SOURCES.push({
+    id: "regionrares",
+    fn(s, out) {
+      const rr = regionRareOf(s, outdoorRec(s).id);
+      if (!rr) return;
+      const d = clock(s).isDay ? "day" : "night";
+      for (const m of rr.mods || []) if (!m.when || m.when === d) out.push(m);
+    }
+  });
+  on("did", (s, d) => {
+    if (d.id !== "move") return;
+    const rec = outdoorRec(s), rr = regionRareOf(s, rec.id);
+    if (!rr || rec.rareTold) return;
+    rec.rareTold = true;
+    say(s, "This is " + regionName(s, rec) + ": a rare country. " + rr.text, "good");
+  });
+  SWITCHES.push(["regionrares", "Rare regions"]);
+  NOTES.push(
+    (s) => Object.keys(s.regionRares || {}).filter((id) => s.areas[id] && s.areas[id].rareTold).map((id) => ({
+      label: regionName(s, s.areas[id]) + " (rare country)",
+      text: regionRareOf(s, id) ? regionRareOf(s, id).text : ""
+    }))
+  );
+
+  // src/rules/towns.js
+  var T = () => C.townCulture;
+  var partsOf = (s) => {
+    const c = s.townCulture;
+    if (!c || s.off.towns) return [];
+    return [byId(T().trades, c.trade), byId(T().customs, c.custom), c.rare ? byId(T().rares, c.rare) : null].filter(Boolean);
+  };
+  var describe = (s) => {
+    const c = s.townCulture, tr = byId(T().trades, c.trade), cu = byId(T().customs, c.custom), ra = c.rare ? byId(T().rares, c.rare) : null;
+    return (ra ? s.town.name + " is a town of " + ra.name + ". " + ra.text + " " : "") + "Its people are " + tr.name + ", and " + cu.name + ". " + tr.text + " " + cu.text;
+  };
+  on("worldBorn", (s, d) => {
+    if (d.off.towns) return;
+    const r = stream(s.seed, "townCulture"), pick = (a) => a[Math.floor(r() * a.length)], X2 = T(), rare = r() < X2.rareChance ? pick(X2.rares) : null, trade = pick(X2.trades), custom = pick(X2.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
+    s.townCulture = { trade: trade.id, custom: custom.id, rare: rare ? rare.id : null };
+    if (trade.stock)
+      for (let i = 0; i < trade.stock.n; i++) s.town.stock.push(makeItem(s, pick(trade.stock.bases), null, null, true));
+    if (trade.fuel) s.town.fuel += trade.fuel;
+    if (rare && rare.marked) {
+      const st = byId(C.civ.style, s.civ.style);
+      s.town.name = pick(st.a) + pick(st.b) + pick(st.c);
+      s.town.elder = pick(st.a) + pick(st.b);
+      s.town.merchant = pick(st.a) + pick(st.b);
+      s.town.lost = true;
+      for (let i = 0; i < rare.marked; i++) {
+        const it = genItem(s, { civ: true, noConsumables: true });
+        it.mark = s.civ.affinity;
+        it.markName = s.civ.name;
+        it.known = true;
+        s.town.stock.push(it);
+      }
+    }
+  });
+  SOURCES.push({
+    id: "towns",
+    fn(s, out) {
+      for (const p of partsOf(s)) for (const m of p.mods || []) out.push(m);
+    }
+  });
+  on("did", (s, d) => {
+    if (!s.townCulture || s.off.towns) return;
+    if (s.area === "town" && !s.townCulture.told) {
+      s.townCulture.told = true;
+      say(s, describe(s), "good");
+    }
+    if (d.id !== "talkElder" || s.townCulture.elderDone) return;
+    s.townCulture.elderDone = true;
+    const sp = s.town.speech;
+    for (const p of partsOf(s)) {
+      if (p.elder === "lore") {
+        for (const ax of AXES) learn(s, ax);
+        s.known.civ = true;
+        sp.push(
+          s.town.lost ? '"You think the ' + s.civ.name + " are gone? We are the " + s.civ.name + '. We only stopped building. Ask, and I will tell you all we were."' : '"We keep the old lore here. Sit, and I will tell you all we know of the ' + s.civ.name + '."'
+        );
+      }
+      if (p.elder === "shrine") {
+        const sh = findSite(s, "shrine");
+        if (sh) {
+          mark(s, sh.x, sh.y);
+          s.known.god = true;
+          sp.push('"The shrine of ' + godOf(s).name + " is marked on your map. Its terms are these: " + godOf(s).terms + '"');
+        }
+      }
+      if (p.elder === "springs") {
+        const m = worldMap(s);
+        let n = 0;
+        for (const k in m.sites)
+          if (m.sites[k].kind === "spring" && Math.max(Math.abs(k % W - s.town.x), Math.abs(Math.floor(k / W) - s.town.y)) <= 8) {
+            m.sites[k].known = true;
+            mark(s, k % W, Math.floor(k / W));
+            n++;
+          }
+        sp.push(
+          '"We do not trust strangers. But nobody should die of thirst: here are the ' + n + ' springs near us, and which are foul."'
+        );
+      }
+    }
+  });
+  SWITCHES.push(["towns", "Town cultures"]);
+  NOTES.push(
+    (s) => s.townCulture && s.townCulture.told && !s.off.towns ? [{ label: "The people of " + s.town.name, text: describe(s) }] : []
+  );
+
+  // src/rules/errands.js
+  var E = () => C.errands;
+  var mapOf2 = (s, id) => id === s.area ? s : s.areas[id] && s.areas[id].map;
+  var atInn = (s) => s.area === "town" && s.sites[idx(s.player.x, s.player.y)] && s.sites[idx(s.player.x, s.player.y)].kind === "inn";
+  function errandInfo(s) {
+    if (s.off.errands) return { text: "Nobody here has work for you.", canAsk: false, canClaim: false };
+    const e = s.errand;
+    if (!e)
+      return { text: "Travellers here sometimes have work for someone going out into the country.", canAsk: true, canClaim: false };
+    const where = homePos(s, e.area, e.x, e.y), dir = dirFrom(worldPos(s), where.x, where.y);
+    return {
+      text: (e.done ? "Done: go back to the inn. " : "") + "Your errand for " + e.giver + ": " + e.text + (e.done ? "" : " (Now to the " + dir + ".)"),
+      canAsk: false,
+      canClaim: e.done
+    };
+  }
+  function askErrand(s) {
+    if (s.over || s.off.errands || s.errand || !atInn(s)) return false;
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], X2 = E(), home = s.world.home, near = [];
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const id = regionId(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows));
+        if (id !== HOME && mapOf2(s, id)) near.push(id);
+      }
+    if (!near.length) return false;
+    const kind = pick(X2.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X2.liarChance, giver = pick(X2.givers) + (liar ? " " + pick(X2.tells) : ""), reward = kind.reward[0] + Math.floor(srand(s) * (kind.reward[1] - kind.reward[0] + 1)), e = { kind: kind.id, area, liar, giver, reward, done: false };
+    let fill2 = { region: byId(C.biomes, rec.biome).name, reward };
+    if (kind.id === "slay") {
+      const live = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
+      if (!live.length) return false;
+      const c = pick(live);
+      Object.assign(e, { cid: c.id, x: c.x, y: c.y });
+      fill2.species = s.species[c.sp].name;
+      fill2.victims = pick(kind.victims);
+    } else {
+      const spots = Object.keys(m.sites).filter((k2) => ["ruin", "cave", "cache"].includes(m.sites[k2].kind));
+      if (!spots.length) return false;
+      const k = +pick(spots);
+      Object.assign(e, { x: k % W, y: Math.floor(k / W) });
+      fill2.site = m.sites[k].kind === "ruin" ? "ruin" : siteName(s, m.sites[k]);
+      fill2.asite = aOrAn(fill2.site);
+      if (kind.id === "fetch") {
+        fill2.thing = pick(kind.things);
+        const it = makeItem(s, "parcel", null, null, true);
+        it.label = fill2.thing.charAt(0).toUpperCase() + fill2.thing.slice(1);
+        it.errand = true;
+        (m.depots[k] = m.depots[k] || { water: 0, fuel: 0, items: [] }).items.push(it);
+      }
+    }
+    const where = homePos(s, area, e.x, e.y);
+    fill2.dir = dirFrom(worldPos(s), where.x, where.y);
+    e.text = kind.text.replace(/\{(\w+)\}/g, (_, k) => fill2[k]);
+    s.errand = e;
+    for (let j = -1; j <= 1; j++)
+      for (let i = -1; i <= 1; i++) {
+        const xx = e.x + i, yy = e.y + j;
+        if (xx >= 0 && yy >= 0 && xx < W && yy < H) m.seen[idx(xx, yy)] = 1;
+      }
+    if (m.sites[idx(e.x, e.y)]) m.sites[idx(e.x, e.y)].seen = true;
+    say(s, "At the long table, " + giver + " has work for you. " + e.text, "good");
+    return true;
+  }
+  function claimErrand(s) {
+    const e = s.errand;
+    if (s.over || !e || !e.done || !atInn(s)) return false;
+    if (e.kind === "fetch") {
+      const i = s.player.items.findIndex((it) => it.errand);
+      if (i < 0) return false;
+      s.player.items.splice(i, 1);
+    }
+    s.errand = null;
+    s.errandsDone = (s.errandsDone || 0) + 1;
+    if (e.liar) {
+      say(
+        s,
+        "You look for " + e.giver.split(" who")[0] + ' at the long table. Gone, days ago, without a word: there will be no pay. The innkeeper shrugs: "I could have told you."',
+        "bad"
+      );
+      return true;
+    }
+    s.player.coin += e.reward;
+    let got = e.reward + " coin";
+    if (srand(s) < E().itemChance) {
+      const it = genItem(s, { relic: true, noConsumables: true });
+      it.known = true;
+      s.player.items.push(it);
+      got += " and " + itemNameLower(it);
+    }
+    say(s, e.giver.charAt(0).toUpperCase() + e.giver.split(" who")[0].slice(1) + " pays you: " + got + ".", "good");
+    return true;
+  }
+  var itemNameLower = (it) => "a " + itemName(it);
+  on("did", (s) => {
+    const e = s.errand;
+    if (!e || e.done || s.off.errands) return;
+    const m = mapOf2(s, e.area);
+    if (!m) return;
+    if (e.kind === "slay" && !m.creatures.some((c) => c.id === e.cid)) {
+      e.done = true;
+      say(s, "That is the creature you were sent for. Back to the inn for your pay.", "good");
+    }
+    if (e.kind === "fetch" && s.player.items.some((it) => it.errand)) {
+      e.done = true;
+      say(s, "You have what you were sent for. Back to the inn with it.", "good");
+    }
+    if (e.kind === "find" && s.area === e.area && s.player.x === e.x && s.player.y === e.y) {
+      e.done = true;
+      say(s, "You have seen it. Back to the inn to tell them.", "good");
+    }
+  });
+  SWITCHES.push(["errands", "Errands at the inn"]);
+  NOTES.push((s) => {
+    const out = [];
+    if (s.errand && !s.off.errands) out.push({ label: "Your errand", text: errandInfo(s).text });
+    if (s.errandsDone) out.push({ label: "Errands done", text: s.errandsDone + "" });
+    return out;
+  });
+
+  // src/rules/oddweather.js
+  var X = () => C.oddWeather;
+  function oddStorm(s) {
+    if (!s.weather.storm || s.off.oddweather || s.off.weather) return null;
+    const r = stream(s.seed, "oddweather:" + Math.round(s.weather.changeAt));
+    return r() < X().chance ? X().list[Math.floor(r() * X().list.length)] : null;
+  }
+  stormMakers.push(oddStorm);
+  SYSTEMS.push({
+    id: "oddweather",
+    fn(s, dt) {
+      const w = oddStorm(s);
+      if (!w) return;
+      const key = Math.round(s.weather.changeAt);
+      if (s.weather.oddTold !== key) {
+        s.weather.oddTold = key;
+        if (!indoors(s)) say(s, w.text, w.hurt ? "bad" : "");
+        s.oddSeen = s.oddSeen || [];
+        if (!s.oddSeen.includes(w.id)) s.oddSeen.push(w.id);
+        if (w.star && !indoors(s)) fallStar(s);
+      }
+      if (w.hurt && !indoors(s) && !inShelter(s)) s.player.hp = Math.max(1, s.player.hp - w.hurt * dt);
+    }
+  });
+  function fallStar(s) {
+    const r = stream(s.seed, "star:" + Math.round(s.weather.changeAt));
+    for (let t = 0; t < 40; t++) {
+      const x = Math.round(s.player.x + (r() - 0.5) * 10), y = Math.round(s.player.y + (r() - 0.5) * 10), k = idx(x, y);
+      if (x < 1 || y < 1 || x > W - 2 || y > H - 2 || s.sites[k] || s.terrain[k] === 2 || s.terrain[k] >= 4) continue;
+      if (Math.abs(x - s.player.x) + Math.abs(y - s.player.y) < 2) continue;
+      s.sites[k] = { kind: "cache", searched: false, loot: true, fuel: 2, water: 0, star: true, seen: true };
+      s.seen[k] = 1;
+      s.depots[k] = s.depots[k] || { water: 0, fuel: 0, items: [] };
+      s.depots[k].items.push(genItem(s, { relic: true, noConsumables: true }));
+      say(s, "It lands to the " + dirTo(s, x, y) + ", smoking. It is marked on your map.", "good");
+      return;
+    }
+  }
+  SWITCHES.push(["oddweather", "Odd weather"]);
+  NOTES.push(
+    (s) => (s.oddSeen || []).length ? [{ label: "Strange weather seen", text: s.oddSeen.map((id) => byId(X().list, id).name).join(", ") + "." }] : []
+  );
+
+  // src/rules/biomegen.js
+  var G = () => C.biomeGen;
+  var ofSeed = (seed) => "g" + (seed >>> 0) + "_";
+  var isGen = (id) => typeof id === "string" && /^g\d+_\d+$/.test(id);
+  function hueShift(c, deg) {
+    const num = typeof c === "number", n = num ? c : parseInt(c.slice(1), 16);
+    let r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    let h = 0, s = 0;
+    if (d) {
+      s = d / (1 - Math.abs(2 * l - 1));
+      h = mx === r ? (g - b) / d % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h *= 60;
+    }
+    h = ((h + deg) % 360 + 360) % 360;
+    const C2 = (1 - Math.abs(2 * l - 1)) * s, X2 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X2, 0] : h < 120 ? [X2, C2, 0] : h < 180 ? [0, C2, X2] : h < 240 ? [0, X2, C2] : h < 300 ? [X2, 0, C2] : [C2, 0, X2];
+    const out = Math.round((r1 + m) * 255) << 16 | Math.round((g1 + m) * 255) << 8 | Math.round((b1 + m) * 255);
+    return num ? out : "#" + out.toString(16).padStart(6, "0");
+  }
+  function makeBiome(seed, n) {
+    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X2 = G(), cl = pick(X2.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X2.landforms), wa = pick(suits(X2.waters)), wo = pick(suits(X2.woodlands)), gr = pick(suits(X2.grounds)), rare = r() < X2.rareChance ? pick(X2.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
+    const forest = copy(wo.forest);
+    if (rare && rare.treeMul) {
+      forest.tree.h = forest.tree.h.map((h) => h * rare.treeMul);
+      forest.frac = Math.min(0.4, forest.frac * rare.forestMul);
+    }
+    let colors = [...cl.ground, wo.color, wa.color, gr.color], sky = cl.sky, tint = cl.tint;
+    if (rare && rare.hue) {
+      colors = colors.map((c) => hueShift(c, rare.hue));
+      sky = hueShift(sky, rare.hue / 3);
+    }
+    const name = (rare ? rare.word + " " : "") + pick(cl.words) + " " + pick(lf.nouns), b = {
+      id: ofSeed(seed) + n,
+      gen: true,
+      parts: { climate: cl.id, landform: lf.id, water: wa.id, woodland: wo.id, ground: gr.id, rare: rare ? rare.id : null },
+      sky,
+      creatureTint: tint,
+      name,
+      blurb: cl.blurb + " " + wa.blurb + (rare ? " " + rare.text : ""),
+      hills: lf.hills,
+      mountains: lf.mountains,
+      springs: wa.springs,
+      foul: wa.foul,
+      day: copy(cl.day),
+      night: copy(cl.night),
+      storm: copy(cl.storm),
+      colors,
+      forest,
+      river: copy(wa.river),
+      special: copy(gr.special),
+      prefix: cl.words.slice(0, 3)
+    };
+    if (cl.melt) b.melt = cl.melt;
+    if (cl.lush !== void 0) b.lush = rare && rare.hue ? hueShift(cl.lush, rare.hue) : cl.lush;
+    if (cl.rocky !== void 0) b.rocky = cl.rocky;
+    return b;
+  }
+  function ensureBiomes(seed) {
+    for (let n = 0; n < G().perWorld; n++) {
+      const id = ofSeed(seed) + n;
+      if (byId(C.biomes, id)) continue;
+      const b = makeBiome(seed, n);
+      C.biomes.push(b);
+      C.creature.prefix[id] = b.prefix;
+    }
+  }
+  SKETCHERS.push((seed, world, off) => {
+    if (off.biomegen) return;
+    ensureBiomes(seed);
+    const r = stream(seed, "biomegen:sketch"), X2 = G();
+    for (let cy = 0; cy < world.rows; cy++)
+      for (let cx = 0; cx < world.cols; cx++) {
+        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X2.perWorld);
+        if (roll2 < (home ? X2.homeChance : X2.regionChance))
+          world.sketch[cy * world.cols + cx].biome = ofSeed(seed) + (home ? 0 : which);
+      }
+  });
+  LOADERS.push((s) => {
+    if (s.world && s.world.sketch.some((e) => isGen(e.biome))) ensureBiomes(s.seed);
+  });
+  SWITCHES.push(["biomegen", "Generated biomes (new worlds)"]);
+  NOTES.push((s) => {
+    const ids = [...new Set(s.world.sketch.map((e) => e.biome).filter(isGen))].filter(
+      (id) => Object.values(s.areas).some((a) => a.biome === id && a.visited)
+    );
+    return ids.map((id) => {
+      const b = byId(C.biomes, id);
+      return { label: b.name + " (a country of this world only)", text: b.blurb };
+    });
+  });
+
+  // src/rules/floors.js
+  var F = () => C.floorKinds;
+  var kindOf = (id) => byId(F().list, id) || (F().rare.id === id ? F().rare : null);
+  on("worldBorn", (s, d) => {
+    if (d.off.floors) return;
+    const r = stream(s.seed, "floors");
+    for (const k in s.sites) {
+      const st = s.sites[k];
+      if (st.kind !== "vault") continue;
+      for (let i = 0; i < st.floors.length - 1; i++) {
+        const roll2 = r(), pick = r();
+        if (roll2 < F().rareChance) st.floors[i] = F().rare.id;
+        else if (roll2 < F().chance) st.floors[i] = F().list[Math.floor(pick * F().list.length)].id;
+      }
+    }
+  });
+  {
+    const vault = GENERATORS.vault;
+    GENERATORS.vault = (s, rec) => {
+      const m = vault(s, rec), k = kindOf(rec.floor);
+      if (!k) return m;
+      const r = stream(s.seed, "floor:" + rec.level), free = [];
+      for (let i = 0; i < m.terrain.length; i++)
+        if (m.terrain[i] === 7 && !m.sites[i] && !m.depots[i] && !m.creatures.some((c) => idx(c.x, c.y) === i)) free.push(i);
+      const take = () => free.splice(Math.floor(r() * free.length), 1)[0];
+      for (let n = 0; n < (k.pools || 0) && free.length; n++) m.depots[take()] = { water: 3, fuel: 0, items: [] };
+      for (let n = 0; n < (k.items || 0) && free.length; n++) {
+        const it = genItem(s, { relic: true, noConsumables: true });
+        m.depots[take()] = { water: 0, fuel: 0, items: [it] };
+      }
+      for (let n = 0; n < (k.guards || 0) && free.length; n++) {
+        const i = take();
+        m.creatures.push(makeCreature(s, 260 + rec.level * 10 + n, s.quest.guardSp, i % 36, Math.floor(i / 36), 1));
+      }
+      if (k.sleep) {
+        for (const c of m.creatures) if (!c.warden) c.cool = 1e9;
+      }
+      if (k.reveal) m.seen = m.terrain.map((t) => t === 7 ? 1 : 0);
+      return m;
+    };
+  }
+  SOURCES.push({
+    id: "floors",
+    fn(s, out) {
+      const k = areaRec(s).kind === "vault" ? kindOf(areaRec(s).floor) : null;
+      if (k) for (const m of k.mods || []) out.push(m);
+    }
+  });
+  on("did", (s, d) => {
+    if (d.id !== "goDown" && d.id !== "enterVault") return;
+    const rec = areaRec(s), k = rec.kind === "vault" ? kindOf(rec.floor) : null;
+    if (!k || rec.told) return;
+    rec.told = true;
+    if (k.reveal) for (const i in s.sites) s.sites[i].seen = true;
+    say(s, k.text, k.guards ? "bad" : "good");
+  });
+  SWITCHES.push(["floors", "Odd levels below"]);
+
+  // src/rules/relics.js
+  var natureOf = (s) => s.quest && !s.off.relics ? C.relicNatures[s.quest.relic.split(" ")[0]] || null : null;
+  var carrying = (s) => s.player.items.some((it) => it.base === "relic");
+  SOURCES.push({
+    id: "relics",
+    fn(s, out) {
+      const n = natureOf(s);
+      if (n && carrying(s)) for (const m of n.mods) out.push(m);
+    }
+  });
+  on("did", (s, d) => {
+    const n = natureOf(s);
+    if (d.id !== "takeItem" || !n || !carrying(s) || s.quest.natureTold) return;
+    s.quest.natureTold = true;
+    say(s, "The " + s.quest.relic + " is not only a thing to carry. " + n.text, "good");
+  });
+  SWITCHES.push(["relics", "The relic's nature"]);
+  NOTES.push((s) => natureOf(s) && s.quest.natureTold ? [{ label: "The " + s.quest.relic, text: natureOf(s).text }] : []);
+
+  // src/rules/lairs.js
+  var L = () => C.lairs;
+  {
+    const region = GENERATORS.region;
+    GENERATORS.region = (s, rec) => {
+      const m = region(s, rec);
+      if (s.off.lairs || s.regionRares && s.regionRares[rec.id] === "empty") return m;
+      const r = stream(s.seed, "lair:" + rec.id), pick = (a) => a[Math.floor(r() * a.length)];
+      if (r() >= L().chance) return m;
+      const caves = Object.keys(m.sites).filter(
+        (k2) => m.sites[k2].kind === "cave" && !m.creatures.some((c2) => idx(c2.x, c2.y) === +k2)
+      );
+      if (!caves.length) return m;
+      const k = +pick(caves), f = pick(C.creature.forms), pre = C.creature.prefix[rec.biome] || ["Wild"], sp = {
+        name: pick(L().names) + " " + pick(pre) + " " + f.name,
+        form: f.id,
+        temper: "territorial",
+        rare: "elder",
+        met: false,
+        unique: true,
+        lair: rec.id
+      };
+      s.species.push(sp);
+      const c = makeCreature(
+        s,
+        400,
+        s.species.length - 1,
+        k % 36,
+        Math.floor(k / 36),
+        clamp(1 + sketchOf(s, rec.cx, rec.cy).danger, 2, 3)
+      );
+      c.lair = true;
+      m.creatures.push(c);
+      const H2 = L().hoard, dep = m.depots || (m.depots = {}), d = dep[k] = dep[k] || { water: 0, fuel: 0, items: [] };
+      d.coin = (d.coin || 0) + H2.coin[0] + Math.floor(r() * (H2.coin[1] - H2.coin[0] + 1));
+      for (let i = 0; i < H2.items; i++) {
+        const it = genItem(s, { relic: true, noConsumables: true });
+        it.known = true;
+        d.items.push(it);
+      }
+      m.sites[k].lair = true;
+      return m;
+    };
+  }
+  on("did", (s) => {
+    for (const c of s.creatures)
+      if (c.lair && c.seen && !c.toldLair) {
+        c.toldLair = true;
+        say(s, "That is the " + s.species[c.sp].name + ", and there is no other like it. It lies on a hoard in that cave.", "bad");
+      }
+    for (const sp of s.species)
+      if (sp.unique && sp.lair === s.area && sp.met && !sp.dead && !s.creatures.some((c) => c.lair && s.species[c.sp] === sp)) {
+        sp.dead = true;
+        say(s, "The " + sp.name + " is gone, and its hoard is yours: open Pack in its cave.", "good");
+      }
+  });
+  SWITCHES.push(["lairs", "Lairs"]);
+  NOTES.push(
+    (s) => s.species.filter((sp) => sp.unique && sp.met).map((sp) => ({
+      label: "The " + sp.name,
+      text: sp.dead ? "Dead. Its hoard was in its cave." : "The only one of its kind, lying on a hoard in a cave."
+    }))
+  );
+
+  // src/rules/farfinds.js
+  on("did", (s, d) => {
+    if (d.id !== "search" || s.off.farfinds || !["ruin", "cave", "cache"].includes(d.site)) return;
+    const rec = outdoorRec(s);
+    if (rec.kind !== "region" || rec.cx === void 0) return;
+    const danger = sketchOf(s, rec.cx, rec.cy).danger, got = [];
+    for (let i = 0; i < danger; i++)
+      if (srand(s) < C.farFinds.chance) {
+        const it = genItem(s, { relic: true, noConsumables: true });
+        depotHere(s, true).items.push(it);
+        got.push(itemName(it));
+      }
+    if (got.length) say(s, "Far from home, the old things are less picked over. Also here: " + got.join(", ") + ".", "good");
+  });
+  SWITCHES.push(["farfinds", "Richer far country"]);
+
   // src/rules/index.js
   var api = {
+    worldNotes,
+    stormOfNow: stormOf,
+    askErrand,
+    claimErrand,
+    errandInfo,
+    specialOf,
+    regionRareOf,
+    regionName,
+    yearOf,
     findLoose,
     passable,
     areaRec,
@@ -4248,6 +6292,8 @@
     findHere,
     offer,
     itemValue,
+    buyPrice,
+    priceOf,
     hasItem,
     atTown,
     findSite,
@@ -4273,10 +6319,11 @@
       ["warmth", "Cold and warmth"],
       ["thirst", "Thirst"],
       ["affixes", "Item affixes"],
-      ["gods", "God pacts"]
+      ["gods", "God pacts"],
+      ...SWITCHES
     ]
   };
-  for (const k of [
+  var ACTIONS = [
     "move",
     "survey",
     "rest",
@@ -4308,19 +6355,42 @@
     "enterVault",
     "goDown",
     "goUp",
-    "offer"
-  ]) {
+    "offer",
+    "askErrand",
+    "claimErrand"
+  ];
+  for (const k of ACTIONS) {
     const fn = api[k];
     api[k] = function(s) {
       if (s.combat) return false;
       return fn.apply(null, arguments);
     };
   }
+  for (const k of [
+    ...ACTIONS,
+    "attack",
+    "power",
+    "firebolt",
+    "smite",
+    "mend",
+    "flee",
+    "identify",
+    "useItem",
+    "setCharacter",
+    "nextTraveller"
+  ]) {
+    const fn = api[k];
+    api[k] = function(s) {
+      const site = siteHereKind(s), r = fn.apply(null, arguments);
+      if (r) emit(s, "did", { id: k, site });
+      return r;
+    };
+  }
   var Rules = api;
 
   // src/view/ctx.js
   var V = { S: null, terrain: null, blockedUntil: 0, locked: false };
-  var P = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, walked: 0 };
+  var P2 = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, walked: 0 };
   var R = Rules;
   var $ = (id) => document.getElementById(id);
   var KEY = "farbeacon.run";
@@ -4359,14 +6429,14 @@
   }
   var INDOOR_TS = 4;
   var TOWN_TS = (2 * R.TOWN_R + 1) * TS / R.W;
-  var G = { ts: TS, half: HALF };
+  var G2 = { ts: TS, half: HALF };
   function setGeometry(kind) {
-    G.ts = kind === "town" ? TOWN_TS : kind === "vault" ? INDOOR_TS : TS;
-    G.half = R.W * G.ts / 2;
+    G2.ts = kind === "town" ? TOWN_TS : kind === "vault" ? INDOOR_TS : TS;
+    G2.half = R.W * G2.ts / 2;
   }
   var FR = { x: 0, y: 0, z: 0 };
-  var tileX = (tx) => (tx + 0.5) * G.ts - G.half;
-  var toTile = (x) => clamp2(Math.floor((x + G.half) / G.ts), 0, R.W - 1);
+  var tileX = (tx) => (tx + 0.5) * G2.ts - G2.half;
+  var toTile = (x) => clamp2(Math.floor((x + G2.half) / G2.ts), 0, R.W - 1);
 
   // src/view/terrain.js
   var PAD = { town: 102, vault: 11, beacon: 9, spring: 6 };
@@ -4417,10 +6487,10 @@
     return land;
   }
   function makeTerrain(s) {
-    const land = landAround(s), r = mulberry2(s.seed ^ 5370206), T = new Float32Array(4096);
-    for (let i = 0; i < 4096; i++) T[i] = r();
+    const land = landAround(s), r = mulberry2(s.seed ^ 5370206), T2 = new Float32Array(4096);
+    for (let i = 0; i < 4096; i++) T2[i] = r();
     const noise = (per, salt) => {
-      const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
+      const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T2[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
       return (x, z) => {
         const u = ((x + HALF) / WORLD + land.cx) * per, v = ((z + HALF) / WORLD + land.cy) * per, x0 = Math.floor(u), z0 = Math.floor(v), tx = smooth(u - x0), tz = smooth(v - z0);
         return (at(x0, z0) * (1 - tx) + at(x0 + 1, z0) * tx) * (1 - tz) + (at(x0, z0 + 1) * (1 - tx) + at(x0 + 1, z0 + 1) * tx) * tz;
@@ -4684,7 +6754,7 @@
   var FLAT = { height: () => 0 };
   var VAULT_STONE = { castle: 6973024, barrow: 6122058, temple: 5205612 };
   function interiorGroup(map, rec, ts) {
-    const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T = map.terrain, at = (t) => (t + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
+    const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T2 = map.terrain, at = (t) => (t + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T2[y * R.W + x] === R.WALL;
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 9407104 : 4078133));
     floor.position.y = town ? 0.08 : 0;
     group.add(floor);
@@ -4814,21 +6884,21 @@
       setGeometry("vault");
       FR.x = FR.y = FR.z = 0;
       V.base = V.terrain = FLAT;
-      staticGroup.add(interiorGroup(V.S, R.areaRec(V.S), G.ts));
+      staticGroup.add(interiorGroup(V.S, R.areaRec(V.S), G2.ts));
       return;
     }
     V.base = makeTerrain(V.S);
-    const T = V.base, land = T.land, pal = land.biomes.map((b) => ({
+    const T2 = V.base, land = T2.land, pal = land.biomes.map((b) => ({
       cols: b.colors.map((c2) => new THREE.Color(c2)),
-      lush: new THREE.Color(b.id === "taiga" ? 6126200 : 6261317)
+      lush: new THREE.Color(b.lush !== void 0 ? b.lush : b.id === "taiga" ? 6126200 : 6261317)
     })), paved = new THREE.Color(9210502), c = new THREE.Color(), cb = new THREE.Color(), lush = new THREE.Color(), centre = (t) => (t + 0.5) * TS - HALF, springs = land.sites.filter((q2) => q2.st.kind === "spring").map((q2) => ({ x: centre(q2.x), z: centre(q2.y) }));
     const colourAt = (x, z) => {
-      const l = T.level(x, z), mv = [T.masks[0](x, z), T.masks[1](x, z), T.masks[2](x, z)];
+      const l = T2.level(x, z), mv = [T2.masks[0](x, z), T2.masks[1](x, z), T2.masks[2](x, z)];
       let total = 0;
       c.setRGB(0, 0, 0);
       lush.setRGB(0, 0, 0);
       for (let b = 0; b < pal.length; b++) {
-        const w = pal.length === 1 ? 1 : T.share[b](x, z);
+        const w = pal.length === 1 ? 1 : T2.share[b](x, z);
         if (w < 2e-3) continue;
         const cols = pal[b].cols;
         if (l <= 1) cb.copy(cols[0]).lerp(cols[1], Math.max(0, l));
@@ -4844,8 +6914,8 @@
       }
       c.multiplyScalar(1 / total);
       lush.multiplyScalar(1 / total);
-      if (T.roadAt(x, z)) c.lerp(paved, 0.85);
-      c.multiplyScalar(0.88 + 0.2 * T.tint(x, z));
+      if (T2.roadAt(x, z)) c.lerp(paved, 0.85);
+      c.multiplyScalar(0.88 + 0.2 * T2.tint(x, z));
       for (const s of springs) {
         const dx = s.x - x, dz = s.z - z;
         if (dx > 34 || dx < -34 || dz > 34 || dz < -34) continue;
@@ -4879,29 +6949,29 @@
         new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 }))
       );
     };
-    ground(T.fine, 0, false);
-    ground(T.coarse, SINK, true);
+    ground(T2.fine, 0, false);
+    ground(T2.coarse, SINK, true);
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []);
     const townSite = land.sites.find((q2) => q2.st.kind === "town"), townHalf = R.W * TOWN_TS / 2;
-    if (townSite) V.townAt = { x: centre(townSite.x), y: T.height(centre(townSite.x), centre(townSite.y)), z: centre(townSite.y) };
+    if (townSite) V.townAt = { x: centre(townSite.x), y: T2.height(centre(townSite.x), centre(townSite.y)), z: centre(townSite.y) };
     const nearSite = (x, z) => {
       if (V.townAt && Math.abs(x - V.townAt.x) < townHalf + 4 && Math.abs(z - V.townAt.z) < townHalf + 4) return true;
-      const site = land.siteAt[T.etile(x, z)];
+      const site = land.siteAt[T2.etile(x, z)];
       return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;
     };
     const put = (list, x, z, sx, sy, lift, rx, ry, rz) => {
       e.set(rx, ry, rz);
       q.setFromEuler(e);
       sc.set(sx, sy, sx);
-      v.set(x, T.height(x, z) + lift, z);
+      v.set(x, T2.height(x, z) + lift, z);
       m.compose(v, q, sc);
       for (let i = 0; i < 16; i++) list.push(m.elements[i]);
     };
     for (let ey = 0; ey < EW; ey++)
       for (let ex = 0; ex < EW; ex++) {
-        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land.biome[en], bio = land.biomes[bi], r = T.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8;
-        for (let n = Math.floor((bio.id === "salt" ? 0.62 : 0.35) + r()); n > 0; n--) {
-          const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
+        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land.biome[en], bio = land.biomes[bi], r = T2.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8;
+        for (let n = Math.floor((bio.rocky !== void 0 ? bio.rocky : bio.id === "salt" ? 0.62 : 0.35) + r()); n > 0; n--) {
+          const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T2.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
           if (!nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
         }
         if (r() < 0.0125) {
@@ -4916,7 +6986,7 @@
           e.set(0, ry, 0);
           q.setFromEuler(e);
           sc.set(wd, hgt, wd);
-          v.set(px, T.height(px, pz) + hgt / 2 - 0.3, pz);
+          v.set(px, T2.height(px, pz) + hgt / 2 - 0.3, pz);
           m.compose(v, q, sc);
           for (let i = 0; i < 16; i++) trees[bi].push(m.elements[i]);
         }
@@ -4940,7 +7010,7 @@
           new THREE.CircleGeometry(4.6, 12).rotateX(-Math.PI / 2),
           new THREE.MeshBasicMaterial({ color: 4165568 })
         );
-        w.position.set(x, T.height(x, z) + 0.3, z);
+        w.position.set(x, T2.height(x, z) + 0.3, z);
         staticGroup.add(w);
         continue;
       }
@@ -4951,7 +7021,7 @@
         continue;
       }
       const g = BUILD[st.kind](V.S);
-      g.position.set(x, T.height(x, z), z);
+      g.position.set(x, T2.height(x, z), z);
       if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
       staticGroup.add(g);
     }
@@ -4967,7 +7037,7 @@
     if (V.townAt && V.S.areas.town) drawArea("town", "town");
   }
   function drawArea(id, kind) {
-    const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind !== "region", ts = kind === "town" ? TOWN_TS : kind === "vault" ? G.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
+    const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind !== "region", ts = kind === "town" ? TOWN_TS : kind === "vault" ? G2.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
     const at = (k, dx, dz) => {
       let x = (k % R.W + 0.5) * ts - half + (dx || 0), z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0), y = 0;
       if (kind === "town") {
@@ -4998,7 +7068,7 @@
       for (const k in map.sites) {
         const st = map.sites[k], [x, y, z] = at(+k), g = interiorSite(st, ts, kind === "town");
         g.position.set(x, y, z);
-        if (st.kind === "elder" || st.kind === "inn" || st.kind === "shop") g.rotation.y = Math.atan2(P.x - x, P.z - z);
+        if (st.kind === "elder" || st.kind === "inn" || st.kind === "shop") g.rotation.y = Math.atan2(P2.x - x, P2.z - z);
         dynGroup.add(g);
       }
     const camp = V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
@@ -5053,14 +7123,14 @@
       g.scale.setScalar(k * (sp.form === "wight" ? 0.85 : 1.1));
       let x, y, z;
       if (fighting) {
-        x = P.x - Math.sin(P.yaw) * (indoor ? 3 : 7.5);
-        z = P.z - Math.cos(P.yaw) * (indoor ? 3 : 7.5);
-        P.pitch = 0;
+        x = P2.x - Math.sin(P2.yaw) * (indoor ? 3 : 7.5);
+        z = P2.z - Math.cos(P2.yaw) * (indoor ? 3 : 7.5);
+        P2.pitch = 0;
         y = ground(x, z);
-        g.rotation.y = P.yaw;
+        g.rotation.y = P2.yaw;
       } else {
         [x, y, z] = at(c.y * R.W + c.x, -4 * off, -5 * off);
-        g.rotation.y = Math.atan2(P.x - x, P.z - z);
+        g.rotation.y = Math.atan2(P2.x - x, P2.z - z);
       }
       if (!indoor)
         for (const [ox2, oz] of [
@@ -5127,11 +7197,11 @@
   }
   function placePlayer() {
     const indoor = R.indoors(V.S);
-    P.x = tileX(V.S.player.x) + (indoor ? 0 : 6);
-    P.z = tileX(V.S.player.y) + (indoor ? 0 : 7);
-    P.y = V.terrain.height(P.x, P.z) + EYE;
-    P.pitch = 0;
-    P.walked = 0;
+    P2.x = tileX(V.S.player.x) + (indoor ? 0 : 6);
+    P2.z = tileX(V.S.player.y) + (indoor ? 0 : 7);
+    P2.y = V.terrain.height(P2.x, P2.z) + EYE;
+    P2.pitch = 0;
+    P2.walked = 0;
     if (indoor) {
       let best = 0, bestRun = -1;
       [
@@ -5149,8 +7219,8 @@
           best = i;
         }
       });
-      P.yaw = [0, -Math.PI / 2, Math.PI, Math.PI / 2][best];
-    } else P.yaw = Math.atan2(-(tileX(V.S.town.x) - P.x), -(tileX(V.S.town.y) - P.z));
+      P2.yaw = [0, -Math.PI / 2, Math.PI, Math.PI / 2][best];
+    } else P2.yaw = Math.atan2(-(tileX(V.S.town.x) - P2.x), -(tileX(V.S.town.y) - P2.z));
     shown.t = V.S.time;
     shown.area = V.S.area;
     shown.land = landKey();
@@ -5209,8 +7279,8 @@
     if (k.s || k.arrowdown) fy -= 1;
     if (k.d) fx += 1;
     if (k.a) fx -= 1;
-    if (k.arrowleft || k.q) P.yaw += 1.9 * dt;
-    if (k.arrowright || k.e) P.yaw -= 1.9 * dt;
+    if (k.arrowleft || k.q) P2.yaw += 1.9 * dt;
+    if (k.arrowright || k.e) P2.yaw -= 1.9 * dt;
     let mag = Math.hypot(fx, fy);
     if (mag < 0.05) return;
     if (mag > 1) {
@@ -5218,20 +7288,20 @@
       fy /= mag;
       mag = 1;
     }
-    const sn = Math.sin(P.yaw), cs = Math.cos(P.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx, mc = R.moveCost(V.S, V.S.player.x, V.S.player.y), indoor = R.indoors(V.S), sp = VIEW.speed * (indoor ? 0.65 : clamp2(mc.base / mc.mins, 0.3, 1.15));
-    const inTown = R.areaRec(V.S).kind === "town", open = R.inOverworld(V.S) || inTown, lim = open ? G.half + 1 : G.half - 1, tileOf = open ? (x) => Math.floor((x + G.half) / G.ts) : toTile;
-    let nx = clamp2(P.x + dx * sp * dt, -lim, lim), nz = clamp2(P.z + dz * sp * dt, -lim, lim);
-    const pad = indoor ? 0.6 : 0, blocked = (x, z) => !R.passable(V.S, toTile(x + Math.sign(x - P.x) * pad), toTile(z)) || !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P.z) * pad));
+    const sn = Math.sin(P2.yaw), cs = Math.cos(P2.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx, mc = R.moveCost(V.S, V.S.player.x, V.S.player.y), indoor = R.indoors(V.S), sp = VIEW.speed * (indoor ? 0.65 : clamp2(mc.base / mc.mins, 0.3, 1.15));
+    const inTown = R.areaRec(V.S).kind === "town", open = R.inOverworld(V.S) || inTown, lim = open ? G2.half + 1 : G2.half - 1, tileOf = open ? (x) => Math.floor((x + G2.half) / G2.ts) : toTile;
+    let nx = clamp2(P2.x + dx * sp * dt, -lim, lim), nz = clamp2(P2.z + dz * sp * dt, -lim, lim);
+    const pad = indoor ? 0.6 : 0, blocked = (x, z) => !R.passable(V.S, toTile(x + Math.sign(x - P2.x) * pad), toTile(z)) || !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P2.z) * pad));
     if (indoor && blocked(nx, nz)) {
-      if (!blocked(nx, P.z)) nz = P.z;
-      else if (!blocked(P.x, nz)) nx = P.x;
+      if (!blocked(nx, P2.z)) nz = P2.z;
+      else if (!blocked(P2.x, nz)) nx = P2.x;
       else return;
     }
     if (!indoor && V.townAt) {
       const t = V.townAt, h = R.W * TOWN_TS / 2 + 0.7, gx = t.x + (R.TOWN_GATE.x + 0.5) * TOWN_TS - R.W * TOWN_TS / 2, wall = (x, z) => Math.abs(x - t.x) < h && Math.abs(z - t.z) < h && !(Math.abs(x - gx) < TOWN_TS / 2 - 0.5 && z > t.z + h - 6);
       if (wall(nx, nz)) {
-        if (!wall(nx, P.z)) nz = P.z;
-        else if (!wall(P.x, nz)) nx = P.x;
+        if (!wall(nx, P2.z)) nz = P2.z;
+        else if (!wall(P2.x, nz)) nx = P2.x;
         else return;
       }
     }
@@ -5249,14 +7319,14 @@
         applyFrame();
         nx += was.x - FR.x;
         nz += was.z - FR.z;
-        P.y += was.y - FR.y;
+        P2.y += was.y - FR.y;
         shown.area = V.S.area;
       } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {
         buildStatic();
         shown.area = V.S.area;
         shown.land = landKey();
-        nx -= Math.floor(tx / R.W) * 2 * G.half;
-        nz -= Math.floor(tz / R.H) * 2 * G.half;
+        nx -= Math.floor(tx / R.W) * 2 * G2.half;
+        nz -= Math.floor(tz / R.H) * 2 * G2.half;
       }
       sync();
       buildDynamic();
@@ -5267,9 +7337,9 @@
         return;
       }
     }
-    P.walked += Math.hypot(nx - P.x, nz - P.z);
-    P.x = nx;
-    P.z = nz;
+    P2.walked += Math.hypot(nx - P2.x, nz - P2.z);
+    P2.x = nx;
+    P2.z = nz;
   }
   var DIRN = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   function frame() {
@@ -5279,7 +7349,7 @@
     if (V.base.share && V.base.share.length > 1) {
       dayC.setRGB(0, 0, 0);
       V.base.share.forEach((f, i) => {
-        const w = f(P.x + FR.x, P.z + FR.z);
+        const w = f(P2.x + FR.x, P2.z + FR.z);
         mixC.setHex(V.base.land.biomes[i].sky);
         dayC.r += mixC.r * w;
         dayC.g += mixC.g * w;
@@ -5298,7 +7368,7 @@
       sun.intensity = 0;
       lamp.intensity = lit ? 1.1 : 0.25;
       lamp.distance = lit ? 26 : 6;
-      lamp.position.set(P.x, P.y + 0.8, P.z);
+      lamp.position.set(P2.x, P2.y + 0.8, P2.z);
       return finishFrame();
     }
     lamp.distance = 45;
@@ -5315,15 +7385,15 @@
     const sa = (h - 6) / 14 * Math.PI;
     sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
     lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
-    lamp.position.set(P.x, P.y + 0.3, P.z);
+    lamp.position.set(P2.x, P2.y + 0.3, P2.z);
     finishFrame();
   }
   function finishFrame() {
-    const target = V.terrain.height(P.x, P.z) + EYE + (still ? 0 : Math.sin(P.walked * 1.7) * 0.05);
-    P.y = lerp(P.y, target, 0.35);
-    camera.position.set(P.x, P.y, P.z);
-    camera.rotation.set(P.pitch, P.yaw, 0);
-    const deg = (-P.yaw * 180 / Math.PI % 360 + 360) % 360;
+    const target = V.terrain.height(P2.x, P2.z) + EYE + (still ? 0 : Math.sin(P2.walked * 1.7) * 0.05);
+    P2.y = lerp(P2.y, target, 0.35);
+    camera.position.set(P2.x, P2.y, P2.z);
+    camera.rotation.set(P2.pitch, P2.yaw, 0);
+    const deg = (-P2.yaw * 180 / Math.PI % 360 + 360) % 360;
     $("facing").textContent = "Facing " + DIRN[Math.round(deg / 45) % 8];
     renderer.render(scene, camera);
   }
@@ -5440,7 +7510,7 @@
             R.byId(all, id).name,
             () => {
               ch[key] = id;
-              if (key === "race") ch.name = R.nameFor(Math.random, id);
+              if (key === "race") ch.name = R.nameFor(Math.random, id, V.S);
               paint();
             },
             "small" + (id === ch[key] ? " sel" : "")
@@ -5455,7 +7525,7 @@
         el("div", { cls: "row" }, [
           el("strong", { text: ch.name }),
           btn("Another name", () => {
-            ch.name = R.nameFor(Math.random, ch.race);
+            ch.name = R.nameFor(Math.random, ch.race, V.S);
             paint();
           })
         ]),
@@ -5633,7 +7703,7 @@
   }
   function openTown(section) {
     if (section === "elder" && !V.S.quest.told) act(() => R.talkElder(V.S));
-    const t = V.S.town, p = V.S.player, T = R.C.town, race = R.byId(R.C.races, t.race).name.toLowerCase(), re = (fn) => () => {
+    const t = V.S.town, p = V.S.player, T2 = R.C.town, race = R.byId(R.C.races, t.race).name.toLowerCase(), re = (fn) => () => {
       act(fn);
       if (!V.S.over) openTown(section);
     };
@@ -5646,23 +7716,23 @@
         ]),
         el("div", { cls: "row" }, [
           btn(
-            "Buy, " + R.itemValue(it),
+            "Buy, " + R.buyPrice(V.S, it),
             re(() => R.buy(V.S, it.id)),
-            "small" + (p.coin >= R.itemValue(it) ? " sel" : "")
+            "small" + (p.coin >= R.buyPrice(V.S, it) ? " sel" : "")
           )
         ])
       ])
     );
-    const mine = p.items.filter((it) => R.sellPrice(it) > 0).map(
+    const mine = p.items.filter((it) => R.sellPrice(it, V.S) > 0).map(
       (it) => el("li", { cls: "item" }, [
         el("div", null, [el("strong", { text: R.itemName(it) }), el("span", { cls: "wt", text: it.eq ? "worn" : "" })]),
         el("div", { cls: "row" }, [
           it.known ? null : btn(
-            "Appraise, " + T.appraisePrice,
+            "Appraise, " + R.priceOf(V.S, "appraisePrice"),
             re(() => R.appraise(V.S, it.id))
           ),
           btn(
-            "Sell, " + R.sellPrice(it),
+            "Sell, " + R.sellPrice(it, V.S),
             re(() => R.sell(V.S, it.id))
           )
         ])
@@ -5686,11 +7756,24 @@
         coin,
         el("div", { cls: "row" }, [
           btn(
-            "A bed for the night, " + T.innPrice + " coin",
+            "A bed for the night, " + R.priceOf(V.S, "innPrice") + " coin",
             re(() => R.inn(V.S)),
             "primary"
           ),
           el("span", { cls: "note", text: "Eight hours. Restores everything." })
+        ]),
+        el("h3", { text: "Work" }),
+        el("p", { text: R.errandInfo(V.S).text }),
+        el("div", { cls: "row" }, [
+          R.errandInfo(V.S).canAsk ? btn(
+            "Ask about work",
+            re(() => R.askErrand(V.S))
+          ) : null,
+          R.errandInfo(V.S).canClaim ? btn(
+            "Claim your pay",
+            re(() => R.claimErrand(V.S)),
+            "primary"
+          ) : null
         ])
       ]);
     else
@@ -5698,7 +7781,7 @@
         coin,
         el("div", { cls: "row" }, [
           btn(
-            "Fuel, " + T.fuelPrice + " coin each (" + t.fuel + " left)",
+            "Fuel, " + R.priceOf(V.S, "fuelPrice") + " coin each (" + t.fuel + " left)",
             re(() => R.buyFuel(V.S))
           )
         ]),
@@ -5836,7 +7919,7 @@
         g.arc((c.x + 0.5) * ts, (c.y + 0.5) * ts, 4, 0, 7);
         g.fill();
       }
-    const px = (P.x + G.half) / G.ts * ts, py = (P.z + G.half) / G.ts * ts;
+    const px = (P2.x + G2.half) / G2.ts * ts, py = (P2.z + G2.half) / G2.ts * ts;
     g.beginPath();
     g.arc(px, py, 4.5, 0, 7);
     g.fillStyle = "#fff";
@@ -5846,7 +7929,7 @@
     g.stroke();
     g.beginPath();
     g.moveTo(px, py);
-    g.lineTo(px - Math.sin(P.yaw) * 12, py - Math.cos(P.yaw) * 12);
+    g.lineTo(px - Math.sin(P2.yaw) * 12, py - Math.cos(P2.yaw) * 12);
     g.strokeStyle = "#fff";
     g.stroke();
   }
@@ -5870,6 +7953,10 @@
           g.beginPath();
           g.arc((cx + 0.5) * cell, (cy + 0.5) * cell, 4, 0, 7);
           g.fill();
+        }
+        if (rec && rec.rareTold && R.regionRareOf(V.S, rec.id)) {
+          g.fillStyle = "#c9a0ff";
+          g.fillRect((cx + 0.5) * cell - 3, cy * cell + 6, 6, 6);
         }
       }
     g.strokeStyle = "#fff";
@@ -5938,12 +8025,21 @@
       el("h3", { text: "Creatures met" }),
       el("p", {
         cls: "note",
-        text: V.S.species.filter((x) => x.met).map((x) => x.name + ": " + R.byId(R.C.creature.forms, x.form).text + " " + R.byId(R.C.creature.tempers, x.temper).text).join(" ") || "None yet. They are few, and you will usually see one before it reaches you."
+        text: V.S.species.filter((x) => x.met).map(
+          (x) => x.name + ": " + R.byId(R.C.creature.forms, x.form).text + " " + R.byId(R.C.creature.tempers, x.temper).text + (R.specialOf(V.S, x).text ? " " + R.specialOf(V.S, x).text : "")
+        ).join(" ") || "None yet. They are few, and you will usually see one before it reaches you."
       }),
       el("h3", { text: "This world" }),
       el("p", {
         text: R.biomeOf(V.S).name + ". " + (V.S.known.god ? "Shrine of " + R.godOf(V.S).name + "." : "A god is worshipped somewhere here.") + " Seed " + V.S.seed + "."
       }),
+      el(
+        "ul",
+        { cls: "items" },
+        R.worldNotes(V.S).map(
+          (n) => el("li", { cls: "item" }, [el("div", null, [el("strong", { text: n.label }), el("p", { text: n.text })])])
+        )
+      ),
       el("p", {
         text: V.S.known.civ ? "The people who lived here were " + R.civOf(V.S).name + ". Each ruin you search teaches you more about them." : "A people lived here once. Search a ruin to learn who they were."
       }),
@@ -6050,8 +8146,8 @@
   }
   var cv = $("c");
   var look = (mx, my, k) => {
-    P.yaw -= mx * k;
-    P.pitch = clamp2(P.pitch - my * k, -1.2, 1.2);
+    P2.yaw -= mx * k;
+    P2.pitch = clamp2(P2.pitch - my * k, -1.2, 1.2);
   };
   document.addEventListener("keydown", (e) => {
     if (!$("modal").hidden) {
@@ -6125,13 +8221,13 @@
       for (const t of e.changedTouches) {
         if (t.identifier === moveId) {
           let dx = t.clientX - ox, dy = t.clientY - oy;
-          const d = Math.hypot(dx, dy), RR = 50;
-          if (d > RR) {
-            dx *= RR / d;
-            dy *= RR / d;
+          const d = Math.hypot(dx, dy), RR2 = 50;
+          if (d > RR2) {
+            dx *= RR2 / d;
+            dy *= RR2 / d;
           }
-          input.fx = dx / RR;
-          input.fy = -dy / RR;
+          input.fx = dx / RR2;
+          input.fy = -dy / RR2;
           knob.style.transform = "translate(" + dx + "px," + dy + "px)";
         } else if (t.identifier === lookId) {
           look(t.clientX - tlx, t.clientY - tly, 6e-3);
@@ -6171,7 +8267,7 @@
     get S() {
       return V.S;
     },
-    P,
+    P: P2,
     V,
     VIEW,
     input,

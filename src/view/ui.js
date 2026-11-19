@@ -120,7 +120,7 @@ function openCreate(next) {
             R.byId(all, id).name,
             () => {
               ch[key] = id;
-              if (key === 'race') ch.name = R.nameFor(Math.random, id);
+              if (key === 'race') ch.name = R.nameFor(Math.random, id, V.S);
               paint();
             },
             'small' + (id === ch[key] ? ' sel' : ''),
@@ -140,7 +140,7 @@ function openCreate(next) {
       el('div', { cls: 'row' }, [
         el('strong', { text: ch.name }),
         btn('Another name', () => {
-          ch.name = R.nameFor(Math.random, ch.race);
+          ch.name = R.nameFor(Math.random, ch.race, V.S);
           paint();
         }),
       ]),
@@ -354,15 +354,15 @@ function openTown(section) {
       ]),
       el('div', { cls: 'row' }, [
         btn(
-          'Buy, ' + R.itemValue(it),
+          'Buy, ' + R.buyPrice(V.S, it),
           re(() => R.buy(V.S, it.id)),
-          'small' + (p.coin >= R.itemValue(it) ? ' sel' : ''),
+          'small' + (p.coin >= R.buyPrice(V.S, it) ? ' sel' : ''),
         ),
       ]),
     ]),
   );
   const mine = p.items
-    .filter((it) => R.sellPrice(it) > 0)
+    .filter((it) => R.sellPrice(it, V.S) > 0)
     .map((it) =>
       el('li', { cls: 'item' }, [
         el('div', null, [el('strong', { text: R.itemName(it) }), el('span', { cls: 'wt', text: it.eq ? 'worn' : '' })]),
@@ -370,11 +370,11 @@ function openTown(section) {
           it.known
             ? null
             : btn(
-                'Appraise, ' + T.appraisePrice,
+                'Appraise, ' + R.priceOf(V.S, 'appraisePrice'),
                 re(() => R.appraise(V.S, it.id)),
               ),
           btn(
-            'Sell, ' + R.sellPrice(it),
+            'Sell, ' + R.sellPrice(it, V.S),
             re(() => R.sell(V.S, it.id)),
           ),
         ]),
@@ -400,11 +400,28 @@ function openTown(section) {
       coin,
       el('div', { cls: 'row' }, [
         btn(
-          'A bed for the night, ' + T.innPrice + ' coin',
+          'A bed for the night, ' + R.priceOf(V.S, 'innPrice') + ' coin',
           re(() => R.inn(V.S)),
           'primary',
         ),
         el('span', { cls: 'note', text: 'Eight hours. Restores everything.' }),
+      ]),
+      el('h3', { text: 'Work' }),
+      el('p', { text: R.errandInfo(V.S).text }),
+      el('div', { cls: 'row' }, [
+        R.errandInfo(V.S).canAsk
+          ? btn(
+              'Ask about work',
+              re(() => R.askErrand(V.S)),
+            )
+          : null,
+        R.errandInfo(V.S).canClaim
+          ? btn(
+              'Claim your pay',
+              re(() => R.claimErrand(V.S)),
+              'primary',
+            )
+          : null,
       ]),
     ]);
   else
@@ -412,7 +429,7 @@ function openTown(section) {
       coin,
       el('div', { cls: 'row' }, [
         btn(
-          'Fuel, ' + T.fuelPrice + ' coin each (' + t.fuel + ' left)',
+          'Fuel, ' + R.priceOf(V.S, 'fuelPrice') + ' coin each (' + t.fuel + ' left)',
           re(() => R.buyFuel(V.S)),
         ),
       ]),
@@ -627,6 +644,10 @@ function drawWorld() {
         g.arc((cx + 0.5) * cell, (cy + 0.5) * cell, 4, 0, 7);
         g.fill();
       }
+      if (rec && rec.rareTold && R.regionRareOf(V.S, rec.id)) {
+        g.fillStyle = '#c9a0ff'; // a rare country you have been to
+        g.fillRect((cx + 0.5) * cell - 3, cy * cell + 6, 6, 6);
+      }
     }
   g.strokeStyle = '#fff';
   g.lineWidth = 2;
@@ -729,7 +750,15 @@ function openMenu() {
       text:
         V.S.species
           .filter((x) => x.met)
-          .map((x) => x.name + ': ' + R.byId(R.C.creature.forms, x.form).text + ' ' + R.byId(R.C.creature.tempers, x.temper).text)
+          .map(
+            (x) =>
+              x.name +
+              ': ' +
+              R.byId(R.C.creature.forms, x.form).text +
+              ' ' +
+              R.byId(R.C.creature.tempers, x.temper).text +
+              (R.specialOf(V.S, x).text ? ' ' + R.specialOf(V.S, x).text : ''),
+          )
           .join(' ') || 'None yet. They are few, and you will usually see one before it reaches you.',
     }),
     el('h3', { text: 'This world' }),
@@ -742,6 +771,13 @@ function openMenu() {
         V.S.seed +
         '.',
     }),
+    el(
+      'ul',
+      { cls: 'items' },
+      R.worldNotes(V.S).map((n) =>
+        el('li', { cls: 'item' }, [el('div', null, [el('strong', { text: n.label }), el('p', { text: n.text })])]),
+      ),
+    ),
     el('p', {
       text: V.S.known.civ
         ? 'The people who lived here were ' + R.civOf(V.S).name + '. Each ruin you search teaches you more about them.'

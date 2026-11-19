@@ -33,12 +33,23 @@ for (const st of C.civ.style) for (const f of st.favors) need(bases.has(f), 'sty
 for (const k of C.town.staples) need(bases.has(k), 'town staple ' + k + ' is not a base');
 need(C.creature.speciesPerWorld <= C.creature.forms.length * C.creature.prefix.salt.length, 'too few forms and prefixes for speciesPerWorld');
 // every stat a modifier names should be one the rules read (a typo here silently does nothing)
-const known = new Set(['waterCap', 'cold', 'stormCold', 'staminaCost', 'nightSight', 'surveyRadius', 'carryCap', 'moveTime', 'moveTime.hill', 'moveTime.mountain', 'moveTime.plain', 'moveTime.forest', 'goalDistance', 'leak', 'waterDrain', 'fuelUse', 'restGain', 'wellfinder', 'hit', 'dmg', 'ac', 'studyTime', 'searchTime', 'luck', 'tasteWater', 'gatherYield', 'trapSafe', 'shrineSense', 'warm']);
+const known = new Set(['waterCap', 'cold', 'stormCold', 'staminaCost', 'nightSight', 'surveyRadius', 'carryCap', 'moveTime', 'moveTime.hill', 'moveTime.mountain', 'moveTime.plain', 'moveTime.forest', 'goalDistance', 'leak', 'waterDrain', 'fuelUse', 'restGain', 'wellfinder', 'hit', 'dmg', 'ac', 'studyTime', 'searchTime', 'luck', 'tasteWater', 'gatherYield', 'trapSafe', 'shrineSense', 'warm', 'quiet', 'town.innPrice', 'town.fuelPrice', 'town.appraisePrice', 'town.sellRate', 'town.buy', 'town.buy.weapon', 'town.buy.armor', 'town.buy.consumable', 'town.buy.gear']);
 const mods = [];
 for (const b of C.bases) (b.mods || []).forEach((m) => mods.push(['base ' + b.id, m]));
 for (const a of C.affixes) a.mods.forEach((m) => mods.push(['affix ' + a.id, m]));
 for (const x of [...C.races, ...C.classes, ...C.gods, ...C.civ.affinity]) (x.mods || []).forEach((m) => mods.push([x.id, m]));
 for (const b of C.biomes) for (const k of ['forest', 'river', 'special', 'day', 'night', 'storm']) (b[k].mods || []).forEach((m) => mods.push(['biome ' + b.id + '.' + k, m]));
+for (const y of [...C.year.common, ...C.year.rare]) (y.mods || []).forEach((m) => mods.push(['year ' + y.id, m]));
+for (const y of [...C.year.common, ...C.year.rare]) for (const k in y.tun || {}) need(C.tun[k] !== undefined, 'year ' + y.id + ' changes unknown tuning ' + k);
+for (const x of [...C.pantheon.gifts, ...C.pantheon.costs]) x.mods.forEach((m) => mods.push(['pantheon ' + x.id, m]));
+for (const x of C.pantheon.gifts) need(C.pantheon.domains.some((d) => d.id === x.domain), 'god gift ' + x.id + ' has unknown domain ' + x.domain);
+for (const x of C.artifacts.powers) { x.mods.forEach((m) => mods.push(['artifact ' + x.id, m])); for (const b of x.for) need(bases.has(b), 'artifact ' + x.id + ' names unknown base ' + b); }
+for (const x of C.regionRares.list) (x.mods || []).forEach((m) => mods.push(['region rare ' + x.id, m]));
+for (const x of [...C.townCulture.trades, ...C.townCulture.customs, ...C.townCulture.rares]) { (x.mods || []).forEach((m) => mods.push(['town ' + x.id, m])); for (const b of (x.stock || { bases: [] }).bases) need(bases.has(b), 'town ' + x.id + ' stocks unknown base ' + b); }
+for (const x of C.oddWeather.list) x.mods.forEach((m) => mods.push(['weather ' + x.id, m]));
+for (const x of C.floorKinds.list) (x.mods || []).forEach((m) => mods.push(['floor ' + x.id, m]));
+for (const k in C.relicNatures) C.relicNatures[k].mods.forEach((m) => mods.push(['relic ' + k, m]));
+for (const r of C.quest.relics) need(C.relicNatures[r], 'relic ' + r + ' has no nature');
 for (const a of C.abilities) a.mods(12).forEach((m) => mods.push(['ability ' + a.id, m]));
 for (const [who, m] of mods) { need(known.has(m.stat), who + ' modifies unknown stat ' + m.stat); need(['add', 'mul', 'max'].includes(m.op), who + ' has unknown op ' + m.op); }
 if (errs.length) { console.log('content problems:\n  ' + errs.join('\n  ')); process.exit(1); }

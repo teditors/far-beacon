@@ -9,7 +9,17 @@ const TERR = ['plain', 'hill', 'mountain', 'forest', 'river', 'special', 'wall',
 // Indoor ground: walls cannot be walked through; floor is the inside of towns and the locked place.
 const WALL = 6,
   FLOOR = 7;
-const byId = (list, id) => list.find((e) => e.id === id);
+// Look an entry up by id. Lists are indexed on first use (and again if they grow), since some lookups run very often.
+const idIndex = new WeakMap();
+const byId = (list, id) => {
+  let ix = idIndex.get(list);
+  if (!ix || ix.n !== list.length) {
+    ix = { n: list.length, m: new Map() };
+    for (const e of list) if (!ix.m.has(e.id)) ix.m.set(e.id, e);
+    idIndex.set(list, ix);
+  }
+  return ix.m.get(id);
+};
 const idx = (x, y) => y * W + x;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -55,10 +65,34 @@ function clock(s) {
   const m = START + s.time;
   const mod = m % 1440;
   const hour = Math.floor(mod / 60);
-  return { day: Math.floor(m / 1440) + 1, hour, min: Math.floor(mod % 60), isDay: hour >= 6 && hour < 20 };
+  const dawn = s.tun && s.tun.dawn !== undefined ? s.tun.dawn : 6,
+    dusk = s.tun && s.tun.dusk !== undefined ? s.tun.dusk : 20;
+  return { day: Math.floor(m / 1440) + 1, hour, min: Math.floor(mod % 60), isDay: hour >= dawn && hour < dusk };
 }
+// A piece can supply the world's god (rolled gods do): the first maker that returns one wins.
+const godMakers = [];
 const biomeOf = (s) => byId(C.biomes, s.biome),
-  godOf = (s) => byId(C.gods, s.god);
+  godOf = (s) => {
+    for (const f of godMakers) {
+      const g = f(s);
+      if (g) return g;
+    }
+    return byId(C.gods, s.god);
+  };
+// The storm blowing now (or due next): the biome's own, unless a piece supplies another (odd weather does).
+const stormMakers = [];
+const stormOf = (s) => {
+  for (const f of stormMakers) {
+    const st = f(s);
+    if (st) return st;
+  }
+  return biomeOf(s).storm;
+};
+// The kind of site the player stands on, or null.
+const siteHereKind = (s) => {
+  const st = s.sites[s.player.y * W + s.player.x];
+  return st ? st.kind : null;
+};
 
 export {
   stream,
@@ -81,5 +115,5 @@ export {
   biomeOf,
   godOf,
 };
-export { aOrAn };
+export { aOrAn, godMakers, siteHereKind, stormMakers, stormOf };
 export { WALL, FLOOR };

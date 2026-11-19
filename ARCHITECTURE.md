@@ -93,6 +93,29 @@ first time the player arrives.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
 - `inOverworld(s)` means "outdoors, in any region".
 
+## Plugging a piece in
+
+A self-contained piece (the year, for example) lives in its own module and plugs itself in without editing shared
+lines: it pushes a stat source onto `SOURCES` (stats.js), a system onto `SYSTEMS`, lines for the Journal onto `NOTES`
+and a Tinker switch onto `SWITCHES` (hooks.js), and listens for `'worldBorn'`, emitted at the end of `newGame`. Its
+content goes in its own file in `src/content/` and gets a section in `tools/almanac.js`. `newGame(seed, off)` takes
+switches that apply while the world is made, so a piece can be compared against the game without it
+(`NO=year node tests/playtest.js 150`). New state fields are optional where possible, so old saves need no migration.
+
+More hooks, added by later pieces on the commission/1 branch:
+
+| Hook | Where | What it lets a piece do |
+| --- | --- | --- |
+| `emit(s, 'did', { id, site })` | rules/index.js | react to any player action (vows, errands, being told things) |
+| `godMakers` | core.js | supply the world's god (rolled gods) |
+| `stormMakers`, `stormOf(s)` | core.js | supply the storm now blowing (odd weather) |
+| `SKETCHERS` | hooks.js | change what regions are before any land is built (generated biomes) |
+| `LOADERS` | hooks.js | rebuild what is derived from the seed when a save loads |
+| wrapping `GENERATORS.region` / `.vault` | the piece's module | add to a region or a level as it is built (artifacts, lairs, odd levels) |
+| `town.*` stats | quest.js `priceOf`, `buyPrice` | change the town's prices through the stat stack (town cultures) |
+
+Each piece's checks are a block in `tests/pieces.test.js`, and its menus a section in `tools/almanac.js`.
+
 ## State
 
 The whole game is one plain object `s` (see `newGame` in worldgen.js). It is saved as JSON, so it

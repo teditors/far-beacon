@@ -8,5 +8,43 @@ import peoples from './peoples.js';
 import creatures from './creatures.js';
 import items from './items.js';
 import quest from './quest.js';
+import years from './years.js';
+import pantheon from './pantheon.js';
+import artifacts from './artifacts.js';
+import regionRares from './regionrares.js';
+import specials from './specials.js';
+import exotics from './exotics.js';
+import towns from './towns.js';
+import errands from './errands.js';
+import weather from './weather.js';
+import biomeparts from './biomeparts.js';
+import floors from './floors.js';
+import relics from './relics.js';
+import lairs from './lairs.js';
+import farfinds from './farfinds.js';
 
-export const CONTENT = Object.assign({}, tuning, characters, biomes, gods, peoples, creatures, items, quest);
+export const CONTENT = Object.assign(
+  {},
+  tuning,
+  characters,
+  biomes,
+  gods,
+  peoples,
+  creatures,
+  items,
+  quest,
+  years,
+  pantheon,
+  artifacts,
+  regionRares,
+  specials,
+  exotics,
+  towns,
+  errands,
+  weather,
+  biomeparts,
+  floors,
+  relics,
+  lairs,
+  farfinds,
+);

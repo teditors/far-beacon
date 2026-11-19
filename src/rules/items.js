@@ -43,6 +43,7 @@ function genItem(s, o) {
 function itemName(it) {
   const b = byId(C.bases, it.base);
   if (it.label) return it.label;
+  if (it.artName) return it.artName;
   if (!it.known) return b.name + ' (unstudied)';
   if (b.mystery) return C.flasks[it.effect].name;
   const p = it.pre ? byId(C.affixes, it.pre).name + ' ' : '',
@@ -115,11 +116,13 @@ function describeItem(s, it) {
   let mods = (b.mods || []).slice();
   const ax = itemAffixes(it);
   for (const a of ax) mods = mods.concat(a.mods);
+  const pw = it.art && C.artifacts ? byId(C.artifacts.powers, it.art) : null;
   let t = b.weapon ? b.weapon.dice[0] + 'd' + b.weapon.dice[1] + ' damage' + (b.weapon.finesse ? ', uses Dexterity' : '') : '';
   {
     const dm = describeMods(mods);
     t += (t && dm ? ', ' : '') + dm;
   }
+  if (pw) t = pw.text + (t ? ' Also: ' + t : '');
   for (const a of ax)
     if (a.wtMul !== undefined) t += (t ? ', ' : '') + (a.wtMul === 0 ? 'weighs nothing' : 'weighs ' + a.wtMul + ' times normal');
   return t;

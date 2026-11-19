@@ -1,5 +1,8 @@
 # Far Beacon: notes for Claude
 
+> **On a `commission/*` branch, read `COMMISSION.md` first.** It is the brief for that branch and overrides the
+> Git section below.
+
 A hobby game: a first-person, procedurally generated survival-exploration roguelike in the browser (Three.js r128).
 The owner, Andrew, is learning as he goes. Tinkering is the real goal, so keep the code modular, readable and
 easy to change. Read `ARCHITECTURE.md` before changing anything structural; `CHANGELOG.md` says what each version did.
@@ -17,7 +20,7 @@ easy to change. Read `ARCHITECTURE.md` before changing anything structural; `CHA
 
 - `npm install`, then `pip install playwright && playwright install chromium` for the browser test.
 - `node tools/build.js` bundles `src/` into `dist/index.html`, a single self-contained page. Open it in a
-  browser to play. `dist/` is not committed.
+  browser to play. `dist/index.html` is committed with each version, so a frozen branch holds a playable copy.
 - Every push to `main` or a `commission/*` branch rebuilds playable copies of `main`, every commission branch and every
   frozen version, and publishes them with GitHub Pages (`.github/workflows/site.yml`, `tools/site.sh`). Each copy keeps
   its own saves.
@@ -37,6 +40,20 @@ easy to change. Read `ARCHITECTURE.md` before changing anything structural; `CHA
   `git push origin HEAD:refs/heads/version/vX.Y`. Pushing tags has been refused by the git proxy in cloud sessions,
   so frozen branches stand in for tags; do not try to work around a refusal.
 - To roll back, restore the old files as a new commit. Never rewrite history on `main`.
+
+## How features are built: pieces
+
+Since v0.12 every feature is a **piece**: one idea that works on its own, the way the first commission built them.
+
+- Its data in its own file in `src/content/`, its rules in its own module in `src/rules/`, hooked in through
+  `src/rules/hooks.js`, events and generator wrappers rather than edits scattered through other files.
+- A switch in `s.off` (listed in the Tinker panel), so it can be turned off to compare, and `NO=<switch>` in the
+  playtest. If a piece only acts when a world is made, `newGame(seed, off)` takes the switches.
+- A block in `tests/pieces.test.js` checking its own promises, and its menus in the generated `ALMANAC.md`
+  (`node tools/almanac.js`).
+- An entry in `JOURNAL.md`, newest first: what it is, what it changes in play, its commits and switch, choices made,
+  and a verdict.
+- New state fields optional where possible, so old saves load without a migration.
 
 ## Code rules (see ARCHITECTURE.md for the why)
 

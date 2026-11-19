@@ -366,7 +366,7 @@ function buildStatic() {
     land = T.land,
     pal = land.biomes.map((b) => ({
       cols: b.colors.map((c) => new THREE.Color(c)),
-      lush: new THREE.Color(b.id === 'taiga' ? 0x5d7a78 : 0x5f8a45),
+      lush: new THREE.Color(b.lush !== undefined ? b.lush : b.id === 'taiga' ? 0x5d7a78 : 0x5f8a45),
     })),
     paved = new THREE.Color(0x8c8a86),
     c = new THREE.Color(),
@@ -477,7 +477,7 @@ function buildStatic() {
         x0 = x * TS - HALF,
         z0 = y * TS - HALF,
         far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8;
-      for (let n = Math.floor((bio.id === 'salt' ? 0.62 : 0.35) + r()); n > 0; n--) {
+      for (let n = Math.floor((bio.rocky !== undefined ? bio.rocky : bio.id === 'salt' ? 0.62 : 0.35) + r()); n > 0; n--) {
         const px = x0 + r() * TS,
           pz = z0 + r() * TS,
           s = 0.3 + r() * r() * (1.5 + T.level(px, pz) * 1.6),
