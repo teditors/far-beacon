@@ -2404,6 +2404,41 @@
     }
   };
 
+  // src/content/relics.js
+  var relics_default = {
+    relicNatures: {
+      Ember: {
+        text: "It is warm in your hands: the cold bites half as hard while you carry it.",
+        mods: [{ stat: "cold", op: "mul", value: 0.5 }]
+      },
+      Lens: {
+        text: "Through it the dark is clear and the land is near: you see at night, and further when you survey.",
+        mods: [
+          { stat: "nightSight", op: "add", value: 1 },
+          { stat: "surveyRadius", op: "add", value: 3 }
+        ]
+      },
+      Horn: {
+        text: "It sounds when you strike, and whatever you fight falters: to hit +2, damage +1.",
+        mods: [
+          { stat: "hit", op: "add", value: 2 },
+          { stat: "dmg", op: "add", value: 1 }
+        ]
+      },
+      Crown: {
+        text: "It is heavy, and it guards whoever bears it: armor +2, but every step costs more.",
+        mods: [
+          { stat: "ac", op: "add", value: 2 },
+          { stat: "staminaCost", op: "mul", value: 1.2 }
+        ]
+      },
+      Bell: {
+        text: "Its faint note keeps creatures from hunting you while you carry it.",
+        mods: [{ stat: "quiet", op: "add", value: 1 }]
+      }
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -2425,7 +2460,8 @@
     errands_default,
     weather_default,
     biomeparts_default,
-    floors_default
+    floors_default,
+    relics_default
   );
 
   // src/rules/core.js
@@ -6022,6 +6058,25 @@
     say(s, k.text, k.guards ? "bad" : "good");
   });
   SWITCHES.push(["floors", "Odd levels below"]);
+
+  // src/rules/relics.js
+  var natureOf = (s) => s.quest && !s.off.relics ? C.relicNatures[s.quest.relic.split(" ")[0]] || null : null;
+  var carrying = (s) => s.player.items.some((it) => it.base === "relic");
+  SOURCES.push({
+    id: "relics",
+    fn(s, out) {
+      const n = natureOf(s);
+      if (n && carrying(s)) for (const m of n.mods) out.push(m);
+    }
+  });
+  on("did", (s, d) => {
+    const n = natureOf(s);
+    if (d.id !== "takeItem" || !n || !carrying(s) || s.quest.natureTold) return;
+    s.quest.natureTold = true;
+    say(s, "The " + s.quest.relic + " is not only a thing to carry. " + n.text, "good");
+  });
+  SWITCHES.push(["relics", "The relic's nature"]);
+  NOTES.push((s) => natureOf(s) && s.quest.natureTold ? [{ label: "The " + s.quest.relic, text: natureOf(s).text }] : []);
 
   // src/rules/index.js
   var api = {

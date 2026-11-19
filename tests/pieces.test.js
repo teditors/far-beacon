@@ -226,5 +226,14 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
     if (kind === 'sleepers') need(s.creatures.every((c) => c.cool > 1e6 || c.warden), 'sleepers: a guardian is awake');
   }
 }
+// The relic's nature: acts only while carried, and is told on pickup.
+{
+  const s = findSeed((s) => s.quest.relic.startsWith('Ember'));
+  const before = R.stat(s, 'cold', 1);
+  const relic = { id: 997, base: 'relic', known: true, carried: 0, label: s.quest.relic };
+  R.depotHere(s, true).items.push(relic);
+  need(R.takeItem(s, 997) && R.stat(s, 'cold', 1) < before, 'carrying the Ember does not warm you');
+  need(s.quest.natureTold, 'the relic\'s nature was not told');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures');

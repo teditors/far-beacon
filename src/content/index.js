@@ -19,6 +19,7 @@ import errands from './errands.js';
 import weather from './weather.js';
 import biomeparts from './biomeparts.js';
 import floors from './floors.js';
+import relics from './relics.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -41,4 +42,5 @@ export const CONTENT = Object.assign(
   weather,
   biomeparts,
   floors,
+  relics,
 );

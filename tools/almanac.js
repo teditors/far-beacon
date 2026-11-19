@@ -482,6 +482,12 @@ section('Odd levels below', ['floorKinds'], () => {
   table(['Level', 'Text', 'Numbers', 'Modifiers'], [...X.list, X.rare].map((k) => [k.id + (k === X.rare ? ' (rare)' : ''), k.text, fields(k, ['id', 'text', 'mods']), mods(k.mods)]));
 });
 
+section('The relic\'s nature', ['relicNatures'], () => {
+  line('What the relic does while you carry it, by the first word of its name. Told when you first pick it up.');
+  line();
+  table(['Relic', 'Text', 'Modifiers'], Object.keys(C.relicNatures).map((k) => [k, C.relicNatures[k].text, mods(C.relicNatures[k].mods)]));
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

@@ -3,6 +3,23 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 13: the relic's nature
+
+**What it is.** The relic now does something while you carry it, matching its name: an Ember is warm in your hands
+(cold bites half as hard), a Lens lets you see in the dark and further when you survey (so you can climb out of the
+locked place even if your lantern is dry), a Horn sounds when you strike, a Crown guards you but weighs on every step,
+a Bell keeps creatures from hunting you. Told when you first pick it up.
+
+**In play.** The walk home with the relic is different in each world, and the relic feels like a thing, not a token.
+Bot win rate, sets 5 / 1000 / 2000: 30, 24, 33 with it; 28, 24, 33 without (87 vs 85).
+
+**Commits.** "The relic's nature". Switch: `relics`.
+
+**Choices made without asking.** The nature follows the relic's first word, which the quest already rolls, so nothing
+new is rolled or stored, and every relic name has a nature (the content test checks).
+
+**Verdict: pearl.** Five lines of content, and it turns the most important object in the game into something.
+
 ## Piece 12: odd levels below
 
 **What it is.** A level of the locked place (any but the last) is now sometimes something other than guards, loot or

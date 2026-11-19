@@ -106,6 +106,7 @@ import { askErrand, claimErrand, errandInfo } from './errands.js';
 import './oddweather.js';
 import './biomegen.js';
 import './floors.js';
+import './relics.js';
 
 const api = {
   worldNotes,
