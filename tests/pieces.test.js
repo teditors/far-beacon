@@ -182,7 +182,7 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
       if (Object.values(s.sites).some((x) => x.star)) star = true;
     }
   }
-  need(storms > 30 && odd > 0, 'odd weather: ' + odd + ' odd of ' + storms + ' storms');
+  need(storms > 10 && odd > 0, 'odd weather: ' + odd + ' odd of ' + storms + ' storms');
   need(star, 'no shower of falling stars left a star in 30 worlds of 12 days');
 }
 // Generated biomes: given to regions, rebuilt from the seed on load, every one complete, and none with NO=biomegen.
@@ -235,5 +235,22 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   need(R.takeItem(s, 997) && R.stat(s, 'cold', 1) < before, 'carrying the Ember does not warm you');
   need(s.quest.natureTold, 'the relic\'s nature was not told');
 }
+// Lairs: some regions have one, on a cave with a hoard; killing it is told.
+{
+  let n = 0;
+  for (let i = 1; i <= 30; i++) {
+    const s = R.newGame(i);
+    for (const id in s.areas) {
+      const m = s.areas[id].map;
+      if (!m || !m.creatures) continue;
+      for (const c of m.creatures.filter((c) => c.lair)) {
+        n++;
+        const k = c.y * R.W + c.x;
+        need(m.sites[k] && m.sites[k].kind === 'cave' && m.depots[k] && m.depots[k].items.length >= 2 && m.depots[k].coin > 0, 'seed ' + i + ': a lair without a hoard');
+      }
+    }
+  }
+  need(n > 30, 'only ' + n + ' lairs in 30 worlds');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs');

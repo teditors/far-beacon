@@ -20,6 +20,7 @@ import weather from './weather.js';
 import biomeparts from './biomeparts.js';
 import floors from './floors.js';
 import relics from './relics.js';
+import lairs from './lairs.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -43,4 +44,5 @@ export const CONTENT = Object.assign(
   biomeparts,
   floors,
   relics,
+  lairs,
 );

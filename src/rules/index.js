@@ -107,6 +107,7 @@ import './oddweather.js';
 import './biomegen.js';
 import './floors.js';
 import './relics.js';
+import './lairs.js';
 
 const api = {
   worldNotes,

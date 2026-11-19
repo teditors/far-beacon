@@ -2439,6 +2439,15 @@
     }
   };
 
+  // src/content/lairs.js
+  var lairs_default = {
+    lairs: {
+      chance: 0.35,
+      names: ["Old", "Grey", "Lame", "One-Eyed", "Hollow", "Last", "Pale", "Great"],
+      hoard: { coin: [20, 40], items: 2 }
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -2461,7 +2470,8 @@
     weather_default,
     biomeparts_default,
     floors_default,
-    relics_default
+    relics_default,
+    lairs_default
   );
 
   // src/rules/core.js
@@ -6077,6 +6087,70 @@
   });
   SWITCHES.push(["relics", "The relic's nature"]);
   NOTES.push((s) => natureOf(s) && s.quest.natureTold ? [{ label: "The " + s.quest.relic, text: natureOf(s).text }] : []);
+
+  // src/rules/lairs.js
+  var L = () => C.lairs;
+  {
+    const region = GENERATORS.region;
+    GENERATORS.region = (s, rec) => {
+      const m = region(s, rec);
+      if (s.off.lairs || s.regionRares && s.regionRares[rec.id] === "empty") return m;
+      const r = stream(s.seed, "lair:" + rec.id), pick = (a) => a[Math.floor(r() * a.length)];
+      if (r() >= L().chance) return m;
+      const caves = Object.keys(m.sites).filter(
+        (k2) => m.sites[k2].kind === "cave" && !m.creatures.some((c2) => idx(c2.x, c2.y) === +k2)
+      );
+      if (!caves.length) return m;
+      const k = +pick(caves), f = pick(C.creature.forms), pre = C.creature.prefix[rec.biome] || ["Wild"], sp = {
+        name: pick(L().names) + " " + pick(pre) + " " + f.name,
+        form: f.id,
+        temper: "territorial",
+        rare: "elder",
+        met: false,
+        unique: true,
+        lair: rec.id
+      };
+      s.species.push(sp);
+      const c = makeCreature(
+        s,
+        400,
+        s.species.length - 1,
+        k % 36,
+        Math.floor(k / 36),
+        clamp(1 + sketchOf(s, rec.cx, rec.cy).danger, 2, 3)
+      );
+      c.lair = true;
+      m.creatures.push(c);
+      const H2 = L().hoard, dep = m.depots || (m.depots = {}), d = dep[k] = dep[k] || { water: 0, fuel: 0, items: [] };
+      d.coin = (d.coin || 0) + H2.coin[0] + Math.floor(r() * (H2.coin[1] - H2.coin[0] + 1));
+      for (let i = 0; i < H2.items; i++) {
+        const it = genItem(s, { relic: true, noConsumables: true });
+        it.known = true;
+        d.items.push(it);
+      }
+      m.sites[k].lair = true;
+      return m;
+    };
+  }
+  on("did", (s) => {
+    for (const c of s.creatures)
+      if (c.lair && c.seen && !c.toldLair) {
+        c.toldLair = true;
+        say(s, "That is the " + s.species[c.sp].name + ", and there is no other like it. It lies on a hoard in that cave.", "bad");
+      }
+    for (const sp of s.species)
+      if (sp.unique && sp.lair === s.area && sp.met && !sp.dead && !s.creatures.some((c) => c.lair && s.species[c.sp] === sp)) {
+        sp.dead = true;
+        say(s, "The " + sp.name + " is gone, and its hoard is yours: open Pack in its cave.", "good");
+      }
+  });
+  SWITCHES.push(["lairs", "Lairs"]);
+  NOTES.push(
+    (s) => s.species.filter((sp) => sp.unique && sp.met).map((sp) => ({
+      label: "The " + sp.name,
+      text: sp.dead ? "Dead. Its hoard was in its cave." : "The only one of its kind, lying on a hoard in a cave."
+    }))
+  );
 
   // src/rules/index.js
   var api = {

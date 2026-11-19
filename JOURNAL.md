@@ -3,6 +3,26 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 14: lairs
+
+**What it is.** About a third of the regions away from home hold a lair: a creature that is the only one of its kind
+("the One-Eyed Cinder Brute"), always an elder, tier 2 or 3, lying in a cave on a hoard of 20 to 40 coin and two good
+items. You are told what it is when you first see it, and when it is dead; the Journal lists the ones you have met.
+
+**In play.** Another reason to go out, and a fight you can choose to pick. Bot win rate over five seed sets
+(5 / 1000 / 2000 / 3000 / 4000): 17, 32, 25, 31, 29 with lairs; 30, 24, 33, 26, 28 without (134 vs 141). The bot
+never leaves home, so the difference is noise: building neighbours with lairs shifts the play dice (items in hoards
+are rolled from the play stream), which reshuffles every later roll.
+
+**Commits.** "Lairs". Switch: `lairs` (when a region is built).
+
+**Choices made without asking.**
+- A Silent region (piece 5) never gets a lair: the lair checks for it, and does nothing if that piece is absent.
+- Hoard items come from the play stream, like every other found item, rather than a named stream. A later cleanup
+  could give generation-time items their own stream so pieces stop shifting each other's dice.
+
+**Verdict: maybe.** Good with errands (piece 9) and the wide world; on its own it is a little hidden.
+
 ## Piece 13: the relic's nature
 
 **What it is.** The relic now does something while you carry it, matching its name: an Ember is warm in your hands

@@ -488,6 +488,21 @@ section('The relic\'s nature', ['relicNatures'], () => {
   table(['Relic', 'Text', 'Modifiers'], Object.keys(C.relicNatures).map((k) => [k, C.relicNatures[k].text, mods(C.relicNatures[k].mods)]));
 });
 
+section('Lairs', ['lairs'], () => {
+  const X = C.lairs;
+  line(
+    Math.round(X.chance * 100) +
+      '% of regions away from home have a lair: a creature that is the only one of its kind (always elder, tier 2 or 3, guards its ground) in a cave, on ' +
+      X.hoard.coin.join(' to ') +
+      ' coin and ' +
+      X.hoard.items +
+      ' good items. Named: ' +
+      X.names.join(', ') +
+      ', then a name of its biome and its form.',
+  );
+  line();
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {
