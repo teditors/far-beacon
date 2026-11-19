@@ -503,6 +503,11 @@ section('Lairs', ['lairs'], () => {
   line();
 });
 
+section('Far finds', ['farFinds'], () => {
+  line('For each region of distance from home, a search of a ruin, cave or cache has a ' + Math.round(C.farFinds.chance * 100) + '% chance of one more good item.');
+  line();
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

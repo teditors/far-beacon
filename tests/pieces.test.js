@@ -252,5 +252,16 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   }
   need(n > 30, 'only ' + n + ' lairs in 30 worlds');
 }
+// Far finds: searching away from home sometimes turns up more.
+{
+  let extra = 0;
+  for (let i = 1; i <= 40; i++) {
+    const s = R.newGame(i), id = Object.keys(s.areas).find((k) => s.areas[k].kind === 'region' && k !== 'overworld'), rec = s.areas[id];
+    R.switchRegion(s, rec.cx, rec.cy, { x: 18, y: 18 });
+    s.creatures = [];
+    for (const k in s.sites) if (['cave', 'cache'].includes(s.sites[k].kind)) { s.player.x = k % R.W; s.player.y = Math.floor(k / R.W); s.player.water = 6; s.player.stamina = 100; const n = s.log.length; R.search(s); if (s.log.slice(n).some((l) => /less picked over/.test(l.msg))) extra++; }
+  }
+  need(extra > 10, 'far finds turned up extra only ' + extra + ' times');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds');

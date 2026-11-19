@@ -108,6 +108,7 @@ import './biomegen.js';
 import './floors.js';
 import './relics.js';
 import './lairs.js';
+import './farfinds.js';
 
 const api = {
   worldNotes,

@@ -3,6 +3,22 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 15: far finds
+
+**What it is.** The further from home, the less picked-over the land: for each region of distance, a search of a
+ruin, cave or cache has a 45% chance of turning up one more good item, and the log says so ("Far from home, the old
+things are less picked over").
+
+**In play.** The commission's "item tiers that grow with distance from home", in its simplest form: a reward for
+travel that the player can feel. No change for the bot, which stays home (set 5: 17 / 150, as before).
+
+**Commits.** "Far finds". Switch: `farfinds`.
+
+**Choices made without asking.** Extra items rather than stronger affixes, because it needs no change to items.js and
+it is plain to see. Real tiers (greater affixes far away) would be the next step.
+
+**Verdict: maybe.** Simple and right in spirit; tiers would be better.
+
 ## Piece 14: lairs
 
 **What it is.** About a third of the regions away from home hold a lair: a creature that is the only one of its kind

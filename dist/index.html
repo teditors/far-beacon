@@ -2448,6 +2448,11 @@
     }
   };
 
+  // src/content/farfinds.js
+  var farfinds_default = {
+    farFinds: { chance: 0.45 }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -2471,7 +2476,8 @@
     biomeparts_default,
     floors_default,
     relics_default,
-    lairs_default
+    lairs_default,
+    farfinds_default
   );
 
   // src/rules/core.js
@@ -6151,6 +6157,22 @@
       text: sp.dead ? "Dead. Its hoard was in its cave." : "The only one of its kind, lying on a hoard in a cave."
     }))
   );
+
+  // src/rules/farfinds.js
+  on("did", (s, d) => {
+    if (d.id !== "search" || s.off.farfinds || !["ruin", "cave", "cache"].includes(d.site)) return;
+    const rec = outdoorRec(s);
+    if (rec.kind !== "region" || rec.cx === void 0) return;
+    const danger = sketchOf(s, rec.cx, rec.cy).danger, got = [];
+    for (let i = 0; i < danger; i++)
+      if (srand(s) < C.farFinds.chance) {
+        const it = genItem(s, { relic: true, noConsumables: true });
+        depotHere(s, true).items.push(it);
+        got.push(itemName(it));
+      }
+    if (got.length) say(s, "Far from home, the old things are less picked over. Also here: " + got.join(", ") + ".", "good");
+  });
+  SWITCHES.push(["farfinds", "Richer far country"]);
 
   // src/rules/index.js
   var api = {

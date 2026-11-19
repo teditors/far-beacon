@@ -21,6 +21,7 @@ import biomeparts from './biomeparts.js';
 import floors from './floors.js';
 import relics from './relics.js';
 import lairs from './lairs.js';
+import farfinds from './farfinds.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -45,4 +46,5 @@ export const CONTENT = Object.assign(
   floors,
   relics,
   lairs,
+  farfinds,
 );
