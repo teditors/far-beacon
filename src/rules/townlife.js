@@ -424,6 +424,27 @@ function useService(s, optId, arg) {
   }
   return true;
 }
+// Townsfolk wander the streets while you walk in town (never onto a door, a grave, the well or you).
+on('did', (s, d) => {
+  if (d.id !== 'move' || s.area !== 'town' || s.off.townlife) return;
+  for (const k of Object.keys(s.sites)) {
+    const st = s.sites[k];
+    if (st.kind !== 'folk' || srand(s) > 0.3) continue;
+    const x = k % W,
+      y = Math.floor(k / W),
+      [dx, dy] = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ][Math.floor(srand(s) * 4)],
+      nk = idx(x + dx, y + dy);
+    if (x + dx < 1 || y + dy < 1 || x + dx > W - 2 || y + dy > H - 2) continue;
+    if (s.terrain[nk] !== FLOOR || s.sites[nk] || (x + dx === s.player.x && y + dy === s.player.y)) continue;
+    s.sites[nk] = st;
+    delete s.sites[k];
+  }
+});
 // Standing on the temple's door also teaches you the god and marks its shrine.
 on('did', (s, d) => {
   if (d.id !== 'move' || s.off.townlife) return;

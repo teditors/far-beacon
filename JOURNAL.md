@@ -2,7 +2,7 @@
 
 ## Summary
 
-Eleven entries: Andrew's six asks first, then my own. Every check passes; the bot still wins.
+Twelve entries: Andrew's six asks first, then my own. Every check passes; the bot still wins.
 
 | # | Piece | Switch | Verdict |
 | --- | --- | --- | --- |
@@ -17,6 +17,7 @@ Eleven entries: Andrew's six asks first, then my own. Every check passes; the bo
 | C2.9 | Rare countries that change the land: Drowned, Dry, Burned | `regionrares` | maybe |
 | C2.10 | Frail classes set out with an extra waterskin and coin | `roster` | (balance) |
 | C2.11 | In a quarter of worlds the town is at home | `plot` | (balance) |
+| C2.12 | Townsfolk wander the streets | `townlife` | maybe |
 
 **Bot win rate, commission 2's switchable pieces on vs off** (`NO=townlife,roster,plot,hamlets,tiers`), sets 5 /
 1000 / 2000: on 9, 16, 9 (34 / 450, 8%) before C2.10 and C2.11, 18, 17, 13 (48 / 450, 11%) after; off 24, 35, 32 (91 / 450, 20%). Almost all of the difference is the plot
@@ -32,13 +33,18 @@ screen is now different every world and the new classes play differently in a fi
    shelter on the road, or a third waterskin for frail classes. Then measure again.
 2. More than one town: the hamlets (C2.6) show the way; full towns in other regions would need the town code to take
    a town id instead of the one 'town' area.
-3. People who move: townsfolk who walk the streets, travellers on the roads.
+3. People who move beyond the town: travellers on the roads (townsfolk now wander, C2.12).
 4. Named streams for items made at generation time, so pieces stop shifting each other's play dice.
 5. Class balance: frail classes (d6, a dagger) die far more; give them more water, coin or a better start.
 
 ---
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
+
+## C2.12: townsfolk wander
+
+Part of C2.2: as you walk about a town, its townsfolk wander the streets, a step at a time, never onto a door, a grave,
+the well or you. Their rumours go with them. No change for the bot. Switch: `townlife`.
 
 ## C2.11: sometimes the town is at home
 

@@ -295,6 +295,15 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
     }
   }
   need(Object.keys(sizes).length === 4, 'not every town size turned up: ' + Object.keys(sizes));
+  {
+    // townsfolk wander while you walk
+    const s = R.newGame(2), d = R.townDoor(s);
+    goPlace(s, { area: R.townArea(s), x: d.x, y: d.y }); s.creatures = [];
+    R.move(s, 0, -1);
+    const where = () => Object.keys(s.sites).filter((k) => s.sites[k].kind === 'folk').join(','), before = where();
+    for (let i = 0; i < 12; i++) { s.player.stamina = 100; R.move(s, 0, i % 2 ? 1 : -1); }
+    need(where() !== before, 'the townsfolk never moved');
+  }
   for (const k of ['heal', 'bless', 'learn', 'mapHome', 'mule']) need(used[k], 'no service ' + k + ' was ever used');
   need(!R.newGame(5, { townlife: true }).town.size, 'NO=townlife still rolled a town size');
 }
