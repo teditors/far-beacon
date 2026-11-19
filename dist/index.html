@@ -7568,7 +7568,7 @@
     ];
     for (const [a, b, known] of legs) {
       if (!a || !b) continue;
-      const pa = homePos(s, a.area, a.x, a.y), pb = homePos(s, b.area, b.x, b.y), n = Math.floor(Math.hypot(pb.x - pa.x, pb.y - pa.y) / 9);
+      const pa = homePos(s, a.area, a.x, a.y), pb = homePos(s, b.area, b.x, b.y), n = Math.floor(Math.hypot(pb.x - pa.x, pb.y - pa.y) / 7);
       for (let i = 1; i <= n; i++) {
         const gx = Math.round(pa.x + (pb.x - pa.x) * i / (n + 1)), gy = Math.round(pa.y + (pb.y - pa.y) * i / (n + 1));
         waterAt(s, gx, gy, known);

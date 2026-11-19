@@ -156,7 +156,7 @@ on('worldBorn', (s, d) => {
     const g = move('shrine', 2, 1, 1, v);
     if (g) s.goal = Object.assign(s.goal, g);
   }
-  // water on the way: sure springs every nine tiles or so along each leg of the journey. The ones on the way to the town are
+  // water on the way: sure springs every seven tiles or so along each leg of the journey. The ones on the way to the town are
   // on your map from the start; the elder marks the others (they are 'sure' springs, which the elder always marks).
   const at = (area, x, y) => ({ area, x, y }),
     maps = Object.keys(s.areas).flatMap((id) => (s.areas[id].map ? [[id, s.areas[id].map]] : [[id, s]])),
@@ -190,7 +190,7 @@ on('worldBorn', (s, d) => {
     if (!a || !b) continue;
     const pa = homePos(s, a.area, a.x, a.y),
       pb = homePos(s, b.area, b.x, b.y),
-      n = Math.floor(Math.hypot(pb.x - pa.x, pb.y - pa.y) / 9);
+      n = Math.floor(Math.hypot(pb.x - pa.x, pb.y - pa.y) / 7);
     for (let i = 1; i <= n; i++) {
       const gx = Math.round(pa.x + ((pb.x - pa.x) * i) / (n + 1)),
         gy = Math.round(pa.y + ((pb.y - pa.y) * i) / (n + 1));

@@ -2,6 +2,13 @@
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
 
+## C2.7: easier legs
+
+A balance change to C2.4: sure springs along the legs of the journey every seven tiles instead of nine. Bot win rate,
+sets 5 / 1000 / 2000: 11, 16, 10 (37 / 450, 8%), up from 17. I also tried putting every leg's springs on the map from
+the start instead of having the elder mark them: no better (34), so the elder still marks them. Still half the old
+win rate (72 without the plot); the next easing would be the town in the home region in some worlds.
+
 ## C2.6: hamlets
 
 **What it is.** About half the regions away from home have a hamlet: a few turf-roofed houses round a well, by a road
