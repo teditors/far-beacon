@@ -1204,7 +1204,8 @@
       { id: "flask", name: "Flask", wt: 0.3, w: 4, consumable: true, mystery: true },
       { id: "key", name: "Key", wt: 0.1, w: 0, plain: true, quest: "Opens the way down." },
       { id: "relic", name: "Relic", wt: 1, w: 0, plain: true, quest: "What this land is waiting for. Carry it where it belongs." },
-      { id: "campkit", name: "Camp Kit", wt: 5, w: 0, plain: true, mods: [] }
+      { id: "campkit", name: "Camp Kit", wt: 5, w: 0, plain: true, mods: [] },
+      { id: "parcel", name: "Parcel", wt: 1, w: 0, plain: true, quest: "Someone at the inn is waiting for this." }
     ],
     flasks: [
       { name: "Flask of Springwater", use: { water: 2 } },
@@ -1975,6 +1976,41 @@
     }
   };
 
+  // src/content/errands.js
+  var errands_default = {
+    errands: {
+      liarChance: 0.15,
+      itemChance: 0.5,
+      // an honest reward includes a good item this often
+      givers: ["a carter", "a widow", "a tinker", "a scribe", "a herder", "an old soldier", "a miller", "a ferryman"],
+      tells: [
+        "who will not meet your eye",
+        "whose purse looks very thin",
+        "who smiles a little too much",
+        "who keeps glancing at the door"
+      ],
+      kinds: [
+        {
+          id: "slay",
+          text: '"A {species} has been taking {victims} out in the {region}, to the {dir}. Kill it, and I will pay you {reward} coin."',
+          victims: ["goats", "travellers", "the post rider", "my dogs", "children, they say"],
+          reward: [16, 26]
+        },
+        {
+          id: "fetch",
+          text: '"My {thing} is in {asite} in the {region}, to the {dir}. Bring it back to me here and I will pay you {reward} coin."',
+          things: ["brother's satchel", "box of letters", "father's ledger", "seed-corn", "mother's ring", "bundle of deeds"],
+          reward: [14, 22]
+        },
+        {
+          id: "find",
+          text: '"Nobody has been to the {site} in the {region}, to the {dir}, in years. Go there, come back and tell me what you saw: {reward} coin."',
+          reward: [10, 18]
+        }
+      ]
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -1992,7 +2028,8 @@
     regionrares_default,
     specials_default,
     exotics_default,
-    towns_default
+    towns_default,
+    errands_default
   );
 
   // src/rules/core.js
@@ -4485,9 +4522,9 @@
     return { river, at, forward, road, roadAt };
   }
   function crossings(seed, world, cx, cy) {
-    const E = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S = edgeRoll(seed, "h:" + cx + ":" + cy), N2 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
+    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S = edgeRoll(seed, "h:" + cx + ":" + cy), N2 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
     return [
-      { side: "east", river: E.river, road: E.road, inflow: !E.forward, x: W - 1, y: E.at, x2: W - 1, y2: E.roadAt },
+      { side: "east", river: E2.river, road: E2.road, inflow: !E2.forward, x: W - 1, y: E2.at, x2: W - 1, y2: E2.roadAt },
       { side: "west", river: Wst.river, road: Wst.road, inflow: Wst.forward, x: 0, y: Wst.at, x2: 0, y2: Wst.roadAt },
       { side: "south", river: S.river, road: S.road, inflow: !S.forward, x: S.at, y: H - 1, x2: S.roadAt, y2: H - 1 },
       { side: "north", river: N2.river, road: N2.road, inflow: N2.forward, x: N2.at, y: 0, x2: N2.roadAt, y2: 0 }
@@ -5256,9 +5293,130 @@
     (s) => s.townCulture && s.townCulture.told && !s.off.towns ? [{ label: "The people of " + s.town.name, text: describe(s) }] : []
   );
 
+  // src/rules/errands.js
+  var E = () => C.errands;
+  var mapOf2 = (s, id) => id === s.area ? s : s.areas[id] && s.areas[id].map;
+  var atInn = (s) => s.area === "town" && s.sites[idx(s.player.x, s.player.y)] && s.sites[idx(s.player.x, s.player.y)].kind === "inn";
+  function errandInfo(s) {
+    if (s.off.errands) return { text: "Nobody here has work for you.", canAsk: false, canClaim: false };
+    const e = s.errand;
+    if (!e)
+      return { text: "Travellers here sometimes have work for someone going out into the country.", canAsk: true, canClaim: false };
+    const where = homePos(s, e.area, e.x, e.y), dir = dirFrom(worldPos(s), where.x, where.y);
+    return {
+      text: (e.done ? "Done: go back to the inn. " : "") + "Your errand for " + e.giver + ": " + e.text + (e.done ? "" : " (Now to the " + dir + ".)"),
+      canAsk: false,
+      canClaim: e.done
+    };
+  }
+  function askErrand(s) {
+    if (s.over || s.off.errands || s.errand || !atInn(s)) return false;
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], X = E(), home = s.world.home, near = [];
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const id = regionId(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows));
+        if (id !== HOME && mapOf2(s, id)) near.push(id);
+      }
+    if (!near.length) return false;
+    const kind = pick(X.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X.liarChance, giver = pick(X.givers) + (liar ? " " + pick(X.tells) : ""), reward = kind.reward[0] + Math.floor(srand(s) * (kind.reward[1] - kind.reward[0] + 1)), e = { kind: kind.id, area, liar, giver, reward, done: false };
+    let fill2 = { region: byId(C.biomes, rec.biome).name, reward };
+    if (kind.id === "slay") {
+      const live = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
+      if (!live.length) return false;
+      const c = pick(live);
+      Object.assign(e, { cid: c.id, x: c.x, y: c.y });
+      fill2.species = s.species[c.sp].name;
+      fill2.victims = pick(kind.victims);
+    } else {
+      const spots = Object.keys(m.sites).filter((k2) => ["ruin", "cave", "cache"].includes(m.sites[k2].kind));
+      if (!spots.length) return false;
+      const k = +pick(spots);
+      Object.assign(e, { x: k % W, y: Math.floor(k / W) });
+      fill2.site = m.sites[k].kind === "ruin" ? "ruin" : siteName(s, m.sites[k]);
+      fill2.asite = aOrAn(fill2.site);
+      if (kind.id === "fetch") {
+        fill2.thing = pick(kind.things);
+        const it = makeItem(s, "parcel", null, null, true);
+        it.label = fill2.thing.charAt(0).toUpperCase() + fill2.thing.slice(1);
+        it.errand = true;
+        (m.depots[k] = m.depots[k] || { water: 0, fuel: 0, items: [] }).items.push(it);
+      }
+    }
+    const where = homePos(s, area, e.x, e.y);
+    fill2.dir = dirFrom(worldPos(s), where.x, where.y);
+    e.text = kind.text.replace(/\{(\w+)\}/g, (_, k) => fill2[k]);
+    s.errand = e;
+    for (let j = -1; j <= 1; j++)
+      for (let i = -1; i <= 1; i++) {
+        const xx = e.x + i, yy = e.y + j;
+        if (xx >= 0 && yy >= 0 && xx < W && yy < H) m.seen[idx(xx, yy)] = 1;
+      }
+    if (m.sites[idx(e.x, e.y)]) m.sites[idx(e.x, e.y)].seen = true;
+    say(s, "At the long table, " + giver + " has work for you. " + e.text, "good");
+    return true;
+  }
+  function claimErrand(s) {
+    const e = s.errand;
+    if (s.over || !e || !e.done || !atInn(s)) return false;
+    if (e.kind === "fetch") {
+      const i = s.player.items.findIndex((it) => it.errand);
+      if (i < 0) return false;
+      s.player.items.splice(i, 1);
+    }
+    s.errand = null;
+    s.errandsDone = (s.errandsDone || 0) + 1;
+    if (e.liar) {
+      say(
+        s,
+        "You look for " + e.giver.split(" who")[0] + ' at the long table. Gone, days ago, without a word: there will be no pay. The innkeeper shrugs: "I could have told you."',
+        "bad"
+      );
+      return true;
+    }
+    s.player.coin += e.reward;
+    let got = e.reward + " coin";
+    if (srand(s) < E().itemChance) {
+      const it = genItem(s, { relic: true, noConsumables: true });
+      it.known = true;
+      s.player.items.push(it);
+      got += " and " + itemNameLower(it);
+    }
+    say(s, e.giver.charAt(0).toUpperCase() + e.giver.split(" who")[0].slice(1) + " pays you: " + got + ".", "good");
+    return true;
+  }
+  var itemNameLower = (it) => "a " + itemName(it);
+  on("did", (s) => {
+    const e = s.errand;
+    if (!e || e.done || s.off.errands) return;
+    const m = mapOf2(s, e.area);
+    if (!m) return;
+    if (e.kind === "slay" && !m.creatures.some((c) => c.id === e.cid)) {
+      e.done = true;
+      say(s, "That is the creature you were sent for. Back to the inn for your pay.", "good");
+    }
+    if (e.kind === "fetch" && s.player.items.some((it) => it.errand)) {
+      e.done = true;
+      say(s, "You have what you were sent for. Back to the inn with it.", "good");
+    }
+    if (e.kind === "find" && s.area === e.area && s.player.x === e.x && s.player.y === e.y) {
+      e.done = true;
+      say(s, "You have seen it. Back to the inn to tell them.", "good");
+    }
+  });
+  SWITCHES.push(["errands", "Errands at the inn"]);
+  NOTES.push((s) => {
+    const out = [];
+    if (s.errand && !s.off.errands) out.push({ label: "Your errand", text: errandInfo(s).text });
+    if (s.errandsDone) out.push({ label: "Errands done", text: s.errandsDone + "" });
+    return out;
+  });
+
   // src/rules/index.js
   var api = {
     worldNotes,
+    askErrand,
+    claimErrand,
+    errandInfo,
     specialOf,
     regionRareOf,
     regionName,
@@ -5433,7 +5591,9 @@
     "enterVault",
     "goDown",
     "goUp",
-    "offer"
+    "offer",
+    "askErrand",
+    "claimErrand"
   ];
   for (const k of ACTIONS) {
     const fn = api[k];
@@ -6837,6 +6997,19 @@
             "primary"
           ),
           el("span", { cls: "note", text: "Eight hours. Restores everything." })
+        ]),
+        el("h3", { text: "Work" }),
+        el("p", { text: R.errandInfo(V.S).text }),
+        el("div", { cls: "row" }, [
+          R.errandInfo(V.S).canAsk ? btn(
+            "Ask about work",
+            re(() => R.askErrand(V.S))
+          ) : null,
+          R.errandInfo(V.S).canClaim ? btn(
+            "Claim your pay",
+            re(() => R.claimErrand(V.S)),
+            "primary"
+          ) : null
         ])
       ]);
     else

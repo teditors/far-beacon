@@ -142,5 +142,31 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   need(R.AXES.every((a) => u.civKnown[a]), 'the people who never fell did not tell all they were');
   need(!R.newGame(5, { towns: true }).townCulture, 'NO=towns still rolled a culture');
 }
+// Errands: offered at the inn, done by playing, paid at the inn (or not, by a liar).
+{
+  let paid = 0, lied = 0, kinds = {};
+  for (let i = 1; i <= 40; i++) {
+    const s = R.newGame(i), d = R.townDoor(s);
+    s.player.x = d.x; s.player.y = d.y; s.creatures = [];
+    R.move(s, 0, -1);
+    const inn = R.findHere(s, 'inn');
+    s.player.x = inn.x; s.player.y = inn.y;
+    need(R.askErrand(s) && s.errand, 'seed ' + i + ': no errand offered');
+    if (!s.errand) continue;
+    const e = s.errand, m = s.areas[e.area].map;
+    kinds[e.kind] = 1;
+    // do it by hand: kill the creature, take the parcel, or stand on the spot
+    if (e.kind === 'slay') m.creatures = m.creatures.filter((c) => c.id !== e.cid);
+    if (e.kind === 'fetch') { const dep = m.depots[e.y * R.W + e.x]; need(dep && dep.items.some((x) => x.errand), 'seed ' + i + ': the parcel is not where it was said to be'); s.player.items.push(dep.items.find((x) => x.errand)); }
+    if (e.kind === 'find') { e.done = true; }
+    R.rest(s);
+    need(e.done, 'seed ' + i + ': a ' + e.kind + ' errand did not get done');
+    const coin = s.player.coin;
+    need(R.claimErrand(s), 'seed ' + i + ': could not claim');
+    if (s.player.coin > coin) paid++; else if (e.liar) lied++; else errs.push('seed ' + i + ': an honest errand did not pay');
+    need(!s.player.items.some((x) => x.errand), 'seed ' + i + ': the parcel stayed in the pack');
+  }
+  need(Object.keys(kinds).length === 3 && paid > 20, 'errands: kinds ' + Object.keys(kinds) + ', paid ' + paid + ', lied ' + lied);
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands');

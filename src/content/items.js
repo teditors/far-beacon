@@ -64,6 +64,7 @@ export default {
     { id: 'key', name: 'Key', wt: 0.1, w: 0, plain: true, quest: 'Opens the way down.' },
     { id: 'relic', name: 'Relic', wt: 1, w: 0, plain: true, quest: 'What this land is waiting for. Carry it where it belongs.' },
     { id: 'campkit', name: 'Camp Kit', wt: 5, w: 0, plain: true, mods: [] },
+    { id: 'parcel', name: 'Parcel', wt: 1, w: 0, plain: true, quest: 'Someone at the inn is waiting for this.' },
   ],
   flasks: [
     { name: 'Flask of Springwater', use: { water: 2 } },

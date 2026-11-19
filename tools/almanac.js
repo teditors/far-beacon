@@ -414,6 +414,20 @@ section('Town cultures', ['townCulture'], () => {
   table(['Rare', 'Text', 'Modifiers', 'Other'], X.rares.map(row));
 });
 
+section('Errands', ['errands'], () => {
+  const X = C.errands;
+  line(
+    'Work at the inn, one errand at a time, in a region next to home. ' +
+      Math.round(X.liarChance * 100) +
+      '% of those who ask are lying and will not pay; they always show a tell. An honest errand pays coin and, ' +
+      Math.round(X.itemChance * 100) +
+      '% of the time, a good item.',
+  );
+  line();
+  table(['Errand', 'Offer', 'Coin'], X.kinds.map((k) => [k.id, k.text, k.reward.join(' to ')]));
+  table(['Slot', 'Options'], [['Who asks', X.givers.join(', ')], ['Tells of a liar', X.tells.join('; ')], ['Victims', X.kinds[0].victims.join(', ')], ['Things to fetch', X.kinds[1].things.join(', ')]]);
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

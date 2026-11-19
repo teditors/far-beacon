@@ -3,6 +3,30 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 9: errands at the inn
+
+**What it is.** At the inn you can ask about work. Someone at the long table (a carter, a widow, an old soldier...)
+sends you into one of the regions next to home: kill a named species that has been taking their goats, fetch their
+father's ledger from a ruin, or go and see a cave nobody has visited in years. The place is marked on that region's
+map, the direction is given, the Journal keeps it, and you are paid at the inn on your return: coin and, half the
+time, a good item. One asker in seven is lying and is gone when you come back; they always show a tell ("an old
+soldier who will not meet your eye", "a scribe whose purse looks very thin").
+
+**In play.** The first reason in the game to leave the home region on purpose, which is what rare regions, the far
+artifact and the wide world were waiting for. Bot win rate unchanged (the bot never asks).
+
+**Commits.** "Errands at the inn". Switch: `errands`.
+
+**Choices made without asking.**
+- One errand at a time, each a single step and a return; chains of steps and escorts are left for later.
+- The liar is honest about the work (the creature, the ledger and the cave are real), only not about the pay, so a
+  player who reads the tell can still choose to go for the item or the experience.
+- A new item base, `parcel` (never found by chance, cannot be sold), carries what you fetch.
+- Errands are rolled from the play stream when you ask, not at world creation.
+
+**Verdict: pearl.** Small, and it gives the wider world a purpose. Next: more kinds (deliver, escort, find out), chains,
+and errands that send you two regions out.
+
 ## Piece 8: town cultures
 
 **What it is.** The town's living people are now a trade and a custom. Trades: smiths (weapons and armor cheaper, and

@@ -102,9 +102,13 @@ import { regionRareOf, regionName } from './regionrares.js';
 import { specialOf } from './specials.js';
 import './exotics.js';
 import './towns.js';
+import { askErrand, claimErrand, errandInfo } from './errands.js';
 
 const api = {
   worldNotes,
+  askErrand,
+  claimErrand,
+  errandInfo,
   specialOf,
   regionRareOf,
   regionName,
@@ -280,6 +284,8 @@ const ACTIONS = [
   'goDown',
   'goUp',
   'offer',
+  'askErrand',
+  'claimErrand',
 ];
 for (const k of ACTIONS) {
   const fn = api[k];

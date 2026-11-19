@@ -406,6 +406,23 @@ function openTown(section) {
         ),
         el('span', { cls: 'note', text: 'Eight hours. Restores everything.' }),
       ]),
+      el('h3', { text: 'Work' }),
+      el('p', { text: R.errandInfo(V.S).text }),
+      el('div', { cls: 'row' }, [
+        R.errandInfo(V.S).canAsk
+          ? btn(
+              'Ask about work',
+              re(() => R.askErrand(V.S)),
+            )
+          : null,
+        R.errandInfo(V.S).canClaim
+          ? btn(
+              'Claim your pay',
+              re(() => R.claimErrand(V.S)),
+              'primary',
+            )
+          : null,
+      ]),
     ]);
   else
     openModal(t.merchant + "'s shop", [
