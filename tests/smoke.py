@@ -37,9 +37,11 @@ async def main():
         await pg.evaluate("()=>{const g=window.__g,S=g.S,d=Rules.townDoor(S);S.creatures.forEach(c=>{c.cool=999;if(Math.abs(c.x-d.x)+Math.abs(c.y-d.y)<8){c.x=1;c.y=1}});S.player.x=d.x;S.player.y=d.y;S.player.coin=60;S.player.stamina=100;g.refresh();const t=g.V.townAt;g.P.x=t.x+1.9;g.P.z=t.z+92;g.P.yaw=0;g.P.pitch=0.1;}")
         await pg.wait_for_timeout(400); await shot('3-town-outside')
         # the wall is solid: walking at it away from the gate gets nowhere
-        await pg.evaluate("()=>{const g=window.__g;g.P.x=g.V.townAt.x+30;}")
-        await pg.keyboard.down('w'); await pg.wait_for_timeout(2500); await pg.keyboard.up('w')
-        assert await pg.evaluate("()=>{const g=window.__g;return g.S.area==='overworld'&&g.P.z>g.V.townAt.z+70}"), 'walked through the town wall'
+        if await pg.evaluate("()=>!!window.__g.S.town.walled"):
+            # a walled town's wall is solid away from its gates
+            await pg.evaluate("()=>{const g=window.__g;g.P.x=g.V.townAt.x+30;}")
+            await pg.keyboard.down('w'); await pg.wait_for_timeout(2500); await pg.keyboard.up('w')
+            assert await pg.evaluate("()=>{const g=window.__g;return g.S.area==='overworld'&&g.P.z>g.V.townAt.z+70}"), 'walked through the town wall'
         await pg.evaluate("()=>{const g=window.__g,t=g.V.townAt;g.P.x=t.x+1.9;g.P.z=t.z+80;g.P.yaw=0;}")
         await pg.keyboard.down('w')
         for _ in range(80):

@@ -65,14 +65,19 @@ for (let seed = 1; seed <= 200; seed++) {
   // the town: walk in, find the elder, buy a lantern if needed, walk out
   // the wall keeps you out everywhere but at the gate: in from the tile south of it, walking north
   const door = R.townDoor(s);
+  // from the west: in if the town's west edge is open there, turned back by a wall if not, and out the same way
   go(s, s.town.x - 3, s.town.y);
-  if (R.move(s, 1, 0) || s.area !== 'overworld') trouble('walked through the town wall');
+  const westOpen = R.mapOf(s, 'town').terrain[18 * W] !== R.WALL;
+  if (!!R.move(s, 1, 0) !== westOpen || (s.area === 'town') !== westOpen) trouble('the west side of the town did not do what its edge says');
+  if (s.area === 'town') {
+    R.move(s, -1, 0);
+    if (s.area !== 'overworld' || s.player.x !== s.town.x - 3 || s.player.y !== s.town.y) trouble('did not come out where I went in');
+  }
   go(s, door.x, door.y);
   if (!R.move(s, 0, -1) || s.area !== 'town') trouble('could not walk in through the town gate');
   if (s.player.x !== R.TOWN_GATE.x || s.player.y !== R.TOWN_GATE.y) trouble('did not arrive in the gateway');
   const elder = R.findHere(s, 'elder'),
-    shop = R.findHere(s, 'shop'),
-    gate = R.findHere(s, 'exit');
+    shop = R.findHere(s, 'shop');
   let e = walkTo(s, elder.x, elder.y);
   if (e) trouble('town, to the elder: ' + e);
   R.talkElder(s);
@@ -86,8 +91,6 @@ for (let seed = 1; seed <= 200; seed++) {
     R.equip(s, l.id);
     s.player.fuel = 6;
   }
-  e = walkTo(s, gate.x, gate.y);
-  if (e) trouble('town, to the gate: ' + e);
   e = walkTo(s, R.TOWN_GATE.x, R.TOWN_GATE.y);
   if (e) trouble('town, to the gateway: ' + e);
   R.move(s, 0, 1);

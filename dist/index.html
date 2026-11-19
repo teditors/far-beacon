@@ -2666,6 +2666,21 @@
   var TOWN_GATE = { x: W / 2, y: H - 1 };
   var inTownBlock = (s, x, y) => s.area === HOME && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
   var townDoor = (s) => ({ x: s.town.x, y: s.town.y + TOWN_R + 1 });
+  var TOWN_SPAN = W / (2 * TOWN_R + 1);
+  function townEntry(s, px, py, ox2, oy2) {
+    const bx = ox2 - (s.town.x - TOWN_R), by = oy2 - (s.town.y - TOWN_R), mid = (b) => Math.min(W - 1, Math.floor((b + 0.5) * TOWN_SPAN));
+    if (px < s.town.x - TOWN_R) return { x: 0, y: mid(by) };
+    if (px > s.town.x + TOWN_R) return { x: W - 1, y: mid(by) };
+    if (py < s.town.y - TOWN_R) return { x: mid(bx), y: 0 };
+    return { x: mid(bx), y: H - 1 };
+  }
+  function townExit(s, tx, ty, dx, dy) {
+    const o = (t) => Math.min(2 * TOWN_R, Math.max(0, Math.floor(t / TOWN_SPAN))), x0 = s.town.x - TOWN_R, y0 = s.town.y - TOWN_R;
+    if (dx < 0) return { x: x0 - 1, y: y0 + o(ty) };
+    if (dx > 0) return { x: s.town.x + TOWN_R + 1, y: y0 + o(ty) };
+    if (dy < 0) return { x: x0 + o(tx), y: y0 - 1 };
+    return { x: x0 + o(tx), y: s.town.y + TOWN_R + 1 };
+  }
   function ensureTown(s) {
     if (!s.areas.town) s.areas.town = { id: "town", kind: "town", indoor: true, name: s.town.name };
     buildArea(s, s.areas.town);
@@ -2936,6 +2951,7 @@
     well: "well",
     beacon: "beacon",
     town: "town",
+    gate: "gate",
     exit: "way out",
     stairsDown: "stair down",
     stairsUp: "stair up",
@@ -4062,18 +4078,24 @@
     say(s, "The key turns. Cold air comes up the stair.", "good");
     return true;
   }
-  function enterTown(s) {
-    const d = townDoor(s), st = s.sites[idx(s.town.x, s.town.y)];
-    if (s.over || s.area !== HOME || s.player.x !== d.x || s.player.y !== d.y) return false;
-    enterArea(s, "town", { kind: "town", indoor: true, name: s.town.name }, TOWN_GATE);
+  function enterTown(s, ox2, oy2, at) {
+    const st = s.sites[idx(s.town.x, s.town.y)];
+    if (s.over || s.area !== HOME || !inTownBlock(s, ox2, oy2)) return false;
+    let p = townEntry(s, s.player.x, s.player.y, ox2, oy2);
+    if (at && (at.x === p.x || at.y === p.y) && at.x >= 0 && at.y >= 0 && at.x < W && at.y < H) p = { x: at.x, y: at.y };
+    if (mapOf(s, "town").terrain[idx(p.x, p.y)] === WALL) {
+      say(s, "The wall of " + s.town.name + ". " + (s.town.walled ? "Its gates are where the streets meet the wall." : ""));
+      return false;
+    }
+    enterArea(s, "town", { kind: "town", indoor: true, name: s.town.name }, p);
     if (!st.entered) {
       st.entered = true;
       gainXp(s, 20);
+      say(
+        s,
+        "You walk into " + s.town.name + "." + (s.quest.told ? "" : " The elder will be at the hall on the north side of the square.")
+      );
     }
-    say(
-      s,
-      "You pass the gate of " + s.town.name + "." + (s.quest.told ? "" : " The elder will be at the hall on the north side of the square.")
-    );
     return true;
   }
   var vaultLevelId = (n) => "vault" + n;
@@ -4107,14 +4129,14 @@
     say(s, "Level " + n + " of " + floors.length + (n === floors.length ? ". The air is older here." : "."));
     return true;
   }
-  function leaveTown(s) {
+  function leaveTown(s, dx, dy) {
     if (s.over || areaRec(s).kind !== "town") return false;
+    if (dx === void 0) dy = 1;
+    const o = townExit(s, s.player.x, s.player.y, dx || 0, dy || 0);
     leaveArea(s);
-    const d = townDoor(s);
-    s.player.x = d.x;
-    s.player.y = d.y;
-    s.lastGround = s.terrain[idx(d.x, d.y)];
-    say(s, "You leave " + s.town.name + " by the south gate.");
+    s.player.x = o.x;
+    s.player.y = o.y;
+    s.lastGround = s.terrain[idx(o.x, o.y)];
     return true;
   }
   function goUp(s) {
@@ -4149,7 +4171,7 @@
     }
     return { mins, cost: sta * s.tun.staminaScale * stat(s, "staminaCost", 1), base: s.tun.moveMin.plain };
   }
-  function move(s, dx, dy) {
+  function move(s, dx, dy, at) {
     if (s.over) return false;
     let nx = s.player.x + dx, ny = s.player.y + dy;
     const out = nx < 0 || ny < 0 || nx >= W || ny >= H, was = s.lastGround, leftCamp = atCamp(s);
@@ -4158,14 +4180,8 @@
       say(s, "You are carrying too much to move. Leave something here.", "bad");
       return false;
     }
-    if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) {
-      const d = townDoor(s);
-      if (s.player.x === d.x && s.player.y === d.y && dx === 0 && dy === -1) return enterTown(s);
-      say(s, "The wall of " + s.town.name + ". The gate is in the south side.");
-      return false;
-    }
-    if (out && areaRec(s).kind === "town")
-      return s.player.x === TOWN_GATE.x && s.player.y === TOWN_GATE.y && dx === 0 && dy === 1 ? leaveTown(s) : false;
+    if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) return enterTown(s, nx, ny, at);
+    if (out && areaRec(s).kind === "town") return leaveTown(s, dx, dy);
     let back = null;
     if (out) {
       const rec = areaRec(s);
@@ -4300,7 +4316,7 @@
         cave: "A cave: shelter from wind and weather.",
         ruin: "A ruin of " + (s.known.civ ? civOf(s).name : "some lost people") + ". " + trait(s, "age").sign + " " + trait(s, "doom").sign,
         cache: "Someone left a cache here under stones.",
-        town: "The town of " + s.town.name + ". Smoke, voices, a well. Enter it to talk and trade.",
+        town: "The town of " + s.town.name + ". Smoke, voices, a well. Walk in to talk and trade.",
         vault: "The " + s.quest.vault.name + ". A heavy door, and a stair going down behind it.",
         beacon: s.quest.dest === "beacon" ? "The beacon. Its fire is failing. It needs something it does not have." : "The beacon. Its fire is steady: whatever this land needs, it is not here.",
         shrine: "A shrine to " + godOf(s).name + ", raised by " + (s.known.civ ? civOf(s).name : "a lost people") + ".",
@@ -4751,8 +4767,7 @@
     if (s.char.cls === "cleric" && p.hp < p.hpMax && p.mana >= 3) a.push({ id: "mend", label: "Mend", hint: "heal, 3 mana" });
     if (!indoors(s)) a.push({ id: "survey", label: "Survey", hint: "30 min" });
     if (st) {
-      if (st.kind === "exit")
-        a.push({ id: "goUp", label: areaRec(s).kind === "town" ? "Leave " + s.town.name : "Climb out", hint: "back outside" });
+      if (st.kind === "exit" && areaRec(s).kind !== "town") a.push({ id: "goUp", label: "Climb out", hint: "back outside" });
       if (st.kind === "stairsUp") a.push({ id: "goUp", label: "Go up", hint: "level " + (areaRec(s).level - 1) });
       if (st.kind === "stairsDown")
         a.push({ id: "goDown", label: "Go down", hint: "level " + (areaRec(s).level + 1) + " of " + areaRec(s).levels });
@@ -4786,8 +4801,6 @@
       if (st.kind === "vault" && st.open)
         a.push({ id: "enterVault", label: "Go into the " + s.quest.vault.name, hint: st.floors.length + " levels, needs a light" });
     }
-    if (s.area === "overworld" && s.town && p.x === townDoor(s).x && p.y === townDoor(s).y)
-      a.push({ id: "enterTown", label: "Enter " + s.town.name, hint: "the gate is just north" });
     const g = groundHere(s);
     if (!st && g.drink) a.push({ id: "fill", label: "Fill from the " + g.name, hint: "15 min" });
     if (g.dig && !s.dug[here(s)]) a.push({ id: "dig", label: "Dig for water", hint: "1 h, -12 stamina" });
@@ -4834,15 +4847,16 @@
   var blank = (fill2) => new Array(W * H).fill(fill2);
   var inside = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1;
   GENERATORS.town = (s, rec) => {
-    const r = stream(s.seed, "area:town"), terrain = blank(FLOOR), sites = {}, c = 18;
-    for (let i = 0; i < W; i++)
-      for (const [x, y] of [
-        [i, 0],
-        [i, H - 1],
-        [0, i],
-        [W - 1, i]
-      ])
-        terrain[idx(x, y)] = WALL;
+    const r = stream(s.seed, "area:town"), rw = stream(s.seed, "town:walls"), terrain = blank(FLOOR), sites = {}, c = 18, walled = rw() < 0.25;
+    if (walled)
+      for (let i = 0; i < W; i++)
+        for (const [x, y] of [
+          [i, 0],
+          [i, H - 1],
+          [0, i],
+          [W - 1, i]
+        ])
+          terrain[idx(x, y)] = WALL;
     const block = (x0, y0, w, h) => {
       for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (inside(x, y)) terrain[idx(x, y)] = WALL;
     };
@@ -4865,10 +4879,22 @@
       block(x0, y0, w, h);
       n++;
     }
-    const gate = { x: c, y: H - 2 };
-    terrain[idx(c, H - 1)] = FLOOR;
-    sites[idx(gate.x, gate.y)] = { kind: "exit", seen: true };
-    rec.entry = { x: gate.x, y: gate.y - 1 };
+    if (walled) {
+      const sides = [
+        [c, H - 1],
+        [c, 0],
+        [0, c],
+        [W - 1, c]
+      ], n = 2 + Math.floor(rw() * 3);
+      for (let k = 0; k < n; k++) {
+        const [x, y] = sides[k];
+        terrain[idx(x, y)] = FLOOR;
+        sites[idx(x, y)] = { kind: "gate", seen: true };
+      }
+    }
+    rec.walled = walled;
+    s.town.walled = walled;
+    rec.entry = { x: c, y: H - 2 };
     return { terrain, sites, seen: blank(1) };
   };
   GENERATORS.vault = (s, rec) => {
@@ -6828,7 +6854,7 @@
     else if (st.kind === "shop")
       g.add(person(3104655), box(1.8, 0.9, 0.9, std(7031338), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(13214247), -0.4, 1.1, -1.1));
     else if (st.kind === "well") g.add(BUILD.well());
-    else if (st.kind === "exit" && inTown)
+    else if ((st.kind === "exit" || st.kind === "gate") && inTown)
       g.add(
         box(0.6, 5, 0.6, std(7037784), -ts / 2, 2.5, 0),
         box(0.6, 5, 0.6, std(7037784), ts / 2, 2.5, 0),
@@ -7297,18 +7323,28 @@
       else if (!blocked(P2.x, nz)) nx = P2.x;
       else return;
     }
-    if (!indoor && V.townAt) {
-      const t = V.townAt, h = R.W * TOWN_TS / 2 + 0.7, gx = t.x + (R.TOWN_GATE.x + 0.5) * TOWN_TS - R.W * TOWN_TS / 2, wall = (x, z) => Math.abs(x - t.x) < h && Math.abs(z - t.z) < h && !(Math.abs(x - gx) < TOWN_TS / 2 - 0.5 && z > t.z + h - 6);
-      if (wall(nx, nz)) {
+    let enterAt = null;
+    const townTile = (x, z) => {
+      if (indoor || !V.townAt || !V.S.areas.town) return null;
+      const h = R.W * TOWN_TS / 2, tx2 = Math.floor((x - V.townAt.x + h) / TOWN_TS), tz2 = Math.floor((z - V.townAt.z + h) / TOWN_TS);
+      return tx2 >= 0 && tz2 >= 0 && tx2 < R.W && tz2 < R.H ? { x: tx2, y: tz2 } : null;
+    };
+    {
+      const tm = !indoor && V.townAt ? R.mapOf(V.S, "town") : null, wall = (x, z) => {
+        const t = townTile(x, z);
+        return !!(t && tm && tm.terrain[t.y * R.W + t.x] === R.WALL);
+      };
+      if (tm && wall(nx, nz)) {
         if (!wall(nx, P2.z)) nz = P2.z;
         else if (!wall(P2.x, nz)) nx = P2.x;
         else return;
       }
+      enterAt = townTile(nx, nz);
     }
     const tx = tileOf(nx), tz = tileOf(nz);
     if (tx !== V.S.player.x || tz !== V.S.player.y) {
       if (now < V.blockedUntil) return;
-      const before = V.S.log.length, wasArea = V.S.area, ok = R.move(V.S, tx - V.S.player.x, tz - V.S.player.y);
+      const before = V.S.log.length, wasArea = V.S.area, ok = R.move(V.S, tx - V.S.player.x, tz - V.S.player.y, enterAt);
       if (!ok) {
         V.blockedUntil = now + 1500;
         render();

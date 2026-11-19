@@ -1,3 +1,29 @@
+# Commission 2
+
+Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
+
+## C2.1: open towns, walked into from any side, with no buttons
+
+**What it is.** The "Enter <town>" and "Leave <town>" buttons are gone. Three towns in four have no wall at all: walk
+into the town's block from any side and you are in its streets; walk off any edge and you are back outside, on the
+matching spot. One town in four is walled, with a gate wherever a main street meets the wall: always the south one,
+and one to three more. A walled town's wall (and any house on an open town's edge) is solid from outside: you slide
+along it.
+
+**In play.** The town is part of the land now, not a door. Bot win rate unchanged (8 / 40 in the check run).
+
+**Commits.** "Open towns". No switch: this changes something that already existed.
+
+**How it works.** The town's map still exactly fills its 5 x 5 outdoor block. `townEntry` and `townExit` (areas.js)
+map an outdoor tile and side to the matching edge tile of the town, and back. The view passes the exact town tile it
+is about to step onto (`move(s, dx, dy, at)`) so the picture and the rules agree, and its wall collision outdoors is
+now "is the town tile here a wall".
+
+**Choices made without asking.**
+- A walled town always has its south gate, so `townDoor` (the tile below it) still always leads in; the bot and the
+  tests use it.
+- Old saves keep their old walled town with one gate; you leave it by walking out through that gate. No migration.
+
 # Journal of commission/1
 
 ## Summary (end of the first session)

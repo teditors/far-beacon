@@ -164,18 +164,27 @@ function tick(dt, now) {
     else if (!blocked(P.x, nz)) nx = P.x;
     else return;
   }
-  // the town's wall from outside: solid all round, except the gateway in the middle of the south side
-  if (!indoor && V.townAt) {
-    const t = V.townAt,
-      h = (R.W * TOWN_TS) / 2 + 0.7,
-      gx = t.x + (R.TOWN_GATE.x + 0.5) * TOWN_TS - (R.W * TOWN_TS) / 2,
-      wall = (x, z) =>
-        Math.abs(x - t.x) < h && Math.abs(z - t.z) < h && !(Math.abs(x - gx) < TOWN_TS / 2 - 0.5 && z > t.z + h - 6);
-    if (wall(nx, nz)) {
+  // the town from outside: you walk straight in wherever its edge is open; its walls and the houses on its edge are solid
+  let enterAt = null;
+  const townTile = (x, z) => {
+    if (indoor || !V.townAt || !V.S.areas.town) return null;
+    const h = (R.W * TOWN_TS) / 2,
+      tx = Math.floor((x - V.townAt.x + h) / TOWN_TS),
+      tz = Math.floor((z - V.townAt.z + h) / TOWN_TS);
+    return tx >= 0 && tz >= 0 && tx < R.W && tz < R.H ? { x: tx, y: tz } : null;
+  };
+  {
+    const tm = !indoor && V.townAt ? R.mapOf(V.S, 'town') : null,
+      wall = (x, z) => {
+        const t = townTile(x, z);
+        return !!(t && tm && tm.terrain[t.y * R.W + t.x] === R.WALL);
+      };
+    if (tm && wall(nx, nz)) {
       if (!wall(nx, P.z)) nz = P.z;
       else if (!wall(P.x, nz)) nx = P.x;
       else return;
     }
+    enterAt = townTile(nx, nz);
   }
   const tx = tileOf(nx),
     tz = tileOf(nz);
@@ -183,7 +192,7 @@ function tick(dt, now) {
     if (now < V.blockedUntil) return;
     const before = V.S.log.length,
       wasArea = V.S.area,
-      ok = R.move(V.S, tx - V.S.player.x, tz - V.S.player.y);
+      ok = R.move(V.S, tx - V.S.player.x, tz - V.S.player.y, enterAt);
     if (!ok) {
       V.blockedUntil = now + 1500;
       render();

@@ -299,7 +299,7 @@ function interiorSite(st, ts, inTown) {
   else if (st.kind === 'shop')
     g.add(person(0x2f5f8f), box(1.8, 0.9, 0.9, std(0x6b4a2a), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(0xc9a227), -0.4, 1.1, -1.1));
   else if (st.kind === 'well') g.add(BUILD.well());
-  else if (st.kind === 'exit' && inTown)
+  else if ((st.kind === 'exit' || st.kind === 'gate') && inTown)
     g.add(
       box(0.6, 5, 0.6, std(0x6b6358), -ts / 2, 2.5, 0),
       box(0.6, 5, 0.6, std(0x6b6358), ts / 2, 2.5, 0),

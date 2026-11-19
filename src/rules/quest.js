@@ -2,7 +2,7 @@
 import { depotHere, restHour } from './actions.js';
 import { AXES, learn, traitText } from './civ.js';
 import { makeCreature, spOf, startCombat } from './combat.js';
-import { C, H, W, byId, clamp, clock, idx, say, srand } from './core.js';
+import { C, H, W, WALL, byId, clamp, clock, idx, say, srand } from './core.js';
 import { autoEquip, fitWater } from './equipment.js';
 import { genItem, isCursed, itemName, makeItem } from './items.js';
 import { dirFrom, dirTo, reveal, siteHere, sightRadius } from './map.js';
@@ -10,6 +10,10 @@ import {
   HOME,
   TOWN_GATE,
   townDoor,
+  townEntry,
+  townExit,
+  inTownBlock,
+  mapOf,
   allMaps,
   areaRec,
   enterArea,
@@ -384,22 +388,29 @@ function unlock(s) {
   return true;
 }
 /* Going in and out of places */
-function enterTown(s) {
-  const d = townDoor(s),
-    st = s.sites[idx(s.town.x, s.town.y)];
-  if (s.over || s.area !== HOME || s.player.x !== d.x || s.player.y !== d.y) return false;
-  enterArea(s, 'town', { kind: 'town', indoor: true, name: s.town.name }, TOWN_GATE);
+// Walking into the town's block at outdoor tile (ox, oy): you arrive on the facing edge of the town, or `at` if the view
+// gives the exact tile (it must be on that edge). A wall there turns you back.
+function enterTown(s, ox, oy, at) {
+  const st = s.sites[idx(s.town.x, s.town.y)];
+  if (s.over || s.area !== HOME || !inTownBlock(s, ox, oy)) return false;
+  let p = townEntry(s, s.player.x, s.player.y, ox, oy);
+  if (at && (at.x === p.x || at.y === p.y) && at.x >= 0 && at.y >= 0 && at.x < W && at.y < H) p = { x: at.x, y: at.y };
+  if (mapOf(s, 'town').terrain[idx(p.x, p.y)] === WALL) {
+    say(s, 'The wall of ' + s.town.name + '. ' + (s.town.walled ? 'Its gates are where the streets meet the wall.' : ''));
+    return false;
+  }
+  enterArea(s, 'town', { kind: 'town', indoor: true, name: s.town.name }, p);
   if (!st.entered) {
     st.entered = true;
     gainXp(s, 20);
+    say(
+      s,
+      'You walk into ' +
+        s.town.name +
+        '.' +
+        (s.quest.told ? '' : ' The elder will be at the hall on the north side of the square.'),
+    );
   }
-  say(
-    s,
-    'You pass the gate of ' +
-      s.town.name +
-      '.' +
-      (s.quest.told ? '' : ' The elder will be at the hall on the north side of the square.'),
-  );
   return true;
 }
 const vaultLevelId = (n) => 'vault' + n;
@@ -435,15 +446,15 @@ function goDown(s) {
   say(s, 'Level ' + n + ' of ' + floors.length + (n === floors.length ? '. The air is older here.' : '.'));
   return true;
 }
-// Out through the gate: always onto the tile south of it, whatever way the town was entered.
-function leaveTown(s) {
+// Off any edge of the town: onto the outdoor tile beside its block, at the matching place.
+function leaveTown(s, dx, dy) {
   if (s.over || areaRec(s).kind !== 'town') return false;
+  if (dx === undefined) dy = 1; // the old way out, from a gate site in a town made before towns were open
+  const o = townExit(s, s.player.x, s.player.y, dx || 0, dy || 0);
   leaveArea(s);
-  const d = townDoor(s);
-  s.player.x = d.x;
-  s.player.y = d.y;
-  s.lastGround = s.terrain[idx(d.x, d.y)];
-  say(s, 'You leave ' + s.town.name + ' by the south gate.');
+  s.player.x = o.x;
+  s.player.y = o.y;
+  s.lastGround = s.terrain[idx(o.x, o.y)];
   return true;
 }
 function goUp(s) {

@@ -51,7 +51,7 @@ function moveCost(s, x, y) {
   }
   return { mins, cost: sta * s.tun.staminaScale * stat(s, 'staminaCost', 1), base: s.tun.moveMin.plain };
 }
-function move(s, dx, dy) {
+function move(s, dx, dy, at) {
   if (s.over) return false;
   let nx = s.player.x + dx,
     ny = s.player.y + dy;
@@ -63,15 +63,10 @@ function move(s, dx, dy) {
     say(s, 'You are carrying too much to move. Leave something here.', 'bad');
     return false;
   }
-  // The town: in by the gate from the tile south of it, out the same way, and nowhere else through its wall.
-  if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) {
-    const d = townDoor(s);
-    if (s.player.x === d.x && s.player.y === d.y && dx === 0 && dy === -1) return enterTown(s);
-    say(s, 'The wall of ' + s.town.name + '. The gate is in the south side.');
-    return false;
-  }
-  if (out && areaRec(s).kind === 'town')
-    return s.player.x === TOWN_GATE.x && s.player.y === TOWN_GATE.y && dx === 0 && dy === 1 ? leaveTown(s) : false;
+  // The town: walk into its block from any side and you are in it, unless a wall stands there; walk off any edge of
+  // it and you are back outside. `at` is where the view says you arrive, so its picture and the rules agree.
+  if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) return enterTown(s, nx, ny, at);
+  if (out && areaRec(s).kind === 'town') return leaveTown(s, dx, dy);
   // Walking off the edge of a region brings you onto the facing edge of its neighbour; the world wraps around.
   // This is the one place a border is crossed, so that borders can be made seamless later.
   let back = null;
@@ -233,7 +228,7 @@ function arrive(s) {
         ' ' +
         trait(s, 'doom').sign,
       cache: 'Someone left a cache here under stones.',
-      town: 'The town of ' + s.town.name + '. Smoke, voices, a well. Enter it to talk and trade.',
+      town: 'The town of ' + s.town.name + '. Smoke, voices, a well. Walk in to talk and trade.',
       vault: 'The ' + s.quest.vault.name + '. A heavy door, and a stair going down behind it.',
       beacon:
         s.quest.dest === 'beacon'
@@ -711,8 +706,7 @@ function actions(s) {
   if (s.char.cls === 'cleric' && p.hp < p.hpMax && p.mana >= 3) a.push({ id: 'mend', label: 'Mend', hint: 'heal, 3 mana' });
   if (!indoors(s)) a.push({ id: 'survey', label: 'Survey', hint: '30 min' });
   if (st) {
-    if (st.kind === 'exit')
-      a.push({ id: 'goUp', label: areaRec(s).kind === 'town' ? 'Leave ' + s.town.name : 'Climb out', hint: 'back outside' });
+    if (st.kind === 'exit' && areaRec(s).kind !== 'town') a.push({ id: 'goUp', label: 'Climb out', hint: 'back outside' });
     if (st.kind === 'stairsUp') a.push({ id: 'goUp', label: 'Go up', hint: 'level ' + (areaRec(s).level - 1) });
     if (st.kind === 'stairsDown')
       a.push({ id: 'goDown', label: 'Go down', hint: 'level ' + (areaRec(s).level + 1) + ' of ' + areaRec(s).levels });
@@ -759,8 +753,6 @@ function actions(s) {
     if (st.kind === 'vault' && st.open)
       a.push({ id: 'enterVault', label: 'Go into the ' + s.quest.vault.name, hint: st.floors.length + ' levels, needs a light' });
   }
-  if (s.area === 'overworld' && s.town && p.x === townDoor(s).x && p.y === townDoor(s).y)
-    a.push({ id: 'enterTown', label: 'Enter ' + s.town.name, hint: 'the gate is just north' });
   const g = groundHere(s);
   if (!st && g.drink) a.push({ id: 'fill', label: 'Fill from the ' + g.name, hint: '15 min' });
   if (g.dig && !s.dug[here(s)]) a.push({ id: 'dig', label: 'Dig for water', hint: '1 h, -12 stamina' });

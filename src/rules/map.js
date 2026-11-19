@@ -54,6 +54,7 @@ const SITE_NAME = {
   well: 'well',
   beacon: 'beacon',
   town: 'town',
+  gate: 'gate',
   exit: 'way out',
   stairsDown: 'stair down',
   stairsUp: 'stair up',

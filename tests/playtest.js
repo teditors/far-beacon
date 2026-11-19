@@ -52,9 +52,9 @@ function bfsStep(s,tx,ty){ const prev=new Array(W*W).fill(-1),start=s.player.y*W
   while(q.length&&prev[goal]<0){ const i=q.shift(); for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const x=i%W+dx,y=Math.floor(i/W)+dy,j=y*W+x; if(R.passable(s,x,y)&&prev[j]<0){prev[j]=i;q.push(j);} } }
   if(prev[goal]<0) return false; let j=goal; while(prev[j]!==start&&j!==start) j=prev[j]; if(j===start) return true; return R.move(s,j%W-s.player.x,Math.floor(j/W)-s.player.y); }
 function interior(s,stats){ const p=s.player, rec=R.areaRec(s), at=(k)=>{const f=R.findHere(s,k); return f;}, onIt=(f)=>f&&f.x===p.x&&f.y===p.y;
-  if(rec.kind==='town'){ let t=!s.quest.told?at('elder'):!stats.shopped?at('shop'):(p.hp<p.hpMax*0.7&&p.coin>=5&&!stats.rested)?at('inn'):at('exit');
+  if(rec.kind==='town'){ let t=!s.quest.told?at('elder'):!stats.shopped?at('shop'):(p.hp<p.hpMax*0.7&&p.coin>=5&&!stats.rested)?at('inn'):{x:18,y:R.H-1,st:{kind:'out'}}; // out by the south edge, where the road comes in
     if(p.water<R.waterCap(s)*0.95&&!stats.drank){ t=at('well'); if(onIt(t)){ R.fill(s); stats.drank=true; return; } }
-    if(onIt(t)&&t.st.kind==='exit'){ R.goUp(s); return; } if(!onIt(t)) { if(!bfsStep(s,t.x,t.y)) R.rest(s); } return; }
+    if(onIt(t)&&t.st.kind==='out'){ R.move(s,0,1); return; } if(!onIt(t)) { if(!bfsStep(s,t.x,t.y)) R.rest(s); } return; }
   // the locked place
   if(!R.stat(s,'nightSight',0)&&!R.hasItem(s,'relic')){ stats.darkness=(stats.darkness||0)+1; }
   let relicAt=null; for(const k in s.depots) if(s.depots[k].items.some(i=>i.base==='relic')) relicAt={x:k%W,y:Math.floor(k/W)};
