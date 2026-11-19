@@ -548,6 +548,11 @@ section('Hamlets', ['hamlets'], () => {
   table(['Goods', 'Price'], X.goods.map((g) => [g.base, g.price]));
 });
 
+section('Tiers by distance', ['tiers'], () => {
+  line('An item with affixes found in a region away from home is finer: tier 1 + the distance of that region from home (+1 on the deepest level of the locked place), at most ' + C.tiers.max + '. A Fine (2) or Superb (3) item\'s affixes, curses included, do ' + C.tiers.step * 100 + '% more per tier above the first. Its fineness shows even before it is studied, and adds 8 coin of value per tier.');
+  line();
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

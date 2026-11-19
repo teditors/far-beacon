@@ -12,7 +12,9 @@ const SKETCHERS = [];
 const ACTIONS = [];
 // TALK: { info(s), use(s, option, arg) } for people a piece puts in the world; the first whose info(s) answers speaks.
 const TALK = [];
+// ITEM_HOOKS: functions (s, item, options) that may finish an item genItem has just made.
+const ITEM_HOOKS = [];
 const LOADERS = [];
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
-export { NOTES, SWITCHES, SKETCHERS, LOADERS, ACTIONS, TALK, worldNotes };
+export { NOTES, SWITCHES, SKETCHERS, LOADERS, ACTIONS, TALK, ITEM_HOOKS, worldNotes };

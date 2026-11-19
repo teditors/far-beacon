@@ -3023,6 +3023,9 @@
     }
   };
 
+  // src/content/tiers.js
+  var tiers_default = { tiers: { max: 3, names: { 2: "Fine", 3: "Superb" }, step: 0.5 } };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -3050,7 +3053,8 @@
     farfinds_default,
     townlife_default,
     roster_default,
-    hamlets_default
+    hamlets_default,
+    tiers_default
   );
 
   // src/rules/core.js
@@ -3368,6 +3372,16 @@
   }
   var campHere = (s) => s.camp && s.camp.area === s.area ? s.camp.i : null;
 
+  // src/rules/hooks.js
+  var NOTES = [];
+  var SKETCHERS = [];
+  var ACTIONS = [];
+  var TALK = [];
+  var ITEM_HOOKS = [];
+  var LOADERS = [];
+  var SWITCHES = [];
+  var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
+
   // src/rules/items.js
   function makeItem(s, baseId, pre, suf, known) {
     const b = byId(C.bases, baseId);
@@ -3400,22 +3414,27 @@
       it.mark = s.civ.affinity;
       it.markName = s.civ.name;
     }
+    for (const f of ITEM_HOOKS) f(s, it, o);
     return it;
   }
   function itemName(it) {
     const b = byId(C.bases, it.base);
     if (it.label) return it.label;
     if (it.artName) return it.artName;
-    if (!it.known) return b.name + " (unstudied)";
+    if (!it.known) return (it.tier >= 3 ? "Superb " : it.tier === 2 ? "Fine " : "") + b.name + " (unstudied)";
     if (b.mystery) return C.flasks[it.effect].name;
     const p = it.pre ? byId(C.affixes, it.pre).name + " " : "", f = it.suf ? " " + byId(C.affixes, it.suf).name : "";
-    const mk = it.mark ? it.markName + " " : "";
-    return p || f || mk ? mk + p + b.name + f : b.plain ? b.name : "Plain " + b.name;
+    const mk = it.mark ? it.markName + " " : "", tq = it.tier >= 3 ? "Superb " : it.tier === 2 ? "Fine " : "";
+    return p || f || mk ? tq + mk + p + b.name + f : b.plain ? b.name : "Plain " + b.name;
   }
   function itemAffixes(it) {
     const a = [it.pre, it.suf].filter(Boolean).map((id) => byId(C.affixes, id));
     if (it.mark) a.push(byId(C.civ.affinity, it.mark));
-    return a;
+    if (!it.tier || it.tier < 2) return a;
+    const k = 1 + 0.5 * (it.tier - 1), up = (m) => Object.assign({}, m, {
+      value: m.op === "mul" ? 1 + (m.value - 1) * k : m.op === "add" ? Math.round(m.value * k * 10) / 10 : m.value
+    });
+    return a.map((x) => Object.assign({}, x, { mods: x.mods.map(up) }));
   }
   function itemWeight(s, it) {
     let w = byId(C.bases, it.base).wt;
@@ -3762,15 +3781,6 @@
     for (let i = 0; i < n; i++) t += 1 + Math.floor(srand(s) * sides);
     return t;
   }
-
-  // src/rules/hooks.js
-  var NOTES = [];
-  var SKETCHERS = [];
-  var ACTIONS = [];
-  var TALK = [];
-  var LOADERS = [];
-  var SWITCHES = [];
-  var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 
   // src/rules/exotics.js
   if (!C.races.some((r) => r.exotic)) C.races.push(...C.exoticRaces);
@@ -4392,6 +4402,7 @@
     for (const id of [it.pre, it.suf]) if (id) v += byId(C.affixes, id).cursed ? -4 : 8;
     if (it.mark) v += 6;
     if (it.art && C.artifacts) v += C.artifacts.value;
+    if (it.tier > 1) v += 8 * (it.tier - 1);
     return Math.max(1, v);
   }
   var townNum = (s, k) => stat(s, "town." + k, C.town[k]);
@@ -7430,6 +7441,14 @@
     return known.length ? [{ label: "Hamlets you have found", text: known.join(", ") + "." }] : [];
   });
 
+  // src/rules/tiers.js
+  ITEM_HOOKS.push((s, it) => {
+    if (s.off.tiers || !it.pre && !it.suf && !it.mark || !s.player) return;
+    const rec = outdoorRec(s), danger = rec && rec.cx !== void 0 ? sketchOf(s, rec.cx, rec.cy).danger : 0, deep = areaRec(s).kind === "vault" && areaRec(s).level === areaRec(s).levels ? 1 : 0, t = Math.min(C.tiers.max, 1 + danger + deep);
+    if (t > 1) it.tier = t;
+  });
+  SWITCHES.push(["tiers", "Finer things far from home"]);
+
   // src/rules/plot.js
   function neighbours(s) {
     const h = s.world.home, out = [];
@@ -7636,6 +7655,8 @@
       s.player.y = y;
     },
     worldNotes,
+    genItem,
+    itemAffixes,
     localPos,
     townArea,
     keyRuin,

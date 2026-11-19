@@ -77,6 +77,7 @@ function itemValue(it) {
   for (const id of [it.pre, it.suf]) if (id) v += byId(C.affixes, id).cursed ? -4 : 8;
   if (it.mark) v += 6;
   if (it.art && C.artifacts) v += C.artifacts.value;
+  if (it.tier > 1) v += 8 * (it.tier - 1);
   return Math.max(1, v);
 }
 // The town's prices go through the modifier stack, as stats named town.<number> (a town's culture can change them).

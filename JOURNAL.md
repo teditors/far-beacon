@@ -2,6 +2,28 @@
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
 
+## C2.8: finer things far from home
+
+**What it is.** An item with affixes (or a lost people's mark) found away from home is finer: its tier is 1 plus the
+distance of the region from home, plus one on the deepest level of the locked place, at most 3. A Fine item's affixes
+do half again as much, a Superb item's twice as much, curses included ("Superb Keen Sword": to hit +2; "Fine
+Threadbare Cloak": the cold bites even harder). The fineness shows in the name even before the item is studied, and
+it is worth more in town.
+
+**In play.** Now that the story crosses the world (C2.4), the far country pays for the risk. Bot win rate, sets 5 /
+1000 / 2000: 9, 16, 10 (35; 37 before: no change).
+
+**Commits.** "Finer things far from home". Switch: `tiers` (when an item is found).
+
+**Shared brick.** `ITEM_HOOKS` in hooks.js: a piece may finish any item `genItem` makes. `itemAffixes` scales a finer
+item's modifiers, so everything that reads affixes (stats, descriptions) sees the scaled numbers.
+
+**Choices made without asking.** Tiers scale the existing affixes rather than adding new "greater" affixes: the
+menu stays one list, and the Almanac needs only a rule. This is the commission-1 idea "item tiers by distance",
+alongside far finds (C1 piece 15), which gives more items far away.
+
+**Verdict: pearl.**
+
 ## C2.7: easier legs
 
 A balance change to C2.4: sure springs along the legs of the journey every seven tiles instead of nine. Bot win rate,

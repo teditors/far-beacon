@@ -371,5 +371,22 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   }
   need(n > 20 && used, 'only ' + n + ' hamlets in 20 worlds');
 }
+// Tiers: finds away from home are finer, and a finer affix does more.
+{
+  const s = R.newGame(3), id = Object.keys(s.areas).find((k) => s.areas[k].kind === 'region' && k !== 'overworld');
+  goPlace(s, { area: id, x: 18, y: 18 });
+  let fine = 0;
+  for (let i = 0; i < 40; i++) {
+    const it = R.genItem(s, { relic: true, noConsumables: true });
+    if (it.tier === 2) fine++;
+  }
+  need(fine > 20, 'only ' + fine + ' of 40 finds a region away were fine');
+  const a = { id: 1, base: 'sword', pre: 'keen', known: true }, b = Object.assign({}, a, { tier: 3 });
+  need(R.itemAffixes(b)[0].mods[0].value === 2 && R.itemAffixes(a)[0].mods[0].value === 1, 'a superb affix does not do twice as much');
+  need(/^Superb /.test(R.itemName(b)), 'a superb item is not named so');
+  const h = R.newGame(3, { tiers: true });
+  goPlace(h, { area: id, x: 18, y: 18 });
+  need(!R.genItem(h, { relic: true, noConsumables: true }).tier, 'NO=tiers still made a fine item');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers');

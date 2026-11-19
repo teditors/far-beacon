@@ -42,7 +42,7 @@ import { attack, firebolt, flee, foe, formOf, identify, mend, power, smite, spOf
 import { C, FLOOR, H, TERR, VERSION, W, WALL, biomeOf, byId, clock, emit, godOf, on, siteHereKind, stormOf } from './core.js';
 import { aOrAn } from './core.js';
 import { active, equip, slotOf, unequip } from './equipment.js';
-import { describeItem, isCursed, itemName, itemWeight, weight } from './items.js';
+import { describeItem, genItem, isCursed, itemAffixes, itemName, itemWeight, weight } from './items.js';
 import { atCamp, bearing, groundHere, inShelter, passable, reveal, siteHere, siteName, terrainInfo } from './map.js';
 import {
   areaRec,
@@ -114,6 +114,7 @@ import './farfinds.js';
 import { serviceInfo, useService } from './townlife.js';
 import { classMove } from './roster.js';
 import './hamlets.js';
+import './tiers.js';
 import './plot.js'; // last: it moves quest places that earlier pieces may have changed
 
 const api = {
@@ -125,6 +126,8 @@ const api = {
     s.player.y = y;
   },
   worldNotes,
+  genItem,
+  itemAffixes,
   localPos,
   townArea,
   keyRuin,
