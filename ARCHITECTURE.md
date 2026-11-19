@@ -93,6 +93,15 @@ first time the player arrives.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
 - `inOverworld(s)` means "outdoors, in any region".
 
+## Plugging a piece in
+
+A self-contained piece (the year, for example) lives in its own module and plugs itself in without editing shared
+lines: it pushes a stat source onto `SOURCES` (stats.js), a system onto `SYSTEMS`, lines for the Journal onto `NOTES`
+and a Tinker switch onto `SWITCHES` (hooks.js), and listens for `'worldBorn'`, emitted at the end of `newGame`. Its
+content goes in its own file in `src/content/` and gets a section in `tools/almanac.js`. `newGame(seed, off)` takes
+switches that apply while the world is made, so a piece can be compared against the game without it
+(`NO=year node tests/playtest.js 150`). New state fields are optional where possible, so old saves need no migration.
+
 ## State
 
 The whole game is one plain object `s` (see `newGame` in worldgen.js). It is saved as JSON, so it

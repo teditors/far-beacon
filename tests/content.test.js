@@ -39,6 +39,8 @@ for (const b of C.bases) (b.mods || []).forEach((m) => mods.push(['base ' + b.id
 for (const a of C.affixes) a.mods.forEach((m) => mods.push(['affix ' + a.id, m]));
 for (const x of [...C.races, ...C.classes, ...C.gods, ...C.civ.affinity]) (x.mods || []).forEach((m) => mods.push([x.id, m]));
 for (const b of C.biomes) for (const k of ['forest', 'river', 'special', 'day', 'night', 'storm']) (b[k].mods || []).forEach((m) => mods.push(['biome ' + b.id + '.' + k, m]));
+for (const y of [...C.year.common, ...C.year.rare]) (y.mods || []).forEach((m) => mods.push(['year ' + y.id, m]));
+for (const y of [...C.year.common, ...C.year.rare]) for (const k in y.tun || {}) need(C.tun[k] !== undefined, 'year ' + y.id + ' changes unknown tuning ' + k);
 for (const a of C.abilities) a.mods(12).forEach((m) => mods.push(['ability ' + a.id, m]));
 for (const [who, m] of mods) { need(known.has(m.stat), who + ' modifies unknown stat ' + m.stat); need(['add', 'mul', 'max'].includes(m.op), who + ' has unknown op ' + m.op); }
 if (errs.length) { console.log('content problems:\n  ' + errs.join('\n  ')); process.exit(1); }

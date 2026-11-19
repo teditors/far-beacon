@@ -63,7 +63,9 @@ function interior(s,stats){ const p=s.player, rec=R.areaRec(s), at=(k)=>{const f
   if(onIt(t)){ const k=t.st&&t.st.kind; if(k==='stairsDown')R.goDown(s); else if(k==='stairsUp'||k==='exit')R.goUp(s); return; }
   if(p.hp<p.hpMax*0.35){ R.rest(s); return; }
   if(!bfsStep(s,t.x,t.y)) R.rest(s); }
-function play(seed){ trail=[]; const s=R.newGame(seed); const stats={seed,searches:0,flees:0,fights:0,town:null,deaths:[],dungeon:null,stuck:false}; let guard=0, lastTarget=null, lastD=1e9, noProg=0;
+// NO=year,gods plays with those switches off, from world creation on, to compare a piece against the game without it
+const NO={}; for(const k of (process.env.NO||'').split(',').filter(Boolean)) NO[k]=true;
+function play(seed){ trail=[]; const s=R.newGame(seed,NO); const stats={seed,searches:0,flees:0,fights:0,town:null,deaths:[],dungeon:null,stuck:false}; let guard=0, lastTarget=null, lastD=1e9, noProg=0;
   while(guard++<2500){
     if(s.over){ if(s.over.won) break; stats.deaths.push({cause:s.over.cause+(s.over.by?':'+s.over.by:''),day:R.clock(s).day,goal:R.objective(s).text,cls:s.char.cls,lvl:s.player.level}); if(R.livesLeft(s)<=0)break; R.nextTraveller(s,R.makeChar(Math.random,s)); continue; }
     if(s.combat){ stats.fights++; fight(s,stats); continue; }

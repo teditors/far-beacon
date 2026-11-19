@@ -742,6 +742,13 @@ function openMenu() {
         V.S.seed +
         '.',
     }),
+    el(
+      'ul',
+      { cls: 'items' },
+      R.worldNotes(V.S).map((n) =>
+        el('li', { cls: 'item' }, [el('div', null, [el('strong', { text: n.label }), el('p', { text: n.text })])]),
+      ),
+    ),
     el('p', {
       text: V.S.known.civ
         ? 'The people who lived here were ' + R.civOf(V.S).name + '. Each ruin you search teaches you more about them.'

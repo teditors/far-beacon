@@ -279,6 +279,35 @@ section('The quest', ['quest'], () => {
   );
 });
 
+section('The year', ['year'], () => {
+  const Y = C.year;
+  line(
+    'Every world has a year. ' +
+      Math.round(Y.rareChance * 100) +
+      '% of worlds roll from the rare menu instead. "Chance" is the share of worlds that get it.',
+  );
+  line();
+  const tot = (l) => l.reduce((a, e) => a + (e.w || 1), 0);
+  const row = (e, share) => [
+    e.name,
+    (share * 100).toFixed(1) + '%',
+    e.text,
+    [mods(e.mods), Object.keys(e.tun || {}).map((k) => k + ' ' + (e.tun[k][0] === 'mul' ? 'x' : '= ') + JSON.stringify(e.tun[k][1])).join('; '), e.day ? 'day ' + e.day[0] + ':00 to ' + e.day[1] + ':00' : '']
+      .filter(Boolean)
+      .join('; '),
+  ];
+  table(
+    ['Year', 'Chance', 'Text', 'Effect'],
+    Y.common.map((e) => row(e, ((1 - Y.rareChance) * (e.w || 1)) / tot(Y.common))),
+  );
+  line('### Rare years');
+  line();
+  table(
+    ['Year', 'Chance', 'Text', 'Effect'],
+    Y.rare.map((e) => row(e, (Y.rareChance * (e.w || 1)) / tot(Y.rare))),
+  );
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

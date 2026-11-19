@@ -1346,8 +1346,101 @@
     }
   };
 
+  // src/content/years.js
+  var years_default = {
+    year: {
+      rareChance: 0.15,
+      common: [
+        { id: "ordinary", name: "An ordinary year", text: "Nothing out of the way.", w: 3 },
+        {
+          id: "drought",
+          name: "A year of drought",
+          text: "The heat dries you out: you need more water.",
+          w: 2,
+          mods: [{ stat: "waterDrain", op: "mul", value: 1.15 }]
+        },
+        {
+          id: "hardwinter",
+          name: "A hard winter",
+          text: "Everything is colder, and storms come more often.",
+          w: 2,
+          mods: [{ stat: "cold", op: "mul", value: 1.25 }],
+          tun: { stormGap: ["mul", 0.8] }
+        },
+        {
+          id: "mild",
+          name: "A mild year",
+          text: "The cold bites less than it should.",
+          w: 2,
+          mods: [{ stat: "cold", op: "mul", value: 0.75 }]
+        },
+        { id: "stormy", name: "A year of storms", text: "Storms come twice as often.", w: 2, tun: { stormGap: ["mul", 0.5] } },
+        { id: "still", name: "A still year", text: "Storms are rare.", w: 2, tun: { stormGap: ["mul", 2] } },
+        { id: "summer", name: "A long summer", text: "Days run from five until nine at night.", w: 2, day: [5, 21] },
+        { id: "longnight", name: "A year of long nights", text: "Days run only from eight until six.", w: 2, day: [8, 18] },
+        {
+          id: "lean",
+          name: "A lean year",
+          text: "Little to eat: rest restores less, and lanterns burn more oil.",
+          w: 2,
+          mods: [{ stat: "restGain", op: "mul", value: 0.85 }],
+          tun: { lanternFuelPerHour: ["mul", 1.5] }
+        },
+        {
+          id: "plenty",
+          name: "A year of plenty",
+          text: "Rest comes easy, and caves and caches are fuller.",
+          w: 2,
+          mods: [
+            { stat: "restGain", op: "mul", value: 1.15 },
+            { stat: "luck", op: "add", value: 0.15 }
+          ]
+        }
+      ],
+      rare: [
+        {
+          id: "wide",
+          name: "A wide world",
+          text: "This world is five regions across and five down, not three: the far country is further, and stranger.",
+          tun: { world: ["set", { cols: 5, rows: 5 }] }
+        },
+        {
+          id: "twomoons",
+          name: "A year of two moons",
+          text: "The nights are bright enough to see by.",
+          mods: [{ stat: "nightSight", op: "add", value: 1, when: "night" }]
+        },
+        {
+          id: "thinair",
+          name: "A year of thin air",
+          text: "Every step is harder work, but the air is so clear you see much further.",
+          mods: [
+            { stat: "staminaCost", op: "mul", value: 1.15 },
+            { stat: "surveyRadius", op: "add", value: 3 }
+          ]
+        },
+        {
+          id: "heavy",
+          name: "A year of heavy ground",
+          text: "The land pulls at you: travel is slower, but you can carry more before it tells.",
+          mods: [
+            { stat: "moveTime", op: "mul", value: 1.15 },
+            { stat: "carryCap", op: "add", value: 5 }
+          ]
+        },
+        {
+          id: "longdark",
+          name: "The long dark",
+          text: "The sun is up only from ten until four. The dark is strangely mild.",
+          day: [10, 16],
+          mods: [{ stat: "cold", op: "mul", value: 0.8, when: "night" }]
+        }
+      ]
+    }
+  };
+
   // src/content/index.js
-  var CONTENT = Object.assign({}, tuning_default, characters_default, biomes_default, gods_default, peoples_default, creatures_default, items_default, quest_default);
+  var CONTENT = Object.assign({}, tuning_default, characters_default, biomes_default, gods_default, peoples_default, creatures_default, items_default, quest_default, years_default);
 
   // src/rules/core.js
   var C = CONTENT;
@@ -1398,7 +1491,8 @@
     const m = START + s.time;
     const mod = m % 1440;
     const hour = Math.floor(mod / 60);
-    return { day: Math.floor(m / 1440) + 1, hour, min: Math.floor(mod % 60), isDay: hour >= 6 && hour < 20 };
+    const dawn = s.tun && s.tun.dawn !== void 0 ? s.tun.dawn : 6, dusk = s.tun && s.tun.dusk !== void 0 ? s.tun.dusk : 20;
+    return { day: Math.floor(m / 1440) + 1, hour, min: Math.floor(mod % 60), isDay: hour >= dawn && hour < dusk };
   }
   var biomeOf = (s) => byId(C.biomes, s.biome);
   var godOf = (s) => byId(C.gods, s.god);
@@ -3746,6 +3840,53 @@
     ];
   }
 
+  // src/rules/hooks.js
+  var NOTES = [];
+  var SWITCHES = [];
+  var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
+
+  // src/rules/year.js
+  var Y = () => C.year;
+  var yearOf = (s) => s.year ? byId(Y().common, s.year) || byId(Y().rare, s.year) : null;
+  var isRareYear = (y) => !!y && Y().rare.includes(y);
+  function rollYear(seed, off) {
+    if (off && off.year) return null;
+    const r = stream(seed, "year"), pickW = (list) => {
+      let t = list.reduce((a, e) => a + (e.w || 1), 0) * r();
+      for (const e of list) if ((t -= e.w || 1) < 0) return e;
+      return list[list.length - 1];
+    };
+    return r() < Y().rareChance ? pickW(Y().rare) : pickW(Y().common);
+  }
+  function yearTuning(tun, y) {
+    if (!y) return tun;
+    for (const k in y.tun || {}) {
+      const [op, v] = y.tun[k];
+      tun[k] = op === "mul" ? tun[k] * v : JSON.parse(JSON.stringify(v));
+    }
+    if (y.day) [tun.dawn, tun.dusk] = y.day;
+    return tun;
+  }
+  SOURCES.push({
+    id: "year",
+    fn(s, out) {
+      const y = yearOf(s), d = clock(s).isDay ? "day" : "night";
+      if (y) {
+        for (const m of y.mods || []) if (!m.when || m.when === d) out.push(m);
+      }
+    }
+  });
+  SWITCHES.push(["year", "The year"]);
+  NOTES.push((s) => {
+    const y = yearOf(s);
+    return y ? [{ label: y.name + (isRareYear(y) ? " (rare)" : ""), text: y.text }] : [];
+  });
+  on("worldBorn", (s) => {
+    const y = yearOf(s);
+    if (y && y.id !== "ordinary")
+      say(s, (isRareYear(y) ? "A rare year: " + y.name.toLowerCase() : y.name) + ". " + y.text, isRareYear(y) ? "good" : "");
+  });
+
   // src/rules/worldgen.js
   var heightCache = {};
   function genTerrain(seed, world, cx, cy, biome, rT) {
@@ -3927,8 +4068,10 @@
     });
     return map;
   };
-  function newGame(seed) {
+  function newGame(seed, off) {
     seed = seed >>> 0 || 1;
+    off = Object.assign({}, off);
+    const year = rollYear(seed, off), tun = yearTuning(JSON.parse(JSON.stringify(C.tun)), year);
     const rnd = (name) => stream(seed, name), rT = rnd("terrain"), rL = rnd("layout"), rV = rnd("vault"), rS = rnd("sites"), rR = rnd("roads"), rRun = rnd("run"), rW = rnd("weather"), rO = rnd("offer"), pickWith = (rng) => (a) => a[Math.floor(rng() * a.length)];
     const biome = pickWith(rnd("biome"))(C.biomes), god = pickWith(rnd("god"))(C.gods), civ = {};
     {
@@ -3938,7 +4081,7 @@
       civ.name = pick(st.a) + pick(st.b) + pick(st.c);
     }
     const habit = byId(C.civ.habit, civ.habit), age = byId(C.civ.age, civ.age), doom = byId(C.civ.doom, civ.doom);
-    const world = makeSketch(seed, C.tun.world.cols, C.tun.world.rows, biome.id), { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
+    const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id), { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
     const sx = 17 + Math.floor(rL() * 3), sy = 17 + Math.floor(rL() * 3), a0 = rL() * 6.283;
     const polar = (ang, rad) => ({
       x: clamp(Math.round(sx + Math.cos(ang) * rad), 2, W - 3),
@@ -4024,10 +4167,11 @@
       over: null,
       cause: null,
       nextId: 1,
-      tun: JSON.parse(JSON.stringify(C.tun)),
-      off: {},
+      tun,
+      off,
       stats: { moves: 0, trips: 0 }
     };
+    if (year) s.year = year.id;
     s.weather.changeAt = (360 + rW() * 600) * s.tun.stormGap;
     const draw = (list, n) => {
       const a = list.map((e) => e.id);
@@ -4061,6 +4205,7 @@
       "Somewhere to the " + dirTo(s, townP.x, townP.y) + " there is a town. Find it: its people know what this land is waiting for."
     );
     say(s, "Your camp has a well. A cloak, a lantern and fuel are stored here: open Pack to take them.");
+    emit(s, "worldBorn", { rnd, off });
     if (typeof INTRO_EXTRA === "string") say(s, INTRO_EXTRA);
     ensureTown(s);
     ensureAround(s);
@@ -4141,6 +4286,8 @@
 
   // src/rules/index.js
   var api = {
+    worldNotes,
+    yearOf,
     findLoose,
     passable,
     areaRec,
@@ -4273,7 +4420,8 @@
       ["warmth", "Cold and warmth"],
       ["thirst", "Thirst"],
       ["affixes", "Item affixes"],
-      ["gods", "God pacts"]
+      ["gods", "God pacts"],
+      ...SWITCHES
     ]
   };
   for (const k of [
@@ -5944,6 +6092,13 @@
       el("p", {
         text: R.biomeOf(V.S).name + ". " + (V.S.known.god ? "Shrine of " + R.godOf(V.S).name + "." : "A god is worshipped somewhere here.") + " Seed " + V.S.seed + "."
       }),
+      el(
+        "ul",
+        { cls: "items" },
+        R.worldNotes(V.S).map(
+          (n) => el("li", { cls: "item" }, [el("div", null, [el("strong", { text: n.label }), el("p", { text: n.text })])])
+        )
+      ),
       el("p", {
         text: V.S.known.civ ? "The people who lived here were " + R.civOf(V.S).name + ". Each ruin you search teaches you more about them." : "A people lived here once. Search a ruin to learn who they were."
       }),

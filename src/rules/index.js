@@ -92,8 +92,12 @@ import { carryCap, stat, waterCap } from './stats.js';
 import { newGame } from './worldgen.js';
 
 import { serialize, deserialize } from './save.js';
+import { SWITCHES, worldNotes } from './hooks.js';
+import { yearOf } from './year.js';
 
 const api = {
+  worldNotes,
+  yearOf,
   findLoose,
   passable,
   areaRec,
@@ -227,6 +231,7 @@ const api = {
     ['thirst', 'Thirst'],
     ['affixes', 'Item affixes'],
     ['gods', 'God pacts'],
+    ...SWITCHES,
   ],
 };
 for (const k of [

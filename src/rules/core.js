@@ -55,7 +55,9 @@ function clock(s) {
   const m = START + s.time;
   const mod = m % 1440;
   const hour = Math.floor(mod / 60);
-  return { day: Math.floor(m / 1440) + 1, hour, min: Math.floor(mod % 60), isDay: hour >= 6 && hour < 20 };
+  const dawn = s.tun && s.tun.dawn !== undefined ? s.tun.dawn : 6,
+    dusk = s.tun && s.tun.dusk !== undefined ? s.tun.dusk : 20;
+  return { day: Math.floor(m / 1440) + 1, hour, min: Math.floor(mod % 60), isDay: hour >= dawn && hour < dusk };
 }
 const biomeOf = (s) => byId(C.biomes, s.biome),
   godOf = (s) => byId(C.gods, s.god);

@@ -8,5 +8,6 @@ import peoples from './peoples.js';
 import creatures from './creatures.js';
 import items from './items.js';
 import quest from './quest.js';
+import years from './years.js';
 
-export const CONTENT = Object.assign({}, tuning, characters, biomes, gods, peoples, creatures, items, quest);
+export const CONTENT = Object.assign({}, tuning, characters, biomes, gods, peoples, creatures, items, quest, years);
