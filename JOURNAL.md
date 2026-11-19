@@ -2,6 +2,21 @@
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
 
+## C2.9: rare countries that change the land
+
+**What it is.** Three new rare countries (C1 piece 5) that change the land itself rather than a number: **Drowned**
+(nearly half the flat ground has gone under, bog and standing water everywhere), **Dry** (every spring has failed but
+the sure one) and **Burned** (a great fire took every wood: no wood to gather and no cover from the wind). The change
+never touches a region's outer rows, so its borders still meet its neighbours'.
+
+**In play.** Crossing into such a country changes how you travel through it, which matters now that the story
+crosses the world. Bot win rate, sets 5 / 1000 / 2000: see the summary (no change expected: rare regions are 15% of
+regions away from home).
+
+**Commits.** "Rare countries that change the land". Switch: `regionrares`, as before.
+
+**Verdict: maybe.** The idea of rares that change the rules of the land is right; these three are the simplest.
+
 ## C2.8: finer things far from home
 
 **What it is.** An item with affixes (or a lost people's mark) found away from home is finer: its tier is 1 plus the

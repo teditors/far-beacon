@@ -1,7 +1,9 @@
 /* Rare regions: a region away from home is usually just its biome, but sometimes (chance) it holds something strange.
    mods  stat modifiers while you are anywhere in that region
    gen   what is done to the region when it is built: noCreatures, moreCreatures (how many more), springs ('sweet' or
-         'foul', all of them except the sure one), richCaches (every cache holds an item, and more fuel and water) */
+         'foul', all of them except the sure one), richCaches (every cache holds an item, and more fuel and water),
+         drown (this share of the flat ground turns to the biome's special ground), dry (every spring but the sure one
+         is gone), burn (every wood is burned to open ground) */
 export default {
   regionRares: {
     chance: 0.15,
@@ -35,6 +37,19 @@ export default {
         mods: [{ stat: 'waterDrain', op: 'mul', value: 1.35 }],
       },
       { id: 'rich', name: 'Rich', text: 'Every cache here is full.', gen: { richCaches: true } },
+      {
+        id: 'drowned',
+        name: 'Drowned',
+        text: 'Much of the low ground here has gone under: bog and standing water everywhere.',
+        gen: { drown: 0.45 },
+      },
+      { id: 'dry', name: 'Dry', text: 'The springs of this country have failed. Only one is left.', gen: { dry: true } },
+      {
+        id: 'burned',
+        name: 'Burned',
+        text: 'A great fire went through here. No woods are left: no wood to burn, and no cover from the wind.',
+        gen: { burn: true },
+      },
       {
         id: 'hollow',
         name: 'Hollow',

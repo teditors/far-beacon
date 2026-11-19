@@ -435,6 +435,9 @@ Each region except home has a 15% chance of one of these. Its name goes before t
 | Hallowed | An old peace lies on this country: rest here restores far more. | restGain x1.5 |  |
 | Parched | The air here dries you out: you need much more water. | waterDrain x1.35 |  |
 | Rich | Every cache here is full. |  | richCaches |
+| Drowned | Much of the low ground here has gone under: bog and standing water everywhere. |  | drown 0.45 |
+| Dry | The springs of this country have failed. Only one is left. |  | dry |
+| Burned | A great fire went through here. No woods are left: no wood to burn, and no cover from the wind. |  | burn |
 | Hollow | The wind never stops: storms here bite twice as hard. | stormCold x2 |  |
 
 ## Creature specials

@@ -76,6 +76,8 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
       if (rr === 'empty') need(!m.creatures.filter((c) => !c.key).length, 'seed ' + i + ': a silent region has creatures');
       if (rr === 'sweet') need(springs.every((x) => !x.foul), 'seed ' + i + ': a sweet-watered region has a foul spring');
       if (rr === 'bitter') need(springs.every((x) => x.foul || x.sure), 'seed ' + i + ': a bitter region has a sweet spring');
+      if (rr === 'dry') need(springs.every((x) => x.sure), 'seed ' + i + ': a dry region has an ordinary spring');
+      if (rr === 'burned') need(!m.terrain.some((t, k) => t === 3 && k % R.W > 1 && k % R.W < R.W - 2 && k > 2 * R.W && k < R.W * (R.H - 2)), 'seed ' + i + ': a burned region has woods');
       if (rr === 'teeming') need(m.creatures.length > 5, 'seed ' + i + ': a teeming region has few creatures');
     }
   }

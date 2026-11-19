@@ -1743,6 +1743,19 @@
         },
         { id: "rich", name: "Rich", text: "Every cache here is full.", gen: { richCaches: true } },
         {
+          id: "drowned",
+          name: "Drowned",
+          text: "Much of the low ground here has gone under: bog and standing water everywhere.",
+          gen: { drown: 0.45 }
+        },
+        { id: "dry", name: "Dry", text: "The springs of this country have failed. Only one is left.", gen: { dry: true } },
+        {
+          id: "burned",
+          name: "Burned",
+          text: "A great fire went through here. No woods are left: no wood to burn, and no cover from the wind.",
+          gen: { burn: true }
+        },
+        {
           id: "hollow",
           name: "Hollow",
           text: "The wind never stops: storms here bite twice as hard.",
@@ -6288,6 +6301,21 @@
           st.fuel += 2;
           st.water += 2;
         }
+      }
+      const inner = (k) => k % 36 > 1 && k % 36 < 34 && k > 71 && k < 36 * 34;
+      if (g.drown) {
+        const rd = stream(s.seed, "drown:" + rec.id);
+        for (let k = 0; k < m.terrain.length; k++)
+          if (inner(k) && m.terrain[k] === 0 && !m.sites[k] && !(m.road && m.road[k]) && rd() < g.drown) {
+            m.terrain[k] = 5;
+            m.elev[k] = -0.15;
+          }
+      }
+      if (g.burn) {
+        for (let k = 0; k < m.terrain.length; k++) if (inner(k) && m.terrain[k] === 3) m.terrain[k] = 0;
+      }
+      if (g.dry) {
+        for (const k in m.sites) if (m.sites[k].kind === "spring" && !m.sites[k].sure) delete m.sites[k];
       }
       if (g.noCreatures) m.creatures = [];
       if (g.moreCreatures) {
