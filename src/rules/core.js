@@ -59,8 +59,21 @@ function clock(s) {
     dusk = s.tun && s.tun.dusk !== undefined ? s.tun.dusk : 20;
   return { day: Math.floor(m / 1440) + 1, hour, min: Math.floor(mod % 60), isDay: hour >= dawn && hour < dusk };
 }
+// A piece can supply the world's god (rolled gods do): the first maker that returns one wins.
+const godMakers = [];
 const biomeOf = (s) => byId(C.biomes, s.biome),
-  godOf = (s) => byId(C.gods, s.god);
+  godOf = (s) => {
+    for (const f of godMakers) {
+      const g = f(s);
+      if (g) return g;
+    }
+    return byId(C.gods, s.god);
+  };
+// The kind of site the player stands on, or null.
+const siteHereKind = (s) => {
+  const st = s.sites[s.player.y * W + s.player.x];
+  return st ? st.kind : null;
+};
 
 export {
   stream,
@@ -83,5 +96,5 @@ export {
   biomeOf,
   godOf,
 };
-export { aOrAn };
+export { aOrAn, godMakers, siteHereKind };
 export { WALL, FLOOR };

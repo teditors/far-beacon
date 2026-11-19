@@ -138,7 +138,7 @@ section('Biomes', ['biomes'], () => {
 });
 
 section('Gods', ['gods'], () => {
-  line('The hand-written gods. Each world has one shrine.');
+  line('The hand-written gods. Each world has one shrine. With rolled gods on (the default), these are only used when that switch is off.');
   line();
   table(
     ['God', 'Terms', 'Modifiers'],
@@ -306,6 +306,44 @@ section('The year', ['year'], () => {
     ['Year', 'Chance', 'Text', 'Effect'],
     Y.rare.map((e) => row(e, (Y.rareChance * (e.w || 1)) / tot(Y.rare))),
   );
+});
+
+section('Rolled gods', ['pantheon'], () => {
+  const P = C.pantheon;
+  line(
+    'A god is a gift, a cost and, ' +
+      Math.round(P.vowChance * 100) +
+      '% of the time, a vow, chosen so that its total worth is ' +
+      P.target +
+      ' give or take ' +
+      P.spread +
+      '. A cost never touches what the gift does. ' +
+      Math.round(P.rareChance * 100) +
+      '% of gods are rare. The gift names the god and colours its shrine.',
+  );
+  line();
+  table(
+    ['Gift', 'Domain', 'Worth', 'Text', 'Modifiers'],
+    P.gifts.map((g) => [g.id, g.domain, g.worth, g.text, mods(g.mods)]),
+  );
+  table(
+    ['Cost', 'Worth', 'Text', 'Modifiers'],
+    P.costs.map((g) => [g.id, g.worth, g.text, mods(g.mods)]),
+  );
+  table(
+    ['Vow', 'Worth', 'Text', 'Broken by'],
+    P.vows.map((g) => [g.id, g.worth, g.text, g.breaks.join(', ') + (g.at ? ' at a ' + g.at : '')]),
+  );
+  table(
+    ['Rare god', 'Text'],
+    P.rares.map((g) => [g.name, g.text]),
+  );
+  table(
+    ['Domain', 'Shrine colour', 'Titles'],
+    P.domains.map((d) => [d.id, hex(d.color), d.titles.join('; ')]),
+  );
+  line('Names: ' + P.names.a.join('/') + ' + ' + P.names.b.join('/') + ', then a title from the domain.');
+  line();
 });
 
 /* ---------------- writing it out ---------------- */

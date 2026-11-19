@@ -1,0 +1,41 @@
+// Checks for the commission's pieces: each one's own promises, in a few lines each.
+const { Rules: R } = require('./lib');
+const errs = [];
+const need = (c, m) => { if (!c) errs.push(m); };
+const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { const s = R.newGame(i); if (fn(s)) return s; } return null; };
+
+// The year: every world has one, switching it off at creation removes it, and a wide world is 5 x 5.
+{
+  for (let i = 1; i <= 60; i++) need(R.newGame(i).year, 'seed ' + i + ' has no year');
+  need(!R.newGame(1, { year: true }).year, 'NO=year still rolled a year');
+  const w = findSeed((s) => s.year === 'wide');
+  need(w && w.world.cols === 5 && w.world.sketch.length === 25, 'a wide world is not 5 x 5');
+  const ln = findSeed((s) => s.year === 'longnight');
+  need(ln && !R.clock(Object.assign({}, ln, { time: 60 })).isDay, 'a year of long nights still has daylight at 7:00');
+}
+// Rolled gods: near their budget, and breaking a vow takes the gift away but leaves the cost.
+{
+  const P = R.C.pantheon, w = (list, id) => R.byId(list, id).worth;
+  for (let i = 1; i <= 300; i++) {
+    const g = R.newGame(i).godRoll;
+    if (g.rare) continue;
+    const tot = g.gifts.reduce((a, id) => a + w(P.gifts, id), 0) + g.costs.reduce((a, id) => a + w(P.costs, id), 0) + (g.vow ? w(P.vows, g.vow) : 0);
+    need(Math.abs(tot - P.target) <= P.spread, 'seed ' + i + ': god worth ' + tot + ' is off budget');
+  }
+  const s = findSeed((s) => s.godRoll.vow === 'nofire' && !s.godRoll.rare);
+  need(s, 'no world with a vow against fire');
+  if (s) {
+    const shrine = R.findSite(s, 'shrine');
+    s.player.x = shrine.x; s.player.y = shrine.y;
+    need(R.pact(s), 'could not swear');
+    const gift = R.byId(P.gifts, s.godRoll.gifts[0]).mods[0], before = R.godOf(s).mods.length;
+    s.player.fuel = 3; s.player.warmth = 50;
+    need(R.fire(s) && s.pactBroken, 'lighting a fire did not break the vow');
+    need(R.godOf(s).mods.length < before && !R.godOf(s).mods.includes(gift), 'the gift survived a broken vow');
+    need(R.godOf(s).mods.length === before - R.byId(P.gifts, s.godRoll.gifts[0]).mods.length, 'the cost went with the gift');
+    s.off.godslots = true;
+    need(!R.godOf(s).rolled, 'switching rolled gods off did not bring the written god back');
+  }
+}
+if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
+console.log('pieces ok: year, rolled gods');

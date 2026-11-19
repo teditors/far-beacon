@@ -39,7 +39,7 @@ import {
 } from './character.js';
 import { AXES, civOf, civTraits, trait, traitText } from './civ.js';
 import { attack, firebolt, flee, foe, formOf, identify, mend, power, smite, spOf } from './combat.js';
-import { C, FLOOR, H, TERR, VERSION, W, WALL, biomeOf, byId, clock, godOf, on } from './core.js';
+import { C, FLOOR, H, TERR, VERSION, W, WALL, biomeOf, byId, clock, emit, godOf, on, siteHereKind } from './core.js';
 import { aOrAn } from './core.js';
 import { active, equip, slotOf, unequip } from './equipment.js';
 import { describeItem, isCursed, itemName, itemWeight, weight } from './items.js';
@@ -94,6 +94,7 @@ import { newGame } from './worldgen.js';
 import { serialize, deserialize } from './save.js';
 import { SWITCHES, worldNotes } from './hooks.js';
 import { yearOf } from './year.js';
+import './pantheon.js';
 
 const api = {
   worldNotes,
@@ -234,7 +235,7 @@ const api = {
     ...SWITCHES,
   ],
 };
-for (const k of [
+const ACTIONS = [
   'move',
   'survey',
   'rest',
@@ -267,11 +268,22 @@ for (const k of [
   'goDown',
   'goUp',
   'offer',
-]) {
+];
+for (const k of ACTIONS) {
   const fn = api[k];
   api[k] = function (s) {
     if (s.combat) return false;
     return fn.apply(null, arguments);
+  };
+}
+// Every action the player takes is announced as 'did' ({ id, site }), so a piece can react to what the player does.
+for (const k of [...ACTIONS, 'attack', 'power', 'firebolt', 'smite', 'mend', 'flee', 'identify', 'useItem']) {
+  const fn = api[k];
+  api[k] = function (s) {
+    const site = siteHereKind(s),
+      r = fn.apply(null, arguments);
+    if (r) emit(s, 'did', { id: k, site });
+    return r;
   };
 }
 

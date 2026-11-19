@@ -3,6 +3,35 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 3: rolled gods
+
+**What it is.** The god of a world is no longer one of three: it is rolled from a gift, a cost and, half the time, a
+vow ("You must never light a fire", "never run from a fight", "never disturb the ruins of the dead"). Its name and
+shrine colour come from the gift's domain (water, heights, night, hearth, road, war, harvest, sight): "Karna, Who
+Counts the Slain: Blows glance off you. You see less far when you survey. You must never run from a fight." Break a
+vow and the god turns away: the gift is gone and the cost stays. One god in eight is rare: a generous god (no cost),
+twin gods (two gifts, two costs), or a jealous god (two gifts and a vow, no cost).
+
+**In play.** Each shrine is a real decision, different every world, and a vow changes how you play for the rest of
+that traveller's life. The budget (gift + cost + vow = 1, give or take 1) keeps gods mildly worth swearing to.
+Bot win rate unchanged (20 / 150 on set 5, 28 on set 1000), because the bot never swears a pact.
+
+**Commits.** "Gods are rolled from a gift, a cost and a vow". Switch: `godslots` (the hand-written god of
+content/gods.js comes back).
+
+**Shared bricks.** `godMakers` in core.js (a piece can supply the world's god), and every player action is announced
+as `emit(s, 'did', { id, site })` from the wrapper in rules/index.js.
+
+**Choices made without asking.**
+- The written gods stay as the fallback, and `s.god` is still rolled from them, so the switch and old saves work.
+- A cost may not touch any stat its gift touches, so a god never gives and takes the same thing.
+- When a small gift and a vow already meet the budget, the vow is the god's only price.
+- The ideas "a dead god", "rival gods" and "a god only reachable far from home" are not done; the far god needs
+  sites placed in other regions, which I would do after towns beyond home exist.
+- tests/pieces.test.js is new: one block per piece checking its own promises (budget, vow breaking, the switch).
+
+**Verdict: pearl.** It is the commission's slot pattern in its purest form, and vows are a new kind of rule.
+
 ## Piece 2: the year
 
 **What it is.** Every world has a year: a drought, a hard winter, a still year, long nights, a lean year, and so on.
