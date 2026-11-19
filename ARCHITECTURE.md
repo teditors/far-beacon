@@ -116,6 +116,10 @@ More hooks, added by later pieces on the commission/1 branch:
 | `LOADERS` | hooks.js | rebuild what is derived from the seed when a save loads |
 | wrapping `GENERATORS.region` / `.vault` | the piece's module | add to a region or a level as it is built (artifacts, lairs, odd levels) |
 | `town.*` stats | quest.js `priceOf`, `buyPrice` | change the town's prices through the stat stack (town cultures) |
+| `ACTIONS` | hooks.js | add buttons for where the player stands, in or out of a fight (town people, fight moves) |
+| `TALK` | hooks.js | people a piece puts in the world, shown by the one dialog `serviceInfo` / `useService` |
+| `ITEM_HOOKS` | hooks.js | finish an item `genItem` has just made (tiers by distance) |
+| `emit(s, 'killed', ...)` | combat.js | react to a kill (gains on a kill) |
 
 Each piece's checks are a block in `tests/pieces.test.js`, and its menus a section in `tools/almanac.js`.
 

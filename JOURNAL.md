@@ -1,5 +1,41 @@
 # Commission 2
 
+## Summary
+
+Nine entries: Andrew's six asks first, then my own. Every check passes; the bot still wins.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C2.1 | Open towns: no Enter or Leave buttons, most towns unwalled, walled ones with several gates | (change) | pearl |
+| C2.2 | Town life: hamlet to city, generated streets, healer, temple, trainer, smith, mapmaker, stable, townsfolk with rumours, graveyards | `townlife` | pearl |
+| C2.3 | Many races and classes: 2 to 12 races and 8 to 20 classes per world, 45 hybrids, fight moves, kill gains | `roster` | pearl |
+| C2.4 | The plot across the world: town, key, locked place and destination in a chain of regions, roads and springs, a travelling bot | `plot` | pearl (needs easing) |
+| C2.5 | One map: the world as a single continuous map, pan and zoom | (change) | pearl |
+| C2.6 | Hamlets in the country between places | `hamlets` | pearl |
+| C2.7 | Easier legs: springs every seven tiles | (balance) | |
+| C2.8 | Finer things far from home: Fine and Superb items | `tiers` | pearl |
+| C2.9 | Rare countries that change the land: Drowned, Dry, Burned | `regionrares` | maybe |
+
+**Bot win rate, commission 2's switchable pieces on vs off** (`NO=townlife,roster,plot,hamlets,tiers`), sets 5 /
+1000 / 2000: on 9, 16, 9 (34 / 450, 8%); off 24, 35, 32 (91 / 450, 20%). Almost all of the difference is the plot
+across the world (C2.4) and the frailer new classes (C2.3). The game is now a journey; it is clearly harder, and the
+bot, which now travels between regions, still wins about one world in twelve.
+
+**My three best.** The plot across the world (C2.4), because it turns a map into a journey and gives every other piece
+a reason to exist; town life (C2.2), because the town became a place; and the roster (C2.3), because the character
+screen is now different every world and the new classes play differently in a fight.
+
+**What I would do next.**
+1. Ease the journey for people as well as the bot: some worlds with the town in the home region, a "first night"
+   shelter on the road, or a third waterskin for frail classes. Then measure again.
+2. More than one town: the hamlets (C2.6) show the way; full towns in other regions would need the town code to take
+   a town id instead of the one 'town' area.
+3. People who move: townsfolk who walk the streets, travellers on the roads.
+4. Named streams for items made at generation time, so pieces stop shifting each other's play dice.
+5. Class balance: frail classes (d6, a dagger) die far more; give them more water, coin or a better start.
+
+---
+
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
 
 ## C2.9: rare countries that change the land
