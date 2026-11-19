@@ -3,6 +3,29 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 10: odd weather
+
+**What it is.** About one storm in seven is not the biome's own: a hailstorm (hurts out in the open, so get under
+cover), a fall of ash from a clear sky (dries you out), a thick fog, a warm wind (warms you through, and dries you),
+or a shower of falling stars, one of which comes down a few tiles away and is marked on your map: a smoking crater
+with something good in it. Strange weather you have seen is listed in the Journal.
+
+**In play.** Storms stop being a fixed tax, and the shower of stars is a little gift from the sky. Bot win rate, sets
+5 / 1000 / 2000: 16, 22, 26 with it; 15, 24, 23 without (64 vs 62: no change).
+
+**Commits.** "Odd weather". Switch: `oddweather`.
+
+**Shared brick.** `stormOf(s)` in core.js, with `stormMakers` (a piece can supply the storm now blowing). Every place
+that used `biomeOf(s).storm` now uses `stormOf(s)`; the "storm passes" message names the storm before it changes.
+
+**Choices made without asking.**
+- Whether a storm is odd is worked out from the seed and the time the storm ends, so nothing is stored for it and a
+  reload gives the same storm. Only the fallen star is stored, as an ordinary cache site with `star: true`.
+- Hail never takes you below 1 hit point: it is a reason to find shelter, not a way to die.
+
+**Verdict: maybe.** Hail and the stars are good; ash, fog and the warm wind are thin. Weather that changes the land
+(a flood that fills dry washes, a freeze that lets you walk on rivers) would be the next step.
+
 ## Piece 9: errands at the inn
 
 **What it is.** At the inn you can ask about work. Someone at the long table (a carter, a widow, an old soldier...)

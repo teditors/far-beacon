@@ -1,6 +1,6 @@
 /* Systems that run as time passes (Lego rule 4: each can be switched off). */
 import { indoors, isDark } from './areas.js';
-import { biomeOf, clamp, clock, say, srand } from './core.js';
+import { biomeOf, clamp, clock, say, srand, stormOf } from './core.js';
 import { aOrAn } from './core.js';
 import { active } from './equipment.js';
 import { isCursed, itemName } from './items.js';
@@ -17,22 +17,21 @@ const SYSTEMS = [
         return;
       }
       if (s.time >= s.weather.changeAt) {
+        const was = stormOf(s).name; // the storm that is passing, named before the weather changes
         s.weather.storm = !s.weather.storm;
         s.weather.changeAt = s.time + (s.weather.storm ? 180 + srand(s) * 240 : (480 + srand(s) * 720) * s.tun.stormGap);
         if (!isDark(s) && !indoors(s))
           say(
             s,
-            s.weather.storm
-              ? aOrAn(biomeOf(s).storm.name, true) + ' breaks over you.'
-              : 'The ' + biomeOf(s).storm.name + ' passes.',
+            s.weather.storm ? aOrAn(stormOf(s).name, true) + ' breaks over you.' : 'The ' + was + ' passes.',
             s.weather.storm ? 'bad' : 'good',
           );
         else if (!isDark(s))
           say(
             s,
             s.weather.storm
-              ? 'Outside the walls, ' + aOrAn(biomeOf(s).storm.name) + ' has begun.'
-              : 'Outside, the ' + biomeOf(s).storm.name + ' has passed.',
+              ? 'Outside the walls, ' + aOrAn(stormOf(s).name) + ' has begun.'
+              : 'Outside, the ' + was + ' has passed.',
           );
       }
     },
@@ -55,7 +54,7 @@ const SYSTEMS = [
     fn(s, dt) {
       const cold =
         stat(s, 'cold', phase(s).cold * s.tun.coldScale) +
-        (s.weather.storm ? stat(s, 'stormCold', biomeOf(s).storm.cold * s.tun.coldScale) : 0);
+        (s.weather.storm ? stat(s, 'stormCold', stormOf(s).cold * s.tun.coldScale) : 0);
       const warm = stat(s, 'warm', phase(s).warm);
       s.player.warmth = clamp(s.player.warmth + (warm - cold) * dt, 0, 100);
       if (s.player.warmth <= 0) {

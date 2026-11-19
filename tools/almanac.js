@@ -428,6 +428,13 @@ section('Errands', ['errands'], () => {
   table(['Slot', 'Options'], [['Who asks', X.givers.join(', ')], ['Tells of a liar', X.tells.join('; ')], ['Victims', X.kinds[0].victims.join(', ')], ['Things to fetch', X.kinds[1].things.join(', ')]]);
 });
 
+section('Odd weather', ['oddWeather'], () => {
+  const X = C.oddWeather;
+  line(Math.round(X.chance * 100) + '% of storms are one of these instead of the biome\'s own. Cold is per hour (negative warms).');
+  line();
+  table(['Weather', 'Cold', 'Text', 'Modifiers', 'Other'], X.list.map((w) => [w.name, w.cold, w.text, mods(w.mods), [w.hurt ? w.hurt + ' hit points an hour in the open' : '', w.star ? 'leaves a fallen star holding an item' : ''].filter(Boolean).join('; ')]));
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

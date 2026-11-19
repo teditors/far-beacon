@@ -39,7 +39,7 @@ import {
 } from './character.js';
 import { AXES, civOf, civTraits, trait, traitText } from './civ.js';
 import { attack, firebolt, flee, foe, formOf, identify, mend, power, smite, spOf } from './combat.js';
-import { C, FLOOR, H, TERR, VERSION, W, WALL, biomeOf, byId, clock, emit, godOf, on, siteHereKind } from './core.js';
+import { C, FLOOR, H, TERR, VERSION, W, WALL, biomeOf, byId, clock, emit, godOf, on, siteHereKind, stormOf } from './core.js';
 import { aOrAn } from './core.js';
 import { active, equip, slotOf, unequip } from './equipment.js';
 import { describeItem, isCursed, itemName, itemWeight, weight } from './items.js';
@@ -103,9 +103,11 @@ import { specialOf } from './specials.js';
 import './exotics.js';
 import './towns.js';
 import { askErrand, claimErrand, errandInfo } from './errands.js';
+import './oddweather.js';
 
 const api = {
   worldNotes,
+  stormOfNow: stormOf,
   askErrand,
   claimErrand,
   errandInfo,

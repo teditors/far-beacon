@@ -69,6 +69,15 @@ const biomeOf = (s) => byId(C.biomes, s.biome),
     }
     return byId(C.gods, s.god);
   };
+// The storm blowing now (or due next): the biome's own, unless a piece supplies another (odd weather does).
+const stormMakers = [];
+const stormOf = (s) => {
+  for (const f of stormMakers) {
+    const st = f(s);
+    if (st) return st;
+  }
+  return biomeOf(s).storm;
+};
 // The kind of site the player stands on, or null.
 const siteHereKind = (s) => {
   const st = s.sites[s.player.y * W + s.player.x];
@@ -96,5 +105,5 @@ export {
   biomeOf,
   godOf,
 };
-export { aOrAn, godMakers, siteHereKind };
+export { aOrAn, godMakers, siteHereKind, stormMakers, stormOf };
 export { WALL, FLOOR };

@@ -1,7 +1,7 @@
 /* The modifier stack (Lego rule 3). Every number passes through stat(). */
 import { indoors } from './areas.js';
 import { charMods } from './character.js';
-import { C, biomeOf, byId, clock, godOf } from './core.js';
+import { C, biomeOf, byId, clock, godOf, stormOf } from './core.js';
 import { active } from './equipment.js';
 import { itemAffixes, weight } from './items.js';
 import { atCamp, groundHere, inShelter, phase } from './map.js';
@@ -43,7 +43,7 @@ const SOURCES = [
     id: 'weather',
     fn(s, out) {
       if (indoors(s)) return;
-      if (s.weather.storm) for (const m of biomeOf(s).storm.mods) out.push(m);
+      if (s.weather.storm) for (const m of stormOf(s).mods) out.push(m);
     },
   },
   {

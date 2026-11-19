@@ -168,5 +168,22 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   }
   need(Object.keys(kinds).length === 3 && paid > 20, 'errands: kinds ' + Object.keys(kinds) + ', paid ' + paid + ', lied ' + lied);
 }
+// Odd weather: some storms are odd, the same after a reload, and a shower of stars leaves something to find.
+{
+  let odd = 0, storms = 0, star = false;
+  for (let i = 1; i <= 30 && !star; i++) {
+    const s = R.newGame(i);
+    s.player.water = 99; s.player.stamina = 1e6; s.player.warmth = 100; s.creatures = [];
+    for (let h = 0; h < 24 * 12 && !s.over; h++) {
+      const before = s.weather.storm;
+      R.rest(s);
+      s.player.water = 6; s.player.warmth = 100;
+      if (s.weather.storm && !before) { storms++; if (R.biomeOf(s).storm.name !== R.stormOfNow(s).name) odd++; }
+      if (Object.values(s.sites).some((x) => x.star)) star = true;
+    }
+  }
+  need(storms > 30 && odd > 0, 'odd weather: ' + odd + ' odd of ' + storms + ' storms');
+  need(star, 'no shower of falling stars left a star in 30 worlds of 12 days');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather');

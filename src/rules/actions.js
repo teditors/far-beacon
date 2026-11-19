@@ -1,7 +1,7 @@
 /* Everything the player can do outside a fight. */
 import { AXES, civOf, learn, trait } from './civ.js';
 import { enemyTurn, stepCreatures } from './combat.js';
-import { C, H, TERR, W, WALL, biomeOf, byId, clamp, clock, emit, godOf, idx, say, srand } from './core.js';
+import { C, H, TERR, W, WALL, biomeOf, byId, clamp, clock, emit, godOf, idx, say, srand, stormOf } from './core.js';
 import { autoEquip } from './equipment.js';
 import { genItem, isCursed, itemName, makeItem, weight } from './items.js';
 import {
@@ -248,7 +248,7 @@ function arrive(s) {
 function survey(s) {
   if (s.over || indoors(s)) return false;
   if (s.weather.storm) {
-    say(s, 'You can see nothing through the ' + biomeOf(s).storm.name + '.');
+    say(s, 'You can see nothing through the ' + stormOf(s).name + '.');
     return false;
   }
   const t = s.terrain[here(s)],
@@ -311,7 +311,7 @@ function fire(s) {
     return false;
   }
   if (s.weather.storm && !inShelter(s) && !groundHere(s).blind) {
-    say(s, 'No fire will hold in this ' + biomeOf(s).storm.name + ' out in the open. Find shelter or trees.');
+    say(s, 'No fire will hold in this ' + stormOf(s).name + ' out in the open. Find shelter or trees.');
     return false;
   }
   s.player.fuel -= 1;
@@ -775,7 +775,7 @@ function actions(s) {
   return a;
 }
 function forecast(s) {
-  const n = biomeOf(s).storm.name;
+  const n = stormOf(s).name;
   if (s.off.weather) return 'Clear';
   if (s.weather.storm) return n.charAt(0).toUpperCase() + n.slice(1);
   if (!clock(s).isDay) return 'Night sky';

@@ -2011,6 +2011,52 @@
     }
   };
 
+  // src/content/weather.js
+  var weather_default = {
+    oddWeather: {
+      chance: 0.15,
+      list: [
+        {
+          id: "hail",
+          name: "hailstorm",
+          cold: 8,
+          hurt: 2,
+          mods: [{ stat: "moveTime", op: "mul", value: 1.3 }],
+          text: "Hail hurts out in the open. Get under cover."
+        },
+        {
+          id: "ash",
+          name: "fall of ash",
+          cold: 3,
+          mods: [{ stat: "waterDrain", op: "mul", value: 1.4 }],
+          text: "Grey ash falls from a clear sky. It gets in your throat."
+        },
+        {
+          id: "fog",
+          name: "thick fog",
+          cold: 2,
+          mods: [{ stat: "moveTime", op: "mul", value: 1.15 }],
+          text: "A white fog, so thick you cannot see your feet."
+        },
+        {
+          id: "warm",
+          name: "warm wind",
+          cold: -8,
+          mods: [{ stat: "waterDrain", op: "mul", value: 1.2 }],
+          text: "A warm wind out of nowhere, full of dust. It warms you through, and dries you out."
+        },
+        {
+          id: "stars",
+          name: "shower of falling stars",
+          cold: 0,
+          star: true,
+          mods: [],
+          text: "The sky is full of falling stars. One comes down not far off."
+        }
+      ]
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -2029,7 +2075,8 @@
     specials_default,
     exotics_default,
     towns_default,
-    errands_default
+    errands_default,
+    weather_default
   );
 
   // src/rules/core.js
@@ -2092,6 +2139,14 @@
       if (g) return g;
     }
     return byId(C.gods, s.god);
+  };
+  var stormMakers = [];
+  var stormOf = (s) => {
+    for (const f of stormMakers) {
+      const st = f(s);
+      if (st) return st;
+    }
+    return biomeOf(s).storm;
   };
   var siteHereKind = (s) => {
     const st = s.sites[s.player.y * W + s.player.x];
@@ -2567,7 +2622,7 @@
       id: "weather",
       fn(s, out) {
         if (indoors(s)) return;
-        if (s.weather.storm) for (const m of biomeOf(s).storm.mods) out.push(m);
+        if (s.weather.storm) for (const m of stormOf(s).mods) out.push(m);
       }
     },
     {
@@ -2708,9 +2763,9 @@
   if (!C.classes.some((r) => r.exotic)) C.classes.push(...C.exoticClasses);
   on("worldBorn", (s, d) => {
     if (d.off.exotics) return;
-    const r = stream(s.seed, "exotics"), X = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
-    if (r() < X.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
-    if (r() < X.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
+    const r = stream(s.seed, "exotics"), X2 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
+    if (r() < X2.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
+    if (r() < X2.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
     sworn(s);
   });
   function sworn(s) {
@@ -2854,8 +2909,8 @@
     if (!sp || s.off.specials || sp.named) return NONE;
     const key = s.seed + ":" + sp.name;
     if (!(key in cache)) {
-      const r = stream(s.seed, "special:" + sp.name), X = C.specials;
-      cache[key] = r() < X.chance ? X.list[Math.floor(r() * X.list.length)].id : null;
+      const r = stream(s.seed, "special:" + sp.name), X2 = C.specials;
+      cache[key] = r() < X2.chance ? X2.list[Math.floor(r() * X2.list.length)].id : null;
     }
     return cache[key] ? byId(C.specials.list, cache[key]) : NONE;
   }
@@ -3178,18 +3233,19 @@
           return;
         }
         if (s.time >= s.weather.changeAt) {
+          const was = stormOf(s).name;
           s.weather.storm = !s.weather.storm;
           s.weather.changeAt = s.time + (s.weather.storm ? 180 + srand(s) * 240 : (480 + srand(s) * 720) * s.tun.stormGap);
           if (!isDark(s) && !indoors(s))
             say(
               s,
-              s.weather.storm ? aOrAn(biomeOf(s).storm.name, true) + " breaks over you." : "The " + biomeOf(s).storm.name + " passes.",
+              s.weather.storm ? aOrAn(stormOf(s).name, true) + " breaks over you." : "The " + was + " passes.",
               s.weather.storm ? "bad" : "good"
             );
           else if (!isDark(s))
             say(
               s,
-              s.weather.storm ? "Outside the walls, " + aOrAn(biomeOf(s).storm.name) + " has begun." : "Outside, the " + biomeOf(s).storm.name + " has passed."
+              s.weather.storm ? "Outside the walls, " + aOrAn(stormOf(s).name) + " has begun." : "Outside, the " + was + " has passed."
             );
         }
       }
@@ -3210,7 +3266,7 @@
     {
       id: "warmth",
       fn(s, dt) {
-        const cold = stat(s, "cold", phase(s).cold * s.tun.coldScale) + (s.weather.storm ? stat(s, "stormCold", biomeOf(s).storm.cold * s.tun.coldScale) : 0);
+        const cold = stat(s, "cold", phase(s).cold * s.tun.coldScale) + (s.weather.storm ? stat(s, "stormCold", stormOf(s).cold * s.tun.coldScale) : 0);
         const warm = stat(s, "warm", phase(s).warm);
         s.player.warmth = clamp(s.player.warmth + (warm - cold) * dt, 0, 100);
         if (s.player.warmth <= 0) {
@@ -3844,7 +3900,7 @@
   function survey(s) {
     if (s.over || indoors(s)) return false;
     if (s.weather.storm) {
-      say(s, "You can see nothing through the " + biomeOf(s).storm.name + ".");
+      say(s, "You can see nothing through the " + stormOf(s).name + ".");
       return false;
     }
     const t = s.terrain[here(s)], blindG = groundHere(s).blind;
@@ -3900,7 +3956,7 @@
       return false;
     }
     if (s.weather.storm && !inShelter(s) && !groundHere(s).blind) {
-      say(s, "No fire will hold in this " + biomeOf(s).storm.name + " out in the open. Find shelter or trees.");
+      say(s, "No fire will hold in this " + stormOf(s).name + " out in the open. Find shelter or trees.");
       return false;
     }
     s.player.fuel -= 1;
@@ -4334,7 +4390,7 @@
     return a;
   }
   function forecast(s) {
-    const n = biomeOf(s).storm.name;
+    const n = stormOf(s).name;
     if (s.off.weather) return "Clear";
     if (s.weather.storm) return n.charAt(0).toUpperCase() + n.slice(1);
     if (!clock(s).isDay) return "Night sky";
@@ -5222,7 +5278,7 @@
   };
   on("worldBorn", (s, d) => {
     if (d.off.towns) return;
-    const r = stream(s.seed, "townCulture"), pick = (a) => a[Math.floor(r() * a.length)], X = T(), rare = r() < X.rareChance ? pick(X.rares) : null, trade = pick(X.trades), custom = pick(X.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
+    const r = stream(s.seed, "townCulture"), pick = (a) => a[Math.floor(r() * a.length)], X2 = T(), rare = r() < X2.rareChance ? pick(X2.rares) : null, trade = pick(X2.trades), custom = pick(X2.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
     s.townCulture = { trade: trade.id, custom: custom.id, rare: rare ? rare.id : null };
     if (trade.stock)
       for (let i = 0; i < trade.stock.n; i++) s.town.stock.push(makeItem(s, pick(trade.stock.bases), null, null, true));
@@ -5311,14 +5367,14 @@
   }
   function askErrand(s) {
     if (s.over || s.off.errands || s.errand || !atInn(s)) return false;
-    const pick = (a) => a[Math.floor(srand(s) * a.length)], X = E(), home = s.world.home, near = [];
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], X2 = E(), home = s.world.home, near = [];
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
         const id = regionId(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows));
         if (id !== HOME && mapOf2(s, id)) near.push(id);
       }
     if (!near.length) return false;
-    const kind = pick(X.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X.liarChance, giver = pick(X.givers) + (liar ? " " + pick(X.tells) : ""), reward = kind.reward[0] + Math.floor(srand(s) * (kind.reward[1] - kind.reward[0] + 1)), e = { kind: kind.id, area, liar, giver, reward, done: false };
+    const kind = pick(X2.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X2.liarChance, giver = pick(X2.givers) + (liar ? " " + pick(X2.tells) : ""), reward = kind.reward[0] + Math.floor(srand(s) * (kind.reward[1] - kind.reward[0] + 1)), e = { kind: kind.id, area, liar, giver, reward, done: false };
     let fill2 = { region: byId(C.biomes, rec.biome).name, reward };
     if (kind.id === "slay") {
       const live = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
@@ -5411,9 +5467,53 @@
     return out;
   });
 
+  // src/rules/oddweather.js
+  var X = () => C.oddWeather;
+  function oddStorm(s) {
+    if (!s.weather.storm || s.off.oddweather || s.off.weather) return null;
+    const r = stream(s.seed, "oddweather:" + Math.round(s.weather.changeAt));
+    return r() < X().chance ? X().list[Math.floor(r() * X().list.length)] : null;
+  }
+  stormMakers.push(oddStorm);
+  SYSTEMS.push({
+    id: "oddweather",
+    fn(s, dt) {
+      const w = oddStorm(s);
+      if (!w) return;
+      const key = Math.round(s.weather.changeAt);
+      if (s.weather.oddTold !== key) {
+        s.weather.oddTold = key;
+        if (!indoors(s)) say(s, w.text, w.hurt ? "bad" : "");
+        s.oddSeen = s.oddSeen || [];
+        if (!s.oddSeen.includes(w.id)) s.oddSeen.push(w.id);
+        if (w.star && !indoors(s)) fallStar(s);
+      }
+      if (w.hurt && !indoors(s) && !inShelter(s)) s.player.hp = Math.max(1, s.player.hp - w.hurt * dt);
+    }
+  });
+  function fallStar(s) {
+    const r = stream(s.seed, "star:" + Math.round(s.weather.changeAt));
+    for (let t = 0; t < 40; t++) {
+      const x = Math.round(s.player.x + (r() - 0.5) * 10), y = Math.round(s.player.y + (r() - 0.5) * 10), k = idx(x, y);
+      if (x < 1 || y < 1 || x > W - 2 || y > H - 2 || s.sites[k] || s.terrain[k] === 2 || s.terrain[k] >= 4) continue;
+      if (Math.abs(x - s.player.x) + Math.abs(y - s.player.y) < 2) continue;
+      s.sites[k] = { kind: "cache", searched: false, loot: true, fuel: 2, water: 0, star: true, seen: true };
+      s.seen[k] = 1;
+      s.depots[k] = s.depots[k] || { water: 0, fuel: 0, items: [] };
+      s.depots[k].items.push(genItem(s, { relic: true, noConsumables: true }));
+      say(s, "It lands to the " + dirTo(s, x, y) + ", smoking. It is marked on your map.", "good");
+      return;
+    }
+  }
+  SWITCHES.push(["oddweather", "Odd weather"]);
+  NOTES.push(
+    (s) => (s.oddSeen || []).length ? [{ label: "Strange weather seen", text: s.oddSeen.map((id) => byId(X().list, id).name).join(", ") + "." }] : []
+  );
+
   // src/rules/index.js
   var api = {
     worldNotes,
+    stormOfNow: stormOf,
     askErrand,
     claimErrand,
     errandInfo,

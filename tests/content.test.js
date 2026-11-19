@@ -46,6 +46,7 @@ for (const x of C.pantheon.gifts) need(C.pantheon.domains.some((d) => d.id === x
 for (const x of C.artifacts.powers) { x.mods.forEach((m) => mods.push(['artifact ' + x.id, m])); for (const b of x.for) need(bases.has(b), 'artifact ' + x.id + ' names unknown base ' + b); }
 for (const x of C.regionRares.list) (x.mods || []).forEach((m) => mods.push(['region rare ' + x.id, m]));
 for (const x of [...C.townCulture.trades, ...C.townCulture.customs, ...C.townCulture.rares]) { (x.mods || []).forEach((m) => mods.push(['town ' + x.id, m])); for (const b of (x.stock || { bases: [] }).bases) need(bases.has(b), 'town ' + x.id + ' stocks unknown base ' + b); }
+for (const x of C.oddWeather.list) x.mods.forEach((m) => mods.push(['weather ' + x.id, m]));
 for (const a of C.abilities) a.mods(12).forEach((m) => mods.push(['ability ' + a.id, m]));
 for (const [who, m] of mods) { need(known.has(m.stat), who + ' modifies unknown stat ' + m.stat); need(['add', 'mul', 'max'].includes(m.op), who + ' has unknown op ' + m.op); }
 if (errs.length) { console.log('content problems:\n  ' + errs.join('\n  ')); process.exit(1); }
