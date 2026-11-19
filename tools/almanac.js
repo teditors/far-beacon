@@ -73,7 +73,7 @@ section('Races', ['races'], () => {
   line();
   table(
     ['Race', 'Ability changes', 'Trait', 'Modifiers', 'Names'],
-    C.races.map((r) => [
+    C.races.filter((r) => !r.hybrid).map((r) => [
       r.name + (r.exotic ? ' (exotic)' : ''),
       Object.keys(r.adj)
         .map((k) => k + ' ' + (r.adj[k] > 0 ? '+' : '') + r.adj[k])
@@ -522,6 +522,23 @@ section('Town life', ['townLife'], () => {
   line();
   line('Townsfolk tell rumours that mark real places (a lair, the far artifact, a sweet spring, the shrine, a rare country), teach a trait of the lost people, or warn of a creature; otherwise one of ' + X.flavour.length + ' lines of talk. Graves carry one of ' + X.epitaphs.length + ' epitaphs.');
   line();
+});
+
+section('The roster', ['roster'], () => {
+  const X = C.roster,
+    hy = C.races.filter((r) => r.hybrid);
+  line(
+    'A world offers ' + X.offer.races.join(' to ') + ' races and ' + X.offer.classes.join(' to ') + ' classes, drawn with weights: usual ' + X.offer.weights.usual + ', hybrid ' + X.offer.weights.hybrid + ', exotic ' + X.offer.weights.exotic + '. The first traveller is one of them.',
+  );
+  line();
+  line('Hybrids (' + hy.length + '), one for every pair of usual races, with half of each parent\'s modifiers: ' + hy.map((r) => r.name).join(', ') + '.');
+  line();
+  const extra = (e) => [e.start ? 'starts with ' + JSON.stringify(e.start) : '', e.tick ? 'each hour ' + JSON.stringify(e.tick) : '', e.onKill ? 'on a kill ' + JSON.stringify(e.onKill) : ''].filter(Boolean).join('; ');
+  table(['Race', 'Kind', 'Beyond its modifiers'], C.races.filter((r) => !r.hybrid && extra(r)).map((r) => [r.name, r.exotic ? 'exotic' : 'usual', extra(r)]));
+  table(
+    ['Class', 'Fight moves', 'Beyond its modifiers'],
+    C.classes.filter((c) => c.moves || extra(c)).map((c) => [c.name, (c.moves || []).map((m) => m.label + ' (' + m.hint + ')').join('; '), extra(c)]),
+  );
 });
 
 /* ---------------- writing it out ---------------- */

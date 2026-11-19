@@ -1759,7 +1759,7 @@
       list: [
         { id: "plated", text: "It is plated like a beetle: hard to hit.", ac: 3 },
         { id: "thief", text: "It goes for your water: every hit spills some.", steal: 1 },
-        { id: "regen", text: "Its wounds close as you watch.", regen: 2 },
+        { id: "regen", text: "Its wounds close as you watch.", regen: 1 },
         { id: "twice", text: "It strikes twice, quick and light.", attacks: 2, hpMul: 0.75 },
         { id: "nocturnal", text: "It hunts only by night. By day it sleeps.", nightOnly: true },
         { id: "frost", text: "Its touch is ice.", chill: 10 },
@@ -2613,6 +2613,393 @@
     }
   };
 
+  // src/content/roster.js
+  var roster_default = {
+    roster: {
+      offer: { races: [2, 12], classes: [8, 20], weights: { usual: 3, hybrid: 0.2, exotic: 0.6 } },
+      races: [
+        {
+          id: "gnome",
+          name: "Gnome",
+          adj: { int: 2, str: -2 },
+          text: "Quick-witted and small: understands things in no time, and spots traps before they spring.",
+          mods: [
+            { stat: "studyTime", op: "mul", value: 0.4 },
+            { stat: "trapSafe", op: "add", value: 1 },
+            { stat: "carryCap", op: "add", value: -2 }
+          ],
+          names: ["Fizz", "Nim", "Bodkin", "Tilly", "Wren", "Pocket", "Sprocket", "Mab"]
+        },
+        {
+          id: "highlander",
+          name: "Highlander",
+          adj: { con: 1, str: 1, cha: -1 },
+          text: "Raised on the slopes: hills and mountains slow you less, and the cold bites less.",
+          mods: [
+            { stat: "moveTime.hill", op: "mul", value: 0.75 },
+            { stat: "moveTime.mountain", op: "mul", value: 0.85 },
+            { stat: "cold", op: "mul", value: 0.9 }
+          ],
+          names: ["Ewan", "Morag", "Fergus", "Isla", "Callum", "Ailsa", "Ruairi", "Kenna"]
+        },
+        {
+          id: "riverfolk",
+          name: "Riverfolk",
+          adj: { dex: 1, con: 1, int: -1 },
+          text: "Born on boats: you cross rivers in a fraction of the time, never get chilled by wading, and know sweet water from foul.",
+          mods: [
+            { stat: "moveTime.river", op: "mul", value: 0.4 },
+            { stat: "wetSafe", op: "add", value: 1 },
+            { stat: "tasteWater", op: "add", value: 1 }
+          ],
+          names: ["Reed", "Marsh", "Tamsin", "Eddy", "Brook", "Wade", "Nell", "Kip"]
+        },
+        {
+          id: "plainsfolk",
+          name: "Plainsfolk",
+          adj: { dex: 1, wis: 1, str: -1 },
+          text: "Of the open country: quick over flat ground, and you see a long way.",
+          mods: [
+            { stat: "moveTime.plain", op: "mul", value: 0.85 },
+            { stat: "surveyRadius", op: "add", value: 1 }
+          ],
+          names: ["Tarek", "Saba", "Oren", "Lia", "Dov", "Hana", "Amos", "Zara"]
+        },
+        {
+          id: "forestborn",
+          name: "Forest-born",
+          adj: { wis: 1, dex: 1, cha: -1 },
+          text: "Raised under trees: woods hardly slow you, and you always find wood to burn.",
+          mods: [
+            { stat: "moveTime.forest", op: "mul", value: 0.6 },
+            { stat: "gatherYield", op: "add", value: 1 }
+          ],
+          names: ["Ash", "Rowan", "Briar", "Hazel", "Alder", "Fern", "Sorrel", "Oakes"]
+        },
+        {
+          id: "ghoulkin",
+          exotic: true,
+          name: "Ghoul-kin",
+          adj: { con: 2, str: 1, cha: -3 },
+          text: "Something in your blood is not alive. Foul water does not hurt you, and every kill closes your wounds. You rest badly.",
+          mods: [
+            { stat: "foulSafe", op: "add", value: 1 },
+            { stat: "restGain", op: "mul", value: 0.8 }
+          ],
+          onKill: { hp: 4 },
+          names: ["Morrow", "Grim", "Sallow", "Vesk", "Hollis", "Murk"]
+        },
+        {
+          id: "halfgiant",
+          exotic: true,
+          name: "Half-giant",
+          adj: { str: 3, con: 1, dex: -2, int: -1 },
+          text: "Huge: you carry a great load and shrug off blows, but you are slow and thirsty.",
+          mods: [
+            { stat: "carryCap", op: "add", value: 10 },
+            { stat: "ac", op: "add", value: 1 },
+            { stat: "moveTime", op: "mul", value: 1.1 },
+            { stat: "waterDrain", op: "mul", value: 1.15 }
+          ],
+          names: ["Haldor", "Brunna", "Tor", "Gunnhild", "Ymir", "Skadi"]
+        },
+        {
+          id: "scalekin",
+          exotic: true,
+          name: "Scalekin",
+          adj: { con: 2, dex: 1, cha: -2, wis: -1 },
+          text: "Cold-blooded and scaled: armored, and you need little water, but cold is deadly to you.",
+          mods: [
+            { stat: "ac", op: "add", value: 2 },
+            { stat: "waterDrain", op: "mul", value: 0.7 },
+            { stat: "cold", op: "mul", value: 1.4 }
+          ],
+          names: ["Ssark", "Ithis", "Kesh", "Zathra", "Vex", "Sorrith"]
+        },
+        {
+          id: "crowfolk",
+          exotic: true,
+          name: "Crowfolk",
+          adj: { dex: 2, wis: 1, str: -2, con: -1 },
+          text: "Light-boned and sharp-eyed: you see far, find things others miss, and climb like you half fly. You carry little.",
+          mods: [
+            { stat: "surveyRadius", op: "add", value: 2 },
+            { stat: "luck", op: "add", value: 0.1 },
+            { stat: "moveTime.mountain", op: "mul", value: 0.6 },
+            { stat: "carryCap", op: "add", value: -3 }
+          ],
+          names: ["Caw", "Glint", "Sable", "Rook", "Jet", "Quill"]
+        },
+        {
+          id: "wispborn",
+          exotic: true,
+          name: "Wispborn",
+          adj: { wis: 2, cha: 1, con: -3 },
+          text: "Half light, half person. You see in the dark and creatures do not hunt you, but you are frail.",
+          mods: [
+            { stat: "nightSight", op: "add", value: 1 },
+            { stat: "quiet", op: "add", value: 1 }
+          ],
+          tick: { mana: 0.5 },
+          names: ["Flicker", "Glimmer", "Lume", "Will", "Shimmer", "Gleam"]
+        }
+      ],
+      classes: [
+        {
+          id: "knight",
+          name: "Knight",
+          text: "Armored and steady. Starts with a sword and a mail shirt.",
+          kit: ["sword", "mail"],
+          hd: 10,
+          fight: "Shield wall: the next blow is blunted.",
+          mods: [{ stat: "carryCap", op: "add", value: 2 }],
+          moves: [
+            { id: "shieldwall", label: "Shield wall", hint: "blunt the next blow by 5, 3 stamina", cost: { stamina: 3 }, ward: 5 }
+          ]
+        },
+        {
+          id: "barbarian",
+          name: "Barbarian",
+          text: "Hard to kill and hard to chill. Starts with a great axe.",
+          kit: ["axe"],
+          hd: 12,
+          fight: "Rage: a huge blow that costs you blood.",
+          mods: [{ stat: "cold", op: "mul", value: 0.85 }],
+          moves: [{ id: "rage", label: "Rage", hint: "+6 damage, 2 hit points", cost: { hp: 2 }, strike: { flat: 6 } }]
+        },
+        {
+          id: "monk",
+          name: "Monk",
+          text: "Trained in body and breath: every step costs less, and blows find you less. Starts with a staff.",
+          kit: ["staff"],
+          hd: 8,
+          fight: "Flurry: two strikes at once.",
+          mods: [
+            { stat: "staminaCost", op: "mul", value: 0.88 },
+            { stat: "ac", op: "add", value: 1 }
+          ],
+          moves: [{ id: "flurry", label: "Flurry", hint: "strike twice, 6 stamina", cost: { stamina: 6 }, strike: { times: 2 } }]
+        },
+        {
+          id: "hunter",
+          name: "Hunter",
+          text: "Lives off the land: every kill gives water and strength. Starts with a spear and a cloak.",
+          kit: ["spear", "cloak"],
+          hd: 8,
+          fight: "Aimed shot: a careful throw that rarely misses.",
+          mods: [{ stat: "surveyRadius", op: "add", value: 1 }],
+          onKill: { water: 1, stamina: 15 },
+          moves: [
+            {
+              id: "aimed",
+              label: "Aimed shot",
+              hint: "to hit +4, 3 stamina",
+              cost: { stamina: 3 },
+              strike: { hit: 4, ranged: true }
+            }
+          ]
+        },
+        {
+          id: "bard",
+          name: "Bard",
+          text: "Everyone likes a bard: things cost less in town, and luck follows you. Starts with a dagger and 15 coin.",
+          kit: ["dagger"],
+          hd: 6,
+          start: { coin: 15 },
+          fight: "Lullaby: the creature loses its turn.",
+          mods: [
+            { stat: "town.buy", op: "mul", value: 0.8 },
+            { stat: "luck", op: "add", value: 0.15 }
+          ],
+          moves: [{ id: "lullaby", label: "Lullaby", hint: "it loses its turn, 8 stamina", cost: { stamina: 8 }, stun: true }]
+        },
+        {
+          id: "merchant",
+          name: "Merchant",
+          text: "Buys cheap, sells dear, and carries a lot. Starts with a frame pack and 40 coin.",
+          kit: ["framepack"],
+          hd: 6,
+          start: { coin: 40 },
+          fight: "Nothing special.",
+          mods: [
+            { stat: "town.buy", op: "mul", value: 0.75 },
+            { stat: "town.sellRate", op: "mul", value: 1.4 },
+            { stat: "carryCap", op: "add", value: 2 }
+          ]
+        },
+        {
+          id: "scout",
+          name: "Scout",
+          text: "Fast and watchful: quicker everywhere, sees further, and can always slip away. Starts with boots and a spyglass.",
+          kit: ["boots", "spyglass"],
+          hd: 6,
+          fight: "Vanish: get away, every time.",
+          mods: [
+            { stat: "moveTime", op: "mul", value: 0.9 },
+            { stat: "surveyRadius", op: "add", value: 1 }
+          ],
+          moves: [{ id: "vanish", label: "Vanish", hint: "always escape, 3 stamina", cost: { stamina: 3 }, flee: true }]
+        },
+        {
+          id: "herbalist",
+          name: "Herbalist",
+          text: "Knows every leaf: your wounds slowly mend as you go, and foul water does you no harm. Starts with a staff and two salves.",
+          kit: ["staff", "salve", "salve"],
+          hd: 6,
+          fight: "Nothing special.",
+          mods: [{ stat: "foulSafe", op: "add", value: 1 }],
+          tick: { hp: 0.5 }
+        },
+        {
+          id: "pilgrim",
+          name: "Pilgrim",
+          text: "Walks far on little: needs less water, and always knows where the shrine lies. Starts with a staff and a waterskin.",
+          kit: ["staff", "waterskin"],
+          hd: 8,
+          fight: "Nothing special.",
+          mods: [
+            { stat: "waterDrain", op: "mul", value: 0.85 },
+            { stat: "shrineSense", op: "add", value: 1 }
+          ]
+        },
+        {
+          id: "druid",
+          name: "Druid",
+          text: "Speaks for the wild: woods hardly slow you and give more wood. Starts with a staff.",
+          kit: ["staff"],
+          hd: 6,
+          caster: "wis",
+          manaPer: 3,
+          fight: "Spells: Thorns and Regrow.",
+          mods: [
+            { stat: "moveTime.forest", op: "mul", value: 0.7 },
+            { stat: "gatherYield", op: "add", value: 1 }
+          ],
+          moves: [
+            {
+              id: "thorns",
+              label: "Thorns",
+              hint: "+1d8, from afar, 2 mana",
+              cost: { mana: 2 },
+              strike: { dice: [1, 8], ranged: true }
+            },
+            { id: "regrow", label: "Regrow", hint: "heal 2d4, 3 mana", cost: { mana: 3 }, heal: [2, 4] }
+          ]
+        },
+        {
+          id: "sapper",
+          name: "Sapper",
+          text: "Handy with rope and fire: finds traps, searches fast. Starts with a rope, a compass and 3 fuel.",
+          kit: ["rope", "compass"],
+          hd: 8,
+          start: { fuel: 3 },
+          fight: "Firepot: burns fuel to burn the creature.",
+          mods: [
+            { stat: "trapSafe", op: "add", value: 1 },
+            { stat: "searchTime", op: "mul", value: 0.6 }
+          ],
+          moves: [
+            {
+              id: "firepot",
+              label: "Firepot",
+              hint: "+2d6, 1 fuel",
+              cost: { fuel: 1 },
+              strike: { dice: [2, 6], ranged: true, hit: 2 }
+            }
+          ]
+        },
+        {
+          id: "duelist",
+          name: "Duelist",
+          text: "A blade and nerve. Starts with a sword and boots.",
+          kit: ["sword", "boots"],
+          hd: 8,
+          fight: "Riposte: blunt the next blow and strike back at once.",
+          mods: [{ stat: "hit", op: "add", value: 1 }],
+          moves: [
+            { id: "riposte", label: "Riposte", hint: "blunt 3, then strike, 4 stamina", cost: { stamina: 4 }, ward: 3, strike: {} }
+          ]
+        },
+        {
+          id: "necromancer",
+          exotic: true,
+          name: "Necromancer",
+          text: "Draws on death: your spells feed on what they hurt, and every kill restores you. The cold finds you easily. Starts with a dagger and a lantern.",
+          kit: ["dagger", "lantern"],
+          hd: 4,
+          caster: "int",
+          manaPer: 3,
+          fight: "Drain life: hurt it and heal yourself by as much.",
+          mods: [{ stat: "cold", op: "mul", value: 1.15 }],
+          onKill: { mana: 2, hp: 2 },
+          moves: [
+            {
+              id: "drain",
+              label: "Drain life",
+              hint: "+1d8, heals you, 2 mana",
+              cost: { mana: 2 },
+              strike: { dice: [1, 8], ranged: true },
+              drain: true
+            }
+          ]
+        },
+        {
+          id: "witch",
+          exotic: true,
+          name: "Witch",
+          text: "Luck bends around you. Starts with a staff and a flask.",
+          kit: ["staff", "flask"],
+          hd: 6,
+          caster: "cha",
+          manaPer: 3,
+          fight: "Hex: the creature loses its turn and you strike.",
+          mods: [{ stat: "luck", op: "add", value: 0.25 }],
+          moves: [{ id: "hex", label: "Hex", hint: "it loses its turn, 2 mana", cost: { mana: 2 }, stun: true }]
+        },
+        {
+          id: "dowser",
+          exotic: true,
+          name: "Dowser",
+          text: "Water speaks to you: you always know the way to the nearest spring, sweet from foul, and your skins fill a little by themselves. Starts with a staff.",
+          kit: ["staff"],
+          hd: 6,
+          fight: "Nothing special.",
+          mods: [
+            { stat: "wellfinder", op: "add", value: 1 },
+            { stat: "tasteWater", op: "add", value: 1 }
+          ],
+          tick: { water: 0.2 }
+        },
+        {
+          id: "lamplighter",
+          exotic: true,
+          name: "Lamplighter",
+          text: "Your lantern never burns oil. Starts with a lantern and 3 fuel.",
+          kit: ["lantern"],
+          hd: 6,
+          start: { fuel: 3 },
+          fight: "Flare: blind the creature for a turn, with 1 fuel.",
+          mods: [{ stat: "fuelUse", op: "mul", value: 0 }],
+          moves: [{ id: "flare", label: "Flare", hint: "it loses its turn, 1 fuel", cost: { fuel: 1 }, stun: true }]
+        },
+        {
+          id: "gravedigger",
+          exotic: true,
+          name: "Gravedigger",
+          text: "At home among the dead: ruins give up more to you, and every kill puts heart into you. Starts with a spear.",
+          kit: ["spear"],
+          hd: 8,
+          fight: "Nothing special.",
+          mods: [
+            { stat: "searchTime", op: "mul", value: 0.7 },
+            { stat: "luck", op: "add", value: 0.15 }
+          ],
+          onKill: { hp: 3 }
+        }
+      ]
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -2638,7 +3025,8 @@
     relics_default,
     lairs_default,
     farfinds_default,
-    townlife_default
+    townlife_default,
+    roster_default
   );
 
   // src/rules/core.js
@@ -3353,9 +3741,9 @@
   if (!C.classes.some((r) => r.exotic)) C.classes.push(...C.exoticClasses);
   on("worldBorn", (s, d) => {
     if (d.off.exotics) return;
-    const r = stream(s.seed, "exotics"), X2 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
-    if (r() < X2.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
-    if (r() < X2.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
+    const r = stream(s.seed, "exotics"), X3 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
+    if (r() < X3.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
+    if (r() < X3.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
     sworn(s);
   });
   function sworn(s) {
@@ -3499,8 +3887,8 @@
     if (!sp || s.off.specials || sp.named) return NONE;
     const key = s.seed + ":" + sp.name;
     if (!(key in cache)) {
-      const r = stream(s.seed, "special:" + sp.name), X2 = C.specials;
-      cache[key] = r() < X2.chance ? X2.list[Math.floor(r() * X2.list.length)].id : null;
+      const r = stream(s.seed, "special:" + sp.name), X3 = C.specials;
+      cache[key] = r() < X3.chance ? X3.list[Math.floor(r() * X3.list.length)].id : null;
     }
     return cache[key] ? byId(C.specials.list, cache[key]) : NONE;
   }
@@ -3581,7 +3969,7 @@
   }
   function strike(s, o) {
     o = o || {};
-    const c = foe(s), sp = spOf(s, c), wp = weaponOf(s), sc = scores(s.char), ab = wp.w.finesse || o.ranged ? Math.max(amod(sc.dex), amod(sc.str)) : amod(sc.str), d20 = roll(s, 1, 20), tot = d20 + prof(s) + ab + stat(s, "hit", 0);
+    const c = foe(s), sp = spOf(s, c), wp = weaponOf(s), sc = scores(s.char), ab = wp.w.finesse || o.ranged ? Math.max(amod(sc.dex), amod(sc.str)) : amod(sc.str), d20 = roll(s, 1, 20), tot = d20 + prof(s) + ab + stat(s, "hit", 0) + (o.hit || 0);
     if (d20 === 1 || d20 !== 20 && tot < c.ac) {
       clog(s, "You miss the " + sp.name + ".");
       return false;
@@ -3614,6 +4002,7 @@
     }
     const f = formOf(s, c), xp = f.xp * c.tier;
     s.combat = null;
+    emit(s, "killed", { sp: c.sp, tier: c.tier });
     s.creatures = s.creatures.filter((x) => x.id !== c.id);
     say(s, lead + " for " + dmg + ". The " + sp.name + " is dead. " + xp + " experience.", "good");
     if (sp.rare === "gilded" || srand(s) < 0.25) {
@@ -3654,7 +4043,11 @@
       clog(s, "The " + sp.name + " misses you.");
       return;
     }
-    const dmg = Math.max(1, roll(s, f.dice[0], f.dice[1]) + c.add);
+    let dmg = Math.max(1, roll(s, f.dice[0], f.dice[1]) + c.add);
+    if (s.combat && s.combat.ward) {
+      dmg = Math.max(0, dmg - s.combat.ward);
+      s.combat.ward = 0;
+    }
     p.hp -= dmg;
     let extra = "";
     if (f.chill && !s.off.warmth) {
@@ -3937,13 +4330,13 @@
     const st = m.sites[idx(x, y)];
     if (st) st.seen = true;
   }
-  function findSite(s, kind) {
+  function findSite(s, kind2) {
     const m = worldMap(s);
-    for (const k in m.sites) if (m.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: m.sites[k] };
+    for (const k in m.sites) if (m.sites[k].kind === kind2) return { x: k % W, y: Math.floor(k / W), st: m.sites[k] };
     return null;
   }
-  function findHere(s, kind) {
-    for (const k in s.sites) if (s.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: s.sites[k] };
+  function findHere(s, kind2) {
+    for (const k in s.sites) if (s.sites[k].kind === kind2) return { x: k % W, y: Math.floor(k / W), st: s.sites[k] };
     return null;
   }
   function itemValue(it) {
@@ -3964,7 +4357,7 @@
   var buyPrice = (s, it) => Math.max(1, Math.round(itemValue(it) * stat(s, "town.buy", 1) * stat(s, "town.buy." + wareKind(it), 1)));
   function makeQuest(s, r, townP, vaultP, a0, goalP) {
     const Q = C.quest, T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
-    const race = pick(C.races.filter((e) => !e.exotic)), q = s.quest = {
+    const race = pick(C.races.filter((e) => !e.exotic && !e.roster)), q = s.quest = {
       key: pick(Q.keys),
       vault: pick(Q.vaults),
       relic: pick(Q.relics) + " of the " + s.civ.name,
@@ -4322,6 +4715,7 @@
   }
 
   // src/rules/actions.js
+  var foulHarm = (s) => stat(s, "foulSafe", 0) > 0 ? 0 : 1;
   function moveCost(s, x, y) {
     const tt = s.terrain[idx(x, y)], tn = TERR[tt], g = terrainInfo(s, tt);
     let mins = g.moveMin * stat(s, "moveTime", 1) * stat(s, "moveTime." + tn, 1);
@@ -4382,7 +4776,8 @@
     }
     const g = groundHere(s);
     s.lastGround = s.terrain[here(s)];
-    if (g.wet && !s.off.warmth) s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
+    if (g.wet && !s.off.warmth && stat(s, "wetSafe", 0) <= 0)
+      s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
     if (s.lastGround !== was && s.lastGround >= 3 && s.lastGround < WALL)
       say(
         s,
@@ -4508,11 +4903,11 @@
     return true;
   }
   function restHour(s) {
-    const gain = (atCamp(s) ? 22 : inShelter(s) ? 14 : 8) * stat(s, "restGain", 1);
+    const gain2 = (atCamp(s) ? 22 : inShelter(s) ? 14 : 8) * stat(s, "restGain", 1);
     advance(s, 60, "rest");
     if (!s.over && s.player.water > 0) {
       const p = s.player;
-      p.stamina = Math.min(100, p.stamina + gain);
+      p.stamina = Math.min(100, p.stamina + gain2);
       p.hp = Math.min(p.hpMax, p.hp + (atCamp(s) ? 2 + p.level : inShelter(s) ? 1 : 0));
       p.mana = Math.min(p.manaMax, p.mana + (atCamp(s) ? 2 : 1));
     }
@@ -4583,7 +4978,7 @@
       const g = topUp(s, st.water);
       st.water -= g;
       if (st.foulWater && g > 0) {
-        s.player.stamina = Math.max(0, s.player.stamina - 15);
+        s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 15);
         say(s, "The cistern water is foul. You feel it at once.", "bad");
       }
       say(
@@ -4597,7 +4992,7 @@
       st.known = true;
       advance(s, 15, "rest");
       if (st.foul) {
-        s.player.stamina = Math.max(0, s.player.stamina - 5);
+        s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 5);
         say(s, "You taste it and gag. This spring is foul. Boil it, or drink and pay for it.", "bad");
         return true;
       }
@@ -4607,7 +5002,7 @@
     }
     advance(s, 15, "rest");
     if (st.foul) {
-      s.player.stamina = Math.max(0, s.player.stamina - 15);
+      s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 15);
       say(s, "You fill up with foul water and feel it at once.", "bad");
     } else say(s, "You fill up at the spring.");
     topUp(s);
@@ -4859,22 +5254,22 @@
     }
     return true;
   }
-  function transfer(s, kind, n) {
-    if (s.over || kind !== "water" && kind !== "fuel") return false;
+  function transfer(s, kind2, n) {
+    if (s.over || kind2 !== "water" && kind2 !== "fuel") return false;
     const p = s.player;
     if (n > 0) {
-      const a = Math.min(n, p[kind]);
+      const a = Math.min(n, p[kind2]);
       if (a <= 0) return false;
-      depotHere(s, true)[kind] += a;
-      p[kind] -= a;
+      depotHere(s, true)[kind2] += a;
+      p[kind2] -= a;
     } else {
       const d = depotHere(s);
       if (!d) return false;
-      let a = Math.min(-n, d[kind]);
-      if (kind === "water") a = Math.min(a, Math.max(0, waterCap(s) - p.water));
+      let a = Math.min(-n, d[kind2]);
+      if (kind2 === "water") a = Math.min(a, Math.max(0, waterCap(s) - p.water));
       if (a <= 0) return false;
-      d[kind] -= a;
-      p[kind] += a;
+      d[kind2] -= a;
+      p[kind2] += a;
       tidy(s);
     }
     return true;
@@ -4923,6 +5318,7 @@
         a.push({ id: "smite", label: "Smite", hint: "+1d8, 2 mana" });
         a.push({ id: "mend", label: "Mend", hint: "heal, 3 mana" });
       }
+      for (const f of ACTIONS) f(s, st, a);
       a.push({ id: "flee", label: "Flee", hint: "-5 stamina" });
       return a;
     }
@@ -5061,7 +5457,7 @@
     return { terrain, sites, seen: blank(1) };
   };
   GENERATORS.vault = (s, rec) => {
-    const lvl = rec.level, last2 = lvl === rec.levels, kind = rec.floor, r = stream(s.seed, "area:vault" + lvl), terrain = blank(WALL), sites = {}, depots = {}, creatures = [];
+    const lvl = rec.level, last2 = lvl === rec.levels, kind2 = rec.floor, r = stream(s.seed, "area:vault" + lvl), terrain = blank(WALL), sites = {}, depots = {}, creatures = [];
     const rooms = [];
     for (let tries = 0; tries < 300 && rooms.length < 9; tries++) {
       const w = 4 + Math.floor(r() * 5), h = 4 + Math.floor(r() * 5), x = 2 + Math.floor(r() * (W - w - 4)), y = 2 + Math.floor(r() * (H - h - 4));
@@ -5128,12 +5524,12 @@
       guard(far, 2).warden = true;
     } else sites[idx(far.cx, far.cy)] = { kind: "stairsDown" };
     guard(pickRoom(), Math.max(1, tier - 1));
-    if (kind === "guard") guard(pickRoom(), tier);
-    if (kind === "loot") {
+    if (kind2 === "guard") guard(pickRoom(), tier);
+    if (kind2 === "loot") {
       const o = pickRoom(), p = spot(o), it = genItem(s, { relic: true, noConsumables: true });
       depots[idx(p.x, p.y)] = { water: 0, fuel: 0, items: [it], coin: 6 + Math.floor(r() * 12), store: true };
     }
-    if (kind === "trap")
+    if (kind2 === "trap")
       for (let n = 0; n < 4 && corridor.length; n++) {
         const i = corridor.splice(Math.floor(r() * corridor.length), 1)[0];
         if (!sites[i]) sites[i] = { kind: "trap", sprung: false };
@@ -5527,7 +5923,7 @@
       }
       return a.slice(0, n);
     };
-    const usual = (list) => list.filter((e) => !e.exotic);
+    const usual = (list) => list.filter((e) => !e.exotic && !e.roster);
     s.offer = { races: draw(usual(C.races), C.offer.races), classes: draw(usual(C.classes), C.offer.classes) };
     s.species = makeSpecies(s, rnd("species"), biome.id);
     s.speciesByBiome = { [biome.id]: s.species.map((_, i) => i) };
@@ -5883,7 +6279,7 @@
   };
   on("worldBorn", (s, d) => {
     if (d.off.towns) return;
-    const r = stream(s.seed, "townCulture"), pick = (a) => a[Math.floor(r() * a.length)], X2 = T(), rare = r() < X2.rareChance ? pick(X2.rares) : null, trade = pick(X2.trades), custom = pick(X2.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
+    const r = stream(s.seed, "townCulture"), pick = (a) => a[Math.floor(r() * a.length)], X3 = T(), rare = r() < X3.rareChance ? pick(X3.rares) : null, trade = pick(X3.trades), custom = pick(X3.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
     s.townCulture = { trade: trade.id, custom: custom.id, rare: rare ? rare.id : null };
     if (trade.stock)
       for (let i = 0; i < trade.stock.n; i++) s.town.stock.push(makeItem(s, pick(trade.stock.bases), null, null, true));
@@ -5972,22 +6368,22 @@
   }
   function askErrand(s) {
     if (s.over || s.off.errands || s.errand || !atInn(s)) return false;
-    const pick = (a) => a[Math.floor(srand(s) * a.length)], X2 = E(), home = s.world.home, near = [];
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], X3 = E(), home = s.world.home, near = [];
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
         const id = regionId(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows));
         if (id !== HOME && mapOf2(s, id)) near.push(id);
       }
     if (!near.length) return false;
-    const kind = pick(X2.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X2.liarChance, giver = pick(X2.givers) + (liar ? " " + pick(X2.tells) : ""), reward = kind.reward[0] + Math.floor(srand(s) * (kind.reward[1] - kind.reward[0] + 1)), e = { kind: kind.id, area, liar, giver, reward, done: false };
+    const kind2 = pick(X3.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X3.liarChance, giver = pick(X3.givers) + (liar ? " " + pick(X3.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
     let fill2 = { region: byId(C.biomes, rec.biome).name, reward };
-    if (kind.id === "slay") {
+    if (kind2.id === "slay") {
       const live = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
       if (!live.length) return false;
       const c = pick(live);
       Object.assign(e, { cid: c.id, x: c.x, y: c.y });
       fill2.species = s.species[c.sp].name;
-      fill2.victims = pick(kind.victims);
+      fill2.victims = pick(kind2.victims);
     } else {
       const spots = Object.keys(m.sites).filter((k2) => ["ruin", "cave", "cache"].includes(m.sites[k2].kind));
       if (!spots.length) return false;
@@ -5995,8 +6391,8 @@
       Object.assign(e, { x: k % W, y: Math.floor(k / W) });
       fill2.site = m.sites[k].kind === "ruin" ? "ruin" : siteName(s, m.sites[k]);
       fill2.asite = aOrAn(fill2.site);
-      if (kind.id === "fetch") {
-        fill2.thing = pick(kind.things);
+      if (kind2.id === "fetch") {
+        fill2.thing = pick(kind2.things);
         const it = makeItem(s, "parcel", null, null, true);
         it.label = fill2.thing.charAt(0).toUpperCase() + fill2.thing.slice(1);
         it.errand = true;
@@ -6005,7 +6401,7 @@
     }
     const where = homePos(s, area, e.x, e.y);
     fill2.dir = dirFrom(worldPos(s), where.x, where.y);
-    e.text = kind.text.replace(/\{(\w+)\}/g, (_, k) => fill2[k]);
+    e.text = kind2.text.replace(/\{(\w+)\}/g, (_, k) => fill2[k]);
     s.errand = e;
     for (let j = -1; j <= 1; j++)
       for (let i = -1; i <= 1; i++) {
@@ -6130,12 +6526,12 @@
       h *= 60;
     }
     h = ((h + deg) % 360 + 360) % 360;
-    const C2 = (1 - Math.abs(2 * l - 1)) * s, X2 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X2, 0] : h < 120 ? [X2, C2, 0] : h < 180 ? [0, C2, X2] : h < 240 ? [0, X2, C2] : h < 300 ? [X2, 0, C2] : [C2, 0, X2];
+    const C2 = (1 - Math.abs(2 * l - 1)) * s, X3 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X3, 0] : h < 120 ? [X3, C2, 0] : h < 180 ? [0, C2, X3] : h < 240 ? [0, X3, C2] : h < 300 ? [X3, 0, C2] : [C2, 0, X3];
     const out = Math.round((r1 + m) * 255) << 16 | Math.round((g1 + m) * 255) << 8 | Math.round((b1 + m) * 255);
     return num ? out : "#" + out.toString(16).padStart(6, "0");
   }
   function makeBiome(seed, n) {
-    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X2 = G(), cl = pick(X2.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X2.landforms), wa = pick(suits(X2.waters)), wo = pick(suits(X2.woodlands)), gr = pick(suits(X2.grounds)), rare = r() < X2.rareChance ? pick(X2.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
+    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X3 = G(), cl = pick(X3.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X3.landforms), wa = pick(suits(X3.waters)), wo = pick(suits(X3.woodlands)), gr = pick(suits(X3.grounds)), rare = r() < X3.rareChance ? pick(X3.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
     const forest = copy(wo.forest);
     if (rare && rare.treeMul) {
       forest.tree.h = forest.tree.h.map((h) => h * rare.treeMul);
@@ -6184,11 +6580,11 @@
   SKETCHERS.push((seed, world, off) => {
     if (off.biomegen) return;
     ensureBiomes(seed);
-    const r = stream(seed, "biomegen:sketch"), X2 = G();
+    const r = stream(seed, "biomegen:sketch"), X3 = G();
     for (let cy = 0; cy < world.rows; cy++)
       for (let cx = 0; cx < world.cols; cx++) {
-        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X2.perWorld);
-        if (roll2 < (home ? X2.homeChance : X2.regionChance))
+        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X3.perWorld);
+        if (roll2 < (home ? X3.homeChance : X3.regionChance))
           world.sketch[cy * world.cols + cx].biome = ofSeed(seed) + (home ? 0 : which);
       }
   });
@@ -6376,20 +6772,20 @@
   Object.assign(SITE_NAME, { folk: "townsperson", grave: "grave" });
   on("worldBorn", (s, d) => {
     if (d.off.townlife) return;
-    const r = stream(s.seed, "townlife"), X2 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
-    let t = X2.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X2.sizes[0];
-    for (const e of X2.sizes)
+    const r = stream(s.seed, "townlife"), X3 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
+    let t = X3.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X3.sizes[0];
+    for (const e of X3.sizes)
       if ((t -= e.w) < 0) {
         size = e;
         break;
       }
-    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X2.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
+    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X3.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
     while (want.length < size.services && rest2.length) want.push(rest2.splice(Math.floor(r() * rest2.length), 1)[0]);
-    const ls = X2.lessons.map((l) => l.id);
+    const ls = X3.lessons.map((l) => l.id);
     s.town.size = size.id;
     s.town.services = want;
     s.town.lessons = [];
-    while (s.town.lessons.length < X2.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
+    while (s.town.lessons.length < X3.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
     if (size.stock < 0) s.town.stock.splice(5, -size.stock);
     for (let i = 0; i < size.stock; i++) {
       const b = pick(["sword", "spear", "cloak", "boots", "framepack", "compass", "spyglass", "salve", "tonic", "draught"]);
@@ -6399,7 +6795,7 @@
   var oldTown = GENERATORS.town;
   GENERATORS.town = (s, rec) => {
     if (s.off.townlife || !s.town.size) return oldTown(s, rec);
-    const X2 = L2(), size = byId(X2.sizes, s.town.size), r = stream(s.seed, "area:town2"), rw = stream(s.seed, "town:walls"), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring(x, y), used = new Array(W * H).fill(0);
+    const X3 = L2(), size = byId(X3.sizes, s.town.size), r = stream(s.seed, "area:town2"), rw = stream(s.seed, "town:walls"), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring(x, y), used = new Array(W * H).fill(0);
     if (walled)
       for (let i = 0; i < W; i++)
         for (const [x, y] of [
@@ -6459,7 +6855,7 @@
       { kind: "elder" },
       { kind: "inn" },
       { kind: "shop" },
-      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X2.services, id).role }))
+      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X3.services, id).role }))
     ];
     let li = 0;
     for (const q of queue) if (order[li]) build(order[li++], q);
@@ -6467,7 +6863,7 @@
       const lot = order[li++], sp = s.species.filter((x) => !x.named), fill3 = (t) => t.replace("{storm}", byId(C.biomes, s.biome).storm.name).replace("{species}", sp.length ? pick(sp).name : "wolf").replace("{dir}", pick(["north", "south", "east", "west"])).replace("{site}", pick(["spring", "ruin", "cave"])), nm = byId(C.races, s.town.race).names;
       lot.cells.forEach(([x, y], i) => {
         if ((x + y) % 2 === 0 && i % 2 === 0)
-          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill3(pick(X2.epitaphs)) };
+          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill3(pick(X3.epitaphs)) };
       });
     }
     const fill2 = { hamlet: 0.35, village: 0.55, town: 0.8, city: 1 }[size.id];
@@ -6479,7 +6875,7 @@
       let nearDoor = false;
       for (const key in sites) if (Math.abs(key % W - x) + Math.abs(Math.floor(key / W) - y) <= 1) nearDoor = true;
       if (nearDoor) continue;
-      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X2.folkRoles) };
+      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X3.folkRoles) };
       n++;
     }
     if (walled) {
@@ -6499,7 +6895,7 @@
     rec.entry = { x: c, y: H - 2 };
     return { terrain, sites, seen: new Array(W * H).fill(1) };
   };
-  var svc = (kind) => byId(L2().services, kind);
+  var svc = (kind2) => byId(L2().services, kind2);
   var learned = (s) => s.char && s.char.lessons || [];
   var blessed = (s) => s.blessUntil && s.time < s.blessUntil;
   var dirOf = (s, area, x, y) => {
@@ -6694,7 +7090,7 @@
     }
   });
   ACTIONS.push((s, st, a) => {
-    if (!st || s.area !== "town" || s.off.townlife) return;
+    if (!st || s.combat || s.area !== "town" || s.off.townlife) return;
     if (svc(st.kind)) a.push({ id: "townAsk", section: st.kind, label: "Talk to " + st.name, hint: svc(st.kind).role });
     if (st.kind === "folk") a.push({ id: "townAsk", section: "folk", label: "Talk to " + st.name, hint: st.role });
   });
@@ -6722,9 +7118,168 @@
     return out;
   });
 
+  // src/rules/roster.js
+  var X2 = () => C.roster;
+  var OLD_USUAL = ["human", "dwarf", "elf", "halfling", "orc"];
+  if (!C.races.some((r) => r.roster)) {
+    for (const r of X2().races) C.races.push(Object.assign({ roster: true }, r));
+    for (const c of X2().classes) C.classes.push(Object.assign({ roster: true }, c));
+    const usual = C.races.filter((r) => !r.exotic && (OLD_USUAL.includes(r.id) || r.roster)), half = (m) => Object.assign({}, m, { value: m.op === "mul" ? 1 + (m.value - 1) / 2 : m.op === "add" ? m.value / 2 : m.value });
+    for (let i = 0; i < usual.length; i++)
+      for (let j = i + 1; j < usual.length; j++) {
+        const a = usual[i], b = usual[j], adj = {};
+        for (const k of /* @__PURE__ */ new Set([...Object.keys(a.adj), ...Object.keys(b.adj)])) {
+          const v = Math.round(((a.adj[k] || 0) + (b.adj[k] || 0)) / 2);
+          if (v) adj[k] = v;
+        }
+        C.races.push({
+          id: "hy-" + a.id + "-" + b.id,
+          roster: true,
+          hybrid: true,
+          name: a.name.replace(/^Half-/, "") + "-" + b.name.replace(/^Half-/, "").toLowerCase(),
+          adj,
+          text: "Half " + a.name.toLowerCase() + ", half " + b.name.toLowerCase() + ": a little of what each is good at.",
+          mods: [...a.mods.map(half), ...b.mods.map(half)],
+          names: a.names.slice(0, 4).concat(b.names.slice(0, 4))
+        });
+      }
+  }
+  var kind = (e) => e.hybrid ? "hybrid" : e.exotic ? "exotic" : "usual";
+  on("worldBorn", (s, d) => {
+    if (d.off.roster) return;
+    const r = stream(s.seed, "roster"), W8 = X2().offer.weights, draw = (list, n) => {
+      const pool = list.slice(), out = [];
+      while (out.length < n && pool.length) {
+        let t = pool.reduce((a, e) => a + W8[kind(e)], 0) * r();
+        let k = 0;
+        for (; k < pool.length - 1; k++) if ((t -= W8[kind(pool[k])]) < 0) break;
+        out.push(pool.splice(k, 1)[0].id);
+      }
+      return out;
+    }, [r0, r1] = X2().offer.races, [c0, c1] = X2().offer.classes;
+    s.offer = {
+      races: draw(
+        C.races.filter((e) => !(d.off.exotics && e.exotic)),
+        r0 + Math.floor(r() * (r1 - r0 + 1))
+      ),
+      classes: draw(
+        C.classes.filter((e) => !(d.off.exotics && e.exotic)),
+        c0 + Math.floor(r() * (c1 - c0 + 1))
+      )
+    };
+    const ch = s.char;
+    ch.race = s.offer.races[Math.floor(r() * s.offer.races.length)];
+    ch.cls = s.offer.classes[Math.floor(r() * s.offer.classes.length)];
+    ch.name = byId(C.races, ch.race).names[Math.floor(r() * byId(C.races, ch.race).names.length)];
+    spawn(s, ch);
+    setOut(s);
+  });
+  function setOut(s) {
+    if (s.off.roster) return;
+    const p = s.player;
+    for (const e of [byId(C.races, s.char.race), byId(C.classes, s.char.cls)]) {
+      const st = e.start;
+      if (!st) continue;
+      p.coin += st.coin || 0;
+      p.fuel += st.fuel || 0;
+      p.water = Math.min(waterCap(s), p.water + (st.water || 0));
+    }
+    if (byId(C.classes, s.char.cls).sworn) {
+      s.pact = s.god;
+      s.pactBroken = false;
+    }
+  }
+  on("did", (s, d) => {
+    if (d.id === "setCharacter" || d.id === "nextTraveller") setOut(s);
+  });
+  var parts = (s) => s.char ? [byId(C.races, s.char.race), byId(C.classes, s.char.cls)] : [];
+  function gain(s, g) {
+    const p = s.player;
+    if (g.hp) p.hp = Math.min(p.hpMax, p.hp + g.hp);
+    if (g.water) p.water = Math.min(waterCap(s), p.water + g.water);
+    if (g.stamina) p.stamina = Math.min(100, p.stamina + g.stamina);
+    if (g.mana) p.mana = Math.min(p.manaMax, p.mana + g.mana);
+  }
+  SYSTEMS.push({
+    id: "roster",
+    fn(s, dt, ctx) {
+      for (const e of parts(s))
+        if (e.tick) {
+          const t = Object.assign({}, e.tick);
+          if (ctx.activity !== "move") delete t.stamina;
+          for (const k in t) t[k] *= dt;
+          gain(s, t);
+        }
+    }
+  });
+  on("killed", (s) => {
+    if (s.off.roster) return;
+    for (const e of parts(s))
+      if (e.onKill) {
+        gain(s, e.onKill);
+        say(s, "The kill puts heart into you.", "good");
+      }
+  });
+  var movesOf = (s) => s.off.roster ? [] : byId(C.classes, s.char.cls).moves || [];
+  function classMove(s, id) {
+    if (!s.combat || s.over) return false;
+    const mv = movesOf(s).find((m) => m.id === id) || movesOf(s)[0];
+    if (!mv) return false;
+    const p = s.player, cost = mv.cost || {}, short = Object.keys(cost).find((k) => k === "hp" ? p.hp <= cost.hp : (p[k] || 0) < cost[k]);
+    if (short) {
+      say(s, "Not enough " + (short === "hp" ? "strength left" : short) + " for that.");
+      return false;
+    }
+    for (const k in cost) p[k] -= cost[k];
+    const c = foe(s), before = c.hp;
+    if (mv.ward) s.combat.ward = mv.ward;
+    if (mv.heal) {
+      const n = roll(s, mv.heal[0], mv.heal[1]);
+      p.hp = Math.min(p.hpMax, p.hp + n);
+      say(s, mv.label + ": " + n + " hit points back.", "good");
+    }
+    if (mv.flee) {
+      c.cool = 5;
+      s.combat = null;
+      say(s, "You are gone before the " + spOf(s, c).name + " knows it.", "good");
+      return true;
+    }
+    if (mv.strike)
+      for (let k = 0; k < (mv.strike.times || 1) && s.combat; k++)
+        strike(s, {
+          dmg: (mv.strike.dice ? roll(s, mv.strike.dice[0], mv.strike.dice[1]) : 0) + (mv.strike.flat || 0),
+          hit: mv.strike.hit,
+          ranged: mv.strike.ranged
+        });
+    if (mv.drain) {
+      const dealt = Math.max(0, before - Math.max(0, c.hp));
+      p.hp = Math.min(p.hpMax, p.hp + dealt);
+      if (dealt) say(s, "You drink " + dealt + " of its life.", "good");
+    }
+    if (!s.combat) return true;
+    s.combat.round++;
+    if (mv.stun) say(s, "The " + spOf(s, c).name + " reels, and does nothing.", "good");
+    else enemyTurn(s);
+    return true;
+  }
+  ACTIONS.push((s, st, a) => {
+    if (!s.combat) return;
+    for (const m of movesOf(s)) a.push({ id: "classMove", arg: m.id, label: m.label, hint: m.hint });
+  });
+  SWITCHES.push(["roster", "Many races and classes"]);
+  NOTES.push(
+    (s) => s.off.roster ? [] : [
+      {
+        label: "Peoples and callings of this world",
+        text: s.offer.races.length + " races and " + s.offer.classes.length + " classes: " + s.offer.races.map((id) => byId(C.races, id).name).join(", ") + "; " + s.offer.classes.map((id) => byId(C.classes, id).name).join(", ") + "."
+      }
+    ]
+  );
+
   // src/rules/index.js
   var api = {
     worldNotes,
+    classMove,
     serviceInfo,
     useService,
     stormOfNow: stormOf,
@@ -6981,8 +7536,8 @@
   var INDOOR_TS = 4;
   var TOWN_TS = (2 * R.TOWN_R + 1) * TS / R.W;
   var G2 = { ts: TS, half: HALF };
-  function setGeometry(kind) {
-    G2.ts = kind === "town" ? TOWN_TS : kind === "vault" ? INDOOR_TS : TS;
+  function setGeometry(kind2) {
+    G2.ts = kind2 === "town" ? TOWN_TS : kind2 === "vault" ? INDOOR_TS : TS;
     G2.half = R.W * G2.ts / 2;
   }
   var FR = { x: 0, y: 0, z: 0 };
@@ -7422,8 +7977,8 @@
     return g;
   }
   function applyFrame() {
-    const kind = R.areaRec(V.S).kind, inTown = kind === "town" && V.townAt;
-    if (kind === "vault") return;
+    const kind2 = R.areaRec(V.S).kind, inTown = kind2 === "town" && V.townAt;
+    if (kind2 === "vault") return;
     FR.x = inTown ? V.townAt.x : 0;
     FR.y = inTown ? V.townAt.y : 0;
     FR.z = inTown ? V.townAt.z : 0;
@@ -7587,20 +8142,20 @@
     dispose(dynGroup);
     dynGroup = new THREE.Group();
     scene.add(dynGroup);
-    const kind = R.areaRec(V.S).kind;
-    if (kind === "vault") return drawArea(V.S.area, "vault");
+    const kind2 = R.areaRec(V.S).kind;
+    if (kind2 === "vault") return drawArea(V.S.area, "vault");
     drawArea(R.outdoorRec(V.S).id, "region");
     if (V.townAt && V.S.areas.town) drawArea("town", "town");
   }
-  function drawArea(id, kind) {
-    const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind !== "region", ts = kind === "town" ? TOWN_TS : kind === "vault" ? G2.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
+  function drawArea(id, kind2) {
+    const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind2 !== "region", ts = kind2 === "town" ? TOWN_TS : kind2 === "vault" ? G2.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
     const at = (k, dx, dz) => {
       let x = (k % R.W + 0.5) * ts - half + (dx || 0), z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0), y = 0;
-      if (kind === "town") {
+      if (kind2 === "town") {
         x += V.townAt.x;
         z += V.townAt.z;
         y = V.townAt.y + 0.08;
-      } else if (kind === "region") y = V.base.height(x, z);
+      } else if (kind2 === "region") y = V.base.height(x, z);
       return [x - FR.x, y - FR.y, z - FR.z];
     };
     const ground = (x, z) => V.terrain.height(x, z);
@@ -7622,7 +8177,7 @@
       }
     if (indoor)
       for (const k in map.sites) {
-        const st = map.sites[k], [x, y, z] = at(+k), g = interiorSite(st, ts, kind === "town");
+        const st = map.sites[k], [x, y, z] = at(+k), g = interiorSite(st, ts, kind2 === "town");
         g.position.set(x, y, z);
         if (st.kind === "elder" || st.kind === "inn" || st.kind === "shop") g.rotation.y = Math.atan2(P2.x - x, P2.z - z);
         dynGroup.add(g);
@@ -8024,7 +8579,7 @@
           {
             cls: "act",
             type: "button",
-            on: () => a.id === "pactAsk" ? openPact() : a.id === "townAsk" ? openTown(a.section) : act(() => R[a.id](V.S))
+            on: () => a.id === "pactAsk" ? openPact() : a.id === "townAsk" ? openTown(a.section) : act(() => R[a.id](V.S, a.arg))
           },
           [el("span", { text: a.label }), el("small", { text: a.hint })]
         )
@@ -8202,26 +8757,26 @@
       el("div", { cls: "row" }, acts)
     ]);
   }
-  function resRow(kind, label) {
+  function resRow(kind2, label) {
     const d = R.depotHere(V.S);
     return el("li", { cls: "item" }, [
       el("div", null, [
         el("strong", { text: label }),
         el("p", {
-          text: "Carrying " + f1(V.S.player[kind]) + (kind === "water" ? " of " + f1(R.waterCap(V.S)) : "") + " \xB7 stored here " + f1(d ? d[kind] : 0)
+          text: "Carrying " + f1(V.S.player[kind2]) + (kind2 === "water" ? " of " + f1(R.waterCap(V.S)) : "") + " \xB7 stored here " + f1(d ? d[kind2] : 0)
         })
       ]),
       el("div", { cls: "row" }, [
         btn("Leave 1", () => {
-          act(() => R.transfer(V.S, kind, 1));
+          act(() => R.transfer(V.S, kind2, 1));
           openPack();
         }),
         btn("Take 1", () => {
-          act(() => R.transfer(V.S, kind, -1));
+          act(() => R.transfer(V.S, kind2, -1));
           openPack();
         }),
         btn("Take all", () => {
-          act(() => R.transfer(V.S, kind, -99));
+          act(() => R.transfer(V.S, kind2, -99));
           openPack();
         })
       ])

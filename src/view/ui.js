@@ -61,7 +61,7 @@ function render() {
         {
           cls: 'act',
           type: 'button',
-          on: () => (a.id === 'pactAsk' ? openPact() : a.id === 'townAsk' ? openTown(a.section) : act(() => R[a.id](V.S))),
+          on: () => (a.id === 'pactAsk' ? openPact() : a.id === 'townAsk' ? openTown(a.section) : act(() => R[a.id](V.S, a.arg))),
         },
         [el('span', { text: a.label }), el('small', { text: a.hint })],
       ),

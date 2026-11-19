@@ -114,8 +114,9 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
     need(!R.byId(R.C.races, s.town.race).exotic, 'seed ' + i + ': a town of an exotic race');
     if ([...s.offer.races, ...s.offer.classes].some((id) => R.byId([...R.C.races, ...R.C.classes], id).exotic)) n++;
   }
-  need(n > 15 && n < 60, 'exotics offered in ' + n + ' of 100 worlds');
+  need(n > 15, 'exotics offered in ' + n + ' of 100 worlds');
   const s = findSeed((s) => s.offer.classes.includes('votary'));
+  s.pact = null;
   const ch = R.makeChar(Math.random, s);
   ch.cls = 'votary';
   R.setCharacter(s, ch);
@@ -295,5 +296,33 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   for (const k of ['heal', 'bless', 'learn', 'mapHome', 'mule']) need(used[k], 'no service ' + k + ' was ever used');
   need(!R.newGame(5, { townlife: true }).town.size, 'NO=townlife still rolled a town size');
 }
+// The roster: many races and classes per world, moves that work, gains on a kill.
+{
+  for (let i = 1; i <= 60; i++) {
+    const s = R.newGame(i), o = s.offer;
+    need(o.races.length >= 2 && o.races.length <= 12 && o.classes.length >= 8 && o.classes.length <= 20, 'seed ' + i + ': offers ' + o.races.length + ' races and ' + o.classes.length + ' classes');
+    need(o.races.includes(s.char.race) && o.classes.includes(s.char.cls), 'seed ' + i + ': the first traveller is not of this world');
+  }
+  // every class with moves: each move can be used in a fight
+  for (const cls of R.C.classes.filter((c) => c.moves)) {
+    const s = R.newGame(7), c = s.creatures[0];
+    s.char.cls = cls.id;
+    s.player.mana = s.player.manaMax = 20; s.player.fuel = 5; s.player.stamina = 100; s.player.hp = s.player.hpMax = 50;
+    for (const m of cls.moves) {
+      s.combat = { cid: c.id, lines: [], round: 0 };
+      c.hp = c.hpMax = 999;
+      need(R.actions(s).some((a) => a.id === 'classMove' && a.arg === m.id), cls.id + ': no button for ' + m.id);
+      need(R.classMove(s, m.id), cls.id + ': ' + m.id + ' did not work');
+    }
+  }
+  const s = R.newGame(9), c = s.creatures[0];
+  s.char.cls = 'hunter';
+  s.player.water = 0;
+  s.combat = { cid: c.id, lines: [], round: 0 };
+  c.hp = 1;
+  for (let k = 0; k < 50 && s.combat; k++) { s.player.hp = 50; R.attack(s); c.hp = Math.min(c.hp, 1); }
+  need(s.player.water >= 1, 'a hunter got no water from a kill');
+  need(R.newGame(5, { roster: true }).offer.classes.length === 3, 'NO=roster still offers many classes');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster');

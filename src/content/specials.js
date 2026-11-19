@@ -8,7 +8,7 @@ export default {
     list: [
       { id: 'plated', text: 'It is plated like a beetle: hard to hit.', ac: 3 },
       { id: 'thief', text: 'It goes for your water: every hit spills some.', steal: 1 },
-      { id: 'regen', text: 'Its wounds close as you watch.', regen: 2 },
+      { id: 'regen', text: 'Its wounds close as you watch.', regen: 1 },
       { id: 'twice', text: 'It strikes twice, quick and light.', attacks: 2, hpMul: 0.75 },
       { id: 'nocturnal', text: 'It hunts only by night. By day it sleeps.', nightOnly: true },
       { id: 'frost', text: 'Its touch is ice.', chill: 10 },

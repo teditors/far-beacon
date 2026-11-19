@@ -16,6 +16,12 @@ function fight(s) {
     s.player.hp = s.player.hpMax = 999;
     R.attack(s);
   }
+  // a weak traveller against a creature that heals: a real player would leave; the test just finishes it
+  const c = R.foe(s);
+  if (c) {
+    c.hp = 1;
+    for (let g = 0; s.combat && !s.over && g < 400; g++) R.attack(s);
+  }
 }
 const take = (s) => {
   const d = R.depotHere(s);

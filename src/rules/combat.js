@@ -1,7 +1,7 @@
 /* Creatures and turn-based combat. */
 import { depotHere } from './actions.js';
 import { scores } from './character.js';
-import { C, H, byId, clamp, idx, say, srand, stream } from './core.js';
+import { C, H, byId, clamp, emit, idx, say, srand, stream } from './core.js';
 import { aOrAn } from './core.js';
 import { genItem, isCursed, itemName, makeItem } from './items.js';
 import { dirTo, lineOfSight, passable, sightRadius } from './map.js';
@@ -109,7 +109,7 @@ function strike(s, o) {
     sc = scores(s.char),
     ab = wp.w.finesse || o.ranged ? Math.max(amod(sc.dex), amod(sc.str)) : amod(sc.str),
     d20 = roll(s, 1, 20),
-    tot = d20 + prof(s) + ab + stat(s, 'hit', 0);
+    tot = d20 + prof(s) + ab + stat(s, 'hit', 0) + (o.hit || 0);
   if (d20 === 1 || (d20 !== 20 && tot < c.ac)) {
     clog(s, 'You miss the ' + sp.name + '.');
     return false;
@@ -143,6 +143,7 @@ function hurt(s, c, dmg, lead) {
   const f = formOf(s, c),
     xp = f.xp * c.tier;
   s.combat = null;
+  emit(s, 'killed', { sp: c.sp, tier: c.tier });
   s.creatures = s.creatures.filter((x) => x.id !== c.id);
   say(s, lead + ' for ' + dmg + '. The ' + sp.name + ' is dead. ' + xp + ' experience.', 'good');
   if (sp.rare === 'gilded' || srand(s) < 0.25) {
@@ -187,7 +188,12 @@ function enemyBlow(s, c) {
     clog(s, 'The ' + sp.name + ' misses you.');
     return;
   }
-  const dmg = Math.max(1, roll(s, f.dice[0], f.dice[1]) + c.add);
+  let dmg = Math.max(1, roll(s, f.dice[0], f.dice[1]) + c.add);
+  if (s.combat && s.combat.ward) {
+    // a blow blunted by a shield wall or a parry
+    dmg = Math.max(0, dmg - s.combat.ward);
+    s.combat.ward = 0;
+  }
   p.hp -= dmg;
   let extra = '';
   if (f.chill && !s.off.warmth) {

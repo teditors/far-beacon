@@ -2,6 +2,40 @@
 
 Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
 
+## C2.3: many races and classes
+
+**What it is.** A world now offers 2 to 12 races and 8 to 20 classes (it was 3 and 3), drawn with usual ones three
+times as likely as an exotic one, and the first traveller is one of them. New races: Gnome, Highlander, Riverfolk
+(wades rivers fast and never gets chilled doing it), Plainsfolk and Forest-born; exotic Ghoul-kin (foul water does not
+hurt, every kill heals), Half-giant, Scalekin, Crowfolk and Wispborn (creatures do not hunt you, mana comes back as
+you walk). Every pair of usual races also has a **hybrid** (45 of them: Dwarf-elf, Gnome-riverfolk...), made from
+half of each parent. New classes, each with something of its own in a fight or on the road:
+- Knight (Shield wall blunts the next blow), Barbarian (Rage: a huge blow paid in blood), Monk (Flurry: two
+  strikes), Hunter (Aimed shot; every kill gives water and strength), Bard (Lullaby: the creature loses its turn;
+  cheaper in town), Merchant (40 coin, buys cheap and sells dear), Scout (Vanish: always escape), Herbalist (wounds
+  mend as you walk, foul water is harmless), Pilgrim, Druid (Thorns and Regrow), Sapper (Firepot burns fuel to burn
+  the creature), Duelist (Riposte);
+- exotic: Necromancer (Drain life heals you by the damage; kills restore you), Witch (Hex), Dowser (water skins fill
+  a little by themselves), Lamplighter (the lantern burns no oil; Flare), Gravedigger.
+
+**In play.** The character screen is a real choice now, and different every world. Bot win rate, sets 5 / 1000 /
+2000: 23, 18, 22 with it; 21, 35, 27 without (63 vs 83). Harder: many new classes are frail (d6 hit dice, a dagger),
+and the bot picks at random. The bot now uses a class's fight move when it can afford it.
+
+**Commits.** "Many races and classes". Switch: `roster`.
+
+**Shared bricks.** `emit(s, 'killed', { sp, tier })` from combat; `s.combat.ward` (a blow blunted); `strike` takes a
+`hit` bonus; new stats `wetSafe`, `foulSafe` and `moveTime.river`; the actions hook now also runs in a fight; the
+view passes a button's `arg` to its action (`classMove(s, id)`).
+
+**Choices made without asking.**
+- New races and classes are added to the content lists by the piece's module, marked `roster`; the old draw and the
+  town's people still use only the old ones, so `NO=roster` gives back the old game exactly.
+- Regenerating creatures (C1 piece 6) now heal 1 a round, not 2: a frail class could not out-damage a plated,
+  regenerating guardian. The quest test now finishes a fight that goes on too long.
+
+**Verdict: pearl.** Balance needs a look later (perhaps frail classes start with more water or coin).
+
 ## C2.2: town life
 
 **What it is.** A town now has a size: a hamlet, a village, a market town or a city. Its layout is generated:

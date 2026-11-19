@@ -110,9 +110,11 @@ import './relics.js';
 import './lairs.js';
 import './farfinds.js';
 import { serviceInfo, useService } from './townlife.js';
+import { classMove } from './roster.js';
 
 const api = {
   worldNotes,
+  classMove,
   serviceInfo,
   useService,
   stormOfNow: stormOf,

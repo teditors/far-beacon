@@ -39,6 +39,8 @@ import { advance } from './systems.js';
 import { ACTIONS as ACTION_HOOKS } from './hooks.js';
 
 /* Actions */
+// How much foul water hurts you: not at all if something makes you safe from it.
+const foulHarm = (s) => (stat(s, 'foulSafe', 0) > 0 ? 0 : 1);
 function moveCost(s, x, y) {
   const tt = s.terrain[idx(x, y)],
     tn = TERR[tt],
@@ -111,7 +113,8 @@ function move(s, dx, dy, at) {
   }
   const g = groundHere(s);
   s.lastGround = s.terrain[here(s)];
-  if (g.wet && !s.off.warmth) s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
+  if (g.wet && !s.off.warmth && stat(s, 'wetSafe', 0) <= 0)
+    s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
   if (s.lastGround !== was && s.lastGround >= 3 && s.lastGround < WALL)
     say(
       s,
@@ -346,7 +349,7 @@ function fill(s) {
     const g = topUp(s, st.water);
     st.water -= g;
     if (st.foulWater && g > 0) {
-      s.player.stamina = Math.max(0, s.player.stamina - 15);
+      s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 15);
       say(s, 'The cistern water is foul. You feel it at once.', 'bad');
     }
     say(
@@ -363,7 +366,7 @@ function fill(s) {
     st.known = true;
     advance(s, 15, 'rest');
     if (st.foul) {
-      s.player.stamina = Math.max(0, s.player.stamina - 5);
+      s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 5);
       say(s, 'You taste it and gag. This spring is foul. Boil it, or drink and pay for it.', 'bad');
       return true;
     }
@@ -373,7 +376,7 @@ function fill(s) {
   }
   advance(s, 15, 'rest');
   if (st.foul) {
-    s.player.stamina = Math.max(0, s.player.stamina - 15);
+    s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 15);
     say(s, 'You fill up with foul water and feel it at once.', 'bad');
   } else say(s, 'You fill up at the spring.');
   topUp(s);
@@ -701,6 +704,7 @@ function actions(s) {
       a.push({ id: 'smite', label: 'Smite', hint: '+1d8, 2 mana' });
       a.push({ id: 'mend', label: 'Mend', hint: 'heal, 3 mana' });
     }
+    for (const f of ACTION_HOOKS) f(s, st, a); // fight moves added by pieces
     a.push({ id: 'flee', label: 'Flee', hint: '-5 stamina' });
     return a;
   }

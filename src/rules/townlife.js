@@ -435,7 +435,7 @@ on('did', (s, d) => {
 });
 
 ACTIONS.push((s, st, a) => {
-  if (!st || s.area !== 'town' || s.off.townlife) return;
+  if (!st || s.combat || s.area !== 'town' || s.off.townlife) return;
   if (svc(st.kind)) a.push({ id: 'townAsk', section: st.kind, label: 'Talk to ' + st.name, hint: svc(st.kind).role });
   if (st.kind === 'folk') a.push({ id: 'townAsk', section: 'folk', label: 'Talk to ' + st.name, hint: st.role });
 });

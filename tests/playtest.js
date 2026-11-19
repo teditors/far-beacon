@@ -46,6 +46,7 @@ function maintain(s,stats){ const p=s.player,st=R.siteHere(s);
 }
 function fight(s,stats){ let g=0; while(s.combat&&!s.over&&g++<80){ const p=s.player,a=R.actions(s).map(x=>x.id),f=R.foe(s);
   if(p.hp<=p.hpMax*0.3){ const salve=p.items.find(i=>i.base==='salve'); if(salve){R.useItem(s,salve.id);continue;} if(a.includes('mend')&&p.mana>=3){R.mend(s);continue;} if(!s.quest||f.bound||f.key){} R.flee(s); stats.flees++; continue; }
+  { const mv=R.actions(s).find(x=>x.id==='classMove'&&x.arg!=='vanish'); if(mv&&p.stamina>30&&R.classMove(s,mv.arg)) continue; } // a class's own fight move, when it can afford one
   if(a.includes('firebolt')&&p.mana>=2)R.firebolt(s); else if(a.includes('smite')&&p.mana>=2)R.smite(s); else if(a.includes('power')&&p.stamina>30)R.power(s); else R.attack(s);} }
 // Inside the town or the locked place: walk the shortest open path, one step per turn.
 function bfsStep(s,tx,ty){ const prev=new Array(W*W).fill(-1),start=s.player.y*W+s.player.x,goal=ty*W+tx,q=[start]; prev[start]=start;
