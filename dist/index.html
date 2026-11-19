@@ -1751,6 +1751,26 @@
     }
   };
 
+  // src/content/specials.js
+  var specials_default = {
+    specials: {
+      chance: 0.5,
+      list: [
+        { id: "plated", text: "It is plated like a beetle: hard to hit.", ac: 3 },
+        { id: "thief", text: "It goes for your water: every hit spills some.", steal: 1 },
+        { id: "regen", text: "Its wounds close as you watch.", regen: 2 },
+        { id: "twice", text: "It strikes twice, quick and light.", attacks: 2, hpMul: 0.75 },
+        { id: "nocturnal", text: "It hunts only by night. By day it sleeps.", nightOnly: true },
+        { id: "frost", text: "Its touch is ice.", chill: 10 },
+        { id: "venom", text: "Its bite saps your strength.", venom: 8 },
+        { id: "swift", text: "It is very fast: almost impossible to outrun.", fleePenalty: 0.3 },
+        { id: "coward", text: "It is a coward: badly hurt, it runs.", fleesAt: 0.35 },
+        { id: "hoarder", text: "It hoards coin in its lair.", coin: 15 },
+        { id: "huge", text: "It is huge: twice as hard to kill.", hpMul: 2 }
+      ]
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -1765,7 +1785,8 @@
     years_default,
     pantheon_default,
     artifacts_default,
-    regionrares_default
+    regionrares_default,
+    specials_default
   );
 
   // src/rules/core.js
@@ -2545,6 +2566,25 @@
     return true;
   }
 
+  // src/rules/hooks.js
+  var NOTES = [];
+  var SWITCHES = [];
+  var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
+
+  // src/rules/specials.js
+  var cache = {};
+  function specialOf(s, sp) {
+    if (!sp || s.off.specials || sp.named) return NONE;
+    const key = s.seed + ":" + sp.name;
+    if (!(key in cache)) {
+      const r = stream(s.seed, "special:" + sp.name), X = C.specials;
+      cache[key] = r() < X.chance ? X.list[Math.floor(r() * X.list.length)].id : null;
+    }
+    return cache[key] ? byId(C.specials.list, cache[key]) : NONE;
+  }
+  var NONE = {};
+  SWITCHES.push(["specials", "Creature specials"]);
+
   // src/rules/combat.js
   function makeSpecies(s, r, biomeId) {
     const cr = C.creature, pick = (a) => a[Math.floor(r() * a.length)], out = [], used = {};
@@ -2576,7 +2616,7 @@
     }
   }
   function makeCreature(s, id, spi, x, y, tier) {
-    const sp = s.species[spi], f = byId(C.creature.forms, sp.form), eld = sp.rare === "elder" ? 1.5 : 1, hp = Math.round((f.hp[0] + f.hp[1] * (tier - 1)) * eld);
+    const sp = s.species[spi], f = byId(C.creature.forms, sp.form), eld = sp.rare === "elder" ? 1.5 : 1, spc = specialOf(s, sp), hp = Math.max(1, Math.round((f.hp[0] + f.hp[1] * (tier - 1)) * eld * (spc.hpMul || 1)));
     return {
       id,
       sp: spi,
@@ -2585,7 +2625,7 @@
       tier,
       hp,
       hpMax: hp,
-      ac: f.ac + tier,
+      ac: f.ac + tier + (spc.ac || 0),
       hit: f.hit + tier + (eld > 1 ? 1 : 0),
       add: tier - 1,
       cool: 0,
@@ -2608,7 +2648,7 @@
     c.seen = true;
     clog(
       s,
-      (enemyFirst ? aOrAn(sp.name, true) + " is on you! " : aOrAn(sp.name, true) + " bars your way. ") + (sp.met ? "" : formOf(s, c).text),
+      (enemyFirst ? aOrAn(sp.name, true) + " is on you! " : aOrAn(sp.name, true) + " bars your way. ") + (sp.met ? "" : formOf(s, c).text + (specialOf(s, sp).text ? " " + specialOf(s, sp).text : "")),
       "bad"
     );
     sp.met = true;
@@ -2638,6 +2678,14 @@
   function hurt(s, c, dmg, lead) {
     const sp = spOf(s, c);
     c.hp -= dmg;
+    const spc = specialOf(s, sp);
+    if (c.hp > 0 && spc.fleesAt && c.hp < c.hpMax * spc.fleesAt && !c.key && !c.warden) {
+      s.combat = null;
+      s.creatures = s.creatures.filter((x) => x.id !== c.id);
+      say(s, lead + " for " + dmg + ". The " + sp.name + " turns tail and is gone.", "good");
+      gainXp(s, Math.round(formOf(s, c).xp * c.tier / 2));
+      return;
+    }
     if (c.hp > 0) {
       clog(s, lead + " for " + dmg + ".");
       return;
@@ -2652,7 +2700,7 @@
       say(s, "It leaves behind: " + itemName(it) + ". Open Pack to take it.", "good");
     }
     {
-      const n = c.tier * roll(s, 1, 6);
+      const n = c.tier * roll(s, 1, 6) + (spc.coin || 0);
       s.player.coin += n;
       say(s, "You find " + n + " coin on it.");
     }
@@ -2673,7 +2721,13 @@
   function enemyTurn(s) {
     const c = foe(s);
     if (!c || s.over) return;
-    const sp = spOf(s, c), f = formOf(s, c), p = s.player, d20 = roll(s, 1, 20);
+    const spc = specialOf(s, spOf(s, c));
+    if (spc.regen && c.hp < c.hpMax) c.hp = Math.min(c.hpMax, c.hp + spc.regen);
+    for (let k = 1; k < (spc.attacks || 1) && s.combat && !s.over; k++) enemyBlow(s, c);
+    if (s.combat && !s.over) enemyBlow(s, c);
+  }
+  function enemyBlow(s, c) {
+    const spc = specialOf(s, spOf(s, c)), sp = spOf(s, c), f = formOf(s, c), p = s.player, d20 = roll(s, 1, 20);
     if (d20 === 1 || d20 !== 20 && d20 + c.hit < playerAC(s)) {
       clog(s, "The " + sp.name + " misses you.");
       return;
@@ -2688,6 +2742,18 @@
     if (f.venom) {
       p.stamina = Math.max(0, p.stamina - f.venom);
       extra = " Venom saps you.";
+    }
+    if (spc.chill && !s.off.warmth) {
+      p.warmth = Math.max(0, p.warmth - spc.chill);
+      extra = " Cold floods in.";
+    }
+    if (spc.venom) {
+      p.stamina = Math.max(0, p.stamina - spc.venom);
+      extra = " Venom saps you.";
+    }
+    if (spc.steal && p.water > 0) {
+      p.water = Math.max(0, p.water - spc.steal);
+      extra += " Water spills from your skins.";
     }
     if (p.hp <= 0) {
       p.hp = 0;
@@ -2775,7 +2841,7 @@
   function flee(s) {
     const c = foe(s);
     if (!c || s.over) return false;
-    const f = formOf(s, c), sp = spOf(s, c), ch = s.char.cls === "rogue" ? 1 : 0.65 + amod(scores(s.char).dex) * 0.05 - (f.fleePenalty || 0);
+    const f = formOf(s, c), sp = spOf(s, c), ch = s.char.cls === "rogue" ? 1 : 0.65 + amod(scores(s.char).dex) * 0.05 - (f.fleePenalty || 0) - (specialOf(s, sp).fleePenalty || 0);
     s.player.stamina = Math.max(0, s.player.stamina - 5);
     if (srand(s) < ch) {
       c.cool = 5;
@@ -2796,7 +2862,7 @@
       if (c.cool > 0) c.cool--;
       let d = Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y));
       let moved = false;
-      const chase = sp.rare !== "docile" && c.cool === 0 && stat(s, "quiet", 0) <= 0 && (sp.temper === "hunter" && d <= 5 && srand(s) < 0.6 || sp.temper === "territorial" && d <= 2) && lineOfSight(s, c.x, c.y, p.x, p.y);
+      const chase = sp.rare !== "docile" && c.cool === 0 && stat(s, "quiet", 0) <= 0 && !(specialOf(s, sp).nightOnly && clock(s).isDay) && (sp.temper === "hunter" && d <= 5 && srand(s) < 0.6 || sp.temper === "territorial" && d <= 2) && lineOfSight(s, c.x, c.y, p.x, p.y);
       if (chase && d > 0) {
         const dx = Math.sign(p.x - c.x), dy = Math.sign(p.y - c.y), nx = Math.abs(p.x - c.x) >= Math.abs(p.y - c.y) ? c.x + dx : c.x, ny = nx === c.x ? c.y + dy : c.y;
         if (s.terrain[idx(nx, ny)] !== 2 && passable(s, nx, ny)) {
@@ -2810,7 +2876,7 @@
         c.seen = true;
         say(
           s,
-          (dirTo(s, c.x, c.y) === "here" ? "Something moves right beside you" : "Something moves to the " + dirTo(s, c.x, c.y)) + ": " + aOrAn(sp.name) + ". " + (sp.rare === "docile" ? "It watches you without interest." : byId(C.creature.tempers, sp.temper).text),
+          (dirTo(s, c.x, c.y) === "here" ? "Something moves right beside you" : "Something moves to the " + dirTo(s, c.x, c.y)) + ": " + aOrAn(sp.name) + ". " + (sp.rare === "docile" ? "It watches you without interest." : byId(C.creature.tempers, sp.temper).text) + (specialOf(s, sp).text ? " " + specialOf(s, sp).text : ""),
           sp.rare === "docile" ? "" : "bad"
         );
       }
@@ -4181,11 +4247,6 @@
     ];
   }
 
-  // src/rules/hooks.js
-  var NOTES = [];
-  var SWITCHES = [];
-  var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
-
   // src/rules/year.js
   var Y = () => C.year;
   var yearOf = (s) => s.year ? byId(Y().common, s.year) || byId(Y().rare, s.year) : null;
@@ -4866,6 +4927,7 @@
   // src/rules/index.js
   var api = {
     worldNotes,
+    specialOf,
     regionRareOf,
     regionName,
     yearOf,
@@ -6680,7 +6742,9 @@
       el("h3", { text: "Creatures met" }),
       el("p", {
         cls: "note",
-        text: V.S.species.filter((x) => x.met).map((x) => x.name + ": " + R.byId(R.C.creature.forms, x.form).text + " " + R.byId(R.C.creature.tempers, x.temper).text).join(" ") || "None yet. They are few, and you will usually see one before it reaches you."
+        text: V.S.species.filter((x) => x.met).map(
+          (x) => x.name + ": " + R.byId(R.C.creature.forms, x.form).text + " " + R.byId(R.C.creature.tempers, x.temper).text + (R.specialOf(V.S, x).text ? " " + R.specialOf(V.S, x).text : "")
+        ).join(" ") || "None yet. They are few, and you will usually see one before it reaches you."
       }),
       el("h3", { text: "This world" }),
       el("p", {

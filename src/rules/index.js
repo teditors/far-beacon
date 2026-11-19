@@ -97,9 +97,11 @@ import { yearOf } from './year.js';
 import './pantheon.js';
 import './artifacts.js';
 import { regionRareOf, regionName } from './regionrares.js';
+import { specialOf } from './specials.js';
 
 const api = {
   worldNotes,
+  specialOf,
   regionRareOf,
   regionName,
   yearOf,

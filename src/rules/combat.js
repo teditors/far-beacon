@@ -8,6 +8,8 @@ import { dirTo, lineOfSight, passable, sightRadius } from './map.js';
 import { isDark } from './areas.js';
 import { amod, gainXp, playerAC, prof, roll, weaponOf } from './progress.js';
 import { stat } from './stats.js';
+import { specialOf } from './specials.js';
+import { clock } from './core.js';
 
 /* Creatures and combat: rare, one at a time, turn by turn. */
 function makeSpecies(s, r, biomeId) {
@@ -56,7 +58,8 @@ function makeCreature(s, id, spi, x, y, tier) {
   const sp = s.species[spi],
     f = byId(C.creature.forms, sp.form),
     eld = sp.rare === 'elder' ? 1.5 : 1,
-    hp = Math.round((f.hp[0] + f.hp[1] * (tier - 1)) * eld);
+    spc = specialOf(s, sp),
+    hp = Math.max(1, Math.round((f.hp[0] + f.hp[1] * (tier - 1)) * eld * (spc.hpMul || 1)));
   return {
     id,
     sp: spi,
@@ -65,7 +68,7 @@ function makeCreature(s, id, spi, x, y, tier) {
     tier,
     hp,
     hpMax: hp,
-    ac: f.ac + tier,
+    ac: f.ac + tier + (spc.ac || 0),
     hit: f.hit + tier + (eld > 1 ? 1 : 0),
     add: tier - 1,
     cool: 0,
@@ -89,7 +92,7 @@ function startCombat(s, c, enemyFirst) {
   clog(
     s,
     (enemyFirst ? aOrAn(sp.name, true) + ' is on you! ' : aOrAn(sp.name, true) + ' bars your way. ') +
-      (sp.met ? '' : formOf(s, c).text),
+      (sp.met ? '' : formOf(s, c).text + (specialOf(s, sp).text ? ' ' + specialOf(s, sp).text : '')),
     'bad',
   );
   sp.met = true;
@@ -125,6 +128,14 @@ function strike(s, o) {
 function hurt(s, c, dmg, lead) {
   const sp = spOf(s, c);
   c.hp -= dmg;
+  const spc = specialOf(s, sp);
+  if (c.hp > 0 && spc.fleesAt && c.hp < c.hpMax * spc.fleesAt && !c.key && !c.warden) {
+    s.combat = null;
+    s.creatures = s.creatures.filter((x) => x.id !== c.id);
+    say(s, lead + ' for ' + dmg + '. The ' + sp.name + ' turns tail and is gone.', 'good');
+    gainXp(s, Math.round((formOf(s, c).xp * c.tier) / 2));
+    return;
+  }
   if (c.hp > 0) {
     clog(s, lead + ' for ' + dmg + '.');
     return;
@@ -140,7 +151,7 @@ function hurt(s, c, dmg, lead) {
     say(s, 'It leaves behind: ' + itemName(it) + '. Open Pack to take it.', 'good');
   }
   {
-    const n = c.tier * roll(s, 1, 6);
+    const n = c.tier * roll(s, 1, 6) + (spc.coin || 0);
     s.player.coin += n;
     say(s, 'You find ' + n + ' coin on it.');
   }
@@ -161,7 +172,14 @@ function hurt(s, c, dmg, lead) {
 function enemyTurn(s) {
   const c = foe(s);
   if (!c || s.over) return;
-  const sp = spOf(s, c),
+  const spc = specialOf(s, spOf(s, c));
+  if (spc.regen && c.hp < c.hpMax) c.hp = Math.min(c.hpMax, c.hp + spc.regen);
+  for (let k = 1; k < (spc.attacks || 1) && s.combat && !s.over; k++) enemyBlow(s, c);
+  if (s.combat && !s.over) enemyBlow(s, c);
+}
+function enemyBlow(s, c) {
+  const spc = specialOf(s, spOf(s, c)),
+    sp = spOf(s, c),
     f = formOf(s, c),
     p = s.player,
     d20 = roll(s, 1, 20);
@@ -179,6 +197,18 @@ function enemyTurn(s) {
   if (f.venom) {
     p.stamina = Math.max(0, p.stamina - f.venom);
     extra = ' Venom saps you.';
+  }
+  if (spc.chill && !s.off.warmth) {
+    p.warmth = Math.max(0, p.warmth - spc.chill);
+    extra = ' Cold floods in.';
+  }
+  if (spc.venom) {
+    p.stamina = Math.max(0, p.stamina - spc.venom);
+    extra = ' Venom saps you.';
+  }
+  if (spc.steal && p.water > 0) {
+    p.water = Math.max(0, p.water - spc.steal);
+    extra += ' Water spills from your skins.';
   }
   if (p.hp <= 0) {
     p.hp = 0;
@@ -277,7 +307,10 @@ function flee(s) {
   if (!c || s.over) return false;
   const f = formOf(s, c),
     sp = spOf(s, c),
-    ch = s.char.cls === 'rogue' ? 1 : 0.65 + amod(scores(s.char).dex) * 0.05 - (f.fleePenalty || 0);
+    ch =
+      s.char.cls === 'rogue'
+        ? 1
+        : 0.65 + amod(scores(s.char).dex) * 0.05 - (f.fleePenalty || 0) - (specialOf(s, sp).fleePenalty || 0);
   s.player.stamina = Math.max(0, s.player.stamina - 5);
   if (srand(s) < ch) {
     c.cool = 5;
@@ -302,6 +335,7 @@ function stepCreatures(s) {
       sp.rare !== 'docile' &&
       c.cool === 0 &&
       stat(s, 'quiet', 0) <= 0 &&
+      !(specialOf(s, sp).nightOnly && clock(s).isDay) &&
       ((sp.temper === 'hunter' && d <= 5 && srand(s) < 0.6) || (sp.temper === 'territorial' && d <= 2)) &&
       lineOfSight(s, c.x, c.y, p.x, p.y);
     if (chase && d > 0) {
@@ -329,7 +363,8 @@ function stepCreatures(s) {
           ': ' +
           aOrAn(sp.name) +
           '. ' +
-          (sp.rare === 'docile' ? 'It watches you without interest.' : byId(C.creature.tempers, sp.temper).text),
+          (sp.rare === 'docile' ? 'It watches you without interest.' : byId(C.creature.tempers, sp.temper).text) +
+          (specialOf(s, sp).text ? ' ' + specialOf(s, sp).text : ''),
         sp.rare === 'docile' ? '' : 'bad',
       );
     }

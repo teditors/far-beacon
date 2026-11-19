@@ -3,6 +3,28 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 6: creature specials
+
+**What it is.** Half of all species now have a special besides their form: plated (hard to hit), a thief (each hit
+spills your water), regenerating, strikes twice, nocturnal (hunts only at night, sleeps by day), frost, venom, swift
+(almost impossible to outrun), a coward (badly hurt, it runs), a hoarder (carries coin), or huge (twice the hit
+points). It is told when you first sight one and when you first fight it, and listed under "Creatures met".
+
+**In play.** Four forms times eleven specials times three tempers: a "Mist Hound" is no longer one thing. Bot win
+rate, sets 5 / 1000 / 2000: 22, 23, 16 with specials; 21, 23, 25 without. Somewhat harder (61 vs 69 over 450 worlds),
+mostly from huge brutes and plated creatures.
+
+**Commits.** "Creature specials". Switch: `specials`.
+
+**Choices made without asking.**
+- Nothing is stored: a species' special is worked out from the seed and its name, so saves need no change and it is
+  identical after loading. The named beast that holds the key never gets one, so its fight stays as it was.
+- The hooks are inside combat.js (eight small edits: making a creature, its blows, fleeing, cowardice, coin, hunting
+  by night only, and the texts). This is the least liftable piece so far; it touches the same function as nothing else.
+- The world snapshot was updated (`--update`): creatures' hit points and armor change for existing seeds.
+
+**Verdict: pearl.** Cheap variety in the part of the game that most needs surprise.
+
 ## Piece 5: rare regions
 
 **What it is.** A region away from home sometimes (15%, about one or two per world) is a rare country: Glowing (you can

@@ -89,5 +89,22 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   need(R.stat(s, 'staminaCost', 1) > before * 1.2 || R.stat(s, 'staminaCost', 1) > 1.2, 'a heavy region is not heavy');
   need(!R.newGame(5, { regionrares: true }).regionRares, 'NO=regionrares still rolled rare regions');
 }
+// Creature specials: the same in every save, used in a fight, and switched off cleanly.
+{
+  let any = 0;
+  for (let i = 1; i <= 30; i++) {
+    const s = R.newGame(i);
+    for (const sp of s.species) { const a = R.specialOf(s, sp).id, b = R.specialOf(R.deserialize(R.serialize(s)).state, sp).id; need(a === b, 'seed ' + i + ': a special changed on reload'); if (a) any++; }
+  }
+  need(any > 20, 'too few species have specials');
+  const s = findSeed((s) => s.creatures.some((c) => R.specialOf(s, s.species[c.sp]).id === 'thief'));
+  const c = s.creatures.find((c) => R.specialOf(s, s.species[c.sp]).id === 'thief');
+  s.player.x = c.x; s.player.y = c.y; s.player.water = 6; s.player.hp = 999; s.player.hpMax = 999;
+  s.combat = { cid: c.id, lines: [], round: 0 };
+  for (let k = 0; k < 30 && s.combat; k++) { const w = s.player.water; R.flee(s); if (s.player.water < w) break; s.combat = { cid: c.id, lines: [], round: 0 }; }
+  need(s.player.water < 6, 'a thief never spilled your water');
+  s.off.specials = true;
+  need(!R.specialOf(s, s.species[c.sp]).id, 'the specials switch does not turn them off');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials');

@@ -733,7 +733,15 @@ function openMenu() {
       text:
         V.S.species
           .filter((x) => x.met)
-          .map((x) => x.name + ': ' + R.byId(R.C.creature.forms, x.form).text + ' ' + R.byId(R.C.creature.tempers, x.temper).text)
+          .map(
+            (x) =>
+              x.name +
+              ': ' +
+              R.byId(R.C.creature.forms, x.form).text +
+              ' ' +
+              R.byId(R.C.creature.tempers, x.temper).text +
+              (R.specialOf(V.S, x).text ? ' ' + R.specialOf(V.S, x).text : ''),
+          )
           .join(' ') || 'None yet. They are few, and you will usually see one before it reaches you.',
     }),
     el('h3', { text: 'This world' }),

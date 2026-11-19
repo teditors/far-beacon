@@ -375,6 +375,19 @@ section('Rare regions', ['regionRares'], () => {
   );
 });
 
+section('Creature specials', ['specials'], () => {
+  const X = C.specials;
+  line(
+    Math.round(X.chance * 100) +
+      '% of species have one of these besides their form (never the named beast). Told when you first see or fight one.',
+  );
+  line();
+  table(
+    ['Special', 'Text', 'Numbers'],
+    X.list.map((x) => [x.id, x.text, fields(x, ['id', 'text'])]),
+  );
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

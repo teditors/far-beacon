@@ -12,6 +12,7 @@ import years from './years.js';
 import pantheon from './pantheon.js';
 import artifacts from './artifacts.js';
 import regionRares from './regionrares.js';
+import specials from './specials.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -27,4 +28,5 @@ export const CONTENT = Object.assign(
   pantheon,
   artifacts,
   regionRares,
+  specials,
 );
