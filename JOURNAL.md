@@ -1,5 +1,54 @@
 # Journal of commission/1
 
+## Summary (end of the first session)
+
+Fifteen pieces, each in one commit with its own content file, its own rules module and its own switch. Every check
+passes, the bot still wins, and old saves still load (no VERSION bump was needed: every new state field is optional).
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| 1 | The Almanac (`ALMANAC.md`, generated, checked for staleness) | | pearl |
+| 2 | The year: drought, hard winter, long nights; rare wide world, two moons, the long dark | `year` | pearl |
+| 3 | Rolled gods: gift, cost, vow, on a budget; rare generous, twin, jealous | `godslots` | pearl |
+| 4 | Named artifacts: three per world (shop, beside the relic, far country) | `artifacts` | pearl |
+| 5 | Rare regions: glowing, silent, teeming, bitter, hallowed... | `regionrares` | maybe |
+| 6 | Creature specials: plated, thief, regenerating, nocturnal, coward, huge... | `specials` | pearl |
+| 7 | Exotic races and classes: Lostborn, Votary and others | `exotics` | maybe |
+| 8 | Town cultures: trade and custom; rare pilgrims, the people who never fell | `towns` | pearl / maybe |
+| 9 | Errands at the inn, with liars who show a tell | `errands` | pearl |
+| 10 | Odd weather: hail, ash, fog, warm wind, falling stars | `oddweather` | maybe |
+| 11 | Generated biomes from climate, landform, water, woodland, ground | `biomegen` | pearl |
+| 12 | Odd levels below: flooded, ossuary, archive, sleeping guardians | `floors` | maybe |
+| 13 | The relic's nature: the Ember warms, the Lens sees in the dark | `relics` | pearl |
+| 14 | Lairs: a unique creature on a hoard | `lairs` | maybe |
+| 15 | Far finds: richer searches away from home | `farfinds` | maybe |
+
+**Bot win rate, every piece on vs every piece off** (`NO=` all fifteen switches), five seed sets of 150 worlds:
+on 17, 32, 25, 31, 29 (134, 18%); off 24, 29, 21, 28, 20 (122, 16%). The pieces that made the game harder (the year,
+specials) are roughly balanced by the ones that made it easier (odd levels). The bot never leaves the home region,
+never swears a pact, never asks for errands and never shops for artifacts, so it measures only part of what changed.
+
+**My three best.** Generated biomes (11): every world now has countries no other world has. Rolled gods with vows (3):
+the slot-and-budget pattern at its cleanest, and vows are a new kind of rule. Errands (9): the first reason to leave
+home on purpose, which several other pieces (rare regions, lairs, far finds, the far artifact, the wide world) were
+waiting for.
+
+**What I would do next.**
+1. Teach the bot to travel (take errands, visit a neighbouring region), so the playtest can measure the outer world.
+2. Towns beyond home, each with a rolled culture from piece 8 (and its own errands), placed by the world sketch.
+3. Real item tiers by distance (greater affixes far from home) instead of piece 15's extra items.
+4. Give generation-time item rolls their own named streams, so pieces stop shifting each other's play dice.
+5. More slots for generated biomes, and a rare that changes the rules of the land (rivers you can walk on, ground that
+   moves), not only its colour.
+
+**Lifting pieces into main.** Piece 2 carries the shared bricks (`hooks.js`, `newGame(seed, off)`, the `worldBorn`
+event, `NO=` in the playtest); lift it first. Pieces 3 and 10 add `godMakers` and `stormMakers` to core.js, piece 3 the
+`did` event in rules/index.js, piece 8 the town prices through the stat stack, piece 11 `SKETCHERS`, `LOADERS` and the
+`byId` index. The rest only add files plus a line or two in `content/index.js`, `rules/index.js`, `tools/almanac.js`,
+`tests/content.test.js` and `tests/pieces.test.js`.
+
+---
+
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
