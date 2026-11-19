@@ -18,6 +18,9 @@ easy to change. Read `ARCHITECTURE.md` before changing anything structural; `CHA
 - `npm install`, then `pip install playwright && playwright install chromium` for the browser test.
 - `node tools/build.js` bundles `src/` into `dist/index.html`, a single self-contained page. Open it in a
   browser to play. `dist/` is not committed.
+- Every push to `main` or a `commission/*` branch rebuilds playable copies of `main`, every commission branch and every
+  frozen version, and publishes them with GitHub Pages (`.github/workflows/site.yml`, `tools/site.sh`). Each copy keeps
+  its own saves.
 - `node tools/check.js --quick` runs everything except the slow bot playtest and browser smoke test. Run it after
   every change.
 - `node tools/check.js` runs everything (about 3 minutes). Run it before every commit.
