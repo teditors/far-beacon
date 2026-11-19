@@ -3,6 +3,27 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 12: odd levels below
+
+**What it is.** A level of the locked place (any but the last) is now sometimes something other than guards, loot or
+traps: flooded (knee-deep black water, slow and very cold, but three pools you can drink from), an ossuary (three
+more guardians standing up out of the bones), or an archive (a carved plan by the door shows the whole level, and two
+good items lie on the shelves). Rarely, the guardians of a level are asleep and nothing will wake them. Told as you
+arrive.
+
+**In play.** The locked place is less the same three rooms every time. Bot win rate, sets 5 / 1000 / 2000: 28, 24, 33
+with odd levels; 16, 20, 30 without (85 vs 66). Clearly easier, mostly from the archive's plan and the flooded
+level's water (the bot dies of thirst below more than of anything else). I left it: it offsets the harder pieces.
+
+**Commits.** "Odd levels below". Switch: `floors`.
+
+**Choices made without asking.**
+- About a quarter of the upper levels are odd (30% chance, 8% of it the sleeping rare); the last level is never odd,
+  so the relic's level stays as it was.
+- The world snapshot was updated: the locked place's list of levels changes for some seeds.
+
+**Verdict: maybe.** Good variety cheaply; the balance shift is worth watching.
+
 ## Piece 11: generated biomes
 
 **What it is.** Every world makes two countries of its own from slots: a climate (hot, temperate, cold, wet, ashen,

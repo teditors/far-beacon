@@ -469,6 +469,19 @@ section('Generated biomes', ['biomeGen'], () => {
   table(['Rare', 'Name word', 'Text'], X.rares.map((r) => [r.id, r.word, r.text]));
 });
 
+section('Odd levels below', ['floorKinds'], () => {
+  const X = C.floorKinds;
+  line(
+    'Each level of the locked place above the last is one of these ' +
+      Math.round((X.chance - X.rareChance) * 100) +
+      '% of the time, and the rare one ' +
+      Math.round(X.rareChance * 100) +
+      '%, instead of a guard, loot or trap level.',
+  );
+  line();
+  table(['Level', 'Text', 'Numbers', 'Modifiers'], [...X.list, X.rare].map((k) => [k.id + (k === X.rare ? ' (rare)' : ''), k.text, fields(k, ['id', 'text', 'mods']), mods(k.mods)]));
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

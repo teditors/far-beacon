@@ -209,5 +209,22 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   R.C.biomes.push(...keep);
   need(!R.newGame(5, { biomegen: true }).world.sketch.some((e) => /^g/.test(e.biome)), 'NO=biomegen still gave out generated biomes');
 }
+// Odd levels: each kind turns up, is built as promised and is told on arrival.
+{
+  for (const kind of ['flooded', 'ossuary', 'archive', 'sleepers']) {
+    const s = findSeed((s) => R.findSite(s, 'vault').st.floors[0] === kind);
+    need(s, 'no world has a first level of kind ' + kind);
+    if (!s) continue;
+    const v = R.findSite(s, 'vault');
+    s.player.x = v.x; s.player.y = v.y; v.st.open = true; s.player.fuel = 5; s.creatures = [];
+    s.player.items.push({ id: 998, base: 'lantern', known: true, carried: 0, eq: 'tool' });
+    need(R.enterVault(s) && R.areaRec(s).floor === kind, kind + ': could not go in');
+    need(s.log.slice(-3).some((l) => l.msg === R.C.floorKinds.list.concat(R.C.floorKinds.rare).find((k) => k.id === kind).text), kind + ': not told on arrival');
+    if (kind === 'flooded') need(Object.values(s.depots).filter((d) => d.water >= 3).length >= 3, 'flooded: no pools');
+    if (kind === 'ossuary') need(s.creatures.length >= 4, 'ossuary: too few guardians');
+    if (kind === 'archive') need(s.seen.filter(Boolean).length > 60, 'archive: the level is not revealed');
+    if (kind === 'sleepers') need(s.creatures.every((c) => c.cool > 1e6 || c.warden), 'sleepers: a guardian is awake');
+  }
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels');
