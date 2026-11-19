@@ -9,6 +9,7 @@ const steps = [
   ['state', 'node', ['tests/state.test.js']],
   ['fuzz', 'node', ['tests/fuzz.js']],
   ['quest', 'node', ['tests/quest.js']],
+  ['almanac', 'node', ['tools/almanac.js', '--check']],
 ];
 if (!quick) steps.push(['playtest', 'node', ['tests/playtest.js', '40']], ['browser', 'python3', ['tests/smoke.py']]);
 let failed = 0;
