@@ -9,7 +9,17 @@ const TERR = ['plain', 'hill', 'mountain', 'forest', 'river', 'special', 'wall',
 // Indoor ground: walls cannot be walked through; floor is the inside of towns and the locked place.
 const WALL = 6,
   FLOOR = 7;
-const byId = (list, id) => list.find((e) => e.id === id);
+// Look an entry up by id. Lists are indexed on first use (and again if they grow), since some lookups run very often.
+const idIndex = new WeakMap();
+const byId = (list, id) => {
+  let ix = idIndex.get(list);
+  if (!ix || ix.n !== list.length) {
+    ix = { n: list.length, m: new Map() };
+    for (const e of list) if (!ix.m.has(e.id)) ix.m.set(e.id, e);
+    idIndex.set(list, ix);
+  }
+  return ix.m.get(id);
+};
 const idx = (x, y) => y * W + x;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 

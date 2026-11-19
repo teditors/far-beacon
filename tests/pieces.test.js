@@ -185,5 +185,29 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   need(storms > 30 && odd > 0, 'odd weather: ' + odd + ' odd of ' + storms + ' storms');
   need(star, 'no shower of falling stars left a star in 30 worlds of 12 days');
 }
+// Generated biomes: given to regions, rebuilt from the seed on load, every one complete, and none with NO=biomegen.
+{
+  let n = 0;
+  for (let i = 1; i <= 80; i++) {
+    const s = R.newGame(i), ids = new Set(s.world.sketch.map((e) => e.biome).filter((id) => /^g/.test(id)));
+    n += ids.size;
+    for (const id of ids) {
+      const b = R.byId(R.C.biomes, id);
+      for (const k of ['forest', 'river', 'special', 'day', 'night', 'storm']) need(b[k], id + ' is missing ' + k);
+      need(b.colors.length === 6 && b.colors.every((c) => /^#[0-9a-f]{6}$/.test(c)), id + ' has bad colours');
+      need(R.C.creature.prefix[id], id + ' has no creature names');
+    }
+  }
+  need(n > 80, 'only ' + n + ' generated biomes in use over 80 worlds');
+  const s = findSeed((s) => R.biomeOf(s).gen), text = R.serialize(s);
+  const keep = R.C.biomes.slice();
+  R.C.biomes.length = 0;
+  R.C.biomes.push(...keep.filter((b) => !b.gen)); // as a fresh page would have them
+  const back = R.deserialize(text);
+  need(back.state && R.biomeOf(back.state) && R.biomeOf(back.state).name === R.biomeOf(s).name, 'a generated biome did not come back on load');
+  R.C.biomes.length = 0;
+  R.C.biomes.push(...keep);
+  need(!R.newGame(5, { biomegen: true }).world.sketch.some((e) => /^g/.test(e.biome)), 'NO=biomegen still gave out generated biomes');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes');

@@ -6,6 +6,7 @@ import { GENERATORS, HOME, ensureTown, ensureAround, sketchOf, wrap } from './ar
 import { crossings, makeSketch, worldNoise } from './world.js';
 import { C, H, VERSION, W, byId, clamp, emit, idx, say, stream } from './core.js';
 import { rollYear, yearTuning } from './year.js';
+import { SKETCHERS } from './hooks.js';
 import { makeItem } from './items.js';
 import { dirTo } from './map.js';
 import { makeQuest } from './quest.js';
@@ -275,7 +276,7 @@ function newGame(seed, off) {
     rW = rnd('weather'),
     rO = rnd('offer'),
     pickWith = (rng) => (a) => a[Math.floor(rng() * a.length)];
-  const biome = pickWith(rnd('biome'))(C.biomes),
+  let biome = pickWith(rnd('biome'))(C.biomes.filter((b) => !b.gen)),
     god = pickWith(rnd('god'))(C.gods),
     civ = {};
   {
@@ -287,8 +288,10 @@ function newGame(seed, off) {
   const habit = byId(C.civ.habit, civ.habit),
     age = byId(C.civ.age, civ.age),
     doom = byId(C.civ.doom, civ.doom);
-  const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id),
-    { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
+  const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
+  for (const f of SKETCHERS) f(seed, world, off); // a piece may change what the regions are before land is built
+  biome = byId(C.biomes, world.sketch[world.home.cy * world.cols + world.home.cx].biome);
+  const { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
   // You start in the middle. The town, the locked place and the beacon lie in three different directions.
   const sx = 17 + Math.floor(rL() * 3),
     sy = 17 + Math.floor(rL() * 3),

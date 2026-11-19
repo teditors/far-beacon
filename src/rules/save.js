@@ -3,6 +3,7 @@
 import { VERSION } from './core.js';
 import { ensureAround, ensureTown } from './areas.js';
 import { makeSketch } from './world.js';
+import { LOADERS } from './hooks.js';
 
 const MIGRATIONS = {
   // 6 -> 7: towns and the locked place became areas you walk into.
@@ -71,6 +72,7 @@ function deserialize(text) {
   if (!s || typeof s !== 'object' || typeof s.v !== 'number' || !s.player || !s.terrain)
     return { error: 'That text is not a saved game.' };
   if (s.v > VERSION) return { error: 'That save comes from a newer version of the game.' };
+  for (const f of LOADERS) f(s);
   while (s.v < VERSION) {
     const up = MIGRATIONS[s.v];
     if (!up) return { error: 'That save is from version ' + s.v + ', which this version can no longer read.' };

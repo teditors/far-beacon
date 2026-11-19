@@ -435,6 +435,40 @@ section('Odd weather', ['oddWeather'], () => {
   table(['Weather', 'Cold', 'Text', 'Modifiers', 'Other'], X.list.map((w) => [w.name, w.cold, w.text, mods(w.mods), [w.hurt ? w.hurt + ' hit points an hour in the open' : '', w.star ? 'leaves a fallen star holding an item' : ''].filter(Boolean).join('; ')]));
 });
 
+section('Generated biomes', ['biomeGen'], () => {
+  const X = C.biomeGen;
+  line(
+    'Every world makes ' +
+      X.perWorld +
+      ' biomes of its own from these slots. Each region away from home is one of them ' +
+      Math.round(X.regionChance * 100) +
+      '% of the time, the home region ' +
+      Math.round(X.homeChance * 100) +
+      '%. Water, woodland and ground are drawn only from those that suit the climate. ' +
+      Math.round(X.rareChance * 100) +
+      '% of generated biomes are rare. The name is a word of the climate and a noun of the landform.',
+  );
+  line();
+  table(
+    ['Climate', 'Words', 'Day cold/warm', 'Night cold/warm', 'Storm', 'Other'],
+    X.climates.map((c) => [c.id, c.words.join(', '), c.day.cold + '/' + c.day.warm + (c.day.mods.length ? ' ' + mods(c.day.mods) : ''), c.night.cold + '/' + c.night.warm, c.storm.name + ', cold ' + c.storm.cold + (c.storm.mods.length ? ', ' + mods(c.storm.mods) : ''), c.melt ? 'snow melts for ' + c.melt : '']),
+  );
+  table(['Landform', 'Hills', 'Mountains', 'Nouns'], X.landforms.map((l) => [l.id, pct(l.hills).replace('+', ''), pct(l.mountains).replace('+', ''), l.nouns.join(', ')]));
+  table(
+    ['Water', 'Climates', 'Springs', 'Foul', 'River', 'Minutes', 'Stamina', 'Other'],
+    X.waters.map((w) => [w.id, w.climates.join(', '), w.springs, pct(w.foul).replace('+', ''), w.river.name, w.river.moveMin, w.river.moveSta, [fields(w.river, ['name', 'count', 'moveMin', 'moveSta', 'mods']), mods(w.river.mods)].filter(Boolean).join('; ')]),
+  );
+  table(
+    ['Woodland', 'Climates', 'Share', 'Minutes', 'Stamina', 'Other'],
+    X.woodlands.map((w) => [w.forest.name, w.climates.join(', '), pct(w.forest.frac).replace('+', ''), w.forest.moveMin, w.forest.moveSta, [fields(w.forest, ['name', 'frac', 'moveMin', 'moveSta', 'mods', 'tree']), mods(w.forest.mods)].filter(Boolean).join('; ')]),
+  );
+  table(
+    ['Ground', 'Climates', 'Share', 'Minutes', 'Stamina', 'Other'],
+    X.grounds.map((w) => [w.special.name, w.climates.join(', '), pct(w.special.frac).replace('+', ''), w.special.moveMin, w.special.moveSta, [fields(w.special, ['name', 'frac', 'moveMin', 'moveSta', 'mods']), mods(w.special.mods)].filter(Boolean).join('; ')]),
+  );
+  table(['Rare', 'Name word', 'Text'], X.rares.map((r) => [r.id, r.word, r.text]));
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

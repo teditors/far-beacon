@@ -3,6 +3,40 @@
 Newest entry first. Win rates are from the playtest bot (`node tests/playtest.js 150`, seed set 0 unless stated).
 Baseline before any piece: **24 / 150** (16%).
 
+## Piece 11: generated biomes
+
+**What it is.** Every world makes two countries of its own from slots: a climate (hot, temperate, cold, wet, ashen,
+steppe), a landform (flat, rolling, rugged, broken), water (dry washes, streams, frozen rivers, clear brooks,
+brackish creeks), woodland (thorn scrub, birch, pine, dead wood, fern brake, tall grass) and special ground (salt pan,
+bog, frozen lake, ash field, flower meadow, hot springs, glass plain). Water, woodland and ground are drawn only from
+those that suit the climate, and each slot brings its own colour, so the palette follows from the land. Names come
+from the slots: "Cinder Fells", "Ash Teeth", "Weeping Wolds". One in eight is rare: strange-hued (violet grass,
+green stone, a tinted sky) or great-wooded (giant trees, more of them). Half the regions away from home, and a
+quarter of home regions, are one of these; the hand-written three still appear everywhere else. New kinds of ground
+have new effects: hot springs warm you while you stand in them, a flower meadow makes rest go further, a glass plain
+lets you see further.
+
+**In play.** No two worlds share a map of countries any more. Bot win rate, sets 5 / 1000 / 2000: 16, 20, 30 with
+generated biomes; 16, 22, 26 without (66 vs 64: no change).
+
+**Commits.** "Generated biomes". Switch: `biomegen` (it acts when a world is made; `NO=biomegen` in the playtest).
+
+**Shared bricks.**
+- `SKETCHERS` (hooks.js): run in newGame right after the world sketch is made and before any land is built, so a
+  piece can change what regions are. `LOADERS`: run on loading a save, before anything else.
+- `byId` now keeps an index per list (it was a linear search, and generated biomes made the biome list grow).
+- The view reads two optional biome fields, `lush` and `rocky`, instead of testing for 'taiga' and 'salt'.
+
+**Choices made without asking.**
+- A generated biome is rebuilt from the seed whenever it is needed and added to `C.biomes`, so every lookup finds
+  it; only its id ('g<seed>_<n>') is stored. The world sketch and the starting biome draw only from the hand-written
+  biomes, so their random draws do not change, and this piece gives out generated ones afterwards.
+- The ashen palette was brightened after a screenshot: it was nearly black at dawn.
+- The world snapshot was updated: terrain, sites and creatures change for seeds whose regions are now generated.
+
+**Verdict: pearl.** It is the first row of the commission's table and it changes what every world looks and plays
+like. The next step is more slots per climate and a rare that changes the rules of the land, not only its colour.
+
 ## Piece 10: odd weather
 
 **What it is.** About one storm in seven is not the biome's own: a hailstorm (hurts out in the open, so get under

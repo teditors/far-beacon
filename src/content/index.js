@@ -17,6 +17,7 @@ import exotics from './exotics.js';
 import towns from './towns.js';
 import errands from './errands.js';
 import weather from './weather.js';
+import biomeparts from './biomeparts.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -37,4 +38,5 @@ export const CONTENT = Object.assign(
   towns,
   errands,
   weather,
+  biomeparts,
 );
