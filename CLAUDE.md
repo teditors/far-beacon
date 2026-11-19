@@ -1,5 +1,8 @@
 # Far Beacon: notes for Claude
 
+> **On the `commission/1` branch, read `COMMISSION.md` first.** It is the brief for this branch and overrides the
+> Git section below.
+
 A hobby game: a first-person, procedurally generated survival-exploration roguelike in the browser (Three.js r128).
 The owner, Andrew, is learning as he goes. Tinkering is the real goal, so keep the code modular, readable and
 easy to change. Read `ARCHITECTURE.md` before changing anything structural; `CHANGELOG.md` says what each version did.
