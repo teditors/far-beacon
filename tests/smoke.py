@@ -120,6 +120,24 @@ async def main():
         st = await pg.evaluate("()=>{const g=window.__g,S=g.S;return {x:S.player.x,px:g.P.x,area:S.area,biome:S.biome}}")
         assert st['x'] < 8 and st['px'] < -280, 'did not arrive on the west edge of the next region: %r' % st
         await shot('7-next-region'); steps.append('cross a border (' + st['area'] + ', ' + st['biome'] + ')')
+        # another town: walk in from the south, talk to its elder
+        tid = await pg.evaluate("()=>{const g=window.__g,S=g.S,t=S.towns[0],d=Rules.townDoor(S,t);Rules.travelTo(S,t.area,d.x,d.y);S.creatures.length=0;S.combat=null;S.player.stamina=100;g.refresh();const a=g.V.townAt;g.P.x=a.x+1.9;g.P.z=a.z+80;g.P.yaw=0;g.P.pitch=0;return g.V.townId===t.id?t.id:'wrong town in view: '+g.V.townId}")
+        assert tid.startswith('t_'), tid
+        await pg.keyboard.down('w')
+        for _ in range(80):
+            await pg.wait_for_timeout(250)
+            if await pg.evaluate("()=>window.__g.S.area") == tid: break
+        await pg.wait_for_timeout(600); await pg.keyboard.up('w')
+        assert await pg.evaluate("()=>window.__g.S.area") == tid, 'did not walk into the other town'
+        await shot('7b-other-town')
+        await goto('elder'); await press('Talk to')
+        title = await pg.evaluate("()=>document.getElementById('modal-title').textContent")
+        tname = await pg.evaluate("()=>window.__g.S.towns[0].name")
+        assert tname in title, 'the other town\'s elder is not of that town: %r' % title
+        await pg.click('#modal-close'); steps.append('another town (' + tname + ')')
+        await pg.evaluate("()=>{const g=window.__g,S=g.S,t=S.towns[0];S.player.x=18;S.player.y=35;g.refresh();g.P.x=1.9;g.P.z=68;}")
+        await pg.evaluate("()=>{Rules.move(window.__g.S,0,1);window.__g.refresh();}")
+        assert await pg.evaluate("()=>Rules.inOverworld(window.__g.S)"), 'could not leave the other town'
         await pg.click('#btn-map'); await pg.wait_for_timeout(200); await shot('8-world-map')
         assert await pg.evaluate("()=>document.getElementById('worldcv').width>0"), 'no world map'
         await pg.click('#modal-close'); steps.append('world map')

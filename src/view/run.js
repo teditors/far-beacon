@@ -177,14 +177,14 @@ function tick(dt, now) {
   // the town from outside: you walk straight in wherever its edge is open; its walls and the houses on its edge are solid
   let enterAt = null;
   const townTile = (x, z) => {
-    if (indoor || !V.townAt || !V.S.areas.town) return null;
+    if (indoor || !V.townAt || !V.townId || !V.S.areas[V.townId]) return null;
     const h = (R.W * TOWN_TS) / 2,
       tx = Math.floor((x - V.townAt.x + h) / TOWN_TS),
       tz = Math.floor((z - V.townAt.z + h) / TOWN_TS);
     return tx >= 0 && tz >= 0 && tx < R.W && tz < R.H ? { x: tx, y: tz } : null;
   };
   {
-    const tm = !indoor && V.townAt ? R.mapOf(V.S, 'town') : null,
+    const tm = !indoor && V.townAt && V.townId ? R.mapOf(V.S, V.townId) : null,
       wall = (x, z) => {
         const t = townTile(x, z);
         return !!(t && tm && tm.terrain[t.y * R.W + t.x] === R.WALL);

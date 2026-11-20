@@ -22,6 +22,8 @@ import { gainXp, roll, weaponOf } from './progress.js';
 import { enterTown, findSite, hasItem, leaveTown } from './quest.js';
 import {
   TOWN_GATE,
+  curTown,
+  townById,
   inTownBlock,
   townDoor,
   areaRec,
@@ -233,7 +235,10 @@ function arrive(s) {
         ' ' +
         trait(s, 'doom').sign,
       cache: 'Someone left a cache here under stones.',
-      town: 'The town of ' + s.town.name + '. Smoke, voices, a well. Walk in to talk and trade.',
+      town:
+        'The town of ' +
+        ((st.town && townById(s, st.town)) || s.town).name +
+        '. Smoke, voices, a well. Walk in to talk and trade.',
       vault: 'The ' + s.quest.vault.name + '. A heavy door, and a stair going down behind it.',
       beacon:
         s.quest.dest === 'beacon'
@@ -717,10 +722,10 @@ function actions(s) {
     if (st.kind === 'stairsUp') a.push({ id: 'goUp', label: 'Go up', hint: 'level ' + (areaRec(s).level - 1) });
     if (st.kind === 'stairsDown')
       a.push({ id: 'goDown', label: 'Go down', hint: 'level ' + (areaRec(s).level + 1) + ' of ' + areaRec(s).levels });
-    if (st.kind === 'elder') a.push({ id: 'townAsk', section: 'elder', label: 'Talk to ' + s.town.elder, hint: 'the elder' });
+    if (st.kind === 'elder') a.push({ id: 'townAsk', section: 'elder', label: 'Talk to ' + curTown(s).elder, hint: 'the elder' });
     if (st.kind === 'inn') a.push({ id: 'townAsk', section: 'inn', label: 'The inn', hint: 'a bed for the night' });
     if (st.kind === 'shop')
-      a.push({ id: 'townAsk', section: 'shop', label: 'Trade with ' + s.town.merchant, hint: 'buy, sell, appraise' });
+      a.push({ id: 'townAsk', section: 'shop', label: 'Trade with ' + curTown(s).merchant, hint: 'buy, sell, appraise' });
     if (
       st.kind === 'well' ||
       st.kind === 'hamlet' ||

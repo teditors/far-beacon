@@ -104,10 +104,11 @@ for (let seed = 1; seed <= 40; seed++) {
     for (const k in s.sites) need(s.terrain[k] !== 2 && +k >= 0 && +k < R.W * R.H, tag + id + ' has a site in a bad place');
     for (const c of s.creatures) need(s.species[c.sp], tag + id + ' has a creature of no species');
     need(cx === w.home.cx && cy === w.home.cy ? true : !Object.values(s.sites).some((x) => x.kind === 'well'), tag + id + ' has a second well');
-    for (const k of ['town', 'vault']) placeCount[k] = (placeCount[k] || 0) + Object.values(s.sites).filter((x) => x.kind === k).length;
+    for (const k of ['town', 'vault']) placeCount[k] = (placeCount[k] || 0) + Object.values(s.sites).filter((x) => x.kind === k && !x.town).length;
+    placeCount.more = (placeCount.more || 0) + Object.values(s.sites).filter((x) => x.kind === 'town' && x.town).length;
   }
   // borders: mountains nearly always agree, and rivers and roads cross at the same tiles on both sides
-  need(placeCount.town === 1 && placeCount.vault === 1, tag + 'the town and the locked place are not each in exactly one region: ' + JSON.stringify(placeCount));
+  need(placeCount.town === 1 && placeCount.vault === 1 && placeCount.more === (s.towns || []).length, tag + 'the town and the locked place are not each in exactly one region: ' + JSON.stringify(placeCount));
   const mapOf = (cx, cy) => { const id = R.regionId(s, (cx + w.cols) % w.cols, (cy + w.rows) % w.rows); return id === s.area ? s : s.areas[id].map; };
   for (let cy = 0; cy < w.rows; cy++) for (let cx = 0; cx < w.cols; cx++) {
     const a = mapOf(cx, cy), e = mapOf(cx + 1, cy), so = mapOf(cx, cy + 1);

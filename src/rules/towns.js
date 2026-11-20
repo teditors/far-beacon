@@ -5,13 +5,17 @@ import { C, W, byId, godOf, on, say, stream } from './core.js';
 import { learn, AXES } from './civ.js';
 import { genItem, makeItem } from './items.js';
 import { mark, findSite } from './quest.js';
-import { mapOf, townArea } from './areas.js';
+import { curTown, inTown, mapOf, townArea, withTown } from './areas.js';
 import { SOURCES } from './stats.js';
-import { NOTES, SWITCHES } from './hooks.js';
+import { NOTES, SWITCHES, TOWN_MAKERS } from './hooks.js';
 
 const T = () => C.townCulture;
+const cultureOf = (s) => {
+  const t = curTown(s);
+  return t === s.town ? s.townCulture : t.culture;
+};
 const partsOf = (s) => {
-  const c = s.townCulture;
+  const c = cultureOf(s);
   if (!c || s.off.towns) return [];
   return [byId(T().trades, c.trade), byId(T().customs, c.custom), c.rare ? byId(T().rares, c.rare) : null].filter(Boolean);
 };
@@ -33,10 +37,8 @@ const describe = (s) => {
   );
 };
 
-on('worldBorn', (s, d) => {
-  if (d.off.towns) return;
-  const r = stream(s.seed, 'townCulture'),
-    pick = (a) => a[Math.floor(r() * a.length)],
+function rollCulture(s, r) {
+  const pick = (a) => a[Math.floor(r() * a.length)],
     X = T(),
     rare = r() < X.rareChance ? pick(X.rares) : null,
     trade = pick(X.trades),
@@ -60,6 +62,12 @@ on('worldBorn', (s, d) => {
       s.town.stock.push(it);
     }
   }
+}
+on('worldBorn', (s, d) => {
+  if (!d.off.towns) rollCulture(s, stream(s.seed, 'townCulture'));
+});
+TOWN_MAKERS.push((s, t, r) => {
+  if (!s.off.towns) rollCulture(s, r);
 });
 
 SOURCES.push({
@@ -70,9 +78,10 @@ SOURCES.push({
 });
 
 // Told at the gate, the first time.
-on('did', (s, d) => {
+on('did', (s, d) => withTown(s, curTown(s), () => cultureTalk(s, d)));
+function cultureTalk(s, d) {
   if (!s.townCulture || s.off.towns) return;
-  if (s.area === 'town' && !s.townCulture.told) {
+  if (inTown(s) && !s.townCulture.told) {
     s.townCulture.told = true;
     say(s, describe(s), 'good');
   }
@@ -107,7 +116,7 @@ on('did', (s, d) => {
       for (const k in m.sites)
         if (m.sites[k].kind === 'spring' && Math.max(Math.abs((k % W) - s.town.x), Math.abs(Math.floor(k / W) - s.town.y)) <= 8) {
           m.sites[k].known = true;
-          mark(s, k % W, Math.floor(k / W));
+          mark(s, k % W, Math.floor(k / W), townArea(s));
           n++;
         }
       sp.push(
@@ -117,7 +126,7 @@ on('did', (s, d) => {
       );
     }
   }
-});
+}
 
 SWITCHES.push(['towns', 'Town cultures']);
 NOTES.push((s) =>

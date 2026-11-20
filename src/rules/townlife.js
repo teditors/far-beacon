@@ -4,14 +4,28 @@
    in play: the people's services and the lessons' and blessing's modifiers stop). */
 import { C, H, W, WALL, FLOOR, byId, clock, godOf, idx, on, say, srand, stream } from './core.js';
 import './interiors.js'; // the old town generator, kept for the switch
-import { GENERATORS, HOME, mapOf, townArea, worldMap, worldPos, homePos, outdoorRec } from './areas.js';
+import {
+  GENERATORS,
+  HOME,
+  curTown,
+  inTown,
+  mapOf,
+  townArea,
+  townById,
+  townSfx,
+  withTown,
+  worldMap,
+  worldPos,
+  homePos,
+  outdoorRec,
+} from './areas.js';
 import { AXES, learn, traitText } from './civ.js';
 import { dirFrom, siteHere, SITE_NAME } from './map.js';
 import { findSite, mark } from './quest.js';
 import { isCursed, itemName, makeItem } from './items.js';
 import { gainXp } from './progress.js';
 import { SOURCES, stat } from './stats.js';
-import { ACTIONS, NOTES, SWITCHES, TALK } from './hooks.js';
+import { ACTIONS, NOTES, SWITCHES, TALK, TOWN_MAKERS } from './hooks.js';
 
 const L = () => C.townLife;
 const SERVICE_IDS = () => L().services.map((x) => x.id);
@@ -25,10 +39,8 @@ for (const sv of L().services) SITE_NAME[sv.id] = sv.role.replace(/^the /, '') +
 Object.assign(SITE_NAME, { folk: 'townsperson', grave: 'grave' });
 
 /* ---------- at world creation: size, services, lessons ---------- */
-on('worldBorn', (s, d) => {
-  if (d.off.townlife) return;
-  const r = stream(s.seed, 'townlife'),
-    X = L(),
+function rollLife(s, r) {
+  const X = L(),
     pick = (a) => a[Math.floor(r() * a.length)];
   let t = X.sizes.reduce((a, e) => a + e.w, 0) * r(),
     size = X.sizes[0];
@@ -52,16 +64,24 @@ on('worldBorn', (s, d) => {
     const b = pick(['sword', 'spear', 'cloak', 'boots', 'framepack', 'compass', 'spyglass', 'salve', 'tonic', 'draught']);
     s.town.stock.push(makeItem(s, b, null, null, true));
   }
+}
+on('worldBorn', (s, d) => {
+  if (!d.off.townlife) rollLife(s, stream(s.seed, 'townlife'));
+});
+// any other town is given its size, services and lessons the same way, as it is made
+TOWN_MAKERS.push((s, t, r) => {
+  if (!s.off.townlife) rollLife(s, r);
 });
 
 /* ---------- the layout ---------- */
 const oldTown = GENERATORS.town;
-GENERATORS.town = (s, rec) => {
+GENERATORS.town = (s, rec) => withTown(s, townById(s, rec.id) || s.town, () => lifeTown(s, rec));
+function lifeTown(s, rec) {
   if (s.off.townlife || !s.town.size) return oldTown(s, rec);
   const X = L(),
     size = byId(X.sizes, s.town.size),
-    r = stream(s.seed, 'area:town2'),
-    rw = stream(s.seed, 'town:walls'),
+    r = stream(s.seed, 'area:town2' + townSfx(s)),
+    rw = stream(s.seed, 'town:walls' + townSfx(s)),
     pick = (a) => a[Math.floor(r() * a.length)],
     terrain = new Array(W * H).fill(FLOOR),
     sites = {},
@@ -193,11 +213,11 @@ GENERATORS.town = (s, rec) => {
   s.town.walled = walled;
   rec.entry = { x: c, y: H - 2 };
   return { terrain, sites, seen: new Array(W * H).fill(1) };
-};
+}
 
 /* ---------- talking to people ---------- */
 const svc = (kind) => byId(L().services, kind);
-const atPerson = (s, kind) => s.area === 'town' && siteHere(s) && siteHere(s).kind === kind;
+const atPerson = (s, kind) => inTown(s) && siteHere(s) && siteHere(s).kind === kind;
 const learned = (s) => (s.char && s.char.lessons) || [];
 const blessed = (s) => s.blessUntil && s.time < s.blessUntil;
 
@@ -303,7 +323,7 @@ function serviceInfo(s) {
     if (i) return i;
   }
   const st = siteHere(s);
-  if (!st || s.off.townlife || s.area !== 'town') return null;
+  if (!st || s.off.townlife || !inTown(s)) return null;
   const p = s.player,
     opt = [],
     text = [];
@@ -327,7 +347,7 @@ function serviceInfo(s) {
   if (st.kind === 'trainer') {
     if (learned(s).length >= L().maxLessons) text.push('"You have learned all you will learn from me. Go and use it."');
     else
-      for (const id of s.town.lessons || [])
+      for (const id of curTown(s).lessons || [])
         if (!learned(s).includes(id)) {
           const l = byId(L().lessons, id);
           opt.push({ id: 'learn', arg: id, label: l.name, price: l.price, note: l.text });
@@ -426,7 +446,7 @@ function useService(s, optId, arg) {
 }
 // Townsfolk wander the streets while you walk in town (never onto a door, a grave, the well or you).
 on('did', (s, d) => {
-  if (d.id !== 'move' || s.area !== 'town' || s.off.townlife) return;
+  if (d.id !== 'move' || !inTown(s) || s.off.townlife) return;
   for (const k of Object.keys(s.sites)) {
     const st = s.sites[k];
     if (st.kind !== 'folk' || srand(s) > 0.3) continue;
@@ -461,7 +481,7 @@ on('did', (s, d) => {
 });
 
 ACTIONS.push((s, st, a) => {
-  if (!st || s.combat || s.area !== 'town' || s.off.townlife) return;
+  if (!st || s.combat || !inTown(s) || s.off.townlife) return;
   if (svc(st.kind)) a.push({ id: 'townAsk', section: st.kind, label: 'Talk to ' + st.name, hint: svc(st.kind).role });
   if (st.kind === 'folk') a.push({ id: 'townAsk', section: 'folk', label: 'Talk to ' + st.name, hint: st.role });
 });

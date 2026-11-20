@@ -284,3 +284,4 @@ function waterAt(s, gx, gy, known) {
       }
 }
 SWITCHES.push(['plot', 'The plot across the world (new worlds)']);
+export { spot, flatten, regionMap };

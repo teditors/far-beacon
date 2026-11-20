@@ -55,37 +55,81 @@ function buildArea(s, rec) {
    open; a walled one has gates where its main streets meet the wall, always including the south one. */
 const TOWN_R = 2,
   TOWN_GATE = { x: W / 2, y: H - 1 }; // the gap in the town's own south wall
-const townArea = (s) => (s.town && s.town.area) || HOME; // the region the town stands in
-const inTownBlock = (s, x, y) =>
-  s.area === townArea(s) && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
-const townDoor = (s) => ({ x: s.town.x, y: s.town.y + TOWN_R + 1 });
+/* A world may have several towns. s.town is the town of the story (area id 'town'); any others are in s.towns, each
+   with its own area id (t.id), region (t.area) and the same fields. At most one town stands in a region. */
+const townId = (t) => (t && t.id) || 'town';
+const allTowns = (s) => (s.town ? [s.town] : []).concat(s.towns || []);
+const townById = (s, id) => allTowns(s).find((t) => townId(t) === id) || null;
+const townArea = (s, t) => ((t || s.town) && (t || s.town).area) || HOME; // the region a town stands in
+// The town standing in a region (by region id), or null.
+const townInRegion = (s, regionId) => allTowns(s).find((t) => townArea(s, t) === regionId) || null;
+// The town the player is in, or else the town of the region they are in, or else the town of the story.
+function curTown(s) {
+  const rec = areaRec(s);
+  if (rec && rec.kind === 'town') return townById(s, rec.id) || s.town;
+  let o = rec;
+  while (o && o.kind !== 'region' && o.from) o = s.areas[o.from.area];
+  return (o && townInRegion(s, o.id)) || s.town;
+}
+// Run fn with s.town (and s.townCulture) standing for town t, so that code written for the one town works for any.
+// Used where a town is made (its size, people, culture and streets) and where a piece reacts in a town.
+function withTown(s, t, fn) {
+  if (!t || t === s.town) return fn();
+  const was = s.town,
+    wasC = s.townCulture;
+  s.town = t;
+  s.townCulture = t.culture;
+  try {
+    return fn();
+  } finally {
+    t.culture = s.townCulture;
+    s.town = was;
+    s.townCulture = wasC;
+  }
+}
+// A suffix for a town's random streams: none for the story's town, so its streets are as they always were.
+const townSfx = (s) => (s.town && s.town.id ? ':' + s.town.id : '');
+const inTown = (s) => areaRec(s).kind === 'town';
+// Is outdoor tile (x, y) of the region the player is in part of a town's block? Gives that town, or null.
+const townBlockAt = (s, x, y) => {
+  const t = townInRegion(s, s.area);
+  return t && Math.abs(x - t.x) <= TOWN_R && Math.abs(y - t.y) <= TOWN_R ? t : null;
+};
+const inTownBlock = (s, x, y) => !!townBlockAt(s, x, y);
+const townDoor = (s, t) => ({ x: (t || s.town).x, y: (t || s.town).y + TOWN_R + 1 });
 /* The town's own map exactly fills its block of outdoor tiles: each outdoor tile spans W / (2 * TOWN_R + 1) town tiles.
    Walking into the block from any side enters the town on the facing edge, at the matching place along it; walking off
    any edge of the town comes out on the outdoor tile beside the block at the matching place. */
 const TOWN_SPAN = W / (2 * TOWN_R + 1);
 // The town tile you arrive on, walking into the block at outdoor tile (ox, oy) from outdoor tile (px, py).
-function townEntry(s, px, py, ox, oy) {
-  const bx = ox - (s.town.x - TOWN_R),
-    by = oy - (s.town.y - TOWN_R),
+function townEntry(s, px, py, ox, oy, t) {
+  t = t || townBlockAt(s, ox, oy) || s.town;
+  const bx = ox - (t.x - TOWN_R),
+    by = oy - (t.y - TOWN_R),
     mid = (b) => Math.min(W - 1, Math.floor((b + 0.5) * TOWN_SPAN));
-  if (px < s.town.x - TOWN_R) return { x: 0, y: mid(by) };
-  if (px > s.town.x + TOWN_R) return { x: W - 1, y: mid(by) };
-  if (py < s.town.y - TOWN_R) return { x: mid(bx), y: 0 };
+  if (px < t.x - TOWN_R) return { x: 0, y: mid(by) };
+  if (px > t.x + TOWN_R) return { x: W - 1, y: mid(by) };
+  if (py < t.y - TOWN_R) return { x: mid(bx), y: 0 };
   return { x: mid(bx), y: H - 1 };
 }
 // The outdoor tile you come out on, walking off the town's map from town tile (tx, ty) by (dx, dy).
-function townExit(s, tx, ty, dx, dy) {
-  const o = (t) => Math.min(2 * TOWN_R, Math.max(0, Math.floor(t / TOWN_SPAN))),
-    x0 = s.town.x - TOWN_R,
-    y0 = s.town.y - TOWN_R;
+function townExit(s, tx, ty, dx, dy, t) {
+  t = t || curTown(s);
+  const o = (v) => Math.min(2 * TOWN_R, Math.max(0, Math.floor(v / TOWN_SPAN))),
+    x0 = t.x - TOWN_R,
+    y0 = t.y - TOWN_R;
   if (dx < 0) return { x: x0 - 1, y: y0 + o(ty) };
-  if (dx > 0) return { x: s.town.x + TOWN_R + 1, y: y0 + o(ty) };
+  if (dx > 0) return { x: t.x + TOWN_R + 1, y: y0 + o(ty) };
   if (dy < 0) return { x: x0 + o(tx), y: y0 - 1 };
-  return { x: x0 + o(tx), y: s.town.y + TOWN_R + 1 };
+  return { x: x0 + o(tx), y: t.y + TOWN_R + 1 };
 }
+// Every town's map is built ahead, so it can be seen from outside.
 function ensureTown(s) {
-  if (!s.areas.town) s.areas.town = { id: 'town', kind: 'town', indoor: true, name: s.town.name };
-  buildArea(s, s.areas.town);
+  for (const t of allTowns(s)) {
+    const id = townId(t);
+    if (!s.areas[id]) s.areas[id] = { id, kind: 'town', indoor: true, name: t.name };
+    buildArea(s, s.areas[id]);
+  }
 }
 // The map of any area: the live one if the player is in it, the parked one otherwise.
 const mapOf = (s, id) => (id === s.area ? s : s.areas[id].map);
@@ -251,6 +295,15 @@ export {
   homePos,
   localPos,
   townArea,
+  townId,
+  allTowns,
+  townById,
+  townInRegion,
+  townBlockAt,
+  curTown,
+  withTown,
+  townSfx,
+  inTown,
   campHere,
   AREA_FIELDS,
   GENERATORS,

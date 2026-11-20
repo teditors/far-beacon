@@ -367,9 +367,9 @@ function openService() {
 }
 function openTown(section) {
   if (!['elder', 'inn', 'shop'].includes(section)) return openService();
-  if (section === 'elder' && !V.S.quest.told) act(() => R.talkElder(V.S));
-  const t = V.S.town,
-    p = V.S.player,
+  const t = R.curTown(V.S);
+  if (section === 'elder' && (!V.S.quest.told || t !== V.S.town)) act(() => R.talkElder(V.S));
+  const p = V.S.player,
     T = R.C.town,
     race = R.byId(R.C.races, t.race).name.toLowerCase(),
     re = (fn) => () => {

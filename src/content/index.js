@@ -27,6 +27,7 @@ import roster from './roster.js';
 import hamlets from './hamlets.js';
 import tiers from './tiers.js';
 import worldSize from './worldsize.js';
+import moreTowns from './moretowns.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -57,4 +58,5 @@ export const CONTENT = Object.assign(
   hamlets,
   tiers,
   worldSize,
+  moreTowns,
 );

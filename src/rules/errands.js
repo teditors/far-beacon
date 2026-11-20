@@ -2,7 +2,7 @@
    creature, fetch a parcel, go and see a place), paid on your return. Sometimes the one who asks is lying.
    State: s.errand = { kind, text, area, x, y, cid, done, reward, liar, giver }, s.errandsDone. Switch: s.off.errands. */
 import { C, W, H, aOrAn, byId, idx, on, say, srand } from './core.js';
-import { HOME, ensureRegion, homePos, townArea, worldPos, regionId, wrap } from './areas.js';
+import { HOME, areaRec, ensureRegion, homePos, townArea, worldPos, regionId, wrap } from './areas.js';
 import { dirFrom } from './map.js';
 import { genItem, itemName, makeItem } from './items.js';
 import { siteName } from './map.js';
@@ -11,7 +11,7 @@ import { NOTES, SWITCHES } from './hooks.js';
 const E = () => C.errands;
 const mapOf = (s, id) => (id === s.area ? s : s.areas[id] && s.areas[id].map);
 const atInn = (s) =>
-  s.area === 'town' && s.sites[idx(s.player.x, s.player.y)] && s.sites[idx(s.player.x, s.player.y)].kind === 'inn';
+  areaRec(s).kind === 'town' && s.sites[idx(s.player.x, s.player.y)] && s.sites[idx(s.player.x, s.player.y)].kind === 'inn';
 
 function errandInfo(s) {
   if (s.off.errands) return { text: 'Nobody here has work for you.', canAsk: false, canClaim: false };

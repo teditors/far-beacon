@@ -4,6 +4,34 @@ Newest entry first. Performance numbers are from `tools/bench.py` (a real browse
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
 
+## C3.3: more towns
+
+**What it is.** A world now has other towns besides the town of the story: one more for about every four or five
+regions (one to five), never at home and never two in one region. Each is made the same way as the first: its own
+name, elder and merchant, a shop, a size from hamlet to city with its own services and lessons, its own culture
+(traders, smiths, herbalists...) and its own streets. You walk into it from any side like the first. Its elder has
+news and, until you have heard the story, sends you to the town that knows what the land needs, and marks it.
+
+**In play.** The far country has somewhere to go: a bed, a shop and a healer two regions from the story's town. Bot
+does not visit them, but the extra towns' shops roll items from the play stream, which reshuffles later dice: sets
+5 / 1000 / 2000 give 14, 12, 18 (44 / 450, 10%), against 53 before; within the swing between seed sets, and above the
+floor. This is the ground for the plots (next).
+
+**Commits.** "More towns". Switch: `moretowns` (at creation).
+
+**How it works.** `s.town` stays the story's town (area `'town'`); the others are in `s.towns`, each with an `id`
+(`t_<region>`, also its area id) and `area` (its region). `curTown(s)` is the town you are in (or the one in your
+region); the shop, inn, elder, services and the cultures' talk all use it. `withTown(s, t, fn)` runs code written for
+the one town with `s.town` (and `s.townCulture`) standing for another, which is how a new town gets its size,
+services, culture (`TOWN_MAKERS` in hooks.js) and streets without copying any of that code. Extra towns' random
+streams carry their id, so the story town's streets are unchanged in every existing world. The view draws every town
+among the nine regions and lets you walk into the one in your region (`V.townId`).
+
+**Choices made without asking.** An elder of another town does not tell the story; the story belongs to the first
+town. A new town never stands within seven tiles of the beast with the key or a lair's keeper.
+
+**Verdict: pearl.** A prerequisite that is also a feature.
+
 ## C3.2: worlds of varying size
 
 **What it is.** The number of regions across and down is now rolled from the seed: a small world (2 or 3 by 3), an

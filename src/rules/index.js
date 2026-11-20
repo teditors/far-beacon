@@ -46,6 +46,10 @@ import { describeItem, genItem, isCursed, itemAffixes, itemName, itemWeight, wei
 import { atCamp, bearing, groundHere, inShelter, passable, reveal, siteHere, siteName, terrainInfo } from './map.js';
 import {
   areaRec,
+  allTowns,
+  curTown,
+  townById,
+  townInRegion,
   townDoor,
   inTownBlock,
   TOWN_GATE,
@@ -116,7 +120,8 @@ import { classMove } from './roster.js';
 import './hamlets.js';
 import './tiers.js';
 import './worldsize.js';
-import './plot.js'; // last: it moves quest places that earlier pieces may have changed
+import './plot.js'; // it moves quest places that earlier pieces may have changed
+import './moretowns.js'; // after the plot: other towns go where the story's places are not
 
 const api = {
   // for tests and tinkering: put the traveller on a tile of any outdoor region (from outdoors)
@@ -227,6 +232,10 @@ const api = {
   mapOf,
   ensureAround,
   townDoor,
+  allTowns,
+  curTown,
+  townById,
+  townInRegion,
   inTownBlock,
   TOWN_GATE,
   TOWN_R,

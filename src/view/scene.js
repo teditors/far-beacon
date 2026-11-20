@@ -512,11 +512,25 @@ function buildStaticInner() {
     sc = new THREE.Vector3(),
     rocks = pal.map(() => []),
     trees = pal.map(() => []);
-  const townSite = land.sites.find((q) => q.st.kind === 'town'),
-    townHalf = (R.W * TOWN_TS) / 2;
-  if (townSite) V.townAt = { x: centre(townSite.x), y: T.height(centre(townSite.x), centre(townSite.y)), z: centre(townSite.y) };
+  // every town in view (a world may have several); V.townAt is the one in the player's region, which can be walked into
+  const townHalf = (R.W * TOWN_TS) / 2,
+    towns = land.sites
+      .filter((q) => q.st.kind === 'town')
+      .map((q) => ({
+        id: q.st.town || 'town',
+        here: q.here,
+        x: centre(q.x),
+        y: T.height(centre(q.x), centre(q.y)),
+        z: centre(q.y),
+      }));
+  V.townId = null;
+  for (const t of towns)
+    if (t.here) {
+      V.townAt = { x: t.x, y: t.y, z: t.z };
+      V.townId = t.id;
+    }
   const nearSite = (x, z) => {
-    if (V.townAt && Math.abs(x - V.townAt.x) < townHalf + 4 && Math.abs(z - V.townAt.z) < townHalf + 4) return true;
+    for (const t of towns) if (Math.abs(x - t.x) < townHalf + 4 && Math.abs(z - t.z) < townHalf + 4) return true;
     const site = land.siteAt[T.etile(x, z)];
     return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;
   };
@@ -602,8 +616,11 @@ function buildStaticInner() {
     }
     if (st.kind === 'town') {
       // the town itself, wall by wall, standing where it is
-      const g = interiorGroup(R.mapOf(V.S, 'town'), V.S.areas.town, TOWN_TS);
-      g.position.set(V.townAt.x, V.townAt.y, V.townAt.z);
+      const id = st.town || 'town',
+        tw = towns.find((t) => t.id === id);
+      if (!V.S.areas[id] || !R.mapOf(V.S, id) || !tw) continue;
+      const g = interiorGroup(R.mapOf(V.S, id), V.S.areas[id], TOWN_TS);
+      g.position.set(tw.x, tw.y, tw.z);
       staticGroup.add(g);
       continue;
     }
@@ -622,7 +639,7 @@ function buildDynamic() {
   const kind = R.areaRec(V.S).kind;
   if (kind === 'vault') return drawArea(V.S.area, 'vault');
   drawArea(R.outdoorRec(V.S).id, 'region');
-  if (V.townAt && V.S.areas.town) drawArea('town', 'town');
+  if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, 'town');
 }
 function drawArea(id, kind) {
   const map = R.mapOf(V.S, id),

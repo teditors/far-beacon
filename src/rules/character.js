@@ -1,5 +1,5 @@
 /* Characters: rolling, race and class, setting out, and the next traveller after a death. */
-import { areaRec, forgetMaps, inOverworld, toOverworld, worldPos } from './areas.js';
+import { areaRec, forgetMaps, inOverworld, toOverworld, townById, worldPos } from './areas.js';
 import { C, START, W, byId, clock, idx, say } from './core.js';
 import { autoEquip } from './equipment.js';
 import { describeMods, makeItem } from './items.js';
@@ -131,7 +131,7 @@ function nextTraveller(s, ch) {
       d.remains +
       (inside
         ? ' lies somewhere ' +
-          (diedIn.kind === 'town' ? 'in ' + s.town.name : 'inside the ' + s.quest.vault.name) +
+          (diedIn.kind === 'town' ? 'in ' + (townById(s, diedIn.id) || s.town).name : 'inside the ' + s.quest.vault.name) +
           ', to the ' +
           dirTo(s, where.x, where.y)
         : ' lies somewhere to the ' + dirTo(s, where.x, where.y)) +

@@ -431,5 +431,37 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   const o = R.newGame(1, { worldsize: true });
   need(o.world.cols === 3 && o.world.rows === 3, 'NO=worldsize is not 3 x 3');
 }
+// More towns: every world has others, each in its own region, each can be walked into and used like the first.
+{
+  let towns = 0, cultures = 0;
+  for (let i = 1; i <= 12; i++) {
+    const s = R.newGame(i);
+    need((s.towns || []).length >= 1, 'seed ' + i + ': no other town');
+    need(new Set(R.allTowns(s).map((t) => t.area || 'overworld')).size === R.allTowns(s).length, 'seed ' + i + ': two towns in one region');
+    for (const t of s.towns || []) {
+      towns++;
+      if (t.culture) cultures++;
+      const d = R.townDoor(s, t);
+      goPlace(s, { area: t.area, x: d.x, y: d.y }); s.creatures = []; s.player.stamina = 100; s.player.coin = 100;
+      need(R.move(s, 0, -1) && R.areaRec(s).kind === 'town' && s.area === t.id && R.curTown(s) === t, 'seed ' + i + ': could not walk into ' + t.name);
+      const el = R.findHere(s, 'elder'), shop = R.findHere(s, 'shop'), inn = R.findHere(s, 'inn');
+      need(el && shop && inn, 'seed ' + i + ': ' + t.name + ' lacks an elder, a shop or an inn');
+      if (!el || !shop || !inn) continue;
+      s.player.x = el.x; s.player.y = el.y;
+      need(R.talkElder(s) && t.speech.length && !s.quest.told, 'seed ' + i + ': the elder of ' + t.name + ' said nothing, or told the story');
+      need(s.town.speech.length === 0 || s.town !== t, 'the story town spoke instead');
+      s.player.x = shop.x; s.player.y = shop.y;
+      const n = t.stock.length;
+      need(R.buy(s, t.stock[0].id) && t.stock.length === n - 1, 'seed ' + i + ': could not buy in ' + t.name);
+      s.player.x = inn.x; s.player.y = inn.y; s.player.hp = 1;
+      need(R.inn(s) && s.player.hp === s.player.hpMax, 'seed ' + i + ': no bed in ' + t.name);
+      s.player.x = 18; s.player.y = 35;
+      R.move(s, 0, 1);
+      need(s.area === t.area, 'seed ' + i + ': could not walk out of ' + t.name);
+    }
+  }
+  need(cultures === towns, 'some other towns have no culture');
+  need(!(R.newGame(3, { moretowns: true }).towns || []).length, 'NO=moretowns still made towns');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns');

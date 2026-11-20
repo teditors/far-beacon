@@ -94,6 +94,9 @@ first time the player arrives.
   `findSite(s, kind)` (returns `area`), `townArea(s)`, `keyRuin(s)`, `beastOf(s)` and `mark(s, x, y, area)`; never
   assume the home region. `localPos(s, area, x, y)` gives a place in the frame of the region the player is in, and
   `homePos` in home coordinates, for directions. With `NO=plot` everything stays home as before.
+- Several towns: `s.town` is the story's (area `'town'`), others are in `s.towns` (`id` = area id, `area` = region).
+  Use `curTown(s)` in anything that happens in a town, `allTowns(s)`, `townById`, `townInRegion`, and `withTown(s, t,
+  fn)` to run one-town code for another town. `addTown(s, cx, cy, r)` (moretowns.js) makes one.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
 - `inOverworld(s)` means "outdoors, in any region".
 

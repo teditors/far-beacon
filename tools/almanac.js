@@ -555,6 +555,12 @@ section('Tiers by distance', ['tiers'], () => {
   line();
 });
 
+section('More towns', ['moreTowns'], () => {
+  const X = C.moreTowns;
+  line('Besides the town of the story, one more town for about every ' + X.perRegions + ' regions (at least ' + X.least + ', at most ' + X.most + '), never at home and never two in a region. Each is made like the first: a name, an elder, a merchant, a shop, a size and services (town life), a culture (town cultures) and its own streets.');
+  line();
+});
+
 section('The size of the world', ['worldSize'], () => {
   const X = C.worldSize;
   line('Rolled from the seed before the land is made (a year that sets the size, such as the wide world, wins). At most ' + X.most + ' regions. Turned on its side means the across and down ranges may swap.');
