@@ -9975,13 +9975,13 @@
     const town = townById(s, door.area);
     if (town) {
       const rec = s.areas[town.area || "overworld"];
-      jumpRegion(s, rec.cx, rec.cy, town.x, town.y + 3);
+      jumpRegion(s, rec.cx, rec.cy, town.x, town.y + 3, town.realm);
       s.player.x = town.x;
       s.player.y = town.y + 3;
       enterArea(s, door.area, { kind: "town", indoor: true, name: town.name }, { x: door.x, y: door.y });
     } else {
       const rec = s.areas[door.area];
-      jumpRegion(s, rec.cx, rec.cy, door.x, door.y);
+      jumpRegion(s, rec.cx, rec.cy, door.x, door.y, rec.realm);
     }
     s.player.x = door.x;
     s.player.y = door.y;
@@ -10012,7 +10012,13 @@
       const t = townById(s, d.area);
       if (t) withTown(s, t, () => mapOf(s, d.area));
       else {
-        const rec = s.areas[d.area], c = d.area.match(/^r(\d+)_(\d+)$/);
+        const rec = s.areas[d.area], o = d.area.match(/^(o\d+):r(\d+)_(\d+)$/), c = d.area.match(/^r(\d+)_(\d+)$/);
+        if (o)
+          return withRealm(
+            s,
+            o[1],
+            () => (ensureRegion(s, +o[2], +o[3]), d.x === void 0 ? null : { area: d.area, x: d.x, y: d.y })
+          );
         if (!rec && c) {
           const cx = +c[1], cy = +c[2];
           s.areas[d.area] = { id: d.area, kind: "region", cx, cy, biome: sketchOf(s, cx, cy).biome };
@@ -11044,6 +11050,22 @@
     const w = s.world;
     for (let k = 0; k < n; k++) {
       const realm = makeRealm(s, k, ev.off, set);
+      if (!ev.off.deeps && C.deeps) {
+        const rw = realm.world, n2 = 1 + (r() < 0.5 ? 1 : 0), used = (s.deeps || []).map((d) => d.name);
+        for (let j = 0; j < n2; j++) {
+          const th = C.deeps.themes[Math.floor(r() * C.deeps.themes.length)], free = th.names.filter((nm) => !used.includes(nm)), name = free.length ? free[Math.floor(r() * free.length)] : "the Far " + th.names[0].slice(4);
+          used.push(name);
+          (s.deeps = s.deeps || []).push({
+            id: "d" + s.deeps.length,
+            theme: th.id,
+            name,
+            area: realm.id + ":r" + Math.floor(r() * rw.cols) + "_" + Math.floor(r() * rw.rows),
+            at: "cave",
+            depth: 2 + Math.floor(r() * 3),
+            realm: realm.id
+          });
+        }
+      }
       for (let t = 0; t < 8; t++) {
         const cx = Math.floor(r() * w.cols), cy = Math.floor(r() * w.rows);
         if (cx === w.home.cx && cy === w.home.cy || sketchOf(s, cx, cy).sea) continue;

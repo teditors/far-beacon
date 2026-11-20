@@ -2,7 +2,7 @@
 
 ## Summary
 
-Eight entries, in the order the brief asked: the testing tools first, then dungeons, the sky, the sea, other worlds,
+Nine entries, in the order the brief asked: the testing tools first, then dungeons, the sky, the sea, other worlds,
 and the plot using them all; then fixtures, the door's model and the benchmark of the new places. Every check passes,
 old saves load (no `VERSION` bump: every new field is optional; saves from v0.14 and from inside each new place are
 now fixtures), and the bot wins as often as before.
@@ -17,6 +17,7 @@ now fixtures), and the bot wins as often as before.
 | C4.6 | The plot goes below, above, under and beyond; four new troubles; routes to anywhere; every door used; the bot follows routes | `plots` | pearl |
 | C4.7 | Fixtures from v0.14 and from inside the new places; the door drawn; how to play; `bench.py places` | (tests, view) | small |
 | C4.8 | Kin: the windborn fly by nature, the merrow breathe water; offered only where the sky or the sea is | `kin` | maybe-to-pearl |
+| C4.9 | Other worlds have dungeons of their own; the plot's places inside levels are drawn | `realms`, (view) | small |
 
 **The limits** (node, `--expose-gc`; god mode walking every place):
 - **How deep a dungeon can go**: as deep as you like, as far as the rules go. Each walked level adds about **2.1 KB to
@@ -72,7 +73,7 @@ they are long, hard journeys, so they are rare as great troubles.
 
 **What I would do next.**
 1. Measure a floating castle and the open sea on the Pixel (above), and if the sky is costly, draw less of it.
-2. Give other worlds their own dungeons and sky places, and a stranger year (two moons, long nights) of their own.
+2. Give other worlds sky places and a stranger year (two moons, long nights) of their own (dungeons: done in C4.9).
 3. Done in C4.8: a flying race and a merfolk race.
 4. Teach the bot to cross deep water by boat and to trade for a coracle, so the playtest measures the sea; and to
    prepare better for long journeys (it dies of thirst on the way to most of the new troubles).
@@ -91,6 +92,15 @@ Newest entry first. Performance numbers are from `tools/bench.py` (a real browse
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
+
+## C4.9: dungeons in other worlds
+
+**What it is.** Each other world rolls one or two dungeons of its own (any theme, 2 to 4 levels), their stairs in
+caves of that world, so another world is worth exploring for itself and not only for the plot's errand. They are
+ordinary dungeons in `s.deeps` (with `realm`), built only when reached; god mode jumps into them across the door, and
+the goal line from the bottom of one says "Go back through the door, home" and points up the stair.
+
+**Commits.** "Other worlds have dungeons of their own". Switch: `realms` (and `deeps`).
 
 ## C4.8: kin of the new places
 

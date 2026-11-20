@@ -9,7 +9,20 @@
 import { C, H, W, WALL, FLOOR, byId, clamp, emit, idx, on, say, stream } from './core.js';
 import './interiors.js';
 import './worldgen.js';
-import { GENERATORS, areaRec, buildArea, enterArea, mapOf, regionId, sketchOf, townById, townId, withTown } from './areas.js';
+import {
+  GENERATORS,
+  areaRec,
+  buildArea,
+  ensureRegion,
+  enterArea,
+  withRealm,
+  mapOf,
+  regionId,
+  sketchOf,
+  townById,
+  townId,
+  withTown,
+} from './areas.js';
 import { makeCreature } from './combat.js';
 import { genItem, makeItem } from './items.js';
 import { reveal, sightRadius, siteHere, SITE_NAME } from './map.js';
@@ -573,13 +586,13 @@ function jumpDown(s, d, n) {
   const town = townById(s, door.area);
   if (town) {
     const rec = s.areas[town.area || 'overworld'];
-    jumpRegion(s, rec.cx, rec.cy, town.x, town.y + 3);
+    jumpRegion(s, rec.cx, rec.cy, town.x, town.y + 3, town.realm);
     s.player.x = town.x;
     s.player.y = town.y + 3;
     enterArea(s, door.area, { kind: 'town', indoor: true, name: town.name }, { x: door.x, y: door.y });
   } else {
     const rec = s.areas[door.area];
-    jumpRegion(s, rec.cx, rec.cy, door.x, door.y);
+    jumpRegion(s, rec.cx, rec.cy, door.x, door.y, rec.realm); // a dungeon may be in another world
   }
   s.player.x = door.x;
   s.player.y = door.y;
@@ -612,7 +625,14 @@ function deepDoor(s, d) {
     if (t) withTown(s, t, () => mapOf(s, d.area));
     else {
       const rec = s.areas[d.area],
+        o = d.area.match(/^(o\d+):r(\d+)_(\d+)$/),
         c = d.area.match(/^r(\d+)_(\d+)$/);
+      if (o)
+        return withRealm(
+          s,
+          o[1],
+          () => (ensureRegion(s, +o[2], +o[3]), d.x === undefined ? null : { area: d.area, x: d.x, y: d.y }),
+        );
       if (!rec && c) {
         const cx = +c[1],
           cy = +c[2];

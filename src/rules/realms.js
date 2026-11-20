@@ -126,6 +126,27 @@ on('worldBorn', (s, ev) => {
   const w = s.world;
   for (let k = 0; k < n; k++) {
     const realm = makeRealm(s, k, ev.off, set);
+    // stranger, and worth exploring for its own sake: a dungeon or two of its own
+    if (!ev.off.deeps && C.deeps) {
+      const rw = realm.world,
+        n = 1 + (r() < 0.5 ? 1 : 0),
+        used = (s.deeps || []).map((d) => d.name);
+      for (let j = 0; j < n; j++) {
+        const th = C.deeps.themes[Math.floor(r() * C.deeps.themes.length)],
+          free = th.names.filter((nm) => !used.includes(nm)),
+          name = free.length ? free[Math.floor(r() * free.length)] : 'the Far ' + th.names[0].slice(4);
+        used.push(name);
+        (s.deeps = s.deeps || []).push({
+          id: 'd' + s.deeps.length,
+          theme: th.id,
+          name,
+          area: realm.id + ':r' + Math.floor(r() * rw.cols) + '_' + Math.floor(r() * rw.rows),
+          at: 'cave',
+          depth: 2 + Math.floor(r() * 3),
+          realm: realm.id,
+        });
+      }
+    }
     // the door stands away from home, somewhere the story's journey goes
     for (let t = 0; t < 8; t++) {
       const cx = Math.floor(r() * w.cols),
