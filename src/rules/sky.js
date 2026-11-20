@@ -34,7 +34,7 @@ import { restHour } from './actions.js';
 import { gainXp, roll } from './progress.js';
 import { stat, SOURCES } from './stats.js';
 import { SYSTEMS } from './systems.js';
-import { ACTIONS, COSTS, LOOKS, NOTES, PLACES, SWITCHES, TALK } from './hooks.js';
+import { ACTIONS, COSTS, ENTRANCES, LOOKS, NOTES, PLACES, SWITCHES, TALK } from './hooks.js';
 import { makeArtifact } from './artifacts.js';
 import { genOf } from './worldset.js';
 import { jumpRegion } from './godmode.js';
@@ -354,7 +354,9 @@ GENERATORS.sky = (s, rec) => {
   };
   for (let n = 0; sp.length && n < kd.per; n++) {
     const i = spot(5);
-    if (i !== null) put(sp[Math.floor(r() * (sp.length - 1))], i, kd.tier + Math.floor((lvl - 1) / 2));
+    // a place the plot sends you to is a tier gentler: you are sent there, not drawn there late in a life
+    if (i !== null)
+      put(sp[Math.floor(r() * (sp.length - 1))], i, Math.max(1, kd.tier + Math.floor((lvl - 1) / 2) - (k.plot ? 1 : 0)));
   }
   if (top && kd.prize) {
     const it = genItem(s, { relic: true, noConsumables: true });
@@ -387,6 +389,17 @@ GENERATORS.sky = (s, rec) => {
 };
 
 /* ---------- going up, along, and down ---------- */
+// How each level is entered: the first from its shadow (flying), the rest by the stair from the one before.
+ENTRANCES.push((s, id) => {
+  const rec = s.areas[id];
+  if (!rec || rec.kind !== 'sky') return null;
+  const k = skyById(s, rec.sky);
+  if (rec.level === 1) return { area: k.area, x: k.x, y: k.y, act: 'flyUp', fly: true };
+  const up = skyLevelId(k, rec.level - 1),
+    m = s.areas[up] ? mapOf(s, up) : null,
+    q = m ? Object.keys(m.sites).find((j) => m.sites[j].kind === 'skyway' && !m.sites[j].back) : undefined;
+  return { area: up, x: q === undefined ? undefined : q % W, y: q === undefined ? undefined : Math.floor(q / W), act: 'skyOn' };
+});
 function levelRec(k, n) {
   return { kind: 'sky', indoor: true, open: true, level: n, levels: k.levels, sky: k.id, place: k.kind };
 }
@@ -587,4 +600,35 @@ NOTES.push((s) => {
 });
 SWITCHES.push(['sky', 'Places in the sky (new worlds)']);
 
-export { skiesOf, skyById, takeOff, land, flyUp, skyOn, flyDown, aloft, canFly, jumpSky };
+// A sky place of a given kind over a region (for a plot that needs one where the world rolled none).
+function addSky(s, kind, rec, r) {
+  const kd = byId(K().kinds, kind),
+    k = {
+      id: 's' + skiesOf(s).length,
+      kind,
+      name: kd.names[Math.floor(r() * kd.names.length)],
+      area: rec.id,
+      x: 6 + Math.floor(r() * (W - 12)),
+      y: 6 + Math.floor(r() * (H - 12)),
+      levels: kd.levels,
+    };
+  (s.skies = s.skies || []).push(k);
+  const m = rec.id === s.area ? s : rec.map;
+  if (m) putShadows(s, rec.id, m);
+  return k;
+}
+export {
+  skiesOf,
+  skyById,
+  takeOff,
+  land,
+  flyUp,
+  skyOn,
+  flyDown,
+  aloft,
+  canFly,
+  jumpSky,
+  addSky,
+  levelRec as skyLevelRec,
+  skyLevelId,
+};

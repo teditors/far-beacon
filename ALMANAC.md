@@ -765,6 +765,10 @@ Every world has one great trouble, told by the elder of the story's town; finish
 | Lost in the wild |  | 3 | Find {wanderer} in the {land}, and share your water; Bring {wanderer} back to {giver} |
 | The curse on the land | 2 | 1 | Take the blessed salt from {elder}; Pour the salt on the black stone in the {land}; Tell {giver} the curse is broken |
 | The sickness | 2 | 2 | Gather feverwort in the {land}; Bring the feverwort to {giver} |
+| The king under the hill | 1 | 1 | Hear {elder} out; Go down to the bottom of the dungeon in the {land} and kill {king}; Bring the iron crown to {giver} |
+| The tyrant in the sky | 1 | 1 | Hear {elder} out; Fly up to the castle in the sky and kill {tyrant}; Bring the seal of {tyrant} to {giver} |
+| The drowned cure | 1 | 2 | Hear {elder} out; Gather pearl-moss at the back of the sea cave; Bring the pearl-moss to {giver} |
+| Lost beyond the door | 1 | 2 | Find {child} beyond the door, and share your water; Bring {child} home to {giver} |
 | The feud |  | 2 | Hear what {other} has to say; Choose a side in the feud, in {giver}; then by the side chosen |
 | The caravan |  | 2 | Take the bales from {elder}; Carry the bales to {other} (by day {due}) |
 | The cult | 1 | 2 | Kill {leader} at the cult's camp; Bring the sigil of {leader} to {giver} |
@@ -780,6 +784,7 @@ Every world has one great trouble, told by the elder of the story's town; finish
 | black stone | A black standing stone. The ground round it is grey and cold. |
 | herb patch | A patch of low grey-leaved herbs, in a sheltered hollow. |
 | siege camp | The warband's camp, close under the town. |
+| throne | A throne, and bones round it, and something sitting on it. |
 
 ## More towns
 
@@ -807,7 +812,7 @@ The choices on the new world screen (folded away: an ordinary world uses the def
 | towns | -1 | Rolled; Only the story town; One more; Two more; Three more; Five more |
 | dungeons | 1 | None but the locked place; Few; Usual; Many |
 | depth | 4 | One level; Two levels; Up to four (usual); Up to eight; Up to sixteen |
-| sky | 0.25 | Never; Rarely; 1 world in 4 (usual); Often; Always |
+| sky | 0.2 | Never; Rarely; About 1 world in 4 (usual); Often; Always |
 | sea | 0.4 | Never; Sometimes (usual); Always |
 | doors | 0.08 | Never; Rarely (usual); Often; Always |
 | maxDoors | 3 | One at most; Up to three |
@@ -829,7 +834,7 @@ Places below the world, rolled when the world is made: about 0.45 a region at th
 
 ## The sky
 
-Places in the sky come in about 1 world in 4 (the world setting), 1 to 3 of them, over the far country, each marked on the ground by a shadow with no cloud to cast it. Flying: aloft, every kind of ground costs the same short time, nothing on the ground can reach you, and you can fly up to a sky place from its shadow; but each tile costs stamina (times the item's flyEffort), you are 4 colder an hour and use 1.2 times the water, a storm throws you down (2 to 6 damage), below 8 stamina you must land, and you must land to drink, search, gather, make a fire or sleep. A world with sky places always has a way to fly within reach: Boots of the Updraft in a town's shop, or with the deepest dungeon's prize.
+Places in the sky come in about 1 world in 5 (the world setting), 1 to 3 of them, over the far country, each marked on the ground by a shadow with no cloud to cast it. Flying: aloft, every kind of ground costs the same short time, nothing on the ground can reach you, and you can fly up to a sky place from its shadow; but each tile costs stamina (times the item's flyEffort), you are 4 colder an hour and use 1.2 times the water, a storm throws you down (2 to 6 damage), below 8 stamina you must land, and you must land to drink, search, gather, make a fire or sleep. A world with sky places always has a way to fly within reach: Boots of the Updraft in a town's shop, or with the deepest dungeon's prize.
 
 | Flying item | Slot | Weight | Does |
 | --- | --- | --- | --- |

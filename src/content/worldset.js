@@ -13,7 +13,7 @@ export default {
       towns: -1, // other towns besides the story's; -1 rolls it
       dungeons: 1, // how many dungeons, against the usual (0 for none, 2 for twice as many)
       depth: 4, // the most levels an ordinary dungeon goes down (plot dungeons may go deeper)
-      sky: 0.25, // the chance that a world has places in the sky
+      sky: 0.2, // the chance that a world rolls places in the sky (a plot may add one: about 1 world in 4 in all)
       sea: 0.4, // the chance that a world has a sea (lakes come anyway)
       doors: 0.08, // the chance that a world has a door to another world
       maxDoors: 3, // the most doors a world can have, when it has any
@@ -54,7 +54,7 @@ export default {
       sky: [
         [0, 'Never'],
         [0.1, 'Rarely'],
-        [0.25, '1 world in 4 (usual)'],
+        [0.2, 'About 1 world in 4 (usual)'],
         [0.6, 'Often'],
         [1, 'Always'],
       ],

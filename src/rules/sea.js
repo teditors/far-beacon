@@ -19,6 +19,7 @@ import {
   ensureRegion,
   enterArea,
   inOverworld,
+  mapOf,
   regionId,
   sketchOf,
   townArea,
@@ -30,7 +31,7 @@ import { reveal, sightRadius, siteHere, SITE_NAME } from './map.js';
 import { gainXp } from './progress.js';
 import { stat, SOURCES } from './stats.js';
 import { SYSTEMS } from './systems.js';
-import { ACTIONS, COSTS, LEVELS, LOOKS, NOTES, PLACES, SKETCHERS, SWITCHES } from './hooks.js';
+import { ACTIONS, COSTS, ENTRANCES, LEVELS, LOOKS, NOTES, PLACES, SKETCHERS, SWITCHES } from './hooks.js';
 import { genOf } from './worldset.js';
 import { jumpRegion } from './godmode.js';
 import { LAYOUTS as DEEP_LAYOUTS } from './deeps.js';
@@ -484,6 +485,19 @@ on('did', (s, ev) => {
   }
 });
 
+// How each level is entered: the first from the place's site on (or by) the water, the rest from the stair down.
+ENTRANCES.push((s, id) => {
+  const rec = s.areas[id];
+  if (!rec || rec.kind !== 'sea') return null;
+  const p = placeById(s, rec.water);
+  if (!p) return null;
+  if (rec.level === 1) return { area: p.area, x: p.x, y: p.y, act: 'enterWater' };
+  const up = p.id + '.' + (rec.level - 1),
+    m = s.areas[up] ? mapOf(s, up) : null,
+    q = m ? Object.keys(m.sites).find((j) => m.sites[j].kind === 'stairsDown') : undefined;
+  return { area: up, x: q === undefined ? undefined : q % W, y: q === undefined ? undefined : Math.floor(q / W), act: 'goDown' };
+});
+
 /* ---------- the view, god mode, the journal ---------- */
 LOOKS.push((s, rec) => {
   if (rec.kind !== 'sea') return null;
@@ -496,10 +510,11 @@ LOOKS.push((s, rec) => {
 });
 PLACES.push((s, out) => {
   // the sea's places are made with their regions: god mode makes them all, to list them
-  for (const id of seaIds(s)) {
-    const [cx, cy] = id === 'overworld' ? [s.world.home.cx, s.world.home.cy] : id.slice(1).split('_').map(Number);
-    ensureRegion(s, cx, cy);
-  }
+  if (!s.realm)
+    for (const id of seaIds(s)) {
+      const c = id.match(/^r(\d+)_(\d+)$/);
+      if (c) ensureRegion(s, +c[1], +c[2]);
+    }
   for (const p of placesOf(s))
     for (let n = 1; n <= p.levels; n++)
       out.push({
@@ -541,4 +556,4 @@ NOTES.push((s) => {
 });
 SWITCHES.push(['sea', 'Seas, lakes and the deep (new worlds)']);
 
-export { placesOf as seaPlacesOf, placeById as seaPlaceById, enterWater, hasBoat, breathes, updateSwim };
+export { placesOf as seaPlacesOf, placeById as seaPlaceById, enterWater, hasBoat, breathes, updateSwim, seaLevelRec, seaIds };

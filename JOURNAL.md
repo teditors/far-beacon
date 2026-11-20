@@ -5,6 +5,51 @@ seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after.
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
 
+## C4.6: the plot goes below, above, under the water and beyond
+
+**What it is.** The troubles of commission 3 now use the new places, four new troubles only make sense with them,
+and there is one way of finding the way to anywhere.
+- **A place role can lie anywhere**: `where` on a plot's place is the land, the bottom of a **dungeon**, the top of a
+  **sky place**, the far end of a place **under the water**, or a region **beyond a door**, with weights; only what
+  the world has is chosen. The great beast's den is sometimes at the bottom of a dungeon or beyond a door; raiders
+  camp in a dungeon or another world; the lost wander beyond a door; the black stone of a curse may stand on a
+  floating isle or in another world (its curse falls on the region below, or there); the sickness's herb may grow in
+  another world or up in the sky.
+- **Four new troubles**:
+  - **The king under the hill**: a dungeon of the plot's own (2 to 4 levels), and at its bottom, on a throne,
+    something that calls itself king. The elder gives torches and a salve.
+  - **The tyrant in the sky**: a floating castle (made for the plot if the world has none), whose lord takes the
+    harvest. The elder gives the Cloak of the West Wind: fly up, climb the keep, kill the tyrant, bring its seal.
+  - **The drowned cure**: pearl-moss grows only at the back of a sea cave, under the water (only in worlds with a
+    sea). The elder gives three draughts of gills and a torch.
+  - **Lost beyond the door**: a child went through the old door. Only in worlds with a door, and **every door is
+    used**: a door no other trouble reached gets this one, from a town without a trouble of its own.
+- **Things promised to maps not yet built** (`rules/route.js`): a plot's site, item or villain at the bottom of a
+  dungeon is held (`s.held`) until that level is first built, then put at its far end, with its guard beside it
+  (`'mapBuilt'` from areas.js, `'heldPlaced'` back to the plot). Nothing is built early, so the memory budget holds.
+- **Routes**: `route(s, goal)` says where to go next from wherever you stand to any place: down a dungeon's stairs, up
+  a castle's (flying up from its shadow first), into a sea cave (gills first), through a door, or back out the way you
+  came. Each kind of level says how it is entered (`ENTRANCES`). The goal line's direction follows it, so it points to
+  the stair, the shadow or the door, never off into the earth.
+- **The elder re-equips**: a new traveller who comes back to the giver is given again what the last one was given
+  (it lies with the body); otherwise one death in the sky would end the world.
+- Places the plot sends you to are a tier gentler than the late-game places you find for yourself, and the plot's
+  dungeon has its villain at the bottom instead of the theme's Heart: you are sent there, not drawn there late.
+- Water on the way: as for any trouble, sure springs are put along the leg to the place's way in (the stair, the
+  shadow, the door) and the elder marks them.
+
+**The bot** now follows routes: to the way in, taking off for a shadow (and flying toward it when rested), drinking
+gills before diving, lighting a torch for the dark, following the stairs down and the way back out, drinking from
+pools and springs inside, and going back to the giver for wings it has lost. With the trouble forced (`SET=trouble=`,
+40 worlds): the tyrant 2, the king 2, the drowned cure 1, lost beyond the door 2. These are much harder journeys than
+the land's troubles (the bot mostly dies of thirst on the way, or to the tier 3 and 4 creatures at the top), so
+they are rarer as great troubles (weight 1 each against 12 for the rest).
+
+**Tests.** `tests/c4.test.js` follows each new trouble's route leg by leg (teleporting along each leg and taking each
+step's action) to its end and checks it wins; `tests/plots.test.js` leaves troubles that are away from the land to it.
+
+**Commits.** "The plot goes below, above, under and beyond". Switch: `plots` (as before).
+
 ## C4.5: other worlds
 
 **What it is.** Doors to other worlds (`realms` piece, `content/realms.js`, `rules/realms.js`).

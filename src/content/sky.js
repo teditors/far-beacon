@@ -12,7 +12,7 @@
    prize. They are late-game: their creatures start at tier 3. */
 export default {
   sky: {
-    chance: 0.25, // as the world setting's default: places in the sky in about 1 world in 4
+    chance: 0.2, // as the world setting's default; with the plot's own (the tyrant's castle), about 1 world in 4
     places: [1, 3], // how many, in a world that has them
     cold: 4, // more cold an hour, aloft (it is cold up there)
     thirst: 1.2, // water used aloft

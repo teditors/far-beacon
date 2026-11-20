@@ -81,7 +81,7 @@ const done = [];
           need(R.goDown(s) && R.areaRec(s).level === n + 1, 'seed ' + seed + ': could not go down ' + d.name + ' from level ' + n);
         } else {
           const prize = Object.keys(s.depots).find((k) => s.depots[k].prize === d.id), heart = s.creatures.find((c) => c.heart === d.id);
-          need(prize !== undefined && heart, 'seed ' + seed + ': no prize or heart at the bottom of ' + d.name);
+          need(prize !== undefined && (heart || d.plot), 'seed ' + seed + ': no prize or heart at the bottom of ' + d.name); // the plot's villain stands in for a Heart
           if (prize !== undefined) need(path(s, here, +prize), 'seed ' + seed + ': the prize of ' + d.name + ' cannot be reached');
         }
       }
@@ -126,7 +126,7 @@ const done = [];
     worlds++;
     s.skies.forEach((k) => kinds.add(k.kind));
     const shop = R.allTowns(s).some((t) => t.stock.some((i) => i.base === 'wingboots')), deep = s.deeps.some((d) => (d.extra || []).some((i) => i.base === 'wingboots'));
-    need(shop || deep, 'seed ' + seed + ': a sky world has no way to fly within reach');
+    need(shop || deep || R.plotsOf(s).some((p) => p.kind === 'tyrant'), 'seed ' + seed + ': a sky world has no way to fly within reach'); // the tyrant's elder gives one
   }
   need(worlds >= 30 && worlds <= 70, worlds + ' of 200 worlds have sky places, not about 1 in 4');
   need(kinds.size >= 3, 'only ' + [...kinds] + ' kinds of sky place');
@@ -248,6 +248,82 @@ const done = [];
   R.setGodMode(s, false);
   need(!R.newGame(5, { realms: true }, { doors: 1 }).doors && !R.newGame(5, {}, { doors: 0 }).doors, 'doors with doors switched off');
   done.push('other worlds (' + worlds + ' of 300 worlds, ' + many + ' with more than one door)');
+}
+// The plot goes below, above, under and beyond: each new trouble can be finished by following its route (teleporting
+// along each leg of the way and taking each step's action, so this checks the way, not the walking).
+{
+  const W = R.W;
+  const talk = (s, id) => { R.setGodMode(s, true); R.jumpTo(s, 'town:' + id); R.setGodMode(s, false); const e = R.findHere(s, 'elder'); s.player.x = e.x; s.player.y = e.y; s.combat = null; R.talkElder(s); };
+  function follow(s, goal, tag) {
+    for (let g = 0; g < 30; g++) {
+      const rt = R.route(s, goal);
+      if (!rt) return tag + ': no route';
+      if (rt.here || (goal.area === s.area && goal.x === undefined)) {
+        if (rt.x !== undefined) { s.player.x = rt.x; s.player.y = rt.y; }
+        return null;
+      }
+      if (rt.up && rt.x === undefined) return tag + ': no way out of ' + s.area;
+      if (rt.x === undefined) return tag + ': a leg with no place, in ' + s.area + ' toward ' + goal.area;
+      if (R.inOverworld(s) && (rt.x < 0 || rt.y < 0 || rt.x >= W || rt.y >= W)) {
+        // in another region: go there (god mode, for the test), then on
+        R.setGodMode(s, true); R.jumpTo(s, 'region:' + rt.area); R.setGodMode(s, false);
+        if (s.area !== rt.area) { const c = rt.area.match(/:r(\d+)_(\d+)$/); if (c) { R.setGodMode(s, true); R.jumpTo(s, 'realm:' + rt.area.split(':')[0] + ':' + c[1] + '_' + c[2]); R.setGodMode(s, false); } }
+        continue;
+      }
+      s.player.x = rt.x; s.player.y = rt.y; s.combat = null; s.player.stamina = 100; s.player.hp = s.player.hpMax;
+      if (rt.fly && !R.aloft(s)) { s.weather.storm = false; R.takeOff(s); }
+      if (!rt.act) return tag + ': a leg with nothing to do, in ' + s.area;
+      if (rt.act === 'enterWater' && !R.breathes(s)) { const gl = s.player.items.find((i) => i.base === 'gills'); if (gl) R.useItem(s, gl.id); }
+      const was = s.area;
+      if (rt.act === 'leaveTown') { R.leaveTown(s); continue; }
+      if (!R[rt.act](s)) return tag + ': could not ' + rt.act + ' at ' + s.area + ' ' + rt.x + ',' + rt.y + ' (' + s.log.slice(-1)[0].msg + ')';
+      if (R.aloft(s)) R.land(s);
+      if (s.area === was && rt.act !== 'stepThrough') return tag + ': ' + rt.act + ' went nowhere';
+    }
+    return tag + ': the way is too long';
+  }
+  const lantern = (s) => { s.player.items.forEach((i) => { if (i.eq === 'tool') delete i.eq; }); s.player.items.push({ id: 99100, base: 'lantern', known: true, eq: 'tool' }); s.player.fuel = 50; };
+  const finished = [];
+  for (const [trouble, set] of [['deepking', {}], ['tyrant', {}], ['drowned', { sea: 1, size: '5x5' }], ['beyond', { doors: 1 }], ['beast', { doors: 1 }]]) {
+    let s = null;
+    for (let seed = 7; seed < 60 && !s; seed++) {
+      const w = R.newGame(seed, {}, Object.assign({ trouble }, set)), m = R.mainPlot(w);
+      if (m && m.kind === trouble && (trouble !== 'beast' || m.roles.lair.where === 'realm' || m.roles.lair.where === 'deep')) s = w;
+    }
+    if (!s) { if (trouble !== 'beast') errs.push('no world with ' + trouble + ' as its great trouble'); continue; }
+    const m = R.mainPlot(s);
+    lantern(s); s.tun.carryCap = 99; s.player.hp = s.player.hpMax = 300; s.creatures = []; s.weather.storm = false; s.weather.changeAt = 1e9;
+    talk(s, m.giver);
+    need(m.known, trouble + ': the elder did not tell it');
+    let problem = null;
+    for (let step = 0; step < 8 && !s.over && !problem; step++) {
+      const g = R.plotGoal(s, m);
+      if (!g) { problem = trouble + ': no goal at step ' + m.step; break; }
+      if (g.town) { talk(s, g.town); continue; }
+      problem = follow(s, g, trouble + ' step ' + m.step);
+      if (problem) break;
+      const st = R.stepOf(m), before = m.step;
+      if (st.do === 'kill') {
+        const c = s.creatures.find((x) => x.plot === m.id); need(c, trouble + ': the creature is not where the route led');
+        if (!c) break;
+        // walk into it from beside it (with nothing else about to step in first)
+        s.creatures = s.creatures.filter((x) => x.plot); c.hp = 1; c.cool = 0;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (R.passable(s, c.x + dx, c.y + dy)) { s.player.x = c.x + dx; s.player.y = c.y + dy; break; }
+        R.move(s, c.x - s.player.x, c.y - s.player.y);
+        for (let k = 0; k < 40 && s.combat; k++) { s.player.hp = s.player.hpMax; R.attack(s); }
+        const d = R.depotHere(s); if (d) for (const it of d.items.slice()) if (it.plot) R.takeItem(s, it.id);
+      } else if (st.do === 'take') {
+        for (const k in s.depots) for (const it of s.depots[k].items.slice()) if (it.plot === m.id) { s.player.x = k % W; s.player.y = Math.floor(k / W); R.takeItem(s, it.id); R.rest(s); }
+      } else if (st.do === 'free') {
+        s.player.water = 9; const a = R.actions(s).find((x) => x.id === 'plotAct'); if (a) R.plotAct(s, a.arg);
+      }
+      if (m.step === before && !m.done) { problem = trouble + ': step ' + st.do + ' did not finish (in ' + s.area + ')'; }
+    }
+    if (problem) errs.push(problem);
+    else need(s.over && s.over.won, trouble + ': followed every step and did not win: ' + R.objective(s).text);
+    if (s.over && s.over.won) finished.push(trouble);
+  }
+  done.push('troubles below, above, under and beyond (' + finished.join(', ') + ')');
 }
 if (errs.length) { console.log('commission 4 problems:\n  ' + errs.join('\n  ')); process.exit(1); }
 console.log('c4 ok: ' + done.join(', '));

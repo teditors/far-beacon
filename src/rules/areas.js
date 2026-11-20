@@ -1,7 +1,7 @@
 /* Areas: the overworld, the town and each level of the locked place are separate maps.
    The map the player is in lives at the top of the state (s.terrain, s.sites, ...), so most rules never need to know
    which area they are in. Every other area is parked in s.areas[id] until the player goes back to it. */
-import { W, H, idx } from './core.js';
+import { W, H, emit, idx } from './core.js';
 import { freezeMap, thawMap } from './grids.js';
 
 const AREA_FIELDS = ['terrain', 'elev', 'sites', 'depots', 'creatures', 'seen', 'road', 'dug', 'lostMaps'];
@@ -64,6 +64,7 @@ function buildArea(s, rec) {
   if (rec.id === s.area) return;
   if (rec.map) return thawMap(rec.map); // built before, perhaps packed away since: warm it for whoever asked
   rec.map = GENERATORS[rec.kind](s, rec);
+  emit(s, 'mapBuilt', { id: rec.id, rec, map: rec.map }); // things promised to this map are put in it now
   for (const f of AREA_FIELDS) if (rec.map[f] === undefined) rec.map[f] = AREA_DEFAULTS[f]();
 }
 /* The town stands on a block of 5 x 5 outdoor tiles around its site. Outdoors those tiles cannot be walked on: walking
@@ -179,7 +180,10 @@ function park(s) {
 }
 function unpark(s, id) {
   const rec = s.areas[id];
-  if (!rec.map) rec.map = GENERATORS[rec.kind](s, rec);
+  if (!rec.map) {
+    rec.map = GENERATORS[rec.kind](s, rec);
+    emit(s, 'mapBuilt', { id, rec, map: rec.map });
+  }
   thawMap(rec.map);
   for (const f of AREA_FIELDS) s[f] = rec.map[f] !== undefined ? rec.map[f] : AREA_DEFAULTS[f]();
   delete rec.map;

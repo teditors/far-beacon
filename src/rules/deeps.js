@@ -17,7 +17,7 @@ import { findSite } from './quest.js';
 import { stat, SOURCES } from './stats.js';
 import { advance } from './systems.js';
 import { gainXp } from './progress.js';
-import { ACTIONS, LEVELS, LOOKS, NOTES, PLACES, SWITCHES } from './hooks.js';
+import { ACTIONS, ENTRANCES, LEVELS, LOOKS, NOTES, PLACES, SWITCHES } from './hooks.js';
 import { applyQuirk, rollQuirk } from './floors.js';
 import { makeArtifact } from './artifacts.js';
 import { genOf } from './worldset.js';
@@ -353,9 +353,12 @@ GENERATORS.deep = (s, rec) => {
       delete d.extra;
     }
     depots[far] = prize;
-    const heart = put(sp[sp.length - 1], spot(2) ?? far, tierAt + 1);
-    heart.warden = true;
-    heart.heart = d.id;
+    if (!d.plot) {
+      // the Heart (in a dungeon the plot uses, its villain stands in for it)
+      const heart = put(sp[sp.length - 1], spot(2) ?? far, tierAt + 1);
+      heart.warden = true;
+      heart.heart = d.id;
+    }
   } else sites[far] = { kind: 'stairsDown' };
   for (let n = 0; n < th.per + Math.min(4, Math.floor(lvl / 2)); n++) {
     const i = spot(6);
@@ -387,39 +390,8 @@ GENERATORS.deep = (s, rec) => {
   }
   const m = { terrain, sites, depots, creatures };
   if (rec.floor) applyQuirk(s, rec, m, r, cid);
-  // what a plot left down here
-  for (const h of d.held || []) if (h.level === lvl && !h.placed) placeHeld(s, d, h, m, r, far);
   return m;
 };
-// Something a plot needs, put on the level it was promised to: an item in a depot, a creature, a person.
-function placeHeld(s, d, h, m, r, far) {
-  let i = far;
-  if (h.where !== 'bottom') {
-    for (let t = 0; t < 80; t++) {
-      const j = Math.floor(r() * W * H);
-      if (m.terrain[j] === FLOOR && !m.sites[j] && !m.depots[j]) {
-        i = j;
-        break;
-      }
-    }
-  }
-  if (h.item) {
-    const dp = (m.depots[i] = m.depots[i] || { water: 0, fuel: 0, items: [] });
-    dp.items.push(h.item);
-    h.item = null;
-  }
-  if (h.creature) {
-    const c = h.creature;
-    c.x = i % W;
-    c.y = Math.floor(i / W);
-    m.creatures.push(c);
-    h.creature = null;
-  }
-  if (h.site) m.sites[i] = h.site;
-  h.placed = { x: i % W, y: Math.floor(i / W) };
-  emit(s, 'heldPlaced', { deep: d.id, held: h, area: levelId(d, h.level) });
-}
-
 /* ---------- going down and up ---------- */
 const needLight = (s, th) => th.dark !== false && stat(s, 'nightSight', 0) <= 0;
 function levelRec(s, d, n) {
@@ -475,6 +447,28 @@ LEVELS.deep = (s) => {
   say(s, 'Level ' + n + ' of ' + d.depth + (n === d.depth ? '. Something old lives at the bottom of ' + d.name + '.' : '.'));
   return true;
 };
+// How each level is entered: level 1 from its stair outdoors (or in a town), the rest from the stair down above.
+ENTRANCES.push((s, id) => {
+  const rec = s.areas[id];
+  if (!rec || (rec.kind !== 'deep' && rec.kind !== 'vault')) return null;
+  if (rec.level > 1) {
+    const up = rec.kind === 'vault' ? 'vault' + (rec.level - 1) : rec.deep + '.' + (rec.level - 1),
+      m = s.areas[up] ? mapOf(s, up) : null,
+      k = m ? Object.keys(m.sites).find((q) => m.sites[q].kind === 'stairsDown') : undefined;
+    return {
+      area: up,
+      x: k === undefined ? undefined : k % W,
+      y: k === undefined ? undefined : Math.floor(k / W),
+      act: 'goDown',
+    };
+  }
+  if (rec.kind === 'vault') {
+    const v = findSite(s, 'vault');
+    return v ? { area: v.area || 'overworld', x: v.x, y: v.y, act: 'enterVault' } : null;
+  }
+  const d = deepById(s, rec.deep);
+  return d && d.x !== undefined ? { area: d.area, x: d.x, y: d.y, act: 'enterDeep' } : null;
+});
 // The heart of a dungeon is dead: its prize is free, and the dungeon is known for it.
 on('killed', (s, ev) => {
   const c = ev.c;
@@ -648,4 +642,17 @@ NOTES.push((s) => {
 });
 SWITCHES.push(['deeps', 'Dungeons (new worlds)']);
 
-export { levelTitle, deepsOf, deepById, levelId, levelLook, levelRec, enterDeep, jumpDown, deepDoor, themeOf, LAYOUTS };
+export {
+  placeStairs,
+  levelTitle,
+  deepsOf,
+  deepById,
+  levelId,
+  levelLook,
+  levelRec,
+  enterDeep,
+  jumpDown,
+  deepDoor,
+  themeOf,
+  LAYOUTS,
+};

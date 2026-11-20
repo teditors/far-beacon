@@ -144,6 +144,7 @@ import { deepById, deepsOf, enterDeep, levelLook, levelTitle } from './deeps.js'
 import { aloft, canFly, flyDown, flyUp, land, skiesOf, skyOn, takeOff } from './sky.js'; // after the dungeons: a way to fly may lie in one
 import { breathes, enterWater, hasBoat, seaPlacesOf } from './sea.js';
 import { doorsOf, realmName, realmsOf, stepThrough } from './realms.js'; // before the plots: they use the doors
+import { chainOf, route } from './route.js';
 import {
   choosePlot,
   mainPlot,
@@ -163,6 +164,8 @@ import { genOf, parseSet, settings } from './worldset.js';
 
 const api = {
   setGodMode,
+  chainOf,
+  route,
   doorsOf,
   realmName,
   realmsOf,

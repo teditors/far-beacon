@@ -62,7 +62,10 @@ on('log', (s, d) => {
 const say = (s, msg, tone) => emit(s, 'log', { msg, tone });
 
 // 'a' or 'an' before a word, for generated names: aOrAn('Elder Brute') gives 'an Elder Brute'.
-const aOrAn = (word, cap) => ((/^[aeiou]/i.test(word) ? 'an ' : 'a ') + word).replace(/^a/, cap ? 'A' : 'a');
+const aOrAn = (word, cap) =>
+  /^the /i.test(word) // a named one ('the Mole Lord') takes no article of ours
+    ? (cap ? 'T' : 't') + word.slice(1)
+    : ((/^[aeiou]/i.test(word) ? 'an ' : 'a ') + word).replace(/^a/, cap ? 'A' : 'a');
 function clock(s) {
   const m = START + s.time;
   const mod = m % 1440;
