@@ -65,7 +65,7 @@ on('worldBorn', (s, d) => {
   const set = d.set || {},
     nr = r0 + Math.floor(r() * (r1 - r0 + 1)),
     nc = c0 + Math.floor(r() * (c1 - c0 + 1)),
-    may = (e, only) => !(d.off.exotics && e.exotic) && (!only || only.includes(e.id)); // the new world screen may choose
+    may = (e, only) => !(d.off.exotics && e.exotic) && !e.kin && (!only || only.includes(e.id)); // the new world screen may choose; kin come with their places
   s.offer = {
     races: draw(
       C.races.filter((e) => may(e, set.races)),

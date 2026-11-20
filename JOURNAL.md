@@ -2,7 +2,7 @@
 
 ## Summary
 
-Seven entries, in the order the brief asked: the testing tools first, then dungeons, the sky, the sea, other worlds,
+Eight entries, in the order the brief asked: the testing tools first, then dungeons, the sky, the sea, other worlds,
 and the plot using them all; then fixtures, the door's model and the benchmark of the new places. Every check passes,
 old saves load (no `VERSION` bump: every new field is optional; saves from v0.14 and from inside each new place are
 now fixtures), and the bot wins as often as before.
@@ -16,6 +16,7 @@ now fixtures), and the bot wins as often as before.
 | C4.5 | Other worlds: rare doors to worlds of their own seed, stranger, made only where touched | `realms` | pearl, rare |
 | C4.6 | The plot goes below, above, under and beyond; four new troubles; routes to anywhere; every door used; the bot follows routes | `plots` | pearl |
 | C4.7 | Fixtures from v0.14 and from inside the new places; the door drawn; how to play; `bench.py places` | (tests, view) | small |
+| C4.8 | Kin: the windborn fly by nature, the merrow breathe water; offered only where the sky or the sea is | `kin` | maybe-to-pearl |
 
 **The limits** (node, `--expose-gc`; god mode walking every place):
 - **How deep a dungeon can go**: as deep as you like, as far as the rules go. Each walked level adds about **2.1 KB to
@@ -55,8 +56,8 @@ one). The builds are a few ms slower, within the noise of the software renderer.
 floating castle in god mode on the Pixel and send the numbers**: it is the one place whose cost is fill rate (a lot
 of open sky), which the software renderer cannot judge.
 
-**Bot win rate** (`node tests/playtest.js 150`, every piece on, default settings), sets 5 / 1000 / 2000: **30, 29, 23
-(82 / 450, 18%)**, against 86 / 450 (19%) at the start. The floor is 8%. With a new trouble forced (40 worlds each):
+**Bot win rate** (`node tests/playtest.js 150`, every piece on, default settings), sets 5 / 1000 / 2000: **32, 27, 21
+(80 / 450, 18%)** at the end (30, 29, 23 before the kin), against 86 / 450 (19%) at the start. The floor is 8%. With a new trouble forced (40 worlds each):
 the tyrant 2, the king under the hill 2, the drowned cure 1, lost beyond the door 2: the bot can do them all, but
 they are long, hard journeys, so they are rare as great troubles.
 
@@ -72,7 +73,7 @@ they are long, hard journeys, so they are rare as great troubles.
 **What I would do next.**
 1. Measure a floating castle and the open sea on the Pixel (above), and if the sky is costly, draw less of it.
 2. Give other worlds their own dungeons and sky places, and a stranger year (two moons, long nights) of their own.
-3. A flying race and a merfolk race, offered in worlds that have sky places or a sea (the roster has room).
+3. Done in C4.8: a flying race and a merfolk race.
 4. Teach the bot to cross deep water by boat and to trade for a coracle, so the playtest measures the sea; and to
    prepare better for long journeys (it dies of thirst on the way to most of the new troubles).
 5. Models for the plot's sites inside levels (a throne, a cage), and textures for dungeon walls.
@@ -90,6 +91,21 @@ Newest entry first. Performance numbers are from `tools/bench.py` (a real browse
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
+
+## C4.8: kin of the new places
+
+**What it is.** The two races the brief half-suggested (`kin` piece, `content/kin.js`, `rules/kin.js`):
+- **Windborn**: light-boned and feathered at the arms; they **fly by nature** (no wings to borrow, so a world's sky is
+  open to them from the start), at 1.6 times the effort of boots, and carry 4 less. +2 DEX, -2 STR.
+- **Merrow**: of the sea-people; they **breathe water** (deep water and the places under it are open to them from the
+  first step) and need a fifth less to drink, but walk slowly on dry ground. +2 CON, -1 DEX.
+- Each is offered, beside the usual races, in about half the worlds that have places in the sky (windborn) or a sea
+  (merrow), and never otherwise (32 of 150 test worlds offer one); the first log line says so.
+
+**In play.** A way in to the new places without waiting for the shop or the dungeon, at a price on the ground. Bot
+win rate 32, 27, 21 (80 / 450, 18%; it plays them like anyone else).
+
+**Commits.** "Windborn and merrow: kin of the sky and the sea". Switch: `kin` (at creation).
 
 ## C4.7: saves kept, a door to see, and the new places measured
 

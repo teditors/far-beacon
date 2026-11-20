@@ -638,6 +638,14 @@ section('Other worlds', ['realms'], () => {
   line();
 });
 
+section('Kin of the new places', ['kin'], () => {
+  const X = C.kin;
+  line('Two rare races, offered beside the usual ones (each ' + Math.round(X.chance * 100) + '% of the time) only in a world that has what they were born to.');
+  line();
+  table(['Race', 'In a world with', 'Abilities', 'Does'], X.races.map((r) => [r.name, r.kin === 'sky' ? 'places in the sky' : 'a sea', Object.keys(r.adj).map((k) => (r.adj[k] > 0 ? '+' : '') + r.adj[k] + ' ' + k).join(', '), r.text]));
+  line();
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

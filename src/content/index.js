@@ -36,6 +36,7 @@ import deeps from './deeps.js';
 import sky from './sky.js';
 import sea from './sea.js';
 import realms from './realms.js';
+import kin from './kin.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -75,4 +76,5 @@ export const CONTENT = Object.assign(
   sky,
   sea,
   realms,
+  kin,
 );

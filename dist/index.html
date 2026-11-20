@@ -4262,6 +4262,43 @@
     }
   };
 
+  // src/content/kin.js
+  var kin_default = {
+    kin: {
+      chance: 0.5,
+      races: [
+        {
+          id: "windborn",
+          kin: "sky",
+          exotic: true,
+          name: "Windborn",
+          adj: { dex: 2, str: -2 },
+          text: "Light-boned and feathered at the arms: you can fly, a little, without wings to borrow. You carry less, and the cold up high bites you less.",
+          mods: [
+            { stat: "fly", op: "add", value: 1 },
+            { stat: "flyEffort", op: "mul", value: 1.6 },
+            { stat: "carryCap", op: "add", value: -4 }
+          ],
+          names: ["Kestrel", "Swift", "Ree", "Aloft", "Sorrel", "Hobby"]
+        },
+        {
+          id: "merrow",
+          kin: "sea",
+          exotic: true,
+          name: "Merrow",
+          adj: { con: 2, dex: -1 },
+          text: "Of the sea-people: you breathe water as easily as air and need less of it to drink, but you are slow on dry ground.",
+          mods: [
+            { stat: "breathe", op: "add", value: 1 },
+            { stat: "waterDrain", op: "mul", value: 0.8 },
+            { stat: "moveTime.plain", op: "mul", value: 1.15 }
+          ],
+          names: ["Maren", "Pelle", "Shoal", "Coral", "Ondine", "Brack"]
+        }
+      ]
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -4300,7 +4337,8 @@
     deeps_default,
     sky_default,
     sea_default,
-    realms_default
+    realms_default,
+    kin_default
   );
 
   // src/rules/core.js
@@ -8854,7 +8892,7 @@
       }
       return out;
     }, [r0, r1] = X2().offer.races, [c0, c1] = X2().offer.classes;
-    const set = d.set || {}, nr = r0 + Math.floor(r() * (r1 - r0 + 1)), nc = c0 + Math.floor(r() * (c1 - c0 + 1)), may = (e, only) => !(d.off.exotics && e.exotic) && (!only || only.includes(e.id));
+    const set = d.set || {}, nr = r0 + Math.floor(r() * (r1 - r0 + 1)), nc = c0 + Math.floor(r() * (c1 - c0 + 1)), may = (e, only) => !(d.off.exotics && e.exotic) && !e.kin && (!only || only.includes(e.id));
     s.offer = {
       races: draw(
         C.races.filter((e) => may(e, set.races)),
@@ -11224,6 +11262,28 @@
     if (s.areas[t.area] && s.areas[t.area].kind === "town") return { town: t.area };
     return Object.assign(localPos(s, t.area, t.x, t.y), { act: first ? first.act : null, fly: first && first.fly, area: t.area });
   }
+
+  // src/rules/kin.js
+  for (const r of C.kin.races) if (!byId(C.races, r.id)) C.races.push(Object.assign({}, r));
+  on("worldBorn", (s, d) => {
+    if (d.off.kin) return;
+    const r = stream(s.seed, "kin"), offer2 = (id, why) => {
+      if (r() < C.kin.chance && !s.offer.races.includes(id)) {
+        const most = C.roster ? C.roster.offer.races[1] : 12;
+        if (s.offer.races.length >= most) {
+          const k = s.offer.races.map((x, i) => i).reverse().find((i) => s.offer.races[i] !== s.char.race);
+          s.offer.races[k] = id;
+        } else s.offer.races.push(id);
+        say(s, "Among the travellers this world can send are " + byId(C.races, id).name.toLowerCase() + " folk: " + why + ".");
+      }
+    };
+    if ((s.skies || []).length) offer2("windborn", "something floats in this sky");
+    if (s.world.sea) offer2("merrow", "this world has a sea");
+  });
+  on("did", (s, d) => {
+    if (d.id === "setCharacter" || d.id === "nextTraveller") updateSwim(s);
+  });
+  SWITCHES.push(["kin", "Windborn and merrow (new worlds)"]);
 
   // src/rules/plots.js
   var P2 = () => C.plots;

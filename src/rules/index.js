@@ -145,6 +145,7 @@ import { aloft, canFly, flyDown, flyUp, land, skiesOf, skyOn, takeOff } from './
 import { breathes, enterWater, hasBoat, seaPlacesOf } from './sea.js';
 import { doorsOf, realmName, realmsOf, stepThrough } from './realms.js'; // before the plots: they use the doors
 import { chainOf, route } from './route.js';
+import './kin.js'; // after the sky and the sea: the kin come with them
 import {
   choosePlot,
   mainPlot,

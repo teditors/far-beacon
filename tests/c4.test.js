@@ -325,5 +325,21 @@ const done = [];
   }
   done.push('troubles below, above, under and beyond (' + finished.join(', ') + ')');
 }
+// Kin: the windborn and the merrow are offered only where their places are, and do what they say.
+{
+  let wrong = 0, offered = 0;
+  for (let seed = 1; seed <= 150; seed++) {
+    const s = R.newGame(seed), o = s.offer.races;
+    if (o.includes('windborn') || o.includes('merrow')) offered++;
+    if ((o.includes('windborn') && !(s.skies || []).length) || (o.includes('merrow') && !s.world.sea)) wrong++;
+  }
+  need(!wrong && offered >= 10, 'kin offered in ' + offered + ' worlds, ' + wrong + ' without their places');
+  const s = R.newGame(9, {}, { sea: 1, size: '5x5' }), ch = R.makeChar(() => 0.5, s);
+  ch.race = 'merrow'; R.setCharacter(s, ch);
+  need(R.breathes(s) && s.player.swims, 'a merrow cannot breathe water or go on deep water');
+  ch.race = 'windborn'; R.setCharacter(s, ch);
+  need(R.canFly(s) && !s.player.swims, 'the windborn cannot fly, or swim when they should not');
+  done.push('kin (' + offered + ' of 150 worlds)');
+}
 if (errs.length) { console.log('commission 4 problems:\n  ' + errs.join('\n  ')); process.exit(1); }
 console.log('c4 ok: ' + done.join(', '));
