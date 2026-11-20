@@ -87,7 +87,8 @@ for (let seed = 1; seed <= 200; seed++) {
     shop = R.findHere(s, 'shop');
   let e = walkTo(s, elder.x, elder.y);
   if (e) trouble('town, to the elder: ' + e);
-  R.talkElder(s);
+  // in a world whose great trouble is another plot, the elder tells that first and the relic's story on the next talk
+  for (let k = 0; k < 3 && !q.told; k++) R.talkElder(s);
   if (!q.told) trouble('the elder did not give the quest');
   e = walkTo(s, shop.x, shop.y);
   if (e) trouble('town, to the shop: ' + e);
@@ -159,7 +160,8 @@ for (let seed = 1; seed <= 200; seed++) {
   R.move(s, 1, 0);
   fight(s);
   if (q.dest === 'shrine') R.offer(s);
-  if (!(s.over && s.over.won)) {
+  const relicPlot = (s.plots || []).find((p) => p.kind === 'relic');
+  if (!(s.over && s.over.won) && !(relicPlot && !relicPlot.main && relicPlot.done)) {
     fail++;
     trouble('not won: ' + JSON.stringify(R.objective(s)));
   }

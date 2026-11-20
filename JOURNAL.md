@@ -1,3 +1,359 @@
+# Commission 3
+
+## Summary
+
+Eight entries, in the order Andrew asked: the phone budget first, then worlds of any size, many towns and many plots,
+crafting and trade, a little light and weather, and two small things of my own. Every check passes, old saves load
+(no `VERSION` bump was needed: every new field is optional), and the bot wins more often than before.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C3.1 | Performance meter, graphics quality (Low / Medium / High), cheaper trees and ground, saves a third the size | (view, save) | pearl |
+| C3.2 | Worlds of varying size, 2 x 3 to 7 x 7, odd shapes included | `worldsize` | pearl |
+| C3.3 | More towns: one to five others, each with its own people, culture, shop and streets | `moretowns` | pearl |
+| C3.4 | Many plots: a great trouble that decides how the world is won (relic, beast, curse, sickness, cult, siege), and other towns' troubles (captive, lost, feud, caravan, theft...), linked | `plots` | pearl |
+| C3.5 | Crafting: hide, bone, salvage and herbs into waterskins, torches, bandages, a fur cloak, a shelter | `crafting` | pearl |
+| C3.6 | Trade between towns: goods cheap where made, dear elsewhere, moved by the year | `trade` | pearl, if people trade |
+| C3.7 | Light, sky and weather: shaded sky, sun and moon, ground grain, rain and snow; eyes show temper | (view) | maybe-to-pearl |
+| C3.8 | Townsfolk tell of other towns' troubles; the dead keep their materials | `plots`, `crafting` | small |
+| C3.9 | After Andrew's phone numbers: the meter shows work per frame; crossing a border is built over many frames, no hitch | (view) | pearl |
+
+**Performance, before and after** (`tools/bench.py`, software renderer at 412 x 915, three seeds; slow in absolute
+terms, comparable across rows):
+
+| | build ms (border hitch) | draw calls | triangles | frame ms | save, fresh world |
+| --- | --- | --- | --- | --- | --- |
+| before (one setting) | 156 | 123 | 355,691 | 180 | 107 KB |
+| after, High | 141 | 89 | 282,865 | 156 | 59 KB |
+| after, Medium (default) | 74 | 83 | 150,193 | 105 | 59 KB |
+| after, Low | 44 | 70 | 80,974 | 60 | 59 KB |
+
+The fresh-world save grew from 36 KB (after C3.1's packing) to 59 KB because worlds now build more regions at
+creation for their towns and plots; a fully explored 7 x 7 world saves in about 160 KB, against a few MB allowed.
+The sky, grain and weather of C3.7 cost three draw calls and nothing measurable in frame time. **Andrew: turn on
+Menu, Settings, "Show the performance meter" on the Pixel 9 and send the numbers**, on Medium and on High; that is
+the real budget, and I could not measure it.
+
+**Bot win rate** (`node tests/playtest.js 150`, every piece on), sets 5 / 1000 / 2000: 28, 27, 31 (86 / 450, 19%),
+against 53 / 450 (12%) at the start of the commission. The floor was 8%. The rise is the plots: a great trouble other
+than the relic (a curse, a sickness) is usually a shorter journey than key, locked place and beacon, and the bot
+wins 10% of relic worlds as before. The bot now plays any great trouble, makes things, and trades a little.
+
+**My three best.**
+1. **Many plots (C3.4)**: a world is about something different each time, the old story is a third of the game, and
+   the other towns have a reason to be visited. It is also built so that a new plot is mostly data.
+2. **The performance meter and quality setting (C3.1)**: it turns "runs comfortably" into numbers, made the default
+   twice as cheap, and every later piece was measured against it.
+3. **Crafting (C3.5)**: small, and it ties fights and searches to staying alive; a shelter in the right place
+   changes a long leg.
+
+**What I would do next.**
+1. Measure on the Pixel 9 and set the default quality from the numbers; if Medium is comfortable, try a longer view.
+2. Teach the bot side troubles and trade runs, so the playtest measures the whole game, not just the great trouble.
+3. Balance the great troubles against each other (the curse is won 37% of the time, the cult 7%), and add a few more
+   (a dragon's hoard to buy back, a flood, a lost caravan), now that a plot is mostly data.
+4. Done in C3.9: crossing a border no longer hitches.
+5. Textures on walls and buildings, from the same cheap pattern as the ground's grain; people who travel the roads
+   between towns (caravans you can meet).
+6. When merging to main as v0.14, a CHANGELOG row (I left CHANGELOG.md alone, as the earlier commissions did until
+   their merge): "The third commission. A performance meter and graphics quality; worlds from 2 x 3 to 7 x 7; up to
+   six towns; a great trouble per world (relic, beast, curse, sickness, cult, siege) and side troubles in other
+   towns; crafting; trade between towns; a shaded sky and weather. See `JOURNAL.md`."
+
+**Order.** As recommended. "Any number of towns" came before plots (C3.3 before C3.4), as my earlier note said it
+should; crafting before trade, so materials could be sold.
+
+---
+
+Newest entry first. Performance numbers are from `tools/bench.py` (a real browser on a software renderer at 412 x 915,
+seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
+`node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
+
+## C3.9: margin on the phone: the meter shows the work, and borders no longer hitch
+
+**From Andrew's phone** (Pixel 11 XL, High and Medium): 60 fps, 16.7 ms a frame, worst 19 ms, 103 / 28 draw calls,
+281k / 148k triangles, a scene build of 94 / 104 ms, a 31 KB save, 15 MB of heap. He plays on High without trouble.
+
+**What it showed.** Both settings sit exactly on the screen's 60 frames a second, so the frame time cannot show the
+margin: the phone waits for the screen either way. The one real cost is the build: crossing a border froze the game
+for about a tenth of a second (six frames).
+
+**What changed.**
+- The meter now shows **work**: the milliseconds each frame actually spends (moving, the rules, handing the scene to
+  the GPU), as a share of the frame, and the worst of the last half second. That is the margin. (The GPU's own time is
+  not visible to the page; if the work is low and the frame rate still drops, that is where the time went.) After a
+  build it also shows its parts (land, ground, trees, places), or for a build spread over frames, its total, how many
+  frames it took and the most any one frame spent on it.
+- **Crossing a border no longer hitches.** The old land is the right land for a moment: the new region lay in its
+  margin. So it stays on screen, moved one region over, while the new land is built a few milliseconds a frame (at
+  most 5 ms of work a frame, `BUILD_BUDGET` in run.js) and swapped in when done (`buildStaticSoon` / `stepBuild` in
+  scene.js; the land build is now a generator, `buildLand`, that pauses every few rows). The swap cannot be seen. On
+  the test machine a crossing used to stop one frame for 74 ms (Medium) or 141 ms (High); now it is spread over 17 or
+  30 frames, none spending more than 6 ms on it. Entering a town or the locked place, loading and changing quality
+  still build at once (they change the scene anyway).
+- The ground mesh is built directly instead of through three's PlaneGeometry, with no unused normals and nothing to
+  rotate afterwards, which also made the whole build about a quarter faster.
+
+**For Andrew to check:** with the meter on, the second line should read a few milliseconds of work (a few percent of
+the frame) while walking, and crossing a border should no longer show a long worst frame.
+
+**Commits.** "No hitch at borders, and the meter shows the work each frame". No switch: the view.
+
+## C3.8: word of other towns' troubles, and what the dead carried
+
+Two small things of my own. **Townsfolk talk of other towns' troubles** you have not heard yet ("Have you been to
+Greyby? They have trouble there: the cult, they say.") and the town goes on your map, so the side troubles of C3.4
+find you instead of waiting to be stumbled on. A new hook, `RUMOURS` in hooks.js, lets any piece add a rumour.
+**Materials and trade goods now lie with a fallen traveller's body**, with their coin and gear, and the next
+traveller takes them up when they find it (C3.5 had them lost). Bot unchanged. Switches: `plots`, `crafting`.
+
+## C3.7: light, sky and weather
+
+**What it is.** Small visual gains, all behind the quality setting (none on Low):
+- **A sky** that darkens toward the top instead of one flat colour, meeting the fog exactly at the horizon, with a
+  **sun** crossing it by day and a pale **moon** by night (hidden in a storm).
+- **Grain on the ground**: a soft speckle every six metres, so near ground reads as ground and you can feel yourself
+  move over flat country.
+- **Weather you can see**: rain, snow, hail, dust, ash or falling stars while a storm blows, chosen from the storm's
+  name (a blizzard snows, a dust storm blows dust sideways), 700 on Medium and 1600 on High, falling round you.
+- **Creatures' eyes show their temper**: red hunts you, orange guards its ground, yellow keeps to itself, green will
+  not fight. Told in How to play.
+
+**Cost, measured** (`tools/bench.py medium-plain medium`, same build and worlds): 80 to 83 draw calls, 149,849 to
+150,193 triangles, frame time within the noise (120.7 ms plain, 115.8 ms with them, on the software renderer). The
+storm's points are one draw call updated in JavaScript.
+
+**Commits.** "Light, sky and weather". No switch: it is the view, under Settings.
+
+**Choices made without asking.** No real lighting changes (shadows, fog colour shifts) and no textures on walls or
+buildings yet: the grain shows how cheap a texture is, and walls could take one next. Weather particles use plain
+random numbers in the view, which is allowed there (the rules never see them).
+
+**Verdict: maybe-to-pearl.** Modest, as asked; the snow in particular changes how a blizzard feels.
+
+## C3.6: trade between towns
+
+**What it is.** Every town's shop now has a **Market** of six trade goods: furs, salt, timber, iron tools, cloth and
+remedies. A town sells cheap (about 0.6 of the price) what its country or its people make, and pays dear (about 1.45)
+for what they do not: furs where the nights are cold, salt where there are salt pans or hot days, timber in wooded
+country or where the people burn charcoal, tools in the hills or from smiths, cloth from weavers or sheep hills,
+remedies from herbalists or flower meadows. Each town's prices wander 15% from the seed, and the year moves some (a
+hard winter makes furs 1.6 times as dear, a drought remedies 1.4). The merchant tells you where the town's own goods
+fetch the most. Goods weigh something (timber 2, furs 1, remedies 0.3), so a trade run is a choice against water.
+Materials from crafting sell in every town.
+
+**In play.** Coin now has a use besides the shop's gear, and more ways to earn it: carry five furs bought at 5 from
+a cold-country town to a warm one that pays 11, sell the hides and bone of your kills, and the side troubles' pay.
+In 15 test worlds, at least 10 have a trade worth making between their towns. Bot win rate unchanged (30, 28, 30):
+it sells spare materials and goods the town does not make, and buys a little of what it does, but it only visits the
+story's town, so it never completes a run.
+
+**Commits.** "Trade between towns". Switch: `trade` (in play).
+
+**Choices made without asking.** Prices are worked out when asked, not stored: they follow the town's culture and the
+year with nothing to migrate. Only what each town has left of its own goods is stored (`t.goods`, from the seed the
+first time you ask). A town that does not make a good never sells it, so goods move one way, from where they are
+made to where they are wanted.
+
+**Verdict: pearl, if people trade.** It needs the other towns to be worth walking to, which the side troubles give.
+
+## C3.5: crafting
+
+**What it is.** The land now gives materials, carried in the pack: **hide** and **bone** from what you kill (a hound
+leaves a hide, a brute a hide and a bone, a wight two bones, a serpent a hide; more from a tier 3 creature),
+**salvage** (cloth, cord, pitch) from searching ruins and caches, bone from caves, and **herbs** half the time you
+gather wood. Wood is your fuel. Pack has a **Make** list, survival first:
+- Waterskin (2 hide): 3 more water. Hide boots (2 hide). Fur cloak (3 hide, 1 bone): the cold bites half as hard.
+- Torch (1 wood, 1 salvage): light for 8 hours, enough for the locked place without a lantern.
+- Bandages (1 herb, 1 salvage): 6 health, in a fight too. Healing salve (2 herbs, 1 wood). Warming draught (1 herb, 1 wood).
+- Bone spear (2 bone, 1 wood).
+- Shelter (3 wood, 1 hide): a hide-roofed lean-to where you stand, drawn in the land, that shelters you from storms
+  and lets you sleep, for good. A shelter on the road is a camp you never have to carry.
+
+**In play.** Fights now pay in something useful, ruins in more than a chance of an item, and a long leg can be
+broken with a shelter. Bot win rate, sets 5 / 1000 / 2000: 30, 28, 30 (88 / 450, 20%); with `NO=crafting` 26, 24,
+34 (84). The bot makes waterskins first, then a fur cloak, a torch when it has no light, and bandages, and uses
+bandages like salves.
+
+**Commits.** "Crafting". Switch: `crafting` (in play).
+
+**Shared bricks.** `WEIGHTS` in hooks.js (anything else the traveller carries that weighs something); `use.light` on a
+consumable (hours of light); a `shelter` site counts as shelter; `emit` is on the Rules object for tests.
+
+**Choices made without asking.** Materials are counts (`s.player.mats`), not items, so the pack does not fill with
+forty hides. They are lost when a traveller dies (the body keeps its items, coin and water, not its materials): a
+small loss, and it keeps depots simple. Wood stays fuel rather than becoming a material of its own, so a recipe
+that needs wood competes with your fires, which is the point.
+
+**Verdict: pearl.** Small, and it ties fighting and searching to surviving.
+
+## C3.4: many plots
+
+**What it is.** The story is no longer always the relic. Every world now has one **great trouble**, told by the elder
+of the story's town, and finishing it wins the world with an ending that fits it. It is one of six: the old story of
+the relic (a third of worlds), a great beast, a curse on the land, a sickness, a cult, or a siege. Each of the other
+towns may have a **trouble of its own** (one to three in a world), told by its elder when you walk in, which you can
+take up or leave and which pays in coin: someone held captive by raiders, someone lost in the wild, a feud between two
+towns, a caravan's bales to carry before a day, something stolen, and the kinds that can also be great troubles.
+
+What each asks:
+- **The great beast**: kill it in its den, bring its horn home.
+- **Held captive**: kill the raiders at their camp, free the captive, lead them home.
+- **Lost in the wild**: find them, share two measures of water, lead them home.
+- **The curse**: take the blessed salt from the elder, pour it on the black stone; while the stone stands, its whole
+  country is cursed (the cold bites harder, water runs out faster).
+- **The sickness**: gather feverwort far away, bring it to the healer's town.
+- **The feud**: hear the other town, then choose: side with one (the other will barely deal with you, and sells at
+  1.6 times the price), or find the old boundary charter in a ruin and make peace (both sell to you for less).
+- **The caravan**: carry heavy bales to another town by a set day, or they are worthless.
+- **The cult**: kill its leader at the cult's camp, bring the sigil.
+- **The siege**: kill the captain camped under the town; the warband scatters.
+- **Something stolen**: kill the thief, bring back the town's bell.
+
+**Links between plots.** When a world has a sickness and a great beast, the cure is in the beast's hoard 60% of the
+time (the elder says so). A feud sets one town against you for good. Finishing a side trouble tells you of the next
+town's trouble a third of the time. In a world whose great trouble is not the relic, the elder tells the relic's
+story on your second talk, and carrying it home pays 60 coin instead of winning.
+
+**In play.** The top panel follows the great trouble; Menu has a **Troubles** list with every trouble you know of
+and a Follow button. The new places (a den with bones at its mouth, raiders' tents with a fire, a lean-to, a black
+standing stone, a herb patch, a siege camp) are drawn and mapped, and told as you reach them. Elders mark the places
+and the sure springs on the way; the great trouble gets an old road, as the relic's story does.
+
+**Bot win rate**, sets 5 / 1000 / 2000: 26, 24, 34 (84 / 450, 19%), against 44 before. The bot plays the great
+trouble whatever it is (`plotGoal`), which the curse and sickness make easier than the relic: the curse wins 37% of
+its worlds, the relic 10%, the cult 7%. It never takes up side troubles.
+
+**Commits.** "Many plots". Switch: `plots` (at creation: the relic's story alone).
+
+**How it works.** `src/content/plots.js` describes each plot as **roles** (a place with a kind of site, a creature or
+a few, a person, an item, a town, a curse) and **steps** (`talk`, `kill`, `take`, `bring`, `free`, `lead`, `use`,
+`choose`), with branches after a choice. `src/rules/plots.js` knows how to place each kind of role and how each kind
+of step is done; a new plot that uses them is only data. Plot state is `s.plots` (each with `step`, `roles`, `known`,
+`done`), `s.track` and `s.curses`; old saves have none and play the relic as before. quest.js cannot import plots.js
+(it would be a cycle), so plots.js fills `PLOT_HOOKS` in quest.js (the story town's talk, the goal line, whether the
+relic wins). `tests/plots.test.js` plays every plot of 120 worlds to its end.
+
+**Choices made without asking.**
+- The old story stays in every world: many pieces hang off the locked place and the relic (odd levels, relic natures,
+  the vault's artifact), and it gives a world with another great trouble a second, optional journey.
+- The great trouble's places keep to the ring of regions round home, as the relic's chain does. With them up to two
+  regions out, in danger-2 country, the bot won 14 / 150; with the ring, 21. Side troubles may go further.
+- The great beast, the cult's leader and the siege's captain are tier 2 elders, not tier 3: at tier 3 the bot won 1
+  beast world in 30.
+- Water for every plot: sure springs every seven tiles from the asking town to each place, marked when the elder
+  tells you. Without them thirst killed the bot on almost every plot leg.
+- Side troubles pay 20 to 45 coin and 60 experience; coin will have more uses with the economy (next).
+
+**Verdict: pearl.** It changes what a world is about. The relic is now a third of the game, and the other troubles
+make the other towns matter.
+
+## C3.3: more towns
+
+**What it is.** A world now has other towns besides the town of the story: one more for about every four or five
+regions (one to five), never at home and never two in one region. Each is made the same way as the first: its own
+name, elder and merchant, a shop, a size from hamlet to city with its own services and lessons, its own culture
+(traders, smiths, herbalists...) and its own streets. You walk into it from any side like the first. Its elder has
+news and, until you have heard the story, sends you to the town that knows what the land needs, and marks it.
+
+**In play.** The far country has somewhere to go: a bed, a shop and a healer two regions from the story's town. Bot
+does not visit them, but the extra towns' shops roll items from the play stream, which reshuffles later dice: sets
+5 / 1000 / 2000 give 14, 12, 18 (44 / 450, 10%), against 53 before; within the swing between seed sets, and above the
+floor. This is the ground for the plots (next).
+
+**Commits.** "More towns". Switch: `moretowns` (at creation).
+
+**How it works.** `s.town` stays the story's town (area `'town'`); the others are in `s.towns`, each with an `id`
+(`t_<region>`, also its area id) and `area` (its region). `curTown(s)` is the town you are in (or the one in your
+region); the shop, inn, elder, services and the cultures' talk all use it. `withTown(s, t, fn)` runs code written for
+the one town with `s.town` (and `s.townCulture`) standing for another, which is how a new town gets its size,
+services, culture (`TOWN_MAKERS` in hooks.js) and streets without copying any of that code. Extra towns' random
+streams carry their id, so the story town's streets are unchanged in every existing world. The view draws every town
+among the nine regions and lets you walk into the one in your region (`V.townId`).
+
+**Choices made without asking.** An elder of another town does not tell the story; the story belongs to the first
+town. A new town never stands within seven tiles of the beast with the key or a lair's keeper.
+
+**Verdict: pearl.** A prerequisite that is also a feature.
+
+## C3.2: worlds of varying size
+
+**What it is.** The number of regions across and down is now rolled from the seed: a small world (2 or 3 by 3), an
+ordinary one (3 or 4 each way), a long one (2 or 3 by 5 to 7, either way round), a broad one (4 or 5 by 4 to 6) or,
+rarely, a vast one (6 or 7 each way). A 4 x 7 world is as likely as a 5 x 5. At most 49 regions. The rare wide year
+still makes exactly 5 x 5. The world's shape is told at the start (unless it is ordinary) and listed in the Journal.
+
+**In play.** Small worlds put the far country a step away; long and vast ones have land beyond the story to wander
+into, with its lairs, rare countries and the far artifact (always in the farthest region). Bot win rate, sets 5 / 1000
+/ 2000: 20, 18, 15 (53 / 450, 12%); with `NO=worldsize` 20, 19, 11 (50 / 450).
+
+**Budget.** Drawing costs the same in any size of world: only the player's region and its eight neighbours are ever
+built for the view. What grows is the save, with what you explore: a 7 x 7 world with every region visited saves in
+162 KB (it would have been about 500 KB before C3.1's packing). Making a 7 x 7 world takes 50 ms in Node.
+
+**Commits.** "Worlds of varying size". Switch: `worldsize` (at creation; off gives the old 3 x 3).
+
+**Shared brick.** `TUNERS` in hooks.js: functions run in `newGame` after the year sets the tuning numbers and before
+the world is sketched. `s.world.shape` names the shape (optional).
+
+**Choices made without asking.**
+- The first try let the plot's chain of regions (town, key, locked place, destination) wander away from home in large
+  worlds, into regions of danger 2 and 3: the bot's win rate fell to 22 / 450 (5%). The chain now keeps to the ring of
+  regions round home where it can, as it always did in a 3 x 3 world, and the win rate came back. Plots that go
+  further afield are for C3.3.
+- No world is narrower than 2 regions, so a region never borders itself.
+- The artifacts and rare-region tests no longer assume every region is built at creation; in a large world a region
+  is built (and its artifact placed) when you first get near.
+- Errands at the inn now build the regions round the town if they are not yet built, and try a few times before
+  saying there is no work: in a large world the first errand rolled could point into an unbuilt region.
+  `ensureRegion(s, cx, cy)` (areas.js) builds any region on demand.
+
+**Verdict: pearl.** Cheap, and every world now has a different map.
+
+## C3.1: a performance meter, a quality setting, and a cheaper game
+
+**What it is.** Menu now has a **Settings** section, kept per device rather than per run:
+- **Graphics quality**, Low / Medium (the default) / High. It sets the screen resolution (1x, 1.5x, 2x pixels), edge
+  smoothing (off on Low, applied on the next page load), how much of the neighbouring land is drawn (12 / 17 / 22 tiles
+  round the region), how fine the ground is, and how many trees and rocks stand in it. Fog by day never reaches past
+  the land that is drawn, so Low looks hazier rather than cut off.
+- **Show the performance meter**: a small box in the bottom-left corner with frames per second, the average and worst
+  frame time over the last half second, draw calls, triangles, how long the last scene build took (the hitch when you
+  cross a border), the save's size and, in Chrome, the memory in use. Andrew can read it off his phone and send it.
+
+**What it costs, measured** (`tools/bench.py`; the save is a fresh world plus its eight neighbours):
+
+| | build ms | draw calls | triangles | frame ms (software) | save |
+| --- | --- | --- | --- | --- | --- |
+| before | 156 | 123 | 355,691 | 180 | 107 KB |
+| after, High | 147 | 123 | 285,685 | 160 | 36 KB |
+| after, Medium | 68 | 105 | 155,935 | 106 | 36 KB |
+| after, Low | 54 | 89 | 86,934 | 76 | 36 KB |
+
+The largest save in the state test (every region of every test world) went from 266 KB to 85 KB.
+
+**Where the cost was.** Half the triangles were trees: ten thousand cones of 18 triangles each, of which only 6 can be
+seen (the base is never visible, and six more were degenerate slivers at the tip). Trees are now 6-triangle cones.
+The other half is the ground: two height grids, fine and coarse. Building the land was mostly colouring the ground,
+which checked every spring in view for every vertex; springs are now bucketed by tile. The coarse grid no longer
+computes heights under the fine one. The save was mostly three grids per region (ground, height, seen) written as
+lists of 1296 numbers; they are now written as a short run-length text (`packGrid` in save.js). Old saves load as
+they are; no version bump was needed because the state in memory is unchanged.
+
+**Commits.** "Performance meter, graphics quality, smaller saves". No switch: it is the view and the save format.
+
+**Choices made without asking.**
+- Medium is the default, not High: a Pixel 9 can likely run High, but the meter will say, and Medium is a safe
+  first impression on any phone.
+- Rocks and trees roll the same dice at every quality, so a tree that is drawn on Low stands in the same place on High.
+- The smoke test now turns the meter on, switches to Low, reads the meter, and switches back.
+- `tools/bench.py` is the measuring stick for the rest of this commission (`CHROME=` picks a browser, as in the smoke
+  test).
+
+**Verdict: pearl.** It makes the phone budget a number.
+
+---
+
 # Commission 2
 
 ## Summary

@@ -46,6 +46,10 @@ import { describeItem, genItem, isCursed, itemAffixes, itemName, itemWeight, wei
 import { atCamp, bearing, groundHere, inShelter, passable, reveal, siteHere, siteName, terrainInfo } from './map.js';
 import {
   areaRec,
+  allTowns,
+  curTown,
+  townById,
+  townInRegion,
   townDoor,
   inTownBlock,
   TOWN_GATE,
@@ -115,9 +119,42 @@ import { serviceInfo, useService } from './townlife.js';
 import { classMove } from './roster.js';
 import './hamlets.js';
 import './tiers.js';
-import './plot.js'; // last: it moves quest places that earlier pieces may have changed
+import './worldsize.js';
+import './plot.js'; // it moves quest places that earlier pieces may have changed
+import './moretowns.js'; // after the plot: other towns go where the story's places are not
+import {
+  choosePlot,
+  mainPlot,
+  plotAct,
+  plotChoices,
+  plotGoal,
+  plotObjective,
+  plotsOf,
+  stepOf,
+  trackPlot,
+  tracked,
+} from './plots.js'; // after the towns: troubles need towns
+import { craft, recipes } from './crafting.js';
+import { bestMarket, buyGood, market, sellGood, sellMat } from './trade.js';
 
 const api = {
+  bestMarket,
+  buyGood,
+  market,
+  sellGood,
+  sellMat,
+  craft,
+  recipes,
+  choosePlot,
+  mainPlot,
+  plotAct,
+  plotChoices,
+  plotGoal,
+  plotObjective,
+  plotsOf,
+  stepOf,
+  trackPlot,
+  tracked,
   // for tests and tinkering: put the traveller on a tile of any outdoor region (from outdoors)
   travelTo(s, area, x, y) {
     const rec = s.areas[area];
@@ -171,6 +208,7 @@ const api = {
   livesLeft,
   shrineBearing,
   on,
+  emit,
   AXES,
   trait,
   traitText,
@@ -226,6 +264,10 @@ const api = {
   mapOf,
   ensureAround,
   townDoor,
+  allTowns,
+  curTown,
+  townById,
+  townInRegion,
   inTownBlock,
   TOWN_GATE,
   TOWN_R,

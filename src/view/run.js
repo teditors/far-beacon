@@ -1,7 +1,22 @@
 /* Run control: saving, starting, acting, and the per-frame loop. */
-import { $, CODEX, EYE, FR, G, KEY, OLD_KEYS, P, R, TOWN_TS, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
-import { applyFrame, buildDynamic, buildStatic, camera, hemi, lamp, renderer, scene, sun } from './scene.js';
+import { $, CODEX, EYE, FR, G, KEY, OLD_KEYS, P, R, TOWN_TS, TS, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
+import {
+  applyFrame,
+  buildDynamic,
+  buildStatic,
+  buildStaticSoon,
+  camera,
+  hemi,
+  lamp,
+  renderer,
+  scene,
+  stepBuild,
+  sun,
+} from './scene.js';
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
+import { Q } from './quality.js';
+import { perfBuild, perfFrame, perfSave, perfWork } from './perf.js';
+import { hideSky, updateSky } from './sky.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -22,7 +37,11 @@ const codexTotal = R.AXES.reduce((n, a) => n + R.C.civ[a].length, 0);
 function save() {
   try {
     if (!V.S || (V.S.over && (V.S.over.won || R.livesLeft(V.S) <= 0))) localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, R.serialize(V.S));
+    else {
+      const text = R.serialize(V.S);
+      perfSave(text.length);
+      localStorage.setItem(KEY, text);
+    }
   } catch (e) {
     /* storage is optional */
   }
@@ -171,14 +190,14 @@ function tick(dt, now) {
   // the town from outside: you walk straight in wherever its edge is open; its walls and the houses on its edge are solid
   let enterAt = null;
   const townTile = (x, z) => {
-    if (indoor || !V.townAt || !V.S.areas.town) return null;
+    if (indoor || !V.townAt || !V.townId || !V.S.areas[V.townId]) return null;
     const h = (R.W * TOWN_TS) / 2,
       tx = Math.floor((x - V.townAt.x + h) / TOWN_TS),
       tz = Math.floor((z - V.townAt.z + h) / TOWN_TS);
     return tx >= 0 && tz >= 0 && tx < R.W && tz < R.H ? { x: tx, y: tz } : null;
   };
   {
-    const tm = !indoor && V.townAt ? R.mapOf(V.S, 'town') : null,
+    const tm = !indoor && V.townAt && V.townId ? R.mapOf(V.S, V.townId) : null,
       wall = (x, z) => {
         const t = townTile(x, z);
         return !!(t && tm && tm.terrain[t.y * R.W + t.x] === R.WALL);
@@ -211,8 +230,9 @@ function tick(dt, now) {
       P.y += was.y - FR.y;
       shown.area = V.S.area;
     } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {
-      // crossed a border: same heading, same stride, on the facing edge of the next region
-      buildStatic();
+      // crossed a border: same heading, same stride, on the facing edge of the next region. The new land is built over
+      // the next few frames while the old one, moved over, stays on screen (buildStaticSoon), so there is no hitch.
+      buildStaticSoon(Math.floor(tx / R.W), Math.floor(tz / R.H));
       shown.area = V.S.area;
       shown.land = landKey();
       nx -= Math.floor(tx / R.W) * 2 * G.half;
@@ -267,6 +287,7 @@ function frame() {
     lamp.intensity = lit ? 1.1 : 0.25;
     lamp.distance = lit ? 26 : 6;
     lamp.position.set(P.x, P.y + 0.8, P.z);
+    hideSky();
     return finishFrame();
   }
   lamp.distance = 45;
@@ -275,7 +296,7 @@ function frame() {
   scene.background.copy(skyC);
   scene.fog.color.copy(skyC);
   const sight = R.stat(V.S, 'nightSight', 0) > 0,
-    far = storm ? 85 : lerp(sight ? 260 : 110, 620, day);
+    far = Math.min(storm ? 85 : lerp(sight ? 260 : 110, 620, day), Q.margin * TS * 0.95); // never past the drawn land
   shown.far = lerp(shown.far, far, 0.05);
   scene.fog.far = shown.far;
   scene.fog.near = Math.min(40, shown.far * 0.2);
@@ -285,6 +306,7 @@ function frame() {
   sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
   lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
   lamp.position.set(P.x, P.y + 0.3, P.z);
+  updateSky(skyC, sun.position, day, storm ? R.stormOfNow(V.S) : null, frameDt);
   finishFrame();
 }
 function finishFrame() {
@@ -295,14 +317,21 @@ function finishFrame() {
   const deg = ((((-P.yaw * 180) / Math.PI) % 360) + 360) % 360;
   $('facing').textContent = 'Facing ' + DIRN[Math.round(deg / 45) % 8];
   renderer.render(scene, camera);
+  perfFrame(renderer);
 }
 let last = performance.now();
+let frameDt = 0.016;
+const BUILD_BUDGET = 5; // milliseconds a frame for building the land after crossing a border
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
+  frameDt = dt;
   last = now;
   if (V.S) {
+    const t0 = performance.now();
     tick(dt, now);
+    stepBuild(BUILD_BUDGET);
     frame();
+    perfWork(performance.now() - t0);
   }
   requestAnimationFrame(loop);
 }

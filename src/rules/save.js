@@ -57,8 +57,53 @@ const MIGRATIONS = {
   },
 };
 
+/* A save stores each map's grids (the ground, its height, what has been seen) as a short text instead of a list of
+   1296 numbers: the different values once, then one letter per run of tiles with how many tiles it runs for
+   ("~0|1|2~A40B3A12..."). A world of nine regions shrinks to less than half. Saves written before this load as they
+   are, since a plain list is still read as a list. */
+const GRIDS = ['terrain', 'elev', 'seen'],
+  LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+function packGrid(a) {
+  const vals = [],
+    at = new Map();
+  for (const v of a) {
+    if (typeof v !== 'number') return a;
+    if (!at.has(v)) {
+      if (vals.length === LETTERS.length) return a;
+      at.set(v, vals.length);
+      vals.push(v);
+    }
+  }
+  let out = '~' + vals.join('|') + '~';
+  for (let i = 0; i < a.length; ) {
+    let j = i;
+    while (j < a.length && a[j] === a[i]) j++;
+    out += LETTERS[at.get(a[i])] + (j - i > 1 ? j - i : '');
+    i = j;
+  }
+  return out;
+}
+function unpackGrid(t) {
+  if (typeof t !== 'string' || t[0] !== '~') return t;
+  const end = t.indexOf('~', 1),
+    vals = t.slice(1, end).split('|').map(Number),
+    out = [];
+  for (let i = end + 1; i < t.length; ) {
+    const v = vals[LETTERS.indexOf(t[i++])];
+    let n = 0;
+    while (i < t.length && t.charCodeAt(i) >= 48 && t.charCodeAt(i) <= 57) n = n * 10 + t.charCodeAt(i++) - 48;
+    for (let k = Math.max(1, n); k > 0; k--) out.push(v);
+  }
+  return out;
+}
+const eachMap = (s, fn) => {
+  fn(s);
+  for (const id in s.areas || {}) if (s.areas[id] && s.areas[id].map) fn(s.areas[id].map);
+};
 function serialize(s) {
-  return JSON.stringify(s);
+  return JSON.stringify(s, function (k, v) {
+    return GRIDS.includes(k) && Array.isArray(v) && v.length > 64 ? packGrid(v) : v;
+  });
 }
 
 // Returns { state } on success, or { error } with a sentence the player can read.
@@ -69,6 +114,10 @@ function deserialize(text) {
   } catch (e) {
     return { error: 'That text is not a saved game.' };
   }
+  if (s && typeof s === 'object')
+    eachMap(s, (m) => {
+      for (const f of GRIDS) if (m[f] !== undefined) m[f] = unpackGrid(m[f]);
+    });
   if (!s || typeof s !== 'object' || typeof s.v !== 'number' || !s.player || !s.terrain)
     return { error: 'That text is not a saved game.' };
   if (s.v > VERSION) return { error: 'That save comes from a newer version of the game.' };
@@ -84,4 +133,4 @@ function deserialize(text) {
   return { state: s };
 }
 
-export { MIGRATIONS, serialize, deserialize };
+export { MIGRATIONS, serialize, deserialize, packGrid, unpackGrid };

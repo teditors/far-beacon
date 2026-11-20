@@ -19,9 +19,11 @@ import {
   terrainInfo,
 } from './map.js';
 import { gainXp, roll, weaponOf } from './progress.js';
-import { enterTown, findSite, hasItem, leaveTown } from './quest.js';
+import { PLOT_HOOKS, enterTown, findSite, hasItem, leaveTown } from './quest.js';
 import {
   TOWN_GATE,
+  curTown,
+  townById,
   inTownBlock,
   townDoor,
   areaRec,
@@ -156,6 +158,12 @@ function arrive(s) {
       s.player.coin += d.coin;
       d.coin = 0;
     }
+    for (const kind of ['mats', 'goods'])
+      if (d && d[kind]) {
+        const to = (s.player[kind] = s.player[kind] || {});
+        for (const k in d[kind]) to[k] = (to[k] || 0) + d[kind][k];
+        delete d[kind];
+      }
     say(
       s,
       'Here lies ' +
@@ -208,8 +216,9 @@ function arrive(s) {
     st.visited = true;
   }
   if (st.kind === 'beacon' && s.quest.dest === 'beacon' && hasItem(s, 'relic')) {
-    s.over = { won: true };
     say(s, 'You set the ' + s.quest.relic + ' in the beacon. The fire catches, and turns, and holds.', 'good');
+    if (PLOT_HOOKS.relicWins(s)) s.over = { won: true };
+    else PLOT_HOOKS.relicSideDone(s);
     return;
   }
   if (st.kind === 'shrine' && !s.known.god) {
@@ -233,7 +242,10 @@ function arrive(s) {
         ' ' +
         trait(s, 'doom').sign,
       cache: 'Someone left a cache here under stones.',
-      town: 'The town of ' + s.town.name + '. Smoke, voices, a well. Walk in to talk and trade.',
+      town:
+        'The town of ' +
+        ((st.town && townById(s, st.town)) || s.town).name +
+        '. Smoke, voices, a well. Walk in to talk and trade.',
       vault: 'The ' + s.quest.vault.name + '. A heavy door, and a stair going down behind it.',
       beacon:
         s.quest.dest === 'beacon'
@@ -628,7 +640,18 @@ function useItem(s, id) {
   if (use.warmth) p.warmth = clamp(p.warmth + use.warmth, 0, 100);
   if (use.water) p.water = Math.min(Math.max(waterCap(s), p.water), p.water + use.water);
   if (use.hp) p.hp = Math.min(p.hpMax, p.hp + use.hp);
-  say(s, 'You drink the ' + itemName(it) + '.', (use.stamina || 0) < -5 ? 'bad' : 'good');
+  if (use.light) s.lightUntil = s.time + use.light * 60; // a torch
+  say(
+    s,
+    (use.light
+      ? 'You light the '
+      : use.hp && !b.mystery && it.base === 'bandage'
+        ? 'You bind your wounds with the '
+        : 'You drink the ') +
+      itemName(it) +
+      '.',
+    (use.stamina || 0) < -5 ? 'bad' : 'good',
+  );
   p.items.splice(i, 1);
   if (s.combat) {
     s.combat.round++;
@@ -717,10 +740,10 @@ function actions(s) {
     if (st.kind === 'stairsUp') a.push({ id: 'goUp', label: 'Go up', hint: 'level ' + (areaRec(s).level - 1) });
     if (st.kind === 'stairsDown')
       a.push({ id: 'goDown', label: 'Go down', hint: 'level ' + (areaRec(s).level + 1) + ' of ' + areaRec(s).levels });
-    if (st.kind === 'elder') a.push({ id: 'townAsk', section: 'elder', label: 'Talk to ' + s.town.elder, hint: 'the elder' });
+    if (st.kind === 'elder') a.push({ id: 'townAsk', section: 'elder', label: 'Talk to ' + curTown(s).elder, hint: 'the elder' });
     if (st.kind === 'inn') a.push({ id: 'townAsk', section: 'inn', label: 'The inn', hint: 'a bed for the night' });
     if (st.kind === 'shop')
-      a.push({ id: 'townAsk', section: 'shop', label: 'Trade with ' + s.town.merchant, hint: 'buy, sell, appraise' });
+      a.push({ id: 'townAsk', section: 'shop', label: 'Trade with ' + curTown(s).merchant, hint: 'buy, sell, appraise' });
     if (
       st.kind === 'well' ||
       st.kind === 'hamlet' ||

@@ -48,6 +48,19 @@
         display: block;
         touch-action: none;
       }
+      #perf {
+        position: fixed;
+        left: 8px;
+        bottom: 8px;
+        margin: 0;
+        padding: 4px 6px;
+        background: rgba(0, 0, 0, 0.55);
+        color: #9fe39f;
+        font: 11px/1.3 var(--font-num);
+        pointer-events: none;
+        z-index: 5;
+        white-space: pre;
+      }
       #hud {
         position: fixed;
         top: 0;
@@ -501,7 +514,7 @@
       if (!window.THREE)
         document.getElementById('log').innerHTML =
           '<li class="bad new">The 3D library did not load. Check your connection and reload the page.</li>';
-      var GAME_VERSION = 'v0.13';
+      var GAME_VERSION = 'v0.14';
       var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls and past messages are in Menu.';
     </script>
     <script>
@@ -3041,6 +3054,475 @@
   // src/content/tiers.js
   var tiers_default = { tiers: { max: 3, names: { 2: "Fine", 3: "Superb" }, step: 0.5 } };
 
+  // src/content/worldsize.js
+  var worldsize_default = {
+    worldSize: {
+      shapes: [
+        {
+          id: "small",
+          name: "A small world",
+          w: 3,
+          cols: [2, 3],
+          rows: [3, 3],
+          swap: true,
+          text: "the places of the story are close together, and the far country is never far"
+        },
+        {
+          id: "usual",
+          name: "An ordinary world",
+          w: 5,
+          cols: [3, 4],
+          rows: [3, 4],
+          text: "a fair journey from one side to the other"
+        },
+        {
+          id: "long",
+          name: "A long world",
+          w: 2,
+          cols: [2, 3],
+          rows: [5, 7],
+          swap: true,
+          text: "a narrow land, short one way and long the other"
+        },
+        {
+          id: "broad",
+          name: "A broad world",
+          w: 2,
+          cols: [4, 5],
+          rows: [4, 6],
+          swap: true,
+          text: "wide country, with room for the far places to be truly far"
+        },
+        { id: "vast", name: "A vast world", w: 1, cols: [6, 7], rows: [6, 7], text: "more land than one life can walk" }
+      ],
+      most: 49
+      // never more regions than this, whatever is rolled
+    }
+  };
+
+  // src/content/moretowns.js
+  var moretowns_default = {
+    moreTowns: {
+      perRegions: 4.5,
+      // one more town for about this many regions
+      least: 1,
+      most: 5
+    }
+  };
+
+  // src/content/plots.js
+  var plots_default = {
+    plots: {
+      side: [1, 3],
+      // side plots in a world, at most one per town other than the story's
+      linkChance: 0.6,
+      // when a world has both, the cure for a sickness lies in the great beast's hoard
+      chainChance: 0.35,
+      // finishing a side plot tells you of the next one, at the next town
+      reward: { coin: [20, 45], xp: 60 },
+      // in a world where the old story is not the great trouble, carrying the relic home still earns this
+      relicSide: { coin: 60, xp: 120 },
+      kinds: [
+        {
+          id: "relic",
+          name: "The relic",
+          main: 4,
+          // weight as the world's great trouble
+          text: "The old story: a key, the locked place, the relic and where it belongs."
+        },
+        {
+          id: "beast",
+          name: "The great beast",
+          main: 2,
+          side: 2,
+          roles: {
+            lair: { place: true, site: "den", dist: [1, 2] },
+            beast: { creature: true, at: "lair", kind: "beast", tier: 2, carries: "horn" },
+            horn: { item: true, base: "token", label: "Horn of the {beast}" }
+          },
+          tell: '"Something has come down out of the {land}: the {beast}. It takes the herds, and it took the last three who went after it. Its den is marked on your map. Kill it, and bring us its horn, so we know."',
+          steps: [
+            { do: "kill", what: "beast", text: "Kill the {beast}" },
+            { do: "bring", what: "horn", to: "giver", text: "Bring the horn of the {beast} to {giver}" }
+          ],
+          end: "You lay the horn of the {beast} on the table in {giver}. By morning the herds are out on the hills again, and the roads are walked without fear."
+        },
+        {
+          id: "captive",
+          name: "Held captive",
+          side: 3,
+          roles: {
+            camp: { place: true, site: "camp", dist: [1, 2] },
+            guards: {
+              creature: true,
+              at: "camp",
+              kind: "guards",
+              n: 2,
+              tier: 2,
+              names: ["Raider", "Reaver", "Brigand", "Cutthroat"]
+            },
+            captive: { person: true, at: "camp" }
+          },
+          tell: `"They took {captive}, my sister's child, on the road. Raiders, camped in the {land}; I have marked it. We have no one who can fight. Bring {captive} home."`,
+          steps: [
+            { do: "free", who: "captive", clear: "guards", text: "Free {captive} from the raiders' camp" },
+            { do: "lead", who: "captive", to: "giver", text: "Bring {captive} home to {giver}" }
+          ],
+          end: "{captive} is home. {giver} lights every lamp it has."
+        },
+        {
+          id: "lost",
+          name: "Lost in the wild",
+          side: 3,
+          roles: { lost: { place: true, site: "lost", dist: [1, 2] }, wanderer: { person: true, at: "lost" } },
+          tell: '"{wanderer} went out to the {land} for herbs four days ago and has not come back. Somewhere about here, on your map. Take water: they will have none."',
+          steps: [
+            { do: "free", who: "wanderer", water: 2, text: "Find {wanderer} in the {land}, and share your water" },
+            { do: "lead", who: "wanderer", to: "giver", text: "Bring {wanderer} back to {giver}" }
+          ],
+          end: "{wanderer} is home, thin and sunburnt and alive."
+        },
+        {
+          id: "curse",
+          name: "The curse on the land",
+          main: 2,
+          side: 1,
+          roles: {
+            stone: { place: true, site: "stone", dist: [1, 2] },
+            blight: { curse: true, at: "stone" },
+            salt: { item: true, base: "token", label: "Blessed salt", given: 1 }
+          },
+          tell: '"Since the black stone stood up in the {land}, nothing there grows, the water there turns, and the cold there is wrong. Our priests can bless salt enough to break it; take it, and pour it on the stone. Then come back and tell us."',
+          steps: [
+            { do: "talk", to: "giver", give: "salt", text: "Take the blessed salt from {elder}" },
+            { do: "use", what: "salt", at: "stone", text: "Pour the salt on the black stone in the {land}" },
+            { do: "talk", to: "giver", text: "Tell {giver} the curse is broken" }
+          ],
+          end: "The black stone cracks from top to foot. By the time you are back in {giver}, there is green along the ditches."
+        },
+        {
+          id: "plague",
+          name: "The sickness",
+          main: 2,
+          side: 2,
+          roles: {
+            patch: { place: true, site: "herbs", dist: [1, 2], far: true },
+            cure: { item: true, base: "token", label: "Feverwort", at: "patch" }
+          },
+          tell: '"The sweating sickness is in {giver}. Our healer says one herb will break it, feverwort, and it grows only in the {land}, far from here. The place is on your map. Be quick: every day we bury someone."',
+          tellHoard: '"The sweating sickness is in {giver}. The only feverwort left in this land was in the hoard of the {beast}, which keeps it with the bones of the last healer who went looking. Its den is marked."',
+          steps: [
+            { do: "take", what: "cure", text: "Gather feverwort in the {land}" },
+            { do: "bring", what: "cure", to: "giver", text: "Bring the feverwort to {giver}" }
+          ],
+          end: "The feverwort is boiled in every pot in {giver}. In three days the bell for the dead stops ringing."
+        },
+        {
+          id: "feud",
+          name: "The feud",
+          side: 2,
+          needs: "other",
+          roles: {
+            other: { town: "other" },
+            ruin: { place: true, site: "ruin", dist: [1, 2] },
+            charter: { item: true, base: "token", label: "The old boundary charter", at: "ruin" }
+          },
+          tell: '"{other} has stolen water from our spring for the last time. You are a stranger: go and hear their lies if you must, then come back and tell me whose side you are on."',
+          steps: [
+            { do: "talk", to: "other", text: "Hear what {other} has to say" },
+            {
+              do: "choose",
+              at: "giver",
+              text: "Choose a side in the feud, in {giver}",
+              options: [
+                { id: "giver", label: "Side with {giver}", hostile: "other", then: "giverSide" },
+                { id: "other", label: "Side with {other}", hostile: "giver", then: "otherSide" },
+                { id: "peace", label: "Look for the old charter, and make peace", then: "peace" }
+              ]
+            }
+          ],
+          branches: {
+            giverSide: [{ do: "talk", to: "giver", text: "Tell {giver} you stand with them" }],
+            otherSide: [{ do: "talk", to: "other", text: "Tell {other} you stand with them" }],
+            peace: [
+              { do: "take", what: "charter", text: "Find the old boundary charter in a ruin in the {land}" },
+              { do: "bring", what: "charter", to: "other", text: "Show the charter to {other}" },
+              { do: "talk", to: "giver", text: "Bring word of the peace to {giver}" }
+            ]
+          },
+          hostileText: "The people of {town} will not deal with you: you took the other side in the feud.",
+          end: "The feud is over, one way or another. {giver} and {other} will remember who you were.",
+          peaceEnd: "The charter is read aloud in both squares. The spring is shared, as it was meant to be, and both towns will sell to you for less."
+        },
+        {
+          id: "caravan",
+          name: "The caravan",
+          side: 2,
+          needs: "other",
+          roles: { other: { town: "other" }, goods: { item: true, base: "goods", label: "Bales for {other}", given: 0 } },
+          tell: '"Our carter broke his leg, and {other} is waiting on these bales. Carry them there before {days} days are out, and they will pay you, and we will owe you."',
+          days: 6,
+          steps: [
+            { do: "talk", to: "giver", give: "goods", text: "Take the bales from {elder}" },
+            { do: "bring", what: "goods", to: "other", text: "Carry the bales to {other} (by day {due})" }
+          ],
+          end: "The bales are in {other} in time. The merchants there know your name now, and sell to you for less.",
+          failText: "Day {due} has passed. The bales for {other} are worthless now, and nobody will thank you for them."
+        },
+        {
+          id: "cult",
+          name: "The cult",
+          main: 1,
+          side: 2,
+          roles: {
+            camp: { place: true, site: "camp", dist: [1, 2] },
+            cultists: { creature: true, at: "camp", kind: "guards", n: 2, tier: 2, names: ["Cultist", "Acolyte", "Masked One"] },
+            leader: {
+              creature: true,
+              at: "camp",
+              kind: "beast",
+              tier: 2,
+              names: ["the Hollow Prophet", "the Ash Mother", "the Last Voice", "the Unlit"],
+              carries: "sigil"
+            },
+            sigil: { item: true, base: "token", label: "The sigil of {leader}" }
+          },
+          tell: '"People go out at night now and do not come back, and those who do come back wear masks. They follow {leader}, who keeps a camp in the {land}. Bring me the sigil off its neck."',
+          steps: [
+            { do: "kill", what: "leader", text: "Kill {leader} at the cult's camp" },
+            { do: "bring", what: "sigil", to: "giver", text: "Bring the sigil of {leader} to {giver}" }
+          ],
+          end: "The sigil goes into the well of {giver}, and the masks go into the fire."
+        },
+        {
+          id: "siege",
+          name: "The siege",
+          main: 1,
+          side: 1,
+          roles: {
+            gate: { place: true, site: "siege", near: "giver" },
+            besiegers: { creature: true, at: "gate", kind: "guards", n: 3, tier: 2, names: ["Besieger", "Raider", "Warband"] },
+            captain: {
+              creature: true,
+              at: "gate",
+              kind: "beast",
+              tier: 2,
+              names: ["the Iron Captain", "the Red Hand", "Old Tusk"]
+            }
+          },
+          tell: '"You came through that? They have camped round {giver} for a month: {captain} and its warband. While {captain} lives they will not leave. Kill it, and the rest will scatter."',
+          steps: [
+            { do: "kill", what: "captain", text: "Kill {captain}, who leads the siege of {giver}" },
+            { do: "talk", to: "giver", text: "Tell {giver} the siege is broken" }
+          ],
+          end: "The warband scatters without its captain. {giver} opens its gates and comes out into the fields for the first time in a month."
+        },
+        {
+          id: "stolen",
+          name: "Something stolen",
+          side: 3,
+          roles: {
+            hideout: { place: true, site: "den", dist: [1, 2] },
+            thief: {
+              creature: true,
+              at: "hideout",
+              kind: "beast",
+              tier: 2,
+              names: ["Magpie", "Quickfingers", "the Night Fox"],
+              carries: "bell"
+            },
+            bell: { item: true, base: "token", label: "The bell of {giver}" }
+          },
+          tell: '"Our bell is gone from the tower, and the {thief} has it: it was seen dragging it into the {land}. A town without its bell does not know when to wake or when to grieve. Bring it back."',
+          steps: [
+            { do: "kill", what: "thief", text: "Take the bell back from the {thief}" },
+            { do: "bring", what: "bell", to: "giver", text: "Bring the bell back to {giver}" }
+          ],
+          end: "The bell of {giver} rings again at noon. They ring it once more for you."
+        }
+      ],
+      // creatures for the 'beast' role, named like the quest's beast
+      beastNames: ["Old", "Gaunt", "Black", "Red", "Hungry", "Grey"],
+      // people for the 'person' role
+      people: ["Mara", "Tobin", "Ilse", "Corran", "Wren", "Bek", "Sella", "Davin", "Oona", "Pell"],
+      sites: {
+        den: { name: "den", text: "A den: bones at the mouth, and a smell." },
+        camp: { name: "camp", text: "A camp: rough shelters, a fire pit, and someone always watching." },
+        lost: { name: "tracks", text: "Tracks, a dropped basket, a lean-to of branches." },
+        stone: { name: "black stone", text: "A black standing stone. The ground round it is grey and cold." },
+        herbs: { name: "herb patch", text: "A patch of low grey-leaved herbs, in a sheltered hollow." },
+        siege: { name: "siege camp", text: "The warband's camp, close under the town." }
+      },
+      curse: {
+        text: "A curse lies on this country: the cold bites harder and water runs out faster.",
+        mods: [
+          { stat: "cold", op: "mul", value: 1.4 },
+          { stat: "waterDrain", op: "mul", value: 1.25 }
+        ]
+      },
+      hostile: { buy: 1.6 },
+      // a town that hates you sells dear
+      friend: { buy: 0.85 }
+      // and one you helped sells cheap
+    }
+  };
+
+  // src/content/crafting.js
+  var crafting_default = {
+    crafting: {
+      mats: [
+        { id: "hide", name: "Hide", wt: 0.5, value: 2, text: "From a kill. Leather, waterskins, a warm cloak." },
+        { id: "bone", name: "Bone", wt: 0.3, value: 1, text: "From a kill, or a cave floor. Spear points, needles, pegs." },
+        { id: "salvage", name: "Salvage", wt: 0.4, value: 2, text: "Cloth, cord, nails and pitch from ruins and caches." },
+        {
+          id: "herbs",
+          name: "Herbs",
+          wt: 0.1,
+          value: 2,
+          text: "Gathered with wood where things grow. Bandages, salves, draughts."
+        }
+      ],
+      // what a kill leaves, by the creature's form
+      kills: { hound: { hide: 1 }, brute: { hide: 1, bone: 1 }, wight: { bone: 2 }, serpent: { hide: 1 } },
+      search: { ruin: { salvage: 2 }, cache: { salvage: 1 }, cave: { bone: 1 } },
+      herbChance: 0.5,
+      // each time you gather wood
+      recipes: [
+        { id: "waterskin", name: "Waterskin", needs: { hide: 2 }, mins: 40, makes: "waterskin", text: "Carry 3 more water." },
+        {
+          id: "torch",
+          name: "Torch",
+          needs: { fuel: 1, salvage: 1 },
+          mins: 15,
+          makes: "torch",
+          text: "Light for 8 hours: enough for the locked place without a lantern."
+        },
+        {
+          id: "bandage",
+          name: "Bandages",
+          needs: { herbs: 1, salvage: 1 },
+          mins: 20,
+          makes: "bandage",
+          text: "Bind a wound: 6 health, even in a fight."
+        },
+        {
+          id: "salve",
+          name: "Healing Salve",
+          needs: { herbs: 2, fuel: 1 },
+          mins: 30,
+          makes: "salve",
+          text: "Boiled down over a fire: 10 health."
+        },
+        {
+          id: "draught",
+          name: "Warming Draught",
+          needs: { herbs: 1, fuel: 1 },
+          mins: 20,
+          makes: "draught",
+          text: "A hot bitter brew: 40 warmth."
+        },
+        {
+          id: "furcloak",
+          name: "Fur Cloak",
+          needs: { hide: 3, bone: 1 },
+          mins: 90,
+          makes: "furcloak",
+          text: "The cold bites half as hard. For the high and frozen country."
+        },
+        { id: "hideboots", name: "Hide Boots", needs: { hide: 2 }, mins: 45, makes: "boots", text: "Walking tires you less." },
+        {
+          id: "spear",
+          name: "Bone Spear",
+          needs: { bone: 2, fuel: 1 },
+          mins: 45,
+          makes: "spear",
+          text: "A weapon, if you have none better."
+        },
+        {
+          id: "shelter",
+          name: "Shelter",
+          needs: { fuel: 3, hide: 1 },
+          mins: 60,
+          makes: "shelter",
+          text: "A hide-roofed lean-to where you stand: shelter from storms, and to sleep in, for as long as you need it."
+        }
+      ],
+      bases: [
+        { id: "torch", name: "Torch", wt: 0.5, w: 0, consumable: true, plain: true, use: { light: 8 }, value: 3 },
+        { id: "bandage", name: "Bandages", wt: 0.2, w: 0, consumable: true, plain: true, use: { hp: 6 }, value: 4 },
+        {
+          id: "furcloak",
+          slot: "cloak",
+          name: "Fur Cloak",
+          wt: 3,
+          w: 0,
+          mods: [{ stat: "cold", op: "mul", value: 0.5 }],
+          value: 16
+        }
+      ]
+    }
+  };
+
+  // src/content/trade.js
+  var trade_default = {
+    trade: {
+      goods: [
+        { id: "furs", name: "Furs", wt: 1, price: 9, made: { cold: 10 }, text: "Pelts from the cold country." },
+        {
+          id: "salt",
+          name: "Salt",
+          wt: 1,
+          price: 7,
+          made: { special: "salt", warm: 6 },
+          text: "For curing meat; the flats are white with it."
+        },
+        {
+          id: "timber",
+          name: "Timber",
+          wt: 2,
+          price: 5,
+          made: { forest: 0.25, trade: "charcoal" },
+          text: "Seasoned wood and charcoal."
+        },
+        {
+          id: "tools",
+          name: "Iron tools",
+          wt: 1.5,
+          price: 12,
+          made: { mountains: 0.1, trade: "smiths" },
+          text: "Blades, nails and pots from the hill forges."
+        },
+        { id: "cloth", name: "Cloth", wt: 0.5, price: 8, made: { hills: 0.3, trade: "weavers" }, text: "Wool, woven." },
+        {
+          id: "remedies",
+          name: "Remedies",
+          wt: 0.3,
+          price: 10,
+          made: { trade: "herbalists", special: "meadow" },
+          text: "Dried herbs, tinctures and poultices."
+        }
+      ],
+      made: 0.6,
+      // a town sells what it makes at this share of the price
+      wanted: 1.45,
+      // and buys what it does not make at this much
+      spread: 0.8,
+      // a town buys from you at this share of its own price
+      wander: 0.15,
+      // each town's prices wander this much either way
+      stock: [2, 5],
+      // how many of each good it makes a town has to sell
+      year: {
+        hardwinter: { furs: 1.6, timber: 1.3 },
+        drought: { salt: 0.8, remedies: 1.4 },
+        lean: { tools: 1.3, cloth: 1.2 },
+        plenty: { tools: 0.8, cloth: 0.8 }
+      },
+      mats: 1
+      // materials (hides, bone, salvage, herbs) sell at their value in every town
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -3069,7 +3551,12 @@
     townlife_default,
     roster_default,
     hamlets_default,
-    tiers_default
+    tiers_default,
+    worldsize_default,
+    moretowns_default,
+    plots_default,
+    crafting_default,
+    trade_default
   );
 
   // src/rules/core.js
@@ -3256,29 +3743,70 @@
   }
   var TOWN_R = 2;
   var TOWN_GATE = { x: W / 2, y: H - 1 };
-  var townArea = (s) => s.town && s.town.area || HOME;
-  var inTownBlock = (s, x, y) => s.area === townArea(s) && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
-  var townDoor = (s) => ({ x: s.town.x, y: s.town.y + TOWN_R + 1 });
+  var townId = (t) => t && t.id || "town";
+  var allTowns = (s) => (s.town ? [s.town] : []).concat(s.towns || []);
+  var townById = (s, id) => allTowns(s).find((t) => townId(t) === id) || null;
+  var townArea = (s, t) => (t || s.town) && (t || s.town).area || HOME;
+  var townInRegion = (s, regionId2) => allTowns(s).find((t) => townArea(s, t) === regionId2) || null;
+  function curTown(s) {
+    const rec = areaRec(s);
+    if (rec && rec.kind === "town") return townById(s, rec.id) || s.town;
+    let o = rec;
+    while (o && o.kind !== "region" && o.from) o = s.areas[o.from.area];
+    return o && townInRegion(s, o.id) || s.town;
+  }
+  function withTown(s, t, fn) {
+    if (!t || t === s.town) return fn();
+    const was = s.town, wasC = s.townCulture;
+    s.town = t;
+    s.townCulture = t.culture;
+    try {
+      return fn();
+    } finally {
+      t.culture = s.townCulture;
+      s.town = was;
+      s.townCulture = wasC;
+    }
+  }
+  var townSfx = (s) => s.town && s.town.id ? ":" + s.town.id : "";
+  var inTown = (s) => areaRec(s).kind === "town";
+  var townBlockAt = (s, x, y) => {
+    const t = townInRegion(s, s.area);
+    return t && Math.abs(x - t.x) <= TOWN_R && Math.abs(y - t.y) <= TOWN_R ? t : null;
+  };
+  var inTownBlock = (s, x, y) => !!townBlockAt(s, x, y);
+  var townDoor = (s, t) => ({ x: (t || s.town).x, y: (t || s.town).y + TOWN_R + 1 });
   var TOWN_SPAN = W / (2 * TOWN_R + 1);
-  function townEntry(s, px, py, ox2, oy2) {
-    const bx = ox2 - (s.town.x - TOWN_R), by = oy2 - (s.town.y - TOWN_R), mid = (b) => Math.min(W - 1, Math.floor((b + 0.5) * TOWN_SPAN));
-    if (px < s.town.x - TOWN_R) return { x: 0, y: mid(by) };
-    if (px > s.town.x + TOWN_R) return { x: W - 1, y: mid(by) };
-    if (py < s.town.y - TOWN_R) return { x: mid(bx), y: 0 };
+  function townEntry(s, px, py, ox2, oy2, t) {
+    t = t || townBlockAt(s, ox2, oy2) || s.town;
+    const bx = ox2 - (t.x - TOWN_R), by = oy2 - (t.y - TOWN_R), mid = (b) => Math.min(W - 1, Math.floor((b + 0.5) * TOWN_SPAN));
+    if (px < t.x - TOWN_R) return { x: 0, y: mid(by) };
+    if (px > t.x + TOWN_R) return { x: W - 1, y: mid(by) };
+    if (py < t.y - TOWN_R) return { x: mid(bx), y: 0 };
     return { x: mid(bx), y: H - 1 };
   }
-  function townExit(s, tx, ty, dx, dy) {
-    const o = (t) => Math.min(2 * TOWN_R, Math.max(0, Math.floor(t / TOWN_SPAN))), x0 = s.town.x - TOWN_R, y0 = s.town.y - TOWN_R;
+  function townExit(s, tx, ty, dx, dy, t) {
+    t = t || curTown(s);
+    const o = (v) => Math.min(2 * TOWN_R, Math.max(0, Math.floor(v / TOWN_SPAN))), x0 = t.x - TOWN_R, y0 = t.y - TOWN_R;
     if (dx < 0) return { x: x0 - 1, y: y0 + o(ty) };
-    if (dx > 0) return { x: s.town.x + TOWN_R + 1, y: y0 + o(ty) };
+    if (dx > 0) return { x: t.x + TOWN_R + 1, y: y0 + o(ty) };
     if (dy < 0) return { x: x0 + o(tx), y: y0 - 1 };
-    return { x: x0 + o(tx), y: s.town.y + TOWN_R + 1 };
+    return { x: x0 + o(tx), y: t.y + TOWN_R + 1 };
   }
   function ensureTown(s) {
-    if (!s.areas.town) s.areas.town = { id: "town", kind: "town", indoor: true, name: s.town.name };
-    buildArea(s, s.areas.town);
+    for (const t of allTowns(s)) {
+      const id = townId(t);
+      if (!s.areas[id]) s.areas[id] = { id, kind: "town", indoor: true, name: t.name };
+      buildArea(s, s.areas[id]);
+    }
   }
   var mapOf = (s, id) => id === s.area ? s : s.areas[id].map;
+  function ensureRegion(s, cx, cy) {
+    const id = regionId(s, cx, cy);
+    if (!s.areas[id]) s.areas[id] = { id, kind: "region", cx, cy, biome: sketchOf(s, cx, cy).biome };
+    buildArea(s, s.areas[id]);
+    return s.areas[id];
+  }
   function ensureAround(s) {
     const here2 = outdoorRec(s);
     for (let dy = -1; dy <= 1; dy++)
@@ -3394,6 +3922,10 @@
   var TALK = [];
   var ITEM_HOOKS = [];
   var LOADERS = [];
+  var TUNERS = [];
+  var TOWN_MAKERS = [];
+  var WEIGHTS = [];
+  var RUMOURS = [];
   var SWITCHES = [];
   var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 
@@ -3459,11 +3991,13 @@
     return w;
   }
   function weight(s) {
-    return s.player.water + s.player.fuel * 0.5 + s.player.items.reduce((a, it) => a + itemWeight(s, it), 0);
+    let w = s.player.water + s.player.fuel * 0.5 + s.player.items.reduce((a, it) => a + itemWeight(s, it), 0);
+    for (const f of WEIGHTS) w += f(s);
+    return w;
   }
   var isCursed = (it) => itemAffixes(it).some((a) => a.cursed);
   function describeMods(mods) {
-    const N2 = {
+    const N3 = {
       studyTime: "time to understand items",
       searchTime: "search time",
       waterDrain: "water use",
@@ -3479,10 +4013,10 @@
     };
     return mods.map((m) => {
       if (m.op === "mul") {
-        if (m.value === 0) return "no " + (N2[m.stat] || m.stat);
+        if (m.value === 0) return "no " + (N3[m.stat] || m.stat);
         const p = Math.round((m.value - 1) * 100);
         if (!p) return "";
-        return (N2[m.stat] || m.stat) + " " + (p > 0 ? "+" : "") + p + "%";
+        return (N3[m.stat] || m.stat) + " " + (p > 0 ? "+" : "") + p + "%";
       }
       if (m.stat === "waterCap") return m.op === "max" ? "water limit " + m.value : "holds " + m.value + " water";
       if (m.stat === "ac") return "armor " + (m.value > 0 ? "+" : "") + m.value;
@@ -3542,7 +4076,7 @@
   }
   var groundHere = (s) => terrainInfo(s, s.terrain[here(s)]);
   var siteHere = (s) => s.sites[here(s)] || null;
-  var isShelter = (site) => !!site && (site.kind === "cave" || site.kind === "ruin" || site.kind === "well" || site.kind === "town" || site.kind === "vault" || site.kind === "hamlet");
+  var isShelter = (site) => !!site && (site.kind === "cave" || site.kind === "ruin" || site.kind === "well" || site.kind === "town" || site.kind === "vault" || site.kind === "hamlet" || site.kind === "shelter");
   var inShelter = (s) => indoors(s) || isShelter(siteHere(s));
   var atCamp = (s) => campHere(s) === here(s);
   var passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL && !inTownBlock(s, x, y);
@@ -3576,7 +4110,8 @@
     elder: "elder's hall",
     inn: "inn",
     shop: "shop",
-    trap: "trap"
+    trap: "trap",
+    shelter: "shelter"
   };
   var siteName = (s, site) => site.kind === "ruin" ? s.known.civ ? civOf(s).ruin : "ruin" : site.kind === "vault" ? s.quest.vault.name : SITE_NAME[site.kind];
   function reveal(s, cx, cy, rad, quiet) {
@@ -3802,9 +4337,9 @@
   if (!C.classes.some((r) => r.exotic)) C.classes.push(...C.exoticClasses);
   on("worldBorn", (s, d) => {
     if (d.off.exotics) return;
-    const r = stream(s.seed, "exotics"), X4 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
-    if (r() < X4.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
-    if (r() < X4.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
+    const r = stream(s.seed, "exotics"), X6 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
+    if (r() < X6.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
+    if (r() < X6.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
     sworn(s);
   });
   function sworn(s) {
@@ -3925,6 +4460,11 @@
       d.items.push(it);
     }
     d.remains = s.char.name;
+    for (const kind2 of ["mats", "goods"]) {
+      const have = p[kind2] || {};
+      for (const k in have) if (have[k] > 0) (d[kind2] = d[kind2] || {})[k] = (d[kind2][k] || 0) + have[k];
+      p[kind2] = {};
+    }
     d.coin = (d.coin || 0) + p.coin;
     s.lostMaps[i] = s.seen.join("");
     const diedIn = areaRec(s), inside2 = !inOverworld(s), where = worldPos(s);
@@ -3936,7 +4476,7 @@
     spawn(s, ch);
     say(
       s,
-      "Dawn, day " + clock(s).day + ". " + charTitle(ch) + " sets out from the well. " + d.remains + (inside2 ? " lies somewhere " + (diedIn.kind === "town" ? "in " + s.town.name : "inside the " + s.quest.vault.name) + ", to the " + dirTo(s, where.x, where.y) : " lies somewhere to the " + dirTo(s, where.x, where.y)) + ", with everything they carried.",
+      "Dawn, day " + clock(s).day + ". " + charTitle(ch) + " sets out from the well. " + d.remains + (inside2 ? " lies somewhere " + (diedIn.kind === "town" ? "in " + (townById(s, diedIn.id) || s.town).name : "inside the " + s.quest.vault.name) + ", to the " + dirTo(s, where.x, where.y) : " lies somewhere to the " + dirTo(s, where.x, where.y)) + ", with everything they carried.",
       "good"
     );
     return true;
@@ -3948,8 +4488,8 @@
     if (!sp || s.off.specials || sp.named) return NONE;
     const key = s.seed + ":" + sp.name;
     if (!(key in cache)) {
-      const r = stream(s.seed, "special:" + sp.name), X4 = C.specials;
-      cache[key] = r() < X4.chance ? X4.list[Math.floor(r() * X4.list.length)].id : null;
+      const r = stream(s.seed, "special:" + sp.name), X6 = C.specials;
+      cache[key] = r() < X6.chance ? X6.list[Math.floor(r() * X6.list.length)].id : null;
     }
     return cache[key] ? byId(C.specials.list, cache[key]) : NONE;
   }
@@ -4063,7 +4603,7 @@
     }
     const f = formOf(s, c), xp = f.xp * c.tier;
     s.combat = null;
-    emit(s, "killed", { sp: c.sp, tier: c.tier });
+    emit(s, "killed", { sp: c.sp, tier: c.tier, c });
     s.creatures = s.creatures.filter((x) => x.id !== c.id);
     say(s, lead + " for " + dmg + ". The " + sp.name + " is dead. " + xp + " experience.", "good");
     if (sp.rare === "gilded" || srand(s) < 0.25) {
@@ -4380,7 +4920,7 @@
 
   // src/rules/quest.js
   var hasItem = (s, base) => s.player.items.some((i) => i.base === base);
-  var atTown = (s) => s.area === "town";
+  var atTown = (s) => areaRec(s).kind === "town";
   function mark(s, x, y, area) {
     const m = area ? mapOf(s, area) : worldMap(s);
     if (!m) return;
@@ -4427,20 +4967,12 @@
     return b.weapon ? "weapon" : b.consumable ? "consumable" : ["armor", "cloak", "boots"].includes(b.slot) ? "armor" : "gear";
   };
   var buyPrice = (s, it) => Math.max(1, Math.round(itemValue(it) * stat(s, "town.buy", 1) * stat(s, "town.buy." + wareKind(it), 1)));
-  function makeQuest(s, r, townP, vaultP, a0, goalP) {
-    const Q = C.quest, T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
-    const race = pick(C.races.filter((e) => !e.exotic && !e.roster)), q = s.quest = {
-      key: pick(Q.keys),
-      vault: pick(Q.vaults),
-      relic: pick(Q.relics) + " of the " + s.civ.name,
-      dest: pick(Q.dests),
-      told: false,
-      keyTile: null,
-      beast: null
-    };
-    s.town = {
-      x: townP.x,
-      y: townP.y,
+  function makeTownRec(s, r, x, y, race) {
+    const T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
+    race = race || pick(C.races.filter((e) => !e.exotic && !e.roster));
+    const t = {
+      x,
+      y,
       name: pick(T2.a) + pick(T2.b),
       race: race.id,
       elder: pick(race.names),
@@ -4449,13 +4981,27 @@
       stock: [],
       speech: []
     };
-    while (s.town.merchant === s.town.elder) s.town.merchant = pick(race.names);
-    for (const b of T2.staples) s.town.stock.push(makeItem(s, b, null, null, true));
+    while (t.merchant === t.elder) t.merchant = pick(race.names);
+    for (const b of T2.staples) t.stock.push(makeItem(s, b, null, null, true));
     for (let i = 0; i < T2.stock; i++) {
       const it = genItem(s, { noConsumables: i < 3 });
       it.known = true;
-      s.town.stock.push(it);
+      t.stock.push(it);
     }
+    return t;
+  }
+  function makeQuest(s, r, townP, vaultP, a0, goalP) {
+    const Q2 = C.quest, T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
+    const race = pick(C.races.filter((e) => !e.exotic && !e.roster)), q = s.quest = {
+      key: pick(Q2.keys),
+      vault: pick(Q2.vaults),
+      relic: pick(Q2.relics) + " of the " + s.civ.name,
+      dest: pick(Q2.dests),
+      told: false,
+      keyTile: null,
+      beast: null
+    };
+    s.town = makeTownRec(s, r, townP.x, townP.y, race);
     if (q.dest === "shrine") {
       for (const k in s.sites) if (s.sites[k].kind === "shrine") delete s.sites[k];
       for (let tries = 0; tries < 80; tries++) {
@@ -4484,7 +5030,7 @@
     if (q.key === "beast") {
       const bf = pick(C.creature.forms);
       s.species.push({
-        name: pick(Q.beastNames) + " " + pick(C.creature.prefix[s.biome]) + " " + bf.name,
+        name: pick(Q2.beastNames) + " " + pick(C.creature.prefix[s.biome]) + " " + bf.name,
         form: bf.id,
         temper: "territorial",
         rare: "elder",
@@ -4512,6 +5058,8 @@
     return null;
   }
   function objective(s) {
+    const po = PLOT_HOOKS.objective && PLOT_HOOKS.objective(s);
+    if (po) return po;
     const q = s.quest, t = s.town, v = findSite(s, "vault"), wp = worldPos(s), toWorld = (p) => p.area ? dirFrom(wp, homePos(s, p.area, p.x, p.y).x, homePos(s, p.area, p.x, p.y).y) : dirFrom(wp, p.x, p.y), toHere = (p) => dirTo(s, p.x, p.y), vaultName = q.vault.name, inVault = areaRec(s).kind === "vault";
     const loose = (base, what) => {
       const l = findLoose(s, base);
@@ -4563,7 +5111,9 @@
   }
   function talkElder(s) {
     if (s.over || !atTown(s)) return false;
+    if (curTown(s) !== s.town) return talkOtherElder(s);
     const q = s.quest, t = s.town, v = findSite(s, "vault"), sp = t.speech = [];
+    if (PLOT_HOOKS.storyTalk && PLOT_HOOKS.storyTalk(s, sp)) return true;
     if (!q.told) {
       q.told = true;
       mark(s, v.x, v.y, v.area);
@@ -4619,24 +5169,45 @@
     }
     return true;
   }
+  var ELDER_TALK = [];
+  var PLOT_HOOKS = { storyTalk: null, objective: null, relicWins: () => true, relicSideDone: null };
+  function talkOtherElder(s) {
+    const t = curTown(s), sp = t.speech = [];
+    for (const f of ELDER_TALK) f(s, t, sp);
+    if (!sp.length) {
+      const m = s.town;
+      if (!s.quest.told) {
+        mark(s, m.x, m.y, townArea(s));
+        sp.push(
+          '"You want ' + m.name + ". Its elder, " + m.elder + ', knows what this land is waiting for. I have marked it on your map."'
+        );
+      } else sp.push('"Rest here, traveller. ' + m.name + ' sent you, I think; the road goes on from here."');
+    }
+    if (!t.met) {
+      t.met = true;
+      gainXp(s, 10);
+    }
+    say(s, t.elder + ", elder of " + t.name + ", speaks with you.");
+    return true;
+  }
   function buy(s, id) {
     if (s.over || !atTown(s)) return false;
-    const t = s.town, i = t.stock.findIndex((x) => x.id === id);
+    const t = curTown(s), i = t.stock.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const price2 = buyPrice(s, t.stock[i]);
-    if (s.player.coin < price2) {
+    const price3 = buyPrice(s, t.stock[i]);
+    if (s.player.coin < price3) {
       say(s, "You cannot afford that.");
       return false;
     }
-    s.player.coin -= price2;
+    s.player.coin -= price3;
     const it = t.stock.splice(i, 1)[0];
     s.player.items.push(it);
     autoEquip(s, it);
-    say(s, "You buy the " + itemName(it) + " for " + price2 + " coin.");
+    say(s, "You buy the " + itemName(it) + " for " + price3 + " coin.");
     return true;
   }
   function buyFuel(s) {
-    const t = s.town;
+    const t = curTown(s);
     if (s.over || !atTown(s) || t.fuel < 1) return false;
     if (s.player.coin < priceOf(s, "fuelPrice")) {
       say(s, "You cannot afford that.");
@@ -4652,18 +5223,18 @@
     if (s.over || !atTown(s)) return false;
     const i = s.player.items.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const it = s.player.items[i], price2 = sellPrice(it, s);
-    if (!price2) {
+    const it = s.player.items[i], price3 = sellPrice(it, s);
+    if (!price3) {
       say(s, "No one here will buy that.");
       return false;
     }
     s.player.items.splice(i, 1);
     delete it.eq;
     it.known = true;
-    s.town.stock.push(it);
-    s.player.coin += price2;
+    curTown(s).stock.push(it);
+    s.player.coin += price3;
     fitWater(s);
-    say(s, "You sell the " + itemName(it) + " for " + price2 + " coin.");
+    say(s, "You sell the " + itemName(it) + " for " + price3 + " coin.");
     return true;
   }
   function appraise(s, id) {
@@ -4676,7 +5247,7 @@
     }
     s.player.coin -= priceOf(s, "appraisePrice");
     it.known = true;
-    say(s, s.town.merchant + " turns it over twice: " + itemName(it) + ".", isCursed(it) ? "bad" : "good");
+    say(s, curTown(s).merchant + " turns it over twice: " + itemName(it) + ".", isCursed(it) ? "bad" : "good");
     return true;
   }
   function inn(s) {
@@ -4710,22 +5281,24 @@
     return true;
   }
   function enterTown(s, ox2, oy2, at) {
-    const st = s.sites[idx(s.town.x, s.town.y)];
-    if (s.over || s.area !== townArea(s) || !inTownBlock(s, ox2, oy2)) return false;
-    let p = townEntry(s, s.player.x, s.player.y, ox2, oy2);
+    const t = townBlockAt(s, ox2, oy2);
+    if (s.over || !t) return false;
+    const st = s.sites[idx(t.x, t.y)] || {}, id = townId(t);
+    let p = townEntry(s, s.player.x, s.player.y, ox2, oy2, t);
     if (at && (at.x === p.x || at.y === p.y) && at.x >= 0 && at.y >= 0 && at.x < W && at.y < H) p = { x: at.x, y: at.y };
-    if (mapOf(s, "town").terrain[idx(p.x, p.y)] === WALL) {
-      say(s, "The wall of " + s.town.name + ". " + (s.town.walled ? "Its gates are where the streets meet the wall." : ""));
+    if (mapOf(s, id).terrain[idx(p.x, p.y)] === WALL) {
+      say(s, "The wall of " + t.name + ". " + (t.walled ? "Its gates are where the streets meet the wall." : ""));
       return false;
     }
-    enterArea(s, "town", { kind: "town", indoor: true, name: s.town.name }, p);
+    enterArea(s, id, { kind: "town", indoor: true, name: t.name }, p);
     if (!st.entered) {
       st.entered = true;
       gainXp(s, 20);
       say(
         s,
-        "You walk into " + s.town.name + "." + (s.quest.told ? "" : " The elder will be at the hall on the north side of the square.")
+        "You walk into " + t.name + "." + (s.quest.told || t !== s.town ? "" : " The elder will be at the hall on the north side of the square.")
       );
+      emit(s, "townEntered", { town: id });
     }
     return true;
   }
@@ -4785,8 +5358,9 @@
   function offer(s) {
     const st = siteHere(s);
     if (s.over || !st || st.kind !== "shrine" || s.quest.dest !== "shrine" || !hasItem(s, "relic")) return false;
-    s.over = { won: true };
     say(s, "You set the " + s.quest.relic + " on the shrine. Something that was held breath for an age lets go.", "good");
+    if (PLOT_HOOKS.relicWins(s)) s.over = { won: true };
+    else PLOT_HOOKS.relicSideDone(s);
     return true;
   }
 
@@ -4886,6 +5460,12 @@
         s.player.coin += d.coin;
         d.coin = 0;
       }
+      for (const kind2 of ["mats", "goods"])
+        if (d && d[kind2]) {
+          const to = s.player[kind2] = s.player[kind2] || {};
+          for (const k in d[kind2]) to[k] = (to[k] || 0) + d[kind2][k];
+          delete d[kind2];
+        }
       say(
         s,
         "Here lies " + (d && d.remains ? d.remains : "a traveller") + ". Their goods are in the Pack screen, their purse is yours, and their map adds " + n + " tiles to yours.",
@@ -4930,8 +5510,9 @@
       st.visited = true;
     }
     if (st.kind === "beacon" && s.quest.dest === "beacon" && hasItem(s, "relic")) {
-      s.over = { won: true };
       say(s, "You set the " + s.quest.relic + " in the beacon. The fire catches, and turns, and holds.", "good");
+      if (PLOT_HOOKS.relicWins(s)) s.over = { won: true };
+      else PLOT_HOOKS.relicSideDone(s);
       return;
     }
     if (st.kind === "shrine" && !s.known.god) {
@@ -4949,7 +5530,7 @@
         cave: "A cave: shelter from wind and weather.",
         ruin: "A ruin of " + (s.known.civ ? civOf(s).name : "some lost people") + ". " + trait(s, "age").sign + " " + trait(s, "doom").sign,
         cache: "Someone left a cache here under stones.",
-        town: "The town of " + s.town.name + ". Smoke, voices, a well. Walk in to talk and trade.",
+        town: "The town of " + (st.town && townById(s, st.town) || s.town).name + ". Smoke, voices, a well. Walk in to talk and trade.",
         vault: "The " + s.quest.vault.name + ". A heavy door, and a stair going down behind it.",
         beacon: s.quest.dest === "beacon" ? "The beacon. Its fire is failing. It needs something it does not have." : "The beacon. Its fire is steady: whatever this land needs, it is not here.",
         shrine: "A shrine to " + godOf(s).name + ", raised by " + (s.known.civ ? civOf(s).name : "a lost people") + ".",
@@ -5322,7 +5903,12 @@
     if (use.warmth) p.warmth = clamp(p.warmth + use.warmth, 0, 100);
     if (use.water) p.water = Math.min(Math.max(waterCap(s), p.water), p.water + use.water);
     if (use.hp) p.hp = Math.min(p.hpMax, p.hp + use.hp);
-    say(s, "You drink the " + itemName(it) + ".", (use.stamina || 0) < -5 ? "bad" : "good");
+    if (use.light) s.lightUntil = s.time + use.light * 60;
+    say(
+      s,
+      (use.light ? "You light the " : use.hp && !b.mystery && it.base === "bandage" ? "You bind your wounds with the " : "You drink the ") + itemName(it) + ".",
+      (use.stamina || 0) < -5 ? "bad" : "good"
+    );
     p.items.splice(i, 1);
     if (s.combat) {
       s.combat.round++;
@@ -5406,10 +5992,10 @@
       if (st.kind === "stairsUp") a.push({ id: "goUp", label: "Go up", hint: "level " + (areaRec(s).level - 1) });
       if (st.kind === "stairsDown")
         a.push({ id: "goDown", label: "Go down", hint: "level " + (areaRec(s).level + 1) + " of " + areaRec(s).levels });
-      if (st.kind === "elder") a.push({ id: "townAsk", section: "elder", label: "Talk to " + s.town.elder, hint: "the elder" });
+      if (st.kind === "elder") a.push({ id: "townAsk", section: "elder", label: "Talk to " + curTown(s).elder, hint: "the elder" });
       if (st.kind === "inn") a.push({ id: "townAsk", section: "inn", label: "The inn", hint: "a bed for the night" });
       if (st.kind === "shop")
-        a.push({ id: "townAsk", section: "shop", label: "Trade with " + s.town.merchant, hint: "buy, sell, appraise" });
+        a.push({ id: "townAsk", section: "shop", label: "Trade with " + curTown(s).merchant, hint: "buy, sell, appraise" });
       if (st.kind === "well" || st.kind === "hamlet" || st.kind === "ruin" && st.water > 0.05 && !st.foulWater || st.kind === "spring" && (!st.known || !st.foul))
         a.push({ id: "fill", label: st.kind === "spring" && !st.known ? "Taste the spring" : "Fill water", hint: "15 min" });
       if (st.kind === "spring" && st.known && st.foul || st.kind === "ruin" && st.foulWater && st.water > 0.05) {
@@ -5480,10 +6066,10 @@
   }
 
   // src/rules/interiors.js
-  var blank = (fill2) => new Array(W * H).fill(fill2);
+  var blank = (fill3) => new Array(W * H).fill(fill3);
   var inside = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1;
   GENERATORS.town = (s, rec) => {
-    const r = stream(s.seed, "area:town"), rw = stream(s.seed, "town:walls"), terrain = blank(FLOOR), sites = {}, c = 18, walled = rw() < 0.25;
+    const r = stream(s.seed, "area:town" + townSfx(s)), rw = stream(s.seed, "town:walls" + townSfx(s)), terrain = blank(FLOOR), sites = {}, c = 18, walled = rw() < 0.25;
     if (walled)
       for (let i = 0; i < W; i++)
         for (const [x, y] of [
@@ -5652,12 +6238,12 @@
     return { river, at, forward, road: road2, roadAt };
   }
   function crossings(seed, world, cx, cy) {
-    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S = edgeRoll(seed, "h:" + cx + ":" + cy), N2 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
+    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S = edgeRoll(seed, "h:" + cx + ":" + cy), N3 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
     return [
       { side: "east", river: E2.river, road: E2.road, inflow: !E2.forward, x: W - 1, y: E2.at, x2: W - 1, y2: E2.roadAt },
       { side: "west", river: Wst.river, road: Wst.road, inflow: Wst.forward, x: 0, y: Wst.at, x2: 0, y2: Wst.roadAt },
       { side: "south", river: S.river, road: S.road, inflow: !S.forward, x: S.at, y: H - 1, x2: S.roadAt, y2: H - 1 },
-      { side: "north", river: N2.river, road: N2.road, inflow: N2.forward, x: N2.at, y: 0, x2: N2.roadAt, y2: 0 }
+      { side: "north", river: N3.river, road: N3.road, inflow: N3.forward, x: N3.at, y: 0, x2: N3.roadAt, y2: 0 }
     ];
   }
 
@@ -5715,7 +6301,7 @@
       heightCache[key] = all.sort((a, b) => a - b);
     }
     const sorted = heightCache[key], q = (f) => sorted[clamp(Math.floor(f * sorted.length), 0, sorted.length - 1)];
-    const M = 6, bio = (dx, dy) => byId(C.biomes, world.sketch[wrap(cy + dy, world.rows) * world.cols + wrap(cx + dx, world.cols)].biome), lean = (v, n) => v < M ? [-1, 0.5 * (1 - (v + 0.5) / M)] : v >= n - M ? [1, 0.5 * (1 - (n - v - 0.5) / M)] : [0, 0], mix = (x, y, f) => {
+    const M2 = 6, bio = (dx, dy) => byId(C.biomes, world.sketch[wrap(cy + dy, world.rows) * world.cols + wrap(cx + dx, world.cols)].biome), lean = (v, n) => v < M2 ? [-1, 0.5 * (1 - (v + 0.5) / M2)] : v >= n - M2 ? [1, 0.5 * (1 - (n - v - 0.5) / M2)] : [0, 0], mix = (x, y, f) => {
       const [sx, wx] = lean(x, W), [sy, wy] = lean(y, H);
       if (!wx && !wy) return f(biome);
       return f(biome) * (1 - wx) * (1 - wy) + f(bio(sx, 0)) * wx * (1 - wy) + f(bio(0, sy)) * (1 - wx) * wy + f(bio(sx, sy)) * wx * wy;
@@ -5897,7 +6483,9 @@
       civ.name = pick(st.a) + pick(st.b) + pick(st.c);
     }
     const habit = byId(C.civ.habit, civ.habit), age = byId(C.civ.age, civ.age), doom = byId(C.civ.doom, civ.doom);
+    for (const f of TUNERS) f(seed, tun, off, year);
     const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
+    if (tun.world.shape) world.shape = tun.world.shape;
     for (const f of SKETCHERS) f(seed, world, off);
     biome = byId(C.biomes, world.sketch[world.home.cy * world.cols + world.home.cx].biome);
     const { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
@@ -6080,8 +6668,46 @@
       }
     }
   };
+  var GRIDS = ["terrain", "elev", "seen"];
+  var LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  function packGrid(a) {
+    const vals = [], at = /* @__PURE__ */ new Map();
+    for (const v of a) {
+      if (typeof v !== "number") return a;
+      if (!at.has(v)) {
+        if (vals.length === LETTERS.length) return a;
+        at.set(v, vals.length);
+        vals.push(v);
+      }
+    }
+    let out = "~" + vals.join("|") + "~";
+    for (let i = 0; i < a.length; ) {
+      let j = i;
+      while (j < a.length && a[j] === a[i]) j++;
+      out += LETTERS[at.get(a[i])] + (j - i > 1 ? j - i : "");
+      i = j;
+    }
+    return out;
+  }
+  function unpackGrid(t) {
+    if (typeof t !== "string" || t[0] !== "~") return t;
+    const end = t.indexOf("~", 1), vals = t.slice(1, end).split("|").map(Number), out = [];
+    for (let i = end + 1; i < t.length; ) {
+      const v = vals[LETTERS.indexOf(t[i++])];
+      let n = 0;
+      while (i < t.length && t.charCodeAt(i) >= 48 && t.charCodeAt(i) <= 57) n = n * 10 + t.charCodeAt(i++) - 48;
+      for (let k = Math.max(1, n); k > 0; k--) out.push(v);
+    }
+    return out;
+  }
+  var eachMap = (s, fn) => {
+    fn(s);
+    for (const id in s.areas || {}) if (s.areas[id] && s.areas[id].map) fn(s.areas[id].map);
+  };
   function serialize(s) {
-    return JSON.stringify(s);
+    return JSON.stringify(s, function(k, v) {
+      return GRIDS.includes(k) && Array.isArray(v) && v.length > 64 ? packGrid(v) : v;
+    });
   }
   function deserialize(text) {
     let s;
@@ -6090,6 +6716,10 @@
     } catch (e) {
       return { error: "That text is not a saved game." };
     }
+    if (s && typeof s === "object")
+      eachMap(s, (m) => {
+        for (const f of GRIDS) if (m[f] !== void 0) m[f] = unpackGrid(m[f]);
+      });
     if (!s || typeof s !== "object" || typeof s.v !== "number" || !s.player || !s.terrain)
       return { error: "That text is not a saved game." };
     if (s.v > VERSION) return { error: "That save comes from a newer version of the game." };
@@ -6360,8 +6990,12 @@
 
   // src/rules/towns.js
   var T = () => C.townCulture;
+  var cultureOf = (s) => {
+    const t = curTown(s);
+    return t === s.town ? s.townCulture : t.culture;
+  };
   var partsOf = (s) => {
-    const c = s.townCulture;
+    const c = cultureOf(s);
     if (!c || s.off.towns) return [];
     return [byId(T().trades, c.trade), byId(T().customs, c.custom), c.rare ? byId(T().rares, c.rare) : null].filter(Boolean);
   };
@@ -6369,9 +7003,8 @@
     const c = s.townCulture, tr = byId(T().trades, c.trade), cu = byId(T().customs, c.custom), ra = c.rare ? byId(T().rares, c.rare) : null;
     return (ra ? s.town.name + " is a town of " + ra.name + ". " + ra.text + " " : "") + "Its people are " + tr.name + ", and " + cu.name + ". " + tr.text + " " + cu.text;
   };
-  on("worldBorn", (s, d) => {
-    if (d.off.towns) return;
-    const r = stream(s.seed, "townCulture"), pick = (a) => a[Math.floor(r() * a.length)], X4 = T(), rare = r() < X4.rareChance ? pick(X4.rares) : null, trade = pick(X4.trades), custom = pick(X4.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
+  function rollCulture(s, r) {
+    const pick = (a) => a[Math.floor(r() * a.length)], X6 = T(), rare = r() < X6.rareChance ? pick(X6.rares) : null, trade = pick(X6.trades), custom = pick(X6.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
     s.townCulture = { trade: trade.id, custom: custom.id, rare: rare ? rare.id : null };
     if (trade.stock)
       for (let i = 0; i < trade.stock.n; i++) s.town.stock.push(makeItem(s, pick(trade.stock.bases), null, null, true));
@@ -6390,6 +7023,12 @@
         s.town.stock.push(it);
       }
     }
+  }
+  on("worldBorn", (s, d) => {
+    if (!d.off.towns) rollCulture(s, stream(s.seed, "townCulture"));
+  });
+  TOWN_MAKERS.push((s, t, r) => {
+    if (!s.off.towns) rollCulture(s, r);
   });
   SOURCES.push({
     id: "towns",
@@ -6397,9 +7036,10 @@
       for (const p of partsOf(s)) for (const m of p.mods || []) out.push(m);
     }
   });
-  on("did", (s, d) => {
+  on("did", (s, d) => withTown(s, curTown(s), () => cultureTalk(s, d)));
+  function cultureTalk(s, d) {
     if (!s.townCulture || s.off.towns) return;
-    if (s.area === "town" && !s.townCulture.told) {
+    if (inTown(s) && !s.townCulture.told) {
       s.townCulture.told = true;
       say(s, describe(s), "good");
     }
@@ -6428,7 +7068,7 @@
         for (const k in m.sites)
           if (m.sites[k].kind === "spring" && Math.max(Math.abs(k % W - s.town.x), Math.abs(Math.floor(k / W) - s.town.y)) <= 8) {
             m.sites[k].known = true;
-            mark(s, k % W, Math.floor(k / W));
+            mark(s, k % W, Math.floor(k / W), townArea(s));
             n++;
           }
         sp.push(
@@ -6436,7 +7076,7 @@
         );
       }
     }
-  });
+  }
   SWITCHES.push(["towns", "Town cultures"]);
   NOTES.push(
     (s) => s.townCulture && s.townCulture.told && !s.off.towns ? [{ label: "The people of " + s.town.name, text: describe(s) }] : []
@@ -6445,7 +7085,7 @@
   // src/rules/errands.js
   var E = () => C.errands;
   var mapOf2 = (s, id) => id === s.area ? s : s.areas[id] && s.areas[id].map;
-  var atInn = (s) => s.area === "town" && s.sites[idx(s.player.x, s.player.y)] && s.sites[idx(s.player.x, s.player.y)].kind === "inn";
+  var atInn = (s) => areaRec(s).kind === "town" && s.sites[idx(s.player.x, s.player.y)] && s.sites[idx(s.player.x, s.player.y)].kind === "inn";
   function errandInfo(s) {
     if (s.off.errands) return { text: "Nobody here has work for you.", canAsk: false, canClaim: false };
     const e = s.errand;
@@ -6460,40 +7100,44 @@
   }
   function askErrand(s) {
     if (s.over || s.off.errands || s.errand || !atInn(s)) return false;
-    const pick = (a) => a[Math.floor(srand(s) * a.length)], X4 = E(), home = s.areas[townArea(s)] || s.world.home, near = [];
+    for (let i = 0; i < 6; i++) if (tryErrand(s)) return true;
+    return false;
+  }
+  function tryErrand(s) {
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], X6 = E(), home = s.areas[townArea(s)] || s.world.home, near = [];
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
-        const id = regionId(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows));
-        if (id !== townArea(s) && mapOf2(s, id)) near.push(id);
+        const id = ensureRegion(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows)).id;
+        if (id !== townArea(s) && mapOf2(s, id) && !near.includes(id)) near.push(id);
       }
     if (!near.length) return false;
-    const kind2 = pick(X4.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X4.liarChance, giver = pick(X4.givers) + (liar ? " " + pick(X4.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
-    let fill2 = { region: byId(C.biomes, rec.biome).name, reward };
+    const kind2 = pick(X6.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X6.liarChance, giver = pick(X6.givers) + (liar ? " " + pick(X6.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
+    let fill3 = { region: byId(C.biomes, rec.biome).name, reward };
     if (kind2.id === "slay") {
       const live = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
       if (!live.length) return false;
       const c = pick(live);
       Object.assign(e, { cid: c.id, x: c.x, y: c.y });
-      fill2.species = s.species[c.sp].name;
-      fill2.victims = pick(kind2.victims);
+      fill3.species = s.species[c.sp].name;
+      fill3.victims = pick(kind2.victims);
     } else {
       const spots = Object.keys(m.sites).filter((k2) => ["ruin", "cave", "cache"].includes(m.sites[k2].kind));
       if (!spots.length) return false;
       const k = +pick(spots);
       Object.assign(e, { x: k % W, y: Math.floor(k / W) });
-      fill2.site = m.sites[k].kind === "ruin" ? "ruin" : siteName(s, m.sites[k]);
-      fill2.asite = aOrAn(fill2.site);
+      fill3.site = m.sites[k].kind === "ruin" ? "ruin" : siteName(s, m.sites[k]);
+      fill3.asite = aOrAn(fill3.site);
       if (kind2.id === "fetch") {
-        fill2.thing = pick(kind2.things);
+        fill3.thing = pick(kind2.things);
         const it = makeItem(s, "parcel", null, null, true);
-        it.label = fill2.thing.charAt(0).toUpperCase() + fill2.thing.slice(1);
+        it.label = fill3.thing.charAt(0).toUpperCase() + fill3.thing.slice(1);
         it.errand = true;
         (m.depots[k] = m.depots[k] || { water: 0, fuel: 0, items: [] }).items.push(it);
       }
     }
     const where = homePos(s, area, e.x, e.y);
-    fill2.dir = dirFrom(worldPos(s), where.x, where.y);
-    e.text = kind2.text.replace(/\{(\w+)\}/g, (_, k) => fill2[k]);
+    fill3.dir = dirFrom(worldPos(s), where.x, where.y);
+    e.text = kind2.text.replace(/\{(\w+)\}/g, (_, k) => fill3[k]);
     s.errand = e;
     for (let j = -1; j <= 1; j++)
       for (let i = -1; i <= 1; i++) {
@@ -6618,12 +7262,12 @@
       h *= 60;
     }
     h = ((h + deg) % 360 + 360) % 360;
-    const C2 = (1 - Math.abs(2 * l - 1)) * s, X4 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X4, 0] : h < 120 ? [X4, C2, 0] : h < 180 ? [0, C2, X4] : h < 240 ? [0, X4, C2] : h < 300 ? [X4, 0, C2] : [C2, 0, X4];
+    const C2 = (1 - Math.abs(2 * l - 1)) * s, X6 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X6, 0] : h < 120 ? [X6, C2, 0] : h < 180 ? [0, C2, X6] : h < 240 ? [0, X6, C2] : h < 300 ? [X6, 0, C2] : [C2, 0, X6];
     const out = Math.round((r1 + m) * 255) << 16 | Math.round((g1 + m) * 255) << 8 | Math.round((b1 + m) * 255);
     return num ? out : "#" + out.toString(16).padStart(6, "0");
   }
   function makeBiome(seed, n) {
-    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X4 = G(), cl = pick(X4.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X4.landforms), wa = pick(suits(X4.waters)), wo = pick(suits(X4.woodlands)), gr = pick(suits(X4.grounds)), rare = r() < X4.rareChance ? pick(X4.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
+    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X6 = G(), cl = pick(X6.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X6.landforms), wa = pick(suits(X6.waters)), wo = pick(suits(X6.woodlands)), gr = pick(suits(X6.grounds)), rare = r() < X6.rareChance ? pick(X6.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
     const forest = copy(wo.forest);
     if (rare && rare.treeMul) {
       forest.tree.h = forest.tree.h.map((h) => h * rare.treeMul);
@@ -6672,11 +7316,11 @@
   SKETCHERS.push((seed, world, off) => {
     if (off.biomegen) return;
     ensureBiomes(seed);
-    const r = stream(seed, "biomegen:sketch"), X4 = G();
+    const r = stream(seed, "biomegen:sketch"), X6 = G();
     for (let cy = 0; cy < world.rows; cy++)
       for (let cx = 0; cx < world.cols; cx++) {
-        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X4.perWorld);
-        if (roll2 < (home ? X4.homeChance : X4.regionChance))
+        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X6.perWorld);
+        if (roll2 < (home ? X6.homeChance : X6.regionChance))
           world.sketch[cy * world.cols + cx].biome = ofSeed(seed) + (home ? 0 : which);
       }
   });
@@ -6862,32 +7506,38 @@
   }
   for (const sv of L2().services) SITE_NAME[sv.id] = sv.role.replace(/^the /, "") + "'s door";
   Object.assign(SITE_NAME, { folk: "townsperson", grave: "grave" });
-  on("worldBorn", (s, d) => {
-    if (d.off.townlife) return;
-    const r = stream(s.seed, "townlife"), X4 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
-    let t = X4.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X4.sizes[0];
-    for (const e of X4.sizes)
+  function rollLife(s, r) {
+    const X6 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
+    let t = X6.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X6.sizes[0];
+    for (const e of X6.sizes)
       if ((t -= e.w) < 0) {
         size = e;
         break;
       }
-    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X4.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
+    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X6.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
     while (want.length < size.services && rest2.length) want.push(rest2.splice(Math.floor(r() * rest2.length), 1)[0]);
-    const ls = X4.lessons.map((l) => l.id);
+    const ls = X6.lessons.map((l) => l.id);
     s.town.size = size.id;
     s.town.services = want;
     s.town.lessons = [];
-    while (s.town.lessons.length < X4.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
+    while (s.town.lessons.length < X6.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
     if (size.stock < 0) s.town.stock.splice(5, -size.stock);
     for (let i = 0; i < size.stock; i++) {
       const b = pick(["sword", "spear", "cloak", "boots", "framepack", "compass", "spyglass", "salve", "tonic", "draught"]);
       s.town.stock.push(makeItem(s, b, null, null, true));
     }
+  }
+  on("worldBorn", (s, d) => {
+    if (!d.off.townlife) rollLife(s, stream(s.seed, "townlife"));
+  });
+  TOWN_MAKERS.push((s, t, r) => {
+    if (!s.off.townlife) rollLife(s, r);
   });
   var oldTown = GENERATORS.town;
-  GENERATORS.town = (s, rec) => {
+  GENERATORS.town = (s, rec) => withTown(s, townById(s, rec.id) || s.town, () => lifeTown(s, rec));
+  function lifeTown(s, rec) {
     if (s.off.townlife || !s.town.size) return oldTown(s, rec);
-    const X4 = L2(), size = byId(X4.sizes, s.town.size), r = stream(s.seed, "area:town2"), rw = stream(s.seed, "town:walls"), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring(x, y), used = new Array(W * H).fill(0);
+    const X6 = L2(), size = byId(X6.sizes, s.town.size), r = stream(s.seed, "area:town2" + townSfx(s)), rw = stream(s.seed, "town:walls" + townSfx(s)), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring(x, y), used = new Array(W * H).fill(0);
     if (walled)
       for (let i = 0; i < W; i++)
         for (const [x, y] of [
@@ -6947,19 +7597,19 @@
       { kind: "elder" },
       { kind: "inn" },
       { kind: "shop" },
-      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X4.services, id).role }))
+      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X6.services, id).role }))
     ];
     let li = 0;
     for (const q of queue) if (order[li]) build(order[li++], q);
     if (size.graveyard && order[li]) {
-      const lot = order[li++], sp = s.species.filter((x) => !x.named), fill3 = (t) => t.replace("{storm}", byId(C.biomes, s.biome).storm.name).replace("{species}", sp.length ? pick(sp).name : "wolf").replace("{dir}", pick(["north", "south", "east", "west"])).replace("{site}", pick(["spring", "ruin", "cave"])), nm = byId(C.races, s.town.race).names;
+      const lot = order[li++], sp = s.species.filter((x) => !x.named), fill4 = (t) => t.replace("{storm}", byId(C.biomes, s.biome).storm.name).replace("{species}", sp.length ? pick(sp).name : "wolf").replace("{dir}", pick(["north", "south", "east", "west"])).replace("{site}", pick(["spring", "ruin", "cave"])), nm = byId(C.races, s.town.race).names;
       lot.cells.forEach(([x, y], i) => {
         if ((x + y) % 2 === 0 && i % 2 === 0)
-          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill3(pick(X4.epitaphs)) };
+          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill4(pick(X6.epitaphs)) };
       });
     }
-    const fill2 = { hamlet: 0.35, village: 0.55, town: 0.8, city: 1 }[size.id];
-    for (; li < order.length; li++) if (r() < fill2) build(order[li], null);
+    const fill3 = { hamlet: 0.35, village: 0.55, town: 0.8, city: 1 }[size.id];
+    for (; li < order.length; li++) if (r() < fill3) build(order[li], null);
     sites[idx(c, c)] = { kind: "well", seen: true };
     for (let n = 0, tries = 0; n < size.folk && tries < 300; tries++) {
       const x = 2 + Math.floor(r() * (W - 4)), y = 2 + Math.floor(r() * (H - 4)), k = idx(x, y);
@@ -6967,7 +7617,7 @@
       let nearDoor = false;
       for (const key in sites) if (Math.abs(key % W - x) + Math.abs(Math.floor(key / W) - y) <= 1) nearDoor = true;
       if (nearDoor) continue;
-      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X4.folkRoles) };
+      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X6.folkRoles) };
       n++;
     }
     if (walled) {
@@ -6986,7 +7636,7 @@
     s.town.walled = walled;
     rec.entry = { x: c, y: H - 2 };
     return { terrain, sites, seen: new Array(W * H).fill(1) };
-  };
+  }
   var svc = (kind2) => byId(L2().services, kind2);
   var learned = (s) => s.char && s.char.lessons || [];
   var blessed = (s) => s.blessUntil && s.time < s.blessUntil;
@@ -7048,6 +7698,7 @@
         const sp = s.species[pick(home).sp];
         return '"Watch out for the ' + sp.name + ". " + byId(C.creature.tempers, sp.temper).text + '"';
       });
+    for (const f of RUMOURS) f(s, out);
     return out.length && srand(s) < 0.8 ? pick(out)() : pick(L2().flavour);
   }
   function serviceInfo(s) {
@@ -7056,7 +7707,7 @@
       if (i) return i;
     }
     const st = siteHere(s);
-    if (!st || s.off.townlife || s.area !== "town") return null;
+    if (!st || s.off.townlife || !inTown(s)) return null;
     const p = s.player, opt = [], text = [];
     if (st.kind === "folk") {
       if (!st.said) st.said = rumour(s);
@@ -7078,7 +7729,7 @@
     if (st.kind === "trainer") {
       if (learned(s).length >= L2().maxLessons) text.push('"You have learned all you will learn from me. Go and use it."');
       else
-        for (const id of s.town.lessons || [])
+        for (const id of curTown(s).lessons || [])
           if (!learned(s).includes(id)) {
             const l = byId(L2().lessons, id);
             opt.push({ id: "learn", arg: id, label: l.name, price: l.price, note: l.text });
@@ -7174,7 +7825,7 @@
     return true;
   }
   on("did", (s, d) => {
-    if (d.id !== "move" || s.area !== "town" || s.off.townlife) return;
+    if (d.id !== "move" || !inTown(s) || s.off.townlife) return;
     for (const k of Object.keys(s.sites)) {
       const st = s.sites[k];
       if (st.kind !== "folk" || srand(s) > 0.3) continue;
@@ -7204,7 +7855,7 @@
     }
   });
   ACTIONS.push((s, st, a) => {
-    if (!st || s.combat || s.area !== "town" || s.off.townlife) return;
+    if (!st || s.combat || !inTown(s) || s.off.townlife) return;
     if (svc(st.kind)) a.push({ id: "townAsk", section: st.kind, label: "Talk to " + st.name, hint: svc(st.kind).role });
     if (st.kind === "folk") a.push({ id: "townAsk", section: "folk", label: "Talk to " + st.name, hint: st.role });
   });
@@ -7502,6 +8153,38 @@
   });
   SWITCHES.push(["tiers", "Finer things far from home"]);
 
+  // src/rules/worldsize.js
+  var Z = () => C.worldSize;
+  function rollSize(seed) {
+    const r = stream(seed, "worldsize"), shapes = Z().shapes;
+    let t = shapes.reduce((a, e) => a + e.w, 0) * r(), sh = shapes[shapes.length - 1];
+    for (const e of shapes)
+      if ((t -= e.w) < 0) {
+        sh = e;
+        break;
+      }
+    const span = ([a, b]) => a + Math.floor(r() * (b - a + 1));
+    let cols = span(sh.cols), rows = span(sh.rows);
+    if (sh.swap && r() < 0.5) [cols, rows] = [rows, cols];
+    while (cols * rows > Z().most) cols > rows ? cols-- : rows--;
+    return { shape: sh.id, cols, rows };
+  }
+  TUNERS.push((seed, tun, off, year) => {
+    if (off.worldsize || year && year.tun && year.tun.world) return;
+    const z = rollSize(seed);
+    tun.world = { cols: z.cols, rows: z.rows, shape: z.shape };
+  });
+  var shapeOf = (s) => s.world && s.world.shape ? byId(Z().shapes, s.world.shape) : null;
+  SWITCHES.push(["worldsize", "Worlds of varying size"]);
+  NOTES.push((s) => {
+    const sh = shapeOf(s);
+    return sh ? [{ label: sh.name, text: s.world.cols + " regions across and " + s.world.rows + " down: " + sh.text + "." }] : [];
+  });
+  on("worldBorn", (s) => {
+    const sh = shapeOf(s);
+    if (sh && sh.id !== "usual") say(s, sh.name + ", " + s.world.cols + " regions by " + s.world.rows + ": " + sh.text + ".");
+  });
+
   // src/rules/plot.js
   var HOME_TOWN_CHANCE = 0.25;
   function neighbours(s) {
@@ -7563,7 +8246,8 @@
     let prev = s.world.home;
     for (let n = 0; n < 4; n++) {
       const fresh = (list) => list.filter((o) => o.id !== HOME && !chain.some((c) => c.id === o.id));
-      let opts = fresh(side(prev));
+      let opts = fresh(side(prev)).filter((o) => near.some((n2) => n2.id === o.id));
+      if (!opts.length) opts = fresh(side(prev));
       if (!opts.length) opts = fresh(near);
       if (!opts.length) opts = near;
       const pick = opts[Math.floor(r() * opts.length)];
@@ -7699,8 +8383,838 @@
   }
   SWITCHES.push(["plot", "The plot across the world (new worlds)"]);
 
+  // src/rules/moretowns.js
+  var M = () => C.moreTowns;
+  function addTown(s, cx, cy, r, near) {
+    const rec = ensureRegion(s, cx, cy);
+    if (rec.id === HOME || rec.id === s.area || townInRegion(s, rec.id)) return null;
+    const m = rec.map, keeps = (p2) => !m.creatures.some((c) => (c.key || c.lair) && Math.max(Math.abs(c.x - p2.x), Math.abs(c.y - p2.y)) <= 7);
+    let p = null;
+    for (let tries = 0; tries < 4 && !p; tries++) {
+      p = spot(m, r, 2, 3, near || null);
+      if (p && !keeps(p)) p = null;
+    }
+    if (!p) return null;
+    flatten(m, p.x, p.y, 2, 3);
+    const id = "t_" + rec.id, t = makeTownRec(s, r, p.x, p.y);
+    for (let k = 0; k < 6 && allTowns(s).some((o) => o.name === t.name); k++)
+      t.name = C.town.a[Math.floor(r() * C.town.a.length)] + C.town.b[Math.floor(r() * C.town.b.length)];
+    t.id = id;
+    t.area = rec.id;
+    m.sites[idx(p.x, p.y)] = { kind: "town", town: id };
+    (s.towns = s.towns || []).push(t);
+    const rt = stream(s.seed, "town:" + id);
+    withTown(s, t, () => {
+      for (const f of TOWN_MAKERS) f(s, t, rt);
+    });
+    ensureTown(s);
+    return t;
+  }
+  on("worldBorn", (s, d) => {
+    if (d.off.moretowns) return;
+    const r = stream(s.seed, "moretowns"), w = s.world, want = clamp(Math.round(w.cols * w.rows / M().perRegions), M().least, M().most), spots = [];
+    for (let cy = 0; cy < w.rows; cy++) for (let cx = 0; cx < w.cols; cx++) spots.push({ cx, cy, k: r() });
+    spots.sort((a, b) => a.k - b.k);
+    let n = 0;
+    for (const p of spots) if (n < want && addTown(s, p.cx, p.cy, r)) n++;
+  });
+  SWITCHES.push(["moretowns", "More towns (new worlds)"]);
+  NOTES.push(
+    (s) => (s.towns || []).length ? [
+      {
+        label: "Towns",
+        text: allTowns(s).map((t) => t.name).join(", ") + ". Each has its own elder, inn and shop, and its own troubles."
+      }
+    ] : []
+  );
+
+  // src/rules/plots.js
+  var P2 = () => C.plots;
+  var kindOf2 = (p) => byId(P2().kinds, p.kind);
+  if (!C.bases.some((b) => b.id === "token")) {
+    C.bases.push({ id: "token", name: "Token", wt: 0.3, w: 0, plain: true, quest: "Someone is waiting for this." });
+    C.bases.push({
+      id: "goods",
+      name: "Goods",
+      wt: 5,
+      w: 0,
+      plain: true,
+      quest: "Heavy, and not yours: carry it where it is wanted."
+    });
+  }
+  for (const k in P2().sites) SITE_NAME[k] = P2().sites[k].name;
+  var plotsOf = (s) => s.plots || [];
+  var plotById = (s, id) => plotsOf(s).find((p) => p.id === id) || null;
+  var mainPlot = (s) => plotsOf(s).find((p) => p.main) || null;
+  var relicWins = (s) => !mainPlot(s) || mainPlot(s).kind === "relic";
+  var tracked = (s) => {
+    const p = plotById(s, s.track);
+    return p && !p.done && !p.failed ? p : mainPlot(s);
+  };
+  var stepsOf = (p) => {
+    const k = kindOf2(p);
+    return (k.steps || []).concat(p.branch && k.branches ? k.branches[p.branch] : []);
+  };
+  var stepOf = (p) => p.done || p.failed ? null : stepsOf(p)[p.step] || null;
+  var townName = (s, id) => (townById(s, id) || s.town).name;
+  var roleTown = (s, p, key) => key === "giver" ? p.giver : p.roles[key];
+  var landOf = (s, p) => {
+    for (const k in p.roles) {
+      const r = p.roles[k];
+      if (r && r.area && s.areas[r.area] && s.areas[r.area].kind === "region") return byId(C.biomes, s.areas[r.area].biome).name;
+    }
+    return "wilds";
+  };
+  function fill2(s, p, text) {
+    const g = townById(s, p.giver) || s.town;
+    return text.replace(/\{(\w+)\}/g, (m, k) => {
+      if (k === "giver") return g.name;
+      if (k === "elder") return g.elder;
+      if (k === "land") return landOf(s, p).toLowerCase();
+      if (k === "days") return String(kindOf2(p).days || "");
+      if (k === "due") return String(p.due || "");
+      if (k === "town") return p.hostile ? townName(s, p.hostile) : g.name;
+      const r = p.roles[k];
+      if (r === void 0) return m;
+      if (typeof r === "string") return townName(s, r);
+      return r.name || r.label || m;
+    });
+  }
+  function placeRoles(s, p, r, link) {
+    const k = kindOf2(p), giverArea = townArea(s, townById(s, p.giver)), g = s.areas[giverArea] || s.areas[HOME], pick = (a) => a[Math.floor(r() * a.length)], roles = p.roles = {};
+    let cid = 600 + 20 * +p.id.slice(1);
+    const clear = (area, x, y, rad) => {
+      const t = townInRegion(s, area);
+      if (t && Math.max(Math.abs(t.x - x), Math.abs(t.y - y)) < rad) return false;
+      if (area === HOME && Math.max(Math.abs(s.start.x - x), Math.abs(s.start.y - y)) < 8) return false;
+      return true;
+    };
+    const regionAt = (d, far) => {
+      const all = [];
+      for (let cy = 0; cy < s.world.rows; cy++)
+        for (let cx = 0; cx < s.world.cols; cx++) {
+          const dd = Math.max(Math.abs(wrapDelta(cx, g.cx, s.world.cols)), Math.abs(wrapDelta(cy, g.cy, s.world.rows)));
+          if (s.regionRares && s.regionRares[regionId(s, cx, cy)] === "empty") continue;
+          all.push({ cx, cy, dd });
+        }
+      const most = Math.max(...all.map((a) => a.dd));
+      if (p.main) {
+        const ring = all.filter((a) => a.dd >= 1 && a.dd <= d[1] && sketchOf(s, a.cx, a.cy).danger === 1);
+        if (ring.length) return pick(ring);
+      }
+      let opts = all.filter((a) => far ? a.dd === Math.max(d[0], Math.min(d[1], most)) : a.dd >= d[0] && a.dd <= d[1]);
+      if (!opts.length) opts = all.filter((a) => a.dd > 0);
+      if (!opts.length) opts = all;
+      return pick(opts);
+    };
+    for (const key in k.roles || {}) {
+      const R2 = k.roles[key];
+      if (R2.town) {
+        const others = [s.town].concat(s.towns || []).filter((t) => townId(t) !== p.giver);
+        if (!others.length) return false;
+        roles[key] = townId(pick(others));
+      } else if (R2.place) {
+        if (link && link.place && key === link.place) {
+          roles[key] = Object.assign({}, link.at);
+          continue;
+        }
+        let at = null;
+        for (let tries = 0; tries < 6 && !at; tries++) {
+          let rec, m;
+          if (R2.near === "giver") {
+            rec = g;
+            m = mapOf(s, rec.id);
+          } else {
+            const c = regionAt(R2.dist || [1, 2], R2.far);
+            rec = ensureRegion(s, c.cx, c.cy);
+            if (rec.id === s.area) continue;
+            m = rec.map;
+          }
+          if (!m || s.regionRares && s.regionRares[rec.id] === "empty") continue;
+          if (R2.site === "ruin") {
+            const ruins = Object.keys(m.sites).filter((q2) => m.sites[q2].kind === "ruin" && !m.sites[q2].plot);
+            if (ruins.length) {
+              const q2 = +pick(ruins);
+              m.sites[q2].plot = p.id;
+              at = { area: rec.id, x: q2 % W, y: Math.floor(q2 / W) };
+              continue;
+            }
+          }
+          const t = R2.near === "giver" ? townById(s, p.giver) : null, q = spot(m, r, 1, 1, t ? { x: t.x, y: t.y + 7 } : null);
+          if (!q || !clear(rec.id, q.x, q.y, 6)) continue;
+          m.sites[idx(q.x, q.y)] = { kind: R2.site, plot: p.id, role: key };
+          m.creatures = m.creatures.filter(
+            (c) => c.plot || c.key || c.lair || Math.max(Math.abs(c.x - q.x), Math.abs(c.y - q.y)) > 3
+          );
+          at = { area: rec.id, x: q.x, y: q.y };
+        }
+        if (!at) return false;
+        roles[key] = Object.assign({ site: R2.site }, at);
+      } else if (R2.person) {
+        roles[key] = { name: pick(P2().people), freed: false };
+      } else if (R2.curse) {
+        const at = roles[R2.at];
+        if (at) (s.curses = s.curses || {})[at.area] = p.id;
+        roles[key] = { area: at && at.area };
+      }
+    }
+    for (const key in k.roles || {}) {
+      const R2 = k.roles[key];
+      if (R2.creature) {
+        const at = roles[R2.at], m = mapOf(s, at.area), biome = s.areas[at.area] ? s.areas[at.area].biome : s.biome, ids = [];
+        let name = "";
+        for (let n = 0; n < (R2.n || 1); n++) {
+          const f = R2.kind === "guards" ? byId(C.creature.forms, "brute") : pick(C.creature.forms.filter((x2) => x2.id !== "hound"));
+          name = R2.names ? pick(R2.names) : pick(P2().beastNames) + " " + pick(C.creature.prefix[biome] || ["Wild"]) + " " + f.name;
+          s.species.push({
+            name,
+            form: f.id,
+            temper: "territorial",
+            rare: R2.kind === "beast" ? "elder" : null,
+            met: false,
+            named: true
+          });
+          let x = at.x, y = at.y;
+          for (let t = 0; t < 30; t++) {
+            const xx = at.x + Math.round((r() - 0.5) * 4), yy = at.y + Math.round((r() - 0.5) * 4);
+            if (xx < 1 || yy < 1 || xx > W - 2 || yy > H - 2 || m.terrain[idx(xx, yy)] === 2) continue;
+            if (m.creatures.some((c2) => c2.x === xx && c2.y === yy) || xx === at.x && yy === at.y || !clear(at.area, xx, yy, 4))
+              continue;
+            x = xx;
+            y = yy;
+            break;
+          }
+          const c = makeCreature(s, cid++, s.species.length - 1, x, y, R2.tier || 2);
+          Object.assign(c, { plot: p.id, role: key });
+          if (R2.carries) c.carries = R2.carries;
+          m.creatures.push(c);
+          ids.push(c.id);
+        }
+        roles[key] = { area: at.area, name: R2.kind === "guards" ? name.toLowerCase() + "s" : name, left: ids.length };
+      } else if (R2.item) {
+        roles[key] = { label: fill2(s, p, R2.label), base: R2.base };
+        const at = R2.at && (link && link.item === key ? link.at : roles[R2.at]);
+        if (at) {
+          const m = mapOf(s, at.area), d = m.depots[idx(at.x, at.y)] = m.depots[idx(at.x, at.y)] || { water: 0, fuel: 0, items: [] };
+          d.items.push(plotItem(s, p, key));
+          roles[key].at = { area: at.area, x: at.x, y: at.y };
+        }
+      }
+    }
+    for (const key in roles) if (roles[key] && roles[key].label) roles[key].label = fill2(s, p, k.roles[key].label);
+    const gt = townById(s, p.giver) || s.town, door = { area: townArea(s, gt), x: gt.x, y: gt.y + 3 };
+    for (const key in roles) {
+      const R2 = roles[key], to = typeof R2 === "string" ? (() => {
+        const o = townById(s, R2);
+        return o && { area: townArea(s, o), x: o.x, y: o.y + 3 };
+      })() : R2 && R2.x !== void 0 && R2.area ? R2 : null;
+      if (!to || to.area === void 0) continue;
+      const pa = homePos(s, door.area, door.x, door.y), pb = homePos(s, to.area, to.x, to.y), n = Math.floor(Math.hypot(pb.x - pa.x, pb.y - pa.y) / 7);
+      for (let i = 0; i <= n + 1; i++) {
+        const gx = Math.round(pa.x + (pb.x - pa.x) * i / (n + 1)), gy = Math.round(pa.y + (pb.y - pa.y) * i / (n + 1));
+        if (i > 0 && i <= n) waterAt(s, gx, gy, false);
+        const h = s.world.home, id = regionId(s, wrap(h.cx + Math.floor(gx / W), s.world.cols), wrap(h.cy + Math.floor(gy / H), s.world.rows));
+        if (!(p.legs = p.legs || []).includes(id)) p.legs.push(id);
+      }
+      if (p.main) road(s, door, to);
+    }
+    return true;
+  }
+  function plotItem(s, p, key) {
+    const R2 = kindOf2(p).roles[key], it = makeItem(s, R2.base, null, null, true);
+    it.label = fill2(s, p, R2.label);
+    it.plot = p.id;
+    it.role = key;
+    return it;
+  }
+  var carrying2 = (s, p, key) => s.player.items.find((i) => i.plot === p.id && i.role === key);
+  on("worldBorn", (s, d) => {
+    if (d.off.plots) return;
+    const r = stream(s.seed, "plots"), X6 = P2(), pickW = (list, w) => {
+      let t = list.reduce((a, e) => a + (e[w] || 0), 0) * r();
+      for (const e of list) if ((t -= e[w] || 0) < 0) return e;
+      return list[0];
+    };
+    s.plots = [];
+    const main = pickW(X6.kinds, "main");
+    let n = 0;
+    const add = (kind2, giver, isMain, link) => {
+      const p = { id: "p" + n++, kind: kind2.id, giver, main: !!isMain, known: false, step: 0 };
+      if (kind2.id !== "relic" && !placeRoles(s, p, r, link)) return null;
+      s.plots.push(p);
+      return p;
+    };
+    let mp = add(main, "town", true);
+    if (!mp) mp = add(byId(X6.kinds, "relic"), "town", true);
+    if (mp.kind !== "relic") add(byId(X6.kinds, "relic"), "town", false);
+    const towns = (s.towns || []).slice(), want = Math.min(towns.length, X6.side[0] + Math.floor(r() * (X6.side[1] - X6.side[0] + 1)));
+    for (let i = 0; i < want && towns.length; i++) {
+      const t = towns.splice(Math.floor(r() * towns.length), 1)[0];
+      for (let tries = 0; tries < 4; tries++) {
+        const kind2 = pickW(X6.kinds, "side");
+        if (kind2.needs === "other" && !(s.towns || []).length) continue;
+        if (s.plots.some((q) => q.kind === kind2.id)) continue;
+        const beast = s.plots.find((q) => q.kind === "beast");
+        let link = null;
+        if (kind2.id === "plague" && beast && r() < X6.linkChance) link = { place: "patch", item: "cure", at: beast.roles.lair };
+        const p = add(kind2, townId(t), false, link);
+        if (p) {
+          if (link) p.linked = beast.id;
+          break;
+        }
+      }
+    }
+    const sides = s.plots.filter((q) => !q.main && q.kind !== "relic");
+    for (let i = 0; i + 1 < sides.length; i++) if (r() < X6.chainChance) sides[i].opens = sides[i + 1].id;
+    s.track = mp.id;
+    if (mp.kind === "relic") mp.known = false;
+  });
+  function stepPlace(s, p, st) {
+    if (!st) return null;
+    const R2 = p.roles;
+    if (st.do === "talk") return { town: roleTown(s, p, st.to) };
+    if (st.do === "choose") return { town: roleTown(s, p, st.at) };
+    if (st.do === "bring" || st.do === "lead") {
+      if (st.do === "bring" && !carrying2(s, p, st.what)) return takePlace(s, p, st.what);
+      return { town: roleTown(s, p, st.to) };
+    }
+    if (st.do === "kill") return creaturePlace(s, p, st.what);
+    if (st.do === "take") return takePlace(s, p, st.what);
+    if (st.do === "free") return placeOfPerson(s, p, st.who);
+    if (st.do === "use") return carrying2(s, p, st.what) ? R2[st.at] : takePlace(s, p, st.what);
+    return null;
+  }
+  var placeOfPerson = (s, p, who) => {
+    const k = kindOf2(p).roles[who];
+    return p.roles[k.at];
+  };
+  function creaturePlace(s, p, key) {
+    for (const [area, m] of allMaps(s)) {
+      const c = m.creatures.find((x) => x.plot === p.id && x.role === key);
+      if (c) return { area, x: c.x, y: c.y, cid: c.id };
+    }
+    return null;
+  }
+  function takePlace(s, p, key) {
+    for (const [area, m] of allMaps(s))
+      for (const k in m.depots)
+        if (m.depots[k].items.some((i) => i.plot === p.id && i.role === key)) return { area, x: k % W, y: Math.floor(k / W) };
+    for (const ck in kindOf2(p).roles) if (kindOf2(p).roles[ck].carries === key) return creaturePlace(s, p, ck);
+    return null;
+  }
+  function plotGoal(s, p) {
+    p = p || tracked(s);
+    if (!p || p.kind === "relic") return null;
+    return stepPlace(s, p, stepOf(p));
+  }
+  function plotObjective(s, p) {
+    const st = stepOf(p);
+    if (!st) return { text: p.done ? "Done: " + kindOf2(p).name : kindOf2(p).name + ": failed", dir: null };
+    if (!p.known) return { text: "Find " + townName(s, p.giver), dir: dirToTown(s, p.giver) };
+    const at = stepPlace(s, p, st), text = fill2(s, p, st.text);
+    if (!at) return { text, dir: null };
+    if (at.town) {
+      if (areaRec(s).kind === "town" && townId(curTown(s)) === at.town) {
+        const e = findHere(s, "elder");
+        return { text, dir: e ? dirLocal(s, e) : null };
+      }
+      return { text, dir: dirToTown(s, at.town) };
+    }
+    if (at.area === s.area) return { text, dir: dirLocal(s, at) };
+    const h = homePos(s, at.area, at.x, at.y);
+    return { text, dir: dirFrom(worldPos(s), h.x, h.y) };
+  }
+  var dirLocal = (s, at) => at.x === s.player.x && at.y === s.player.y ? "here" : dirFrom(s.player, at.x, at.y);
+  function dirToTown(s, id) {
+    const t = townById(s, id) || s.town, h = homePos(s, townArea(s, t), t.x, t.y);
+    return dirFrom(worldPos(s), h.x, h.y);
+  }
+  function finishStep(s, p) {
+    p.step++;
+    if (!stepOf(p)) finishPlot(s, p);
+  }
+  function finishPlot(s, p, ending) {
+    if (p.done) return;
+    p.done = true;
+    const k = kindOf2(p), X6 = P2();
+    say(s, fill2(s, p, ending || p.branch === "peace" && k.peaceEnd || k.end), "good");
+    if (s.curses) {
+      for (const a in s.curses) if (s.curses[a] === p.id) delete s.curses[a];
+    }
+    if (k.id === "feud" && p.branch === "peace") p.friends = [p.giver, p.roles.other];
+    else if (k.id === "caravan") p.friends = [p.roles.other];
+    else if (k.id !== "feud") p.friends = [p.giver];
+    if (p.main) {
+      s.over = { won: true, ending: fill2(s, p, k.end), plot: k.id };
+      return;
+    }
+    const coin = X6.reward.coin[0] + Math.floor(srand(s) * (X6.reward.coin[1] - X6.reward.coin[0] + 1));
+    s.player.coin += coin;
+    gainXp(s, X6.reward.xp);
+    say(s, "They give you " + coin + " coin for it.");
+    emit(s, "plotDone", { id: p.id, kind: k.id });
+    const next = plotById(s, p.opens);
+    if (next && !next.known) {
+      const t = townById(s, next.giver);
+      if (t) {
+        mark(s, t.x, t.y, townArea(s, t));
+        say(s, '"If you are the kind who helps, go to ' + t.name + '. They have trouble of their own." It is marked on your map.');
+      }
+    }
+  }
+  function plotTalk(s, t, sp) {
+    const id = townId(t);
+    let told = false;
+    for (const p of plotsOf(s)) {
+      if (p.kind === "relic") continue;
+      if (p.hostile === id) {
+        sp.push('"' + fill2(s, p, kindOf2(p).hostileText).replace(/^"|"$/g, "") + '"');
+        continue;
+      }
+      if (p.done || p.failed) continue;
+      if (p.giver === id && !p.known) {
+        if (told) continue;
+        told = true;
+        p.known = true;
+        if (!s.track || !plotById(s, s.track) || plotById(s, s.track).done) s.track = p.id;
+        const k = kindOf2(p), linked = p.linked && plotById(s, p.linked);
+        if (k.days) p.due = clock(s).day + k.days;
+        sp.push(fill2(s, p, linked ? k.tellHoard.replace("{beast}", linked.roles.beast.name) : k.tell));
+        const areas = new Set([townArea(s, t)].concat(p.legs || []));
+        for (const key in p.roles) {
+          const r = p.roles[key];
+          if (r && r.area) areas.add(r.area);
+          if (r && r.area && r.x !== void 0) mark(s, r.x, r.y, r.area);
+          if (typeof r === "string" && townById(s, r)) mark(s, townById(s, r).x, townById(s, r).y, townArea(s, townById(s, r)));
+        }
+        for (const a of areas) {
+          const m = mapOf(s, a);
+          if (m) {
+            for (const q in m.sites)
+              if (m.sites[q].sure) {
+                m.sites[q].known = true;
+                mark(s, q % W, Math.floor(q / W), a);
+              }
+          }
+        }
+        say(s, t.elder + " of " + t.name + " asks for your help: " + k.name.toLowerCase() + ".", "good");
+        gainXp(s, 15);
+      }
+      if (!p.known) continue;
+      for (let guard = 0; guard < 4; guard++) {
+        const st = stepOf(p);
+        if (!st) break;
+        if (st.do === "talk" && roleTown(s, p, st.to) === id) {
+          if (st.give) {
+            s.player.items.push(plotItem(s, p, st.give));
+            sp.push('"Here: ' + p.roles[st.give].label.toLowerCase() + '. Go carefully."');
+          }
+          finishStep(s, p);
+          continue;
+        }
+        if (st.do === "bring" && roleTown(s, p, st.to) === id && carrying2(s, p, st.what)) {
+          const it = carrying2(s, p, st.what);
+          s.player.items = s.player.items.filter((i) => i !== it);
+          sp.push('"' + it.label + '. You have done what we could not."');
+          finishStep(s, p);
+          continue;
+        }
+        if (st.do === "lead" && roleTown(s, p, st.to) === id && p.roles[st.who].freed) {
+          sp.push('"' + p.roles[st.who].name + '! We had given you up."');
+          finishStep(s, p);
+          continue;
+        }
+        break;
+      }
+    }
+    return told;
+  }
+  ELDER_TALK.push((s, t, sp) => plotTalk(s, t, sp));
+  Object.assign(PLOT_HOOKS, {
+    // talking to the story town's elder: true if a plot was told (and the relic's story should wait)
+    storyTalk: (s, sp) => plotTalk(s, s.town, sp) && !relicWins(s),
+    objective: (s) => {
+      const p = tracked(s);
+      return p && p.kind !== "relic" ? plotObjective(s, p) : null;
+    },
+    relicWins,
+    relicSideDone: (s) => relicSideDone(s)
+  });
+  function plotChoices(s) {
+    if (areaRec(s).kind !== "town") return [];
+    const id = townId(curTown(s)), out = [];
+    for (const p of plotsOf(s)) {
+      const st = stepOf(p);
+      if (p.known && st && st.do === "choose" && roleTown(s, p, st.at) === id)
+        for (const o of st.options) out.push({ plot: p.id, id: o.id, label: fill2(s, p, o.label) });
+    }
+    return out;
+  }
+  function choosePlot(s, plotId, optId) {
+    const p = plotById(s, plotId), st = p && stepOf(p);
+    if (s.over || !st || st.do !== "choose" || areaRec(s).kind !== "town" || townId(curTown(s)) !== roleTown(s, p, st.at))
+      return false;
+    const o = st.options.find((x) => x.id === optId);
+    if (!o) return false;
+    p.branch = o.then;
+    if (o.hostile) p.hostile = roleTown(s, p, o.hostile);
+    say(s, fill2(s, p, o.label) + ".", o.hostile ? "" : "good");
+    finishStep(s, p);
+    return true;
+  }
+  function plotHere(s) {
+    if (areaRec(s).kind === "town") return [];
+    const out = [];
+    for (const p of plotsOf(s)) {
+      const st = stepOf(p);
+      if (!p.known || !st) continue;
+      if (st.do === "free") {
+        const at = placeOfPerson(s, p, st.who);
+        if (at && at.area === s.area && at.x === s.player.x && at.y === s.player.y) out.push({ p, st });
+      }
+      if (st.do === "use") {
+        const at = p.roles[st.at];
+        if (at && at.area === s.area && at.x === s.player.x && at.y === s.player.y && carrying2(s, p, st.what)) out.push({ p, st });
+      }
+    }
+    return out;
+  }
+  function plotAct(s, plotId) {
+    if (s.over || s.combat) return false;
+    const h = plotHere(s).find((x) => x.p.id === plotId);
+    if (!h) return false;
+    const { p, st } = h, person2 = st.who && p.roles[st.who];
+    if (st.do === "free") {
+      if (st.clear && p.roles[st.clear].left > 0) {
+        say(s, "Not while the " + p.roles[st.clear].name + " still stand guard.", "bad");
+        return false;
+      }
+      if (st.water) {
+        if (s.player.water < st.water) {
+          say(s, person2.name + " needs water, and you have too little to share.", "bad");
+          return false;
+        }
+        s.player.water -= st.water;
+      }
+      person2.freed = true;
+      say(s, person2.name + " is free, and will walk with you.", "good");
+      gainXp(s, 20);
+      finishStep(s, p);
+      return true;
+    }
+    if (st.do === "use") {
+      const it = carrying2(s, p, st.what);
+      s.player.items = s.player.items.filter((i) => i !== it);
+      say(s, "You use the " + it.label.toLowerCase() + ".", "good");
+      gainXp(s, 20);
+      finishStep(s, p);
+      return true;
+    }
+    return false;
+  }
+  on("killed", (s, d) => {
+    const c = d.c;
+    if (!c || !c.plot) return;
+    const p = plotById(s, c.plot);
+    if (!p) return;
+    const r = p.roles[c.role];
+    if (r && r.left > 0) r.left--;
+    if (c.carries) {
+      const m = s, k = idx(s.player.x, s.player.y), dp = m.depots[k] = m.depots[k] || { water: 0, fuel: 0, items: [] };
+      dp.items.push(plotItem(s, p, c.carries));
+      say(s, "It had " + p.roles[c.carries].label.toLowerCase() + ". Open Pack to take it.", "good");
+    }
+    if (p.kind === "siege" && c.role === "captain") {
+      const m = mapOf(s, p.roles.besiegers.area);
+      if (m) m.creatures = m.creatures.filter((x) => !(x.plot === p.id && x.role === "besiegers"));
+      p.roles.besiegers.left = 0;
+    }
+    const st = stepOf(p);
+    if (st && st.do === "kill" && p.roles[st.what].left <= 0) finishStep(s, p);
+  });
+  on("did", (s) => {
+    for (const p of plotsOf(s)) {
+      const st = stepOf(p);
+      if (!st) continue;
+      if (st.do === "take" && carrying2(s, p, st.what)) finishStep(s, p);
+      const k = kindOf2(p);
+      if (k.days && p.due && p.known && !p.done && clock(s).day > p.due) {
+        p.failed = true;
+        say(s, fill2(s, p, k.failText), "bad");
+        s.player.items = s.player.items.filter((i) => i.plot !== p.id);
+      }
+    }
+  });
+  function relicSideDone(s) {
+    const p = plotsOf(s).find((q) => q.kind === "relic");
+    if (p) p.done = true;
+    const X6 = P2().relicSide;
+    s.player.items = s.player.items.filter((i) => i.base !== "relic");
+    s.player.coin += X6.coin;
+    gainXp(s, X6.xp);
+    say(s, "The old story is ended, and this land remembers you for it: " + X6.coin + " coin, and a name in every town.", "good");
+  }
+  SOURCES.push({
+    id: "plots",
+    fn(s, out) {
+      if (s.off.plots || !s.plots) return;
+      const here2 = outdoorRec(s);
+      if (s.curses && here2 && s.curses[here2.id]) for (const m of P2().curse.mods) out.push(m);
+      if (areaRec(s).kind === "town") {
+        const id = townId(curTown(s));
+        for (const p of s.plots) {
+          if (p.hostile === id) out.push({ stat: "town.buy", op: "mul", value: P2().hostile.buy });
+          if (p.done && (p.friends || []).includes(id)) out.push({ stat: "town.buy", op: "mul", value: P2().friend.buy });
+        }
+      }
+    }
+  });
+  ACTIONS.push((s, st, a) => {
+    if (s.combat || s.off.plots) return;
+    for (const { p, st: step } of plotHere(s)) {
+      const who = step.who && p.roles[step.who];
+      a.push({
+        id: "plotAct",
+        arg: p.id,
+        label: step.do === "free" ? (step.water ? "Share water with " : "Free ") + who.name : "Use the " + carrying2(s, p, step.what).label.toLowerCase(),
+        hint: kindOf2(p).name.toLowerCase()
+      });
+    }
+  });
+  on("did", (s, d) => {
+    if (d.id !== "move") return;
+    const st = siteHere(s);
+    if (!st || !st.plot || st.told || !P2().sites[st.kind]) return;
+    st.told = true;
+    say(s, P2().sites[st.kind].text);
+    if (s.curses && s.curses[s.area]) say(s, P2().curse.text, "bad");
+  });
+  RUMOURS.push((s, out) => {
+    if (s.off.plots) return;
+    const here2 = townId(curTown(s));
+    for (const p of plotsOf(s)) {
+      if (p.known || p.main || p.kind === "relic" || p.done || p.giver === here2) continue;
+      const t = townById(s, p.giver);
+      if (!t) continue;
+      out.push(() => {
+        mark(s, t.x, t.y, townArea(s, t));
+        return '"Have you been to ' + t.name + "? They have trouble there: " + kindOf2(p).name.toLowerCase() + ', they say. Their elder would pay someone to deal with it." (' + t.name + " is on your map.)";
+      });
+    }
+  });
+  SWITCHES.push(["plots", "Many plots (new worlds)"]);
+  NOTES.push(
+    (s) => plotsOf(s).filter((p) => p.known && p.kind !== "relic").map((p) => ({
+      label: kindOf2(p).name + (p.main ? " (the great trouble)" : "") + (p.done ? ": done" : p.failed ? ": failed" : ""),
+      text: p.done || p.failed ? "Asked by " + townName(s, p.giver) + "." : plotObjective(s, p).text + ". Asked by " + townName(s, p.giver) + "."
+    }))
+  );
+  function trackPlot(s, id) {
+    const p = plotById(s, id);
+    if (!p || p.done || (p.kind === "relic" ? !s.quest.told : !p.known && !p.main)) return false;
+    s.track = id;
+    return true;
+  }
+
+  // src/rules/crafting.js
+  var X4 = () => C.crafting;
+  for (const b of X4().bases)
+    if (!C.bases.some((e) => e.id === b.id)) {
+      C.bases.push(Object.assign({}, b, { value: void 0 }));
+      C.value[b.id] = b.value;
+    }
+  var mats = (s) => s.player.mats = s.player.mats || {};
+  var matOf = (id) => byId(X4().mats, id);
+  function addMats(s, got, why) {
+    if (s.off.crafting) return;
+    const m = mats(s), parts2 = [];
+    for (const k in got) {
+      m[k] = (m[k] || 0) + got[k];
+      parts2.push(got[k] + " " + matOf(k).name.toLowerCase());
+    }
+    if (parts2.length) say(s, why + parts2.join(" and ") + ".");
+  }
+  var has = (s, needs) => Object.keys(needs).every((k) => (k === "fuel" ? s.player.fuel : mats(s)[k] || 0) >= needs[k]);
+  function recipes(s) {
+    if (s.off.crafting) return [];
+    return X4().recipes.map((r) => ({ r, ok: has(s, r.needs) && (r.makes !== "shelter" || canShelter(s)) }));
+  }
+  var canShelter = (s) => inOverworld(s) && !siteHere(s);
+  function craft(s, id) {
+    const r = byId(X4().recipes, id);
+    if (s.over || s.combat || s.off.crafting || !r || !has(s, r.needs)) return false;
+    if (r.makes === "shelter" && !canShelter(s)) {
+      say(s, "There is no room for a shelter here.");
+      return false;
+    }
+    for (const k in r.needs) {
+      if (k === "fuel") s.player.fuel -= r.needs[k];
+      else mats(s)[k] -= r.needs[k];
+    }
+    advance(s, r.mins, "rest");
+    if (s.over) return true;
+    if (r.makes === "shelter") {
+      s.sites[s.player.y * 36 + s.player.x] = { kind: "shelter", seen: true, visited: true };
+      say(s, "You raise a lean-to of poles and hide. It will stand.", "good");
+    } else {
+      const it = makeItem(s, r.makes, null, null, true);
+      s.player.items.push(it);
+      autoEquip(s, it);
+      say(s, "You make " + (r.name.endsWith("s") ? "" : "a ") + r.name.toLowerCase() + ".", "good");
+    }
+    if (!(s.crafted = s.crafted || {})[id]) {
+      s.crafted[id] = 1;
+      gainXp(s, 10);
+    }
+    return true;
+  }
+  on("killed", (s, d) => {
+    const c = d.c;
+    if (!c) return;
+    const sp = s.species[c.sp], got = Object.assign({}, X4().kills[sp && sp.form]);
+    if (c.tier > 2) for (const k in got) got[k]++;
+    addMats(s, got, "You take from the carcass: ");
+  });
+  on("did", (s, d) => {
+    if (s.off.crafting) return;
+    if (d.id === "search" && d.site && X4().search[d.site]) addMats(s, X4().search[d.site], "Among it all: ");
+    if (d.id === "gather" && srand(s) < X4().herbChance) addMats(s, { herbs: 1 }, "And with the wood, ");
+  });
+  SOURCES.push({
+    id: "crafting",
+    fn(s, out) {
+      if (s.lightUntil && s.time < s.lightUntil && areaRec(s)) out.push({ stat: "nightSight", op: "add", value: 1 });
+    }
+  });
+  WEIGHTS.push((s) => {
+    let w = 0;
+    const m = s.player.mats || {};
+    for (const k in m) w += (m[k] || 0) * ((matOf(k) || {}).wt || 0);
+    return w;
+  });
+  SWITCHES.push(["crafting", "Crafting"]);
+  NOTES.push((s) => {
+    const m = s.player.mats || {}, have = Object.keys(m).filter((k) => m[k] > 0);
+    return have.length ? [{ label: "Materials", text: have.map((k) => m[k] + " " + matOf(k).name.toLowerCase()).join(", ") + "." }] : [];
+  });
+
+  // src/rules/trade.js
+  var X5 = () => C.trade;
+  var goods = (s) => s.player.goods = s.player.goods || {};
+  var goodOf = (id) => byId(X5().goods, id);
+  var cultureOf2 = (s, t) => (t === s.town ? s.townCulture : t.culture) || {};
+  var biomeOfTown = (s, t) => {
+    const a = s.areas[townArea(s, t)];
+    return byId(C.biomes, a ? a.biome : s.biome);
+  };
+  function makes(s, t, g) {
+    const b = biomeOfTown(s, t), m = g.made, cu = cultureOf2(s, t);
+    if (m.trade && cu.trade === m.trade) return true;
+    if (m.cold && (b.night.cold || 0) >= m.cold) return true;
+    if (m.warm && (b.day.warm || 0) >= m.warm) return true;
+    if (m.forest && b.forest.frac >= m.forest) return true;
+    if (m.mountains && b.mountains >= m.mountains) return true;
+    if (m.hills && b.hills >= m.hills) return true;
+    if (m.special && b.special && b.special.name.includes(m.special)) return true;
+    return false;
+  }
+  function price2(s, t, id) {
+    const g = goodOf(id), r = stream(s.seed, "market:" + townId(t) + ":" + id)(), y = (X5().year[s.year] || {})[id] || 1;
+    return g.price * (makes(s, t, g) ? X5().made : X5().wanted) * (1 + (r * 2 - 1) * X5().wander) * y;
+  }
+  var buyAt = (s, t, id) => Math.max(1, Math.round(price2(s, t, id) * stat(s, "town.buy", 1)));
+  var sellAt = (s, t, id) => Math.max(1, Math.floor(price2(s, t, id) * X5().spread));
+  function stockOf(s, t, id) {
+    t.goods = t.goods || {};
+    if (t.goods[id] === void 0) {
+      const r = stream(s.seed, "marketstock:" + townId(t) + ":" + id)(), [a, b] = X5().stock;
+      t.goods[id] = makes(s, t, goodOf(id)) ? a + Math.floor(r * (b - a + 1)) : 0;
+    }
+    return t.goods[id];
+  }
+  function market(s) {
+    if (s.off.trade || areaRec(s).kind !== "town") return [];
+    const t = curTown(s);
+    return X5().goods.map((g) => ({
+      id: g.id,
+      name: g.name,
+      text: g.text,
+      wt: g.wt,
+      buy: buyAt(s, t, g.id),
+      sell: sellAt(s, t, g.id),
+      have: goods(s)[g.id] || 0,
+      stock: stockOf(s, t, g.id),
+      made: makes(s, t, g)
+    }));
+  }
+  function buyGood(s, id) {
+    const row = market(s).find((m) => m.id === id);
+    if (s.over || !row || row.stock < 1) return false;
+    if (s.player.coin < row.buy) {
+      say(s, "You cannot afford that.");
+      return false;
+    }
+    s.player.coin -= row.buy;
+    curTown(s).goods[id]--;
+    goods(s)[id] = (goods(s)[id] || 0) + 1;
+    return true;
+  }
+  function sellGood(s, id) {
+    const row = market(s).find((m) => m.id === id);
+    if (s.over || !row || row.have < 1) return false;
+    s.player.coin += row.sell;
+    goods(s)[id]--;
+    if (row.made) curTown(s).goods[id]++;
+    return true;
+  }
+  function sellMat(s, id) {
+    if (s.over || s.off.trade || areaRec(s).kind !== "town" || !C.crafting) return false;
+    const m = byId(C.crafting.mats, id), have = s.player.mats || {};
+    if (!m || !(have[id] > 0)) return false;
+    have[id]--;
+    const n = Math.max(1, Math.round(m.value * X5().mats));
+    s.player.coin += n;
+    return true;
+  }
+  function bestMarket(s, id) {
+    let best = null;
+    for (const t of [s.town].concat(s.towns || [])) {
+      const p = sellAt(s, t, id);
+      if (!best || p > best.p) best = { t, p };
+    }
+    return best;
+  }
+  WEIGHTS.push((s) => {
+    let w = 0;
+    const g = s.player.goods || {};
+    for (const k in g) w += (g[k] || 0) * ((goodOf(k) || {}).wt || 0);
+    return w;
+  });
+  SWITCHES.push(["trade", "Trade between towns"]);
+  NOTES.push((s) => {
+    const g = s.player.goods || {}, have = Object.keys(g).filter((k) => g[k] > 0);
+    return have.length ? [{ label: "Trade goods", text: have.map((k) => g[k] + " " + goodOf(k).name.toLowerCase()).join(", ") + "." }] : [];
+  });
+
   // src/rules/index.js
   var api = {
+    bestMarket,
+    buyGood,
+    market,
+    sellGood,
+    sellMat,
+    craft,
+    recipes,
+    choosePlot,
+    mainPlot,
+    plotAct,
+    plotChoices,
+    plotGoal,
+    plotObjective,
+    plotsOf,
+    stepOf,
+    trackPlot,
+    tracked,
     // for tests and tinkering: put the traveller on a tile of any outdoor region (from outdoors)
     travelTo(s, area, x, y) {
       const rec = s.areas[area];
@@ -7754,6 +9268,7 @@
     livesLeft,
     shrineBearing,
     on,
+    emit,
     AXES,
     trait,
     traitText,
@@ -7809,6 +9324,10 @@
     mapOf,
     ensureAround,
     townDoor,
+    allTowns,
+    curTown,
+    townById,
+    townInRegion,
     inTownBlock,
     TOWN_GATE,
     TOWN_R,
@@ -7932,7 +9451,7 @@
 
   // src/view/ctx.js
   var V = { S: null, terrain: null, blockedUntil: 0, locked: false };
-  var P2 = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, walked: 0 };
+  var P3 = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, walked: 0 };
   var R = Rules;
   var $ = (id) => document.getElementById(id);
   var KEY = "farbeacon.run";
@@ -7980,14 +9499,95 @@
   var tileX = (tx) => (tx + 0.5) * G2.ts - G2.half;
   var toTile = (x) => clamp2(Math.floor((x + G2.half) / G2.ts), 0, R.W - 1);
 
+  // src/view/quality.js
+  var KEY2 = "farbeacon.settings";
+  var QUALITY = {
+    low: {
+      label: "Low",
+      ratio: 1,
+      aa: false,
+      margin: 12,
+      fine: 144,
+      coarse: 3,
+      treesN: 0.6,
+      treesF: 0.3,
+      rocksN: 0.6,
+      rocksF: 0,
+      sky: false,
+      grain: false,
+      weather: 0
+    },
+    medium: {
+      label: "Medium",
+      ratio: 1.5,
+      aa: true,
+      margin: 17,
+      fine: 180,
+      coarse: 3,
+      treesN: 1,
+      treesF: 0.5,
+      rocksN: 1,
+      rocksF: 0.5,
+      sky: true,
+      grain: true,
+      weather: 700
+    },
+    high: {
+      label: "High",
+      ratio: 2,
+      aa: true,
+      margin: 22,
+      fine: 216,
+      coarse: 2,
+      treesN: 1,
+      treesF: 0.5,
+      rocksN: 1,
+      rocksF: 1,
+      sky: true,
+      grain: true,
+      weather: 1600
+    }
+  };
+  var SET = { quality: "medium", meter: false };
+  try {
+    Object.assign(SET, JSON.parse(localStorage.getItem(KEY2) || "{}") || {});
+  } catch (e) {
+  }
+  if (!QUALITY[SET.quality]) SET.quality = "medium";
+  var Q = Object.assign({}, QUALITY[SET.quality]);
+  function saveSettings() {
+    try {
+      localStorage.setItem(KEY2, JSON.stringify(SET));
+    } catch (e) {
+    }
+  }
+  function setQuality(name) {
+    if (!QUALITY[name]) return;
+    SET.quality = name;
+    Object.assign(Q, QUALITY[name]);
+    saveSettings();
+  }
+
   // src/view/terrain.js
-  var PAD = { town: 102, vault: 11, beacon: 9, spring: 6, hamlet: 10 };
-  var MARGIN = 22;
-  var EW = R.W + 2 * MARGIN;
-  var CC = CELL * 2;
-  var NC = Math.round(EW * TS / CC);
-  var EHALF = EW * TS / 2;
+  var PAD = { town: 102, vault: 11, beacon: 9, spring: 6, hamlet: 10, camp: 8, siege: 8, stone: 7, den: 9 };
   var SINK = 0.15;
+  var MARGIN;
+  var EW;
+  var N2;
+  var CELL2;
+  var CC;
+  var NC;
+  var EHALF;
+  function setDetail() {
+    MARGIN = Q.margin;
+    EW = R.W + 2 * MARGIN;
+    N2 = Q.fine;
+    CELL2 = WORLD / N2;
+    CC = CELL2 * Q.coarse;
+    NC = Math.round(EW * TS / CC);
+    EHALF = EW * TS / 2;
+  }
+  setDetail();
   function landAround(s) {
     const rec = R.outdoorRec(s), w = s.world, W2 = R.W, got = {}, biomes = [], region = (dx, dy) => {
       const k = dx + "," + dy;
@@ -8028,9 +9628,11 @@
     land.biomes = biomes.map((id) => R.byId(R.C.biomes, id));
     return land;
   }
-  function makeTerrain(s) {
+  function* makeTerrainG(s) {
+    setDetail();
     const land = landAround(s), r = mulberry2(s.seed ^ 5370206), T2 = new Float32Array(4096);
     for (let i = 0; i < 4096; i++) T2[i] = r();
+    yield;
     const noise = (per, salt) => {
       const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T2[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
       return (x, z) => {
@@ -8043,6 +9645,7 @@
       const fx = clamp2((x + HALF) / TS - 0.5 + MARGIN, 0, EW - 1.001), fz = clamp2((z + HALF) / TS - 0.5 + MARGIN, 0, EW - 1.001), ix = Math.floor(fx), iz = Math.floor(fz), tx = ease ? smooth(fx - ix) : fx - ix, tz = ease ? smooth(fz - iz) : fz - iz;
       return (g[iz * EW + ix] * (1 - tx) + g[iz * EW + ix + 1] * tx) * (1 - tz) + (g[(iz + 1) * EW + ix] * (1 - tx) + g[(iz + 1) * EW + ix + 1] * tx) * tz;
     };
+    yield;
     const lv = new Float32Array(EW * EW);
     for (let y = 0; y < EW; y++)
       for (let x = 0; x < EW; x++) {
@@ -8063,7 +9666,9 @@
       const f = field(g, false);
       return (x, z) => clamp2((f(x, z) - 0.3) / 0.4, 0, 1);
     };
+    yield;
     const masks = [mask(3), mask(4), mask(5)];
+    yield;
     const tileOf = (x) => Math.floor((x + HALF) / TS), etile = (x, z) => clamp2(tileOf(z) + MARGIN, 0, EW - 1) * EW + clamp2(tileOf(x) + MARGIN, 0, EW - 1), roadAt = (x, z) => land.road[etile(x, z)];
     const share = land.biomes.map((_, b) => {
       const g = new Float32Array(EW * EW), t = new Float32Array(EW * EW), B = 3;
@@ -8081,17 +9686,24 @@
         }
       return field(g, false);
     });
+    yield;
     const raw = (x, z) => {
       const l = level(x, z);
       return (l <= 1 ? l * 15 : 15 + (l - 1) * 34) + 14 * nBig(x, z) + 7 * nMid(x, z) * Math.max(0.15, 0.4 + l * 0.6) + 1.6 * nFine(x, z);
     };
-    const grid = (n, half, cell) => {
+    const grid = function* (n, half, cell, hole) {
       const h = new Float32Array((n + 1) * (n + 1));
-      for (let iz = 0; iz <= n; iz++)
-        for (let ix = 0; ix <= n; ix++) h[iz * (n + 1) + ix] = raw(-half + ix * cell, -half + iz * cell);
+      for (let iz = 0; iz <= n; iz++) {
+        for (let ix = 0; ix <= n; ix++) {
+          const x = -half + ix * cell, z = -half + iz * cell;
+          if (Math.abs(x) < hole && Math.abs(z) < hole) continue;
+          h[iz * (n + 1) + ix] = raw(x, z);
+        }
+        if ((iz & 7) === 7) yield;
+      }
       return { h, n, half, cell };
     };
-    const fine = grid(N, HALF, CELL), coarse = grid(NC, EHALF, CC);
+    const fine = yield* grid(N2, HALF, CELL2, 0), coarse = yield* grid(NC, EHALF, CC, HALF - 4 * CC);
     const padInto = (g, site) => {
       const cx = (site.x + 0.5) * TS - HALF, cz = (site.y + 0.5) * TS - HALF, ci = Math.round((cx + g.half) / g.cell), cj = Math.round((cz + g.half) / g.cell), flat = Math.max(PAD[site.st.kind] || 8, g.cell * 1.1), rad = flat + 13, n = Math.ceil(rad / g.cell), h0 = raw(cx, cz) - (site.st.kind === "spring" ? 1.2 : 0);
       for (let j = -n; j <= n; j++)
@@ -8103,6 +9715,7 @@
         }
     };
     for (const site of land.sites) {
+      yield;
       padInto(fine, site);
       padInto(coarse, site);
     }
@@ -8118,9 +9731,73 @@
     return { land, fine, coarse, height, level, tint, masks, roadAt, share, tileRand, etile, tileOf, inside: inside2 };
   }
 
+  // src/view/perf.js
+  var PF = {
+    work: 0,
+    workWorst: 0,
+    workN: 0,
+    parts: {},
+    frames: 0,
+    t0: 0,
+    last: 0,
+    worst: 0,
+    sum: 0,
+    calls: 0,
+    tris: 0,
+    build: 0,
+    builds: [],
+    save: 0,
+    el: null
+  };
+  var fmtK = (n) => n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n);
+  function perfBuild(ms) {
+    PF.build = ms;
+    PF.builds.push(ms);
+    if (PF.builds.length > 20) PF.builds.shift();
+  }
+  function perfWork(ms) {
+    PF.work += ms;
+    PF.workN++;
+    PF.workWorst = Math.max(PF.workWorst, ms);
+  }
+  function perfSave(bytes) {
+    PF.save = bytes;
+  }
+  function perfFrame(renderer2) {
+    const now = performance.now();
+    if (PF.last) {
+      const dt = now - PF.last;
+      PF.sum += dt;
+      PF.worst = Math.max(PF.worst, dt);
+      PF.frames++;
+    }
+    PF.last = now;
+    if (!SET.meter) {
+      if (PF.el) PF.el.hidden = true;
+      return;
+    }
+    PF.calls = renderer2.info.render.calls;
+    PF.tris = renderer2.info.render.triangles;
+    if (now - PF.t0 < 500) return;
+    if (!PF.el) {
+      PF.el = document.createElement("pre");
+      PF.el.id = "perf";
+      document.body.appendChild(PF.el);
+    }
+    PF.el.hidden = false;
+    const fps = PF.frames ? 1e3 * PF.frames / PF.sum : 0, mem = performance.memory ? " | heap " + Math.round(performance.memory.usedJSHeapSize / 1048576) + " MB" : "";
+    const avg = PF.frames ? PF.sum / PF.frames : 16.7, work = PF.workN ? PF.work / PF.workN : 0, parts2 = Object.keys(PF.parts).map((k) => k + " " + Math.round(PF.parts[k])).join(", ");
+    PF.el.textContent = Math.round(fps) + " fps | " + avg.toFixed(1) + " ms, worst " + Math.round(PF.worst) + "\nwork " + work.toFixed(1) + " ms (" + Math.round(100 * work / Math.max(avg, 16.7)) + "% of the frame), worst " + Math.round(PF.workWorst) + "\n" + PF.calls + " draws | " + fmtK(PF.tris) + " tris | build " + Math.round(PF.build) + " ms" + (parts2 ? "\n(" + parts2 + ")" : "") + "\nsave " + Math.round(PF.save / 1024) + " KB" + mem + " | " + SET.quality;
+    PF.t0 = now;
+    PF.frames = 0;
+    PF.sum = 0;
+    PF.worst = 0;
+    PF.work = PF.workN = PF.workWorst = 0;
+  }
+
   // src/view/scene.js
-  var renderer = new THREE.WebGLRenderer({ canvas: $("c"), antialias: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  var renderer = new THREE.WebGLRenderer({ canvas: $("c"), antialias: Q.aa, powerPreference: "high-performance" });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
   var scene = new THREE.Scene();
   var camera = new THREE.PerspectiveCamera(70, 1, 0.3, 3e3);
   camera.rotation.order = "YXZ";
@@ -8144,9 +9821,50 @@
     scene.remove(g);
     g.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
-      if (o.material) o.material.dispose();
+      if (o.material) {
+        if (o.material.map) o.material.map.dispose();
+        o.material.dispose();
+      }
     });
   };
+  var TREE = (() => {
+    const g = new THREE.ConeGeometry(1, 1, 6, 1, true), p = g.attributes.position, ix = g.index.array, keep = [];
+    for (let i = 0; i < ix.length; i += 3) {
+      const tip = (k) => p.getY(k) > 0.49 && Math.abs(p.getX(k)) + Math.abs(p.getZ(k)) < 1e-6;
+      if (!(tip(ix[i]) && tip(ix[i + 1])) && !(tip(ix[i + 1]) && tip(ix[i + 2])) && !(tip(ix[i]) && tip(ix[i + 2])))
+        keep.push(ix[i], ix[i + 1], ix[i + 2]);
+    }
+    g.setIndex(keep);
+    g.dispose = () => {
+    };
+    return g;
+  })();
+  var GRAIN = (() => {
+    const n = 64, d = new Uint8Array(n * n * 4);
+    let a = 7;
+    const r = () => (a = a * 16807 % 2147483647) / 2147483647;
+    for (let i = 0; i < n * n; i++) {
+      const v = 214 + Math.floor(r() * 41);
+      d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v;
+      d[i * 4 + 3] = 255;
+    }
+    for (let k = 0; k < 40; k++) {
+      let x = Math.floor(r() * n), y = Math.floor(r() * n);
+      for (let j = 0; j < 4; j++) {
+        const i = ((y & n - 1) * n + (x & n - 1)) * 4;
+        d[i] = d[i + 1] = d[i + 2] = 190;
+        x += r() < 0.5 ? 1 : 0;
+        y += 1;
+      }
+    }
+    const t = new THREE.DataTexture(d, n, n, THREE.RGBAFormat);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.magFilter = THREE.LinearFilter;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.generateMipmaps = true;
+    t.needsUpdate = true;
+    return t;
+  })();
   var BUILD = {
     well() {
       const g = new THREE.Group(), m = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 1, 10), std(6117973));
@@ -8187,6 +9905,63 @@
         h.position.set(x, 0, z);
         h.rotation.y = r;
         g.add(h);
+      }
+      return g;
+    },
+    // the places of the plots (rules/plots.js): a den, a camp, someone's lean-to, a black stone, a herb patch
+    den(s) {
+      const g = BUILD.cave(s), bone = std(14209727);
+      for (let i = 0; i < 5; i++) g.add(box(0.2, 0.2, 1.4, bone, Math.cos(i * 1.3) * 3, 0.1, 8 + Math.sin(i * 2.1) * 1.5));
+      return g;
+    },
+    camp() {
+      const g = new THREE.Group(), cloth = std(8018490), fire2 = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.4, 6), glow(16747050, 1));
+      for (const [x, z, r] of [
+        [-4, -2, 0.4],
+        [3, -3, -0.6],
+        [0, 4, 1.8]
+      ]) {
+        const t = new THREE.Mesh(new THREE.ConeGeometry(2.2, 2.6, 4), cloth);
+        t.position.set(x, 1.3, z);
+        t.rotation.y = r;
+        g.add(t);
+      }
+      fire2.position.y = 0.7;
+      g.add(fire2, box(0.15, 4, 0.15, std(3811866), 2, 2, 1), box(1.4, 0.9, 0.05, glow(11549226, 1), 2.7, 3.4, 1));
+      return g;
+    },
+    siege(s) {
+      return BUILD.camp(s);
+    },
+    shelter() {
+      const g = new THREE.Group(), hide = std(9071176), pole = std(4864554), roof = box(3.4, 0.12, 3, hide, 0, 1.5, 0);
+      roof.rotation.x = 0.5;
+      g.add(roof, box(0.15, 2.4, 0.15, pole, -1.5, 1.2, -1.2), box(0.15, 2.4, 0.15, pole, 1.5, 1.2, -1.2));
+      return g;
+    },
+    lost() {
+      const g = new THREE.Group(), w = std(6967352), lean = box(3, 0.15, 2.4, w, 0, 1.1, 0);
+      lean.rotation.x = 0.6;
+      g.add(lean, box(0.15, 1.6, 0.15, w, -1.4, 0.8, -0.8), box(0.15, 1.6, 0.15, w, 1.4, 0.8, -0.8));
+      return g;
+    },
+    stone() {
+      const g = new THREE.Group(), m = box(1.6, 7, 1.1, std(1447446), 0, 3.3, 0);
+      m.rotation.z = 0.08;
+      const ring = new THREE.Mesh(
+        new THREE.CircleGeometry(6, 16).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 6052952 })
+      );
+      ring.position.y = 0.06;
+      g.add(m, ring);
+      return g;
+    },
+    herbs() {
+      const g = new THREE.Group(), leaf = std(7314010);
+      for (let i = 0; i < 9; i++) {
+        const c = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.9, 5), leaf);
+        c.position.set(Math.cos(i * 2.4) * (1 + i % 3), 0.45, Math.sin(i * 2.4) * (1 + i % 3));
+        g.add(c);
       }
       return g;
     },
@@ -8384,7 +10159,7 @@
     }
     return g;
   }
-  function interiorSite(st, ts, inTown) {
+  function interiorSite(st, ts, inTown2) {
     const g = new THREE.Group();
     if (st.kind === "elder") g.add(person(9055276, 5905436));
     else if (st.kind === "inn") g.add(person(8018478), box(1.6, 0.9, 0.8, std(5913890), 1.2, 0.45, 0));
@@ -8396,7 +10171,7 @@
     else if (R.C.townLife && R.byId(R.C.townLife.services, st.kind)) {
       const sv = R.byId(R.C.townLife.services, st.kind);
       g.add(person(sv.color, sv.hat), box(1.4, 0.8, 0.12, std(sv.hat), 0, 3.4, -ts / 2 + 0.2));
-    } else if ((st.kind === "exit" || st.kind === "gate") && inTown)
+    } else if ((st.kind === "exit" || st.kind === "gate") && inTown2)
       g.add(
         box(0.6, 5, 0.6, std(7037784), -ts / 2, 2.5, 0),
         box(0.6, 5, 0.6, std(7037784), ts / 2, 2.5, 0),
@@ -8434,32 +10209,117 @@
     return g;
   }
   function applyFrame() {
-    const kind2 = R.areaRec(V.S).kind, inTown = kind2 === "town" && V.townAt;
+    const kind2 = R.areaRec(V.S).kind, inTown2 = kind2 === "town" && V.townAt;
     if (kind2 === "vault") return;
-    FR.x = inTown ? V.townAt.x : 0;
-    FR.y = inTown ? V.townAt.y : 0;
-    FR.z = inTown ? V.townAt.z : 0;
-    setGeometry(inTown ? "town" : "region");
-    staticGroup.position.set(-FR.x, -FR.y, -FR.z);
-    V.terrain = inTown ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
+    FR.x = inTown2 ? V.townAt.x : 0;
+    FR.y = inTown2 ? V.townAt.y : 0;
+    FR.z = inTown2 ? V.townAt.z : 0;
+    setGeometry(inTown2 ? "town" : "region");
+    const sh = V.shift || { x: 0, z: 0 };
+    staticGroup.position.set(-FR.x - sh.x, -FR.y, -FR.z - sh.z);
+    V.terrain = inTown2 ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
   }
   function buildStatic() {
-    dispose(staticGroup);
-    staticGroup = new THREE.Group();
-    scene.add(staticGroup);
-    V.townAt = null;
+    const t0 = performance.now();
+    buildStaticInner();
+    perfBuild(performance.now() - t0);
+  }
+  function buildStaticInner() {
+    pending = null;
+    V.raw = null;
+    V.shift = { x: 0, z: 0 };
     if (R.areaRec(V.S).kind === "vault") {
+      dispose(staticGroup);
+      staticGroup = new THREE.Group();
+      scene.add(staticGroup);
+      V.townAt = V.townId = null;
+      V.towns = [];
       setGeometry("vault");
       FR.x = FR.y = FR.z = 0;
       V.base = V.terrain = FLAT;
       staticGroup.add(interiorGroup(V.S, R.areaRec(V.S), G2.ts));
       return;
     }
-    V.base = makeTerrain(V.S);
-    const T2 = V.base, land = T2.land, pal = land.biomes.map((b) => ({
+    const g = buildLand(V.S, true);
+    let r;
+    while (!(r = g.next()).done) ;
+    install(r.value);
+  }
+  function install(res) {
+    dispose(staticGroup);
+    staticGroup = res.group;
+    scene.add(staticGroup);
+    V.base = res.base;
+    V.towns = res.towns;
+    V.raw = null;
+    V.shift = { x: 0, z: 0 };
+    townsHere();
+    applyFrame();
+  }
+  function townsHere() {
+    const t = R.townInRegion(V.S, R.outdoorRec(V.S).id), id = t ? t.id || "town" : null, w = (V.towns || []).find((x) => x.id === id);
+    V.townAt = w ? { x: w.x - V.shift.x, y: w.y, z: w.z - V.shift.z } : null;
+    V.townId = w ? id : null;
+  }
+  var pending = null;
+  function buildStaticSoon(rx, rz) {
+    if (R.areaRec(V.S).kind === "vault" || !V.base || V.base === FLAT) return buildStatic();
+    if (!V.raw) V.raw = V.base;
+    const d = { x: V.shift.x + rx * 2 * HALF, z: V.shift.z + rz * 2 * HALF }, o = V.raw;
+    V.shift = d;
+    V.base = {
+      land: o.land,
+      height: (x, z) => o.height(x + d.x, z + d.z),
+      level: (x, z) => o.level(x + d.x, z + d.z),
+      share: o.share && o.share.map((f) => (x, z) => f(x + d.x, z + d.z))
+    };
+    townsHere();
+    applyFrame();
+    pending = { gen: buildLand(V.S, false), busy: 0 };
+  }
+  function stepBuild(budget) {
+    if (!pending) return false;
+    const t0 = performance.now();
+    let r;
+    do
+      r = pending.gen.next();
+    while (!r.done && performance.now() - t0 < budget);
+    pending.busy += performance.now() - t0;
+    pending.slices = (pending.slices || 0) + 1;
+    pending.longest = Math.max(pending.longest || 0, performance.now() - t0);
+    if (!r.done) return true;
+    const busy = pending.busy, longest = pending.longest, slices = pending.slices;
+    pending = null;
+    install(r.value);
+    perfBuild(busy);
+    PF.parts = { spread: busy, frames: slices, longest };
+    buildDynamic();
+    return true;
+  }
+  function* buildLand(S, timed) {
+    const group = new THREE.Group();
+    let tp = performance.now();
+    const part = (k) => {
+      if (!timed) return;
+      const n = performance.now();
+      PF.parts[k] = n - tp;
+      tp = n;
+    };
+    const base = yield* makeTerrainG(S);
+    part("land");
+    yield;
+    const T2 = base, land = T2.land, pal = land.biomes.map((b) => ({
       cols: b.colors.map((c2) => new THREE.Color(c2)),
       lush: new THREE.Color(b.lush !== void 0 ? b.lush : b.id === "taiga" ? 6126200 : 6261317)
     })), paved = new THREE.Color(9210502), c = new THREE.Color(), cb = new THREE.Color(), lush = new THREE.Color(), centre = (t) => (t + 0.5) * TS - HALF, springs = land.sites.filter((q2) => q2.st.kind === "spring").map((q2) => ({ x: centre(q2.x), z: centre(q2.y) }));
+    const springsNear = {}, NONE2 = [];
+    for (const sp of springs)
+      for (let dz = -2; dz <= 2; dz++)
+        for (let dx = -2; dx <= 2; dx++) {
+          const k = T2.etile(sp.x + dx * TS, sp.z + dz * TS);
+          (springsNear[k] = springsNear[k] || []).push(sp);
+        }
+    for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
     const colourAt = (x, z) => {
       const l = T2.level(x, z), mv = [T2.masks[0](x, z), T2.masks[1](x, z), T2.masks[2](x, z)];
       let total = 0;
@@ -8484,7 +10344,7 @@
       lush.multiplyScalar(1 / total);
       if (T2.roadAt(x, z)) c.lerp(paved, 0.85);
       c.multiplyScalar(0.88 + 0.2 * T2.tint(x, z));
-      for (const s of springs) {
+      for (const s of springsNear[T2.etile(x, z)] || NONE2) {
         const dx = s.x - x, dz = s.z - z;
         if (dx > 34 || dx < -34 || dz > 34 || dz < -34) continue;
         const d = Math.hypot(dx, dz);
@@ -8492,38 +10352,69 @@
       }
       return c;
     };
-    const ground = (g, sink, hollow) => {
-      const geo = new THREE.PlaneGeometry(g.half * 2, g.half * 2, g.n, g.n);
-      geo.rotateX(-Math.PI / 2);
-      const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), keep = HALF - g.cell * 1.5;
-      for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i), z = pos.getZ(i);
-        pos.setY(i, g.h[Math.round((z + g.half) / g.cell) * (g.n + 1) + Math.round((x + g.half) / g.cell)] - sink);
-        if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue;
-        const k = colourAt(x, z);
-        col[i * 3] = k.r;
-        col[i * 3 + 1] = k.g;
-        col[i * 3 + 2] = k.b;
+    const ground = function* (g, sink, hollow) {
+      const n = g.n, N1 = n + 1, cnt = N1 * N1, P4 = new Float32Array(cnt * 3), UV = new Float32Array(cnt * 2), col = new Float32Array(cnt * 3), keep = HALF - g.cell * 1.5, inner = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+      for (let iz = 0; iz <= n; iz++) {
+        const z = -g.half + iz * g.cell;
+        for (let ix = 0; ix <= n; ix++) {
+          const x = -g.half + ix * g.cell, k = iz * N1 + ix;
+          P4[k * 3] = x;
+          P4[k * 3 + 1] = g.h[k] - sink;
+          P4[k * 3 + 2] = z;
+          UV[k * 2] = ix / n;
+          UV[k * 2 + 1] = 1 - iz / n;
+          if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue;
+          const c2 = colourAt(x, z);
+          col[k * 3] = c2.r;
+          col[k * 3 + 1] = c2.g;
+          col[k * 3 + 2] = c2.b;
+        }
+        if ((iz & 3) === 3) yield;
       }
-      if (hollow) {
-        const ix = geo.index.array, out = [], inner = (i) => Math.abs(pos.getX(i)) < keep && Math.abs(pos.getZ(i)) < keep;
-        for (let i = 0; i < ix.length; i += 3)
-          if (!(inner(ix[i]) && inner(ix[i + 1]) && inner(ix[i + 2]))) out.push(ix[i], ix[i + 1], ix[i + 2]);
-        geo.setIndex(out);
-      }
+      const idx2 = new Uint32Array(n * n * 6);
+      let m2 = 0;
+      for (let iz = 0; iz < n; iz++)
+        for (let ix = 0; ix < n; ix++) {
+          const a = iz * N1 + ix, b = a + N1, c2 = b + 1, d = a + 1, za = -g.half + iz * g.cell, xa = -g.half + ix * g.cell, zb = za + g.cell, xd = xa + g.cell;
+          if (!hollow || !(inner(xa, za) && inner(xa, zb) && inner(xd, za))) {
+            idx2[m2++] = a;
+            idx2[m2++] = b;
+            idx2[m2++] = d;
+          }
+          if (!hollow || !(inner(xa, zb) && inner(xd, zb) && inner(xd, za))) {
+            idx2[m2++] = b;
+            idx2[m2++] = c2;
+            idx2[m2++] = d;
+          }
+        }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(P4, 3));
+      geo.setAttribute("uv", new THREE.BufferAttribute(UV, 2));
+      geo.setIndex(new THREE.BufferAttribute(idx2.subarray(0, m2), 1));
+      yield;
       geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-      geo.computeVertexNormals();
-      staticGroup.add(
-        new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 }))
-      );
+      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
+      if (Q.grain) {
+        const tex = GRAIN.clone();
+        tex.needsUpdate = true;
+        tex.repeat.set(g.half * 2 / 6, g.half * 2 / 6);
+        mat.map = tex;
+      }
+      group.add(new THREE.Mesh(geo, mat));
     };
-    ground(T2.fine, 0, false);
-    ground(T2.coarse, SINK, true);
+    yield* ground(T2.fine, 0, false);
+    yield* ground(T2.coarse, SINK, true);
+    part("ground");
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []);
-    const townSite = land.sites.find((q2) => q2.st.kind === "town"), townHalf = R.W * TOWN_TS / 2;
-    if (townSite) V.townAt = { x: centre(townSite.x), y: T2.height(centre(townSite.x), centre(townSite.y)), z: centre(townSite.y) };
+    const townHalf = R.W * TOWN_TS / 2, towns = land.sites.filter((q2) => q2.st.kind === "town").map((q2) => ({
+      id: q2.st.town || "town",
+      here: q2.here,
+      x: centre(q2.x),
+      y: T2.height(centre(q2.x), centre(q2.y)),
+      z: centre(q2.y)
+    }));
     const nearSite = (x, z) => {
-      if (V.townAt && Math.abs(x - V.townAt.x) < townHalf + 4 && Math.abs(z - V.townAt.z) < townHalf + 4) return true;
+      for (const t of towns) if (Math.abs(x - t.x) < townHalf + 4 && Math.abs(z - t.z) < townHalf + 4) return true;
       const site = land.siteAt[T2.etile(x, z)];
       return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;
     };
@@ -8535,12 +10426,13 @@
       m.compose(v, q, sc);
       for (let i = 0; i < 16; i++) list.push(m.elements[i]);
     };
-    for (let ey = 0; ey < EW; ey++)
+    for (let ey = 0; ey < EW; ey++) {
+      if ((ey & 3) === 3) yield;
       for (let ex = 0; ex < EW; ex++) {
-        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land.biome[en], bio = land.biomes[bi], r = T2.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8;
+        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land.biome[en], bio = land.biomes[bi], r = T2.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8, rockShare = far ? Q.rocksF : Q.rocksN;
         for (let n = Math.floor((bio.rocky !== void 0 ? bio.rocky : bio.id === "salt" ? 0.62 : 0.35) + r()); n > 0; n--) {
           const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T2.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
-          if (!nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
+          if (r() < rockShare && !nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
         }
         if (r() < 0.0125) {
           const px = x0 + r() * TS, pz = z0 + r() * TS, s = 1.8 + r() * 1.6, sy = s * (3 + r() * 2.5);
@@ -8548,7 +10440,7 @@
         }
         if (land.terrain[en] !== 3) continue;
         const tr = bio.forest.tree;
-        for (let j = 0, n = far ? Math.ceil(tr.n / 2) : tr.n; j < n; j++) {
+        for (let j = 0, n = Math.ceil(tr.n * (far ? Q.treesF : Q.treesN)); j < n; j++) {
           const px = x0 + r() * TS, pz = z0 + r() * TS, hgt = tr.h[0] + r() * (tr.h[1] - tr.h[0]), wd = tr.w * (0.7 + r() * 0.6), ry = r() * 6.28;
           if (nearSite(px, pz)) continue;
           e.set(0, ry, 0);
@@ -8559,18 +10451,22 @@
           for (let i = 0; i < 16; i++) trees[bi].push(m.elements[i]);
         }
       }
+    }
+    part("trees");
     const instances = (geom, mat, list) => {
       if (!list.length) return;
       const inst = new THREE.InstancedMesh(geom, mat, list.length / 16);
       inst.instanceMatrix.array.set(list);
       inst.frustumCulled = false;
-      staticGroup.add(inst);
+      group.add(inst);
     };
+    yield;
     pal.forEach((p, bi) => {
       instances(new THREE.IcosahedronGeometry(1, 0), std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
-      instances(new THREE.ConeGeometry(1, 1, 6), std(land.biomes[bi].forest.tree.color), trees[bi]);
+      instances(TREE, std(land.biomes[bi].forest.tree.color), trees[bi]);
     });
     for (const site of land.sites) {
+      if (site.st.kind !== "spring") yield;
       const st = site.st, x = centre(site.x), z = centre(site.y);
       if (st.kind === "spring") {
         if (site.here) continue;
@@ -8579,21 +10475,25 @@
           new THREE.MeshBasicMaterial({ color: 4165568 })
         );
         w.position.set(x, T2.height(x, z) + 0.3, z);
-        staticGroup.add(w);
+        group.add(w);
         continue;
       }
       if (st.kind === "town") {
-        const g2 = interiorGroup(R.mapOf(V.S, "town"), V.S.areas.town, TOWN_TS);
-        g2.position.set(V.townAt.x, V.townAt.y, V.townAt.z);
-        staticGroup.add(g2);
+        const id = st.town || "town", tw = towns.find((t) => t.id === id);
+        if (!S.areas[id] || !R.mapOf(S, id) || !tw) continue;
+        const g2 = interiorGroup(R.mapOf(S, id), S.areas[id], TOWN_TS);
+        g2.position.set(tw.x, tw.y, tw.z);
+        group.add(g2);
         continue;
       }
-      const g = BUILD[st.kind](V.S);
+      if (!BUILD[st.kind]) continue;
+      const g = BUILD[st.kind](S);
       g.position.set(x, T2.height(x, z), z);
       if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
-      staticGroup.add(g);
+      group.add(g);
     }
-    applyFrame();
+    part("places");
+    return { group, base, towns };
   }
   function buildDynamic() {
     dispose(dynGroup);
@@ -8602,7 +10502,7 @@
     const kind2 = R.areaRec(V.S).kind;
     if (kind2 === "vault") return drawArea(V.S.area, "vault");
     drawArea(R.outdoorRec(V.S).id, "region");
-    if (V.townAt && V.S.areas.town) drawArea("town", "town");
+    if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, "town");
   }
   function drawArea(id, kind2) {
     const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind2 !== "region", ts = kind2 === "town" ? TOWN_TS : kind2 === "vault" ? G2.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
@@ -8636,7 +10536,7 @@
       for (const k in map.sites) {
         const st = map.sites[k], [x, y, z] = at(+k), g = interiorSite(st, ts, kind2 === "town");
         g.position.set(x, y, z);
-        if (st.kind === "elder" || st.kind === "inn" || st.kind === "shop") g.rotation.y = Math.atan2(P2.x - x, P2.z - z);
+        if (st.kind === "elder" || st.kind === "inn" || st.kind === "shop") g.rotation.y = Math.atan2(P3.x - x, P3.z - z);
         dynGroup.add(g);
       }
     const camp = V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
@@ -8653,7 +10553,10 @@
     for (const c of map.creatures) {
       const fighting = current && V.S.combat && V.S.combat.cid === c.id;
       if (c.bound && !fighting) continue;
-      const sp = R.spOf(V.S, c), g = new THREE.Group(), col = sp.rare === "gilded" ? 14263584 : sp.rare === "docile" ? 8367738 : R.biomeOf(V.S).creatureTint, mat = std(col), k = (sp.rare === "elder" ? 1.45 : 1) * (0.9 + c.tier * 0.12), eye = new THREE.MeshBasicMaterial({ color: 16726831, fog: false });
+      const sp = R.spOf(V.S, c), g = new THREE.Group(), col = sp.rare === "gilded" ? 14263584 : sp.rare === "docile" ? 8367738 : R.biomeOf(V.S).creatureTint, mat = std(col), k = (sp.rare === "elder" ? 1.45 : 1) * (0.9 + c.tier * 0.12), eye = new THREE.MeshBasicMaterial({
+        color: sp.rare === "docile" ? 10478495 : sp.temper === "hunter" ? 16726831 : sp.temper === "skittish" ? 16769130 : 16751146,
+        fog: false
+      });
       if (sp.form === "hound")
         g.add(
           box(0.6, 0.7, 1.7, mat, 0, 0.8, 0),
@@ -8691,14 +10594,14 @@
       g.scale.setScalar(k * (sp.form === "wight" ? 0.85 : 1.1));
       let x, y, z;
       if (fighting) {
-        x = P2.x - Math.sin(P2.yaw) * (indoor ? 3 : 7.5);
-        z = P2.z - Math.cos(P2.yaw) * (indoor ? 3 : 7.5);
-        P2.pitch = 0;
+        x = P3.x - Math.sin(P3.yaw) * (indoor ? 3 : 7.5);
+        z = P3.z - Math.cos(P3.yaw) * (indoor ? 3 : 7.5);
+        P3.pitch = 0;
         y = ground(x, z);
-        g.rotation.y = P2.yaw;
+        g.rotation.y = P3.yaw;
       } else {
         [x, y, z] = at(c.y * R.W + c.x, -4 * off, -5 * off);
-        g.rotation.y = Math.atan2(P2.x - x, P2.z - z);
+        g.rotation.y = Math.atan2(P3.x - x, P3.z - z);
       }
       if (!indoor)
         for (const [ox2, oz] of [
@@ -8727,6 +10630,129 @@
     camera.updateProjectionMatrix();
   }
 
+  // src/view/sky.js
+  var SKY_R = 1800;
+  var dome = null;
+  var sunDisc = null;
+  var moonDisc = null;
+  var fall = null;
+  var fallKind = "";
+  var fallN = 0;
+  function makeDome() {
+    const g = new THREE.SphereGeometry(SKY_R, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2 + 0.15), pos = g.attributes.position, col = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+      const up = Math.max(0, pos.getY(i) / SKY_R), k = 1 - 0.38 * Math.pow(up, 0.8);
+      col[i * 3] = k * 0.92;
+      col[i * 3 + 1] = k * 0.97;
+      col[i * 3 + 2] = Math.min(1, k * 1.08);
+    }
+    g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const m = new THREE.Mesh(
+      g,
+      new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })
+    );
+    m.renderOrder = -10;
+    m.frustumCulled = false;
+    return m;
+  }
+  var disc = (r, color) => {
+    const m = new THREE.Mesh(
+      new THREE.CircleGeometry(r, 20),
+      new THREE.MeshBasicMaterial({ color, fog: false, transparent: true, depthWrite: false })
+    );
+    m.renderOrder = -9;
+    m.frustumCulled = false;
+    return m;
+  };
+  function kindOf3(name) {
+    const n = (name || "").toLowerCase();
+    if (/snow|blizzard/.test(n)) return "snow";
+    if (/hail/.test(n)) return "hail";
+    if (/dust|sand|gale|wind/.test(n)) return "dust";
+    if (/ash/.test(n)) return "ash";
+    if (/star/.test(n)) return "stars";
+    if (/fog/.test(n)) return "";
+    return "rain";
+  }
+  var FALL = {
+    rain: { color: 10466504, size: 0.12, speed: 26, drift: 1, n: 1 },
+    hail: { color: 15265522, size: 0.2, speed: 18, drift: 1, n: 0.6 },
+    snow: { color: 16777215, size: 0.22, speed: 2.2, drift: 1.6, n: 1 },
+    dust: { color: 13215610, size: 0.18, speed: 0.6, drift: 9, n: 1 },
+    ash: { color: 4867908, size: 0.2, speed: 1.5, drift: 2, n: 0.8 },
+    stars: { color: 16771496, size: 0.6, speed: 40, drift: 4, n: 0.05 }
+  };
+  var BOX = 40;
+  function makeFall(kind2) {
+    const f = FALL[kind2], n = Math.max(1, Math.round(Q.weather * f.n)), pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * BOX * 2;
+      pos[i * 3 + 1] = Math.random() * BOX;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * BOX * 2;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const m = new THREE.Points(
+      g,
+      new THREE.PointsMaterial({ color: f.color, size: f.size, transparent: true, opacity: 0.85, depthWrite: false })
+    );
+    m.frustumCulled = false;
+    fallN = n;
+    return m;
+  }
+  function updateSky(skyColor, sunPos, day, storm, dt) {
+    const on2 = Q.sky && !R.isDark(V.S);
+    if (on2 && !dome) {
+      dome = makeDome();
+      sunDisc = disc(70, 16773832);
+      moonDisc = disc(40, 14673648);
+      scene.add(dome, sunDisc, moonDisc);
+    }
+    if (dome) {
+      dome.visible = sunDisc.visible = moonDisc.visible = on2;
+      if (on2) {
+        dome.position.copy(camera.position);
+        dome.material.color.copy(skyColor);
+        const d = sunPos.clone().normalize().multiplyScalar(SKY_R * 0.95);
+        sunDisc.position.copy(camera.position).add(d);
+        sunDisc.lookAt(camera.position);
+        sunDisc.material.opacity = storm ? 0 : Math.max(0, Math.min(1, day * 1.5));
+        moonDisc.position.copy(camera.position).sub(d.setY(Math.abs(d.y)));
+        moonDisc.lookAt(camera.position);
+        moonDisc.material.opacity = storm ? 0 : Math.max(0, 0.9 - day * 1.6);
+      }
+    }
+    const kind2 = Q.weather > 0 && storm && !R.indoors(V.S) ? kindOf3(storm.name) : "";
+    if (kind2 !== fallKind || fall && fallN !== Math.max(1, Math.round(Q.weather * (FALL[kind2] || { n: 1 }).n))) {
+      if (fall) {
+        scene.remove(fall);
+        fall.geometry.dispose();
+        fall.material.dispose();
+        fall = null;
+      }
+      fallKind = kind2;
+      if (kind2) scene.add(fall = makeFall(kind2));
+    }
+    if (fall) {
+      const f = FALL[kind2], a = fall.geometry.attributes.position, p = a.array, wind = Math.sin(performance.now() / 3e3) * f.drift;
+      for (let i = 0; i < p.length; i += 3) {
+        p[i + 1] -= f.speed * dt;
+        p[i] += wind * dt;
+        p[i + 2] += f.drift * 0.3 * dt;
+        if (p[i + 1] < 0) p[i + 1] += BOX;
+        if (p[i] > BOX) p[i] -= 2 * BOX;
+        if (p[i] < -BOX) p[i] += 2 * BOX;
+        if (p[i + 2] > BOX) p[i + 2] -= 2 * BOX;
+      }
+      a.needsUpdate = true;
+      fall.position.set(P3.x, P3.y - BOX * 0.4, P3.z);
+    }
+  }
+  function hideSky() {
+    if (dome) dome.visible = sunDisc.visible = moonDisc.visible = false;
+    if (fall) fall.visible = false;
+  }
+
   // src/view/run.js
   var codex = {};
   try {
@@ -8746,7 +10772,11 @@
   function save() {
     try {
       if (!V.S || V.S.over && (V.S.over.won || R.livesLeft(V.S) <= 0)) localStorage.removeItem(KEY);
-      else localStorage.setItem(KEY, R.serialize(V.S));
+      else {
+        const text = R.serialize(V.S);
+        perfSave(text.length);
+        localStorage.setItem(KEY, text);
+      }
     } catch (e) {
     }
   }
@@ -8765,11 +10795,11 @@
   }
   function placePlayer() {
     const indoor = R.indoors(V.S);
-    P2.x = tileX(V.S.player.x) + (indoor ? 0 : 6);
-    P2.z = tileX(V.S.player.y) + (indoor ? 0 : 7);
-    P2.y = V.terrain.height(P2.x, P2.z) + EYE;
-    P2.pitch = 0;
-    P2.walked = 0;
+    P3.x = tileX(V.S.player.x) + (indoor ? 0 : 6);
+    P3.z = tileX(V.S.player.y) + (indoor ? 0 : 7);
+    P3.y = V.terrain.height(P3.x, P3.z) + EYE;
+    P3.pitch = 0;
+    P3.walked = 0;
     if (indoor) {
       let best = 0, bestRun = -1;
       [
@@ -8787,10 +10817,10 @@
           best = i;
         }
       });
-      P2.yaw = [0, -Math.PI / 2, Math.PI, Math.PI / 2][best];
+      P3.yaw = [0, -Math.PI / 2, Math.PI, Math.PI / 2][best];
     } else {
       const t = R.localPos(V.S, R.townArea(V.S), V.S.town.x, V.S.town.y);
-      P2.yaw = Math.atan2(-(tileX(t.x) - P2.x), -(tileX(t.y) - P2.z));
+      P3.yaw = Math.atan2(-(tileX(t.x) - P3.x), -(tileX(t.y) - P3.z));
     }
     shown.t = V.S.time;
     shown.area = V.S.area;
@@ -8850,8 +10880,8 @@
     if (k.s || k.arrowdown) fy -= 1;
     if (k.d) fx += 1;
     if (k.a) fx -= 1;
-    if (k.arrowleft || k.q) P2.yaw += 1.9 * dt;
-    if (k.arrowright || k.e) P2.yaw -= 1.9 * dt;
+    if (k.arrowleft || k.q) P3.yaw += 1.9 * dt;
+    if (k.arrowright || k.e) P3.yaw -= 1.9 * dt;
     let mag = Math.hypot(fx, fy);
     if (mag < 0.05) return;
     if (mag > 1) {
@@ -8859,29 +10889,29 @@
       fy /= mag;
       mag = 1;
     }
-    const sn = Math.sin(P2.yaw), cs = Math.cos(P2.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx, mc = R.moveCost(V.S, V.S.player.x, V.S.player.y), indoor = R.indoors(V.S), sp = VIEW.speed * (indoor ? 0.65 : clamp2(mc.base / mc.mins, 0.3, 1.15));
-    const inTown = R.areaRec(V.S).kind === "town", open = R.inOverworld(V.S) || inTown, lim = open ? G2.half + 1 : G2.half - 1, tileOf = open ? (x) => Math.floor((x + G2.half) / G2.ts) : toTile;
-    let nx = clamp2(P2.x + dx * sp * dt, -lim, lim), nz = clamp2(P2.z + dz * sp * dt, -lim, lim);
-    const pad = indoor ? 0.6 : 0, blocked = (x, z) => !R.passable(V.S, toTile(x + Math.sign(x - P2.x) * pad), toTile(z)) || !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P2.z) * pad));
+    const sn = Math.sin(P3.yaw), cs = Math.cos(P3.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx, mc = R.moveCost(V.S, V.S.player.x, V.S.player.y), indoor = R.indoors(V.S), sp = VIEW.speed * (indoor ? 0.65 : clamp2(mc.base / mc.mins, 0.3, 1.15));
+    const inTown2 = R.areaRec(V.S).kind === "town", open = R.inOverworld(V.S) || inTown2, lim = open ? G2.half + 1 : G2.half - 1, tileOf = open ? (x) => Math.floor((x + G2.half) / G2.ts) : toTile;
+    let nx = clamp2(P3.x + dx * sp * dt, -lim, lim), nz = clamp2(P3.z + dz * sp * dt, -lim, lim);
+    const pad = indoor ? 0.6 : 0, blocked = (x, z) => !R.passable(V.S, toTile(x + Math.sign(x - P3.x) * pad), toTile(z)) || !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P3.z) * pad));
     if (indoor && blocked(nx, nz)) {
-      if (!blocked(nx, P2.z)) nz = P2.z;
-      else if (!blocked(P2.x, nz)) nx = P2.x;
+      if (!blocked(nx, P3.z)) nz = P3.z;
+      else if (!blocked(P3.x, nz)) nx = P3.x;
       else return;
     }
     let enterAt = null;
     const townTile = (x, z) => {
-      if (indoor || !V.townAt || !V.S.areas.town) return null;
+      if (indoor || !V.townAt || !V.townId || !V.S.areas[V.townId]) return null;
       const h = R.W * TOWN_TS / 2, tx2 = Math.floor((x - V.townAt.x + h) / TOWN_TS), tz2 = Math.floor((z - V.townAt.z + h) / TOWN_TS);
       return tx2 >= 0 && tz2 >= 0 && tx2 < R.W && tz2 < R.H ? { x: tx2, y: tz2 } : null;
     };
     {
-      const tm = !indoor && V.townAt ? R.mapOf(V.S, "town") : null, wall = (x, z) => {
+      const tm = !indoor && V.townAt && V.townId ? R.mapOf(V.S, V.townId) : null, wall = (x, z) => {
         const t = townTile(x, z);
         return !!(t && tm && tm.terrain[t.y * R.W + t.x] === R.WALL);
       };
       if (tm && wall(nx, nz)) {
-        if (!wall(nx, P2.z)) nz = P2.z;
-        else if (!wall(P2.x, nz)) nx = P2.x;
+        if (!wall(nx, P3.z)) nz = P3.z;
+        else if (!wall(P3.x, nz)) nx = P3.x;
         else return;
       }
       enterAt = townTile(nx, nz);
@@ -8895,15 +10925,15 @@
         render();
         return;
       }
-      if (V.S.area !== wasArea && (inTown || R.areaRec(V.S).kind === "town") && shown.land === landKey()) {
+      if (V.S.area !== wasArea && (inTown2 || R.areaRec(V.S).kind === "town") && shown.land === landKey()) {
         const was = { x: FR.x, y: FR.y, z: FR.z };
         applyFrame();
         nx += was.x - FR.x;
         nz += was.z - FR.z;
-        P2.y += was.y - FR.y;
+        P3.y += was.y - FR.y;
         shown.area = V.S.area;
       } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {
-        buildStatic();
+        buildStaticSoon(Math.floor(tx / R.W), Math.floor(tz / R.H));
         shown.area = V.S.area;
         shown.land = landKey();
         nx -= Math.floor(tx / R.W) * 2 * G2.half;
@@ -8918,9 +10948,9 @@
         return;
       }
     }
-    P2.walked += Math.hypot(nx - P2.x, nz - P2.z);
-    P2.x = nx;
-    P2.z = nz;
+    P3.walked += Math.hypot(nx - P3.x, nz - P3.z);
+    P3.x = nx;
+    P3.z = nz;
   }
   var DIRN = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   function frame() {
@@ -8930,7 +10960,7 @@
     if (V.base.share && V.base.share.length > 1) {
       dayC.setRGB(0, 0, 0);
       V.base.share.forEach((f, i) => {
-        const w = f(P2.x + FR.x, P2.z + FR.z);
+        const w = f(P3.x + FR.x, P3.z + FR.z);
         mixC.setHex(V.base.land.biomes[i].sky);
         dayC.r += mixC.r * w;
         dayC.g += mixC.g * w;
@@ -8949,7 +10979,8 @@
       sun.intensity = 0;
       lamp.intensity = lit ? 1.1 : 0.25;
       lamp.distance = lit ? 26 : 6;
-      lamp.position.set(P2.x, P2.y + 0.8, P2.z);
+      lamp.position.set(P3.x, P3.y + 0.8, P3.z);
+      hideSky();
       return finishFrame();
     }
     lamp.distance = 45;
@@ -8957,7 +10988,7 @@
     if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
     scene.background.copy(skyC);
     scene.fog.color.copy(skyC);
-    const sight = R.stat(V.S, "nightSight", 0) > 0, far = storm ? 85 : lerp(sight ? 260 : 110, 620, day);
+    const sight = R.stat(V.S, "nightSight", 0) > 0, far = Math.min(storm ? 85 : lerp(sight ? 260 : 110, 620, day), Q.margin * TS * 0.95);
     shown.far = lerp(shown.far, far, 0.05);
     scene.fog.far = shown.far;
     scene.fog.near = Math.min(40, shown.far * 0.2);
@@ -8966,25 +10997,33 @@
     const sa = (h - 6) / 14 * Math.PI;
     sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
     lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
-    lamp.position.set(P2.x, P2.y + 0.3, P2.z);
+    lamp.position.set(P3.x, P3.y + 0.3, P3.z);
+    updateSky(skyC, sun.position, day, storm ? R.stormOfNow(V.S) : null, frameDt);
     finishFrame();
   }
   function finishFrame() {
-    const target = V.terrain.height(P2.x, P2.z) + EYE + (still ? 0 : Math.sin(P2.walked * 1.7) * 0.05);
-    P2.y = lerp(P2.y, target, 0.35);
-    camera.position.set(P2.x, P2.y, P2.z);
-    camera.rotation.set(P2.pitch, P2.yaw, 0);
-    const deg = (-P2.yaw * 180 / Math.PI % 360 + 360) % 360;
+    const target = V.terrain.height(P3.x, P3.z) + EYE + (still ? 0 : Math.sin(P3.walked * 1.7) * 0.05);
+    P3.y = lerp(P3.y, target, 0.35);
+    camera.position.set(P3.x, P3.y, P3.z);
+    camera.rotation.set(P3.pitch, P3.yaw, 0);
+    const deg = (-P3.yaw * 180 / Math.PI % 360 + 360) % 360;
     $("facing").textContent = "Facing " + DIRN[Math.round(deg / 45) % 8];
     renderer.render(scene, camera);
+    perfFrame(renderer);
   }
   var last = performance.now();
+  var frameDt = 0.016;
+  var BUILD_BUDGET = 5;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1e3);
+    frameDt = dt;
     last = now;
     if (V.S) {
+      const t0 = performance.now();
       tick(dt, now);
+      stepBuild(BUILD_BUDGET);
       frame();
+      perfWork(performance.now() - t0);
     }
     requestAnimationFrame(loop);
   }
@@ -9242,6 +11281,85 @@
       ])
     ]);
   }
+  function craftRows() {
+    const list = R.recipes(V.S);
+    if (!list.length) return [];
+    const m = V.S.player.mats || {}, have = R.C.crafting.mats.filter((x) => m[x.id] > 0);
+    return [
+      el("h3", { text: "Materials" }),
+      el("p", {
+        cls: "note",
+        text: (have.length ? have.map((x) => m[x.id] + " " + x.name.toLowerCase()).join(", ") + ", and " : "") + Math.floor(V.S.player.fuel) + " wood (your fuel). Hides and bone come from kills, salvage from ruins and caches, herbs from gathering wood."
+      }),
+      el("h3", { text: "Make" }),
+      el(
+        "ul",
+        { cls: "items" },
+        list.map(
+          ({ r, ok }) => el("li", { cls: "item" }, [
+            el("div", null, [
+              el("strong", { text: r.name }),
+              el("p", {
+                text: r.text + " Needs " + Object.keys(r.needs).map((k) => r.needs[k] + " " + (k === "fuel" ? "wood" : R.byId(R.C.crafting.mats, k).name.toLowerCase())).join(", ") + "; " + r.mins + " min."
+              })
+            ]),
+            ok ? btn("Make", () => {
+              act(() => R.craft(V.S, r.id));
+              if (r.makes === "shelter") buildStatic();
+              if (!V.S.over) openPack();
+            }) : el("span", { cls: "wt", text: "" })
+          ])
+        )
+      )
+    ];
+  }
+  function marketRows(t, re) {
+    const rows = R.market(V.S);
+    if (!rows.length) return [];
+    const made = rows.filter((m2) => m2.made), tip = made.length ? R.bestMarket(V.S, made[0].id) : null, m = V.S.player.mats || {}, mats2 = (R.C.crafting ? R.C.crafting.mats : []).filter((x) => m[x.id] > 0);
+    return [
+      el("h3", { text: "Market" }),
+      el("p", {
+        cls: "note",
+        text: (made.length ? t.name + " makes " + made.map((x) => x.name.toLowerCase()).join(" and ") + ", and sells it cheap." : t.name + " makes nothing to trade, and pays well for what others make.") + (tip && tip.t !== t ? " " + t.merchant + ': "' + made[0].name + " fetch the most in " + tip.t.name + '."' : "")
+      }),
+      el(
+        "ul",
+        { cls: "items" },
+        rows.map(
+          (g) => el("li", { cls: "item" }, [
+            el("div", null, [
+              el("strong", { text: g.name + (g.have ? " (you have " + g.have + ")" : "") }),
+              el("p", { text: g.text + " " + g.wt + " wt each." + (g.made ? " Made here: " + g.stock + " left." : "") })
+            ]),
+            el("div", { cls: "row" }, [
+              g.stock > 0 ? btn(
+                "Buy " + g.buy,
+                re(() => R.buyGood(V.S, g.id))
+              ) : null,
+              g.have > 0 ? btn(
+                "Sell " + g.sell,
+                re(() => R.sellGood(V.S, g.id))
+              ) : null
+            ])
+          ])
+        )
+      ),
+      ...mats2.length ? [
+        el("h3", { text: "Materials" }),
+        el(
+          "div",
+          { cls: "row" },
+          mats2.map(
+            (x) => btn(
+              "Sell " + x.name.toLowerCase() + " (" + m[x.id] + "), " + x.value + " each",
+              re(() => R.sellMat(V.S, x.id))
+            )
+          )
+        )
+      ] : []
+    ];
+  }
   function openPack() {
     const d = R.depotHere(V.S);
     openModal("Pack", [
@@ -9256,6 +11374,7 @@
         d.items.map((it) => itemRow(it, "here"))
       ) : el("p", { cls: "note", text: "No gear here." }),
       el("ul", { cls: "items" }, [resRow("water", "Water (1 wt each)"), resRow("fuel", "Fuel (0.5 wt each)")]),
+      ...craftRows(),
       el("h3", { text: "Carrying" }),
       V.S.player.items.length ? el(
         "ul",
@@ -9311,8 +11430,9 @@
   }
   function openTown(section) {
     if (!["elder", "inn", "shop"].includes(section)) return openService();
-    if (section === "elder" && !V.S.quest.told) act(() => R.talkElder(V.S));
-    const t = V.S.town, p = V.S.player, T2 = R.C.town, race = R.byId(R.C.races, t.race).name.toLowerCase(), re = (fn) => () => {
+    const t = R.curTown(V.S);
+    if (section === "elder" && (!V.S.quest.told || t !== V.S.town)) act(() => R.talkElder(V.S));
+    const p = V.S.player, T2 = R.C.town, race = R.byId(R.C.races, t.race).name.toLowerCase(), re = (fn) => () => {
       act(fn);
       if (!V.S.over) openTown(section);
     };
@@ -9357,7 +11477,15 @@
             re(() => R.talkElder(V.S)),
             "small"
           )
-        ])
+        ]),
+        ...R.plotChoices(V.S).map(
+          (o) => el("div", { cls: "row" }, [
+            btn(
+              o.label,
+              re(() => R.choosePlot(V.S, o.plot, o.id))
+            )
+          ])
+        )
       ]);
     else if (section === "inn")
       openModal("The inn", [
@@ -9397,7 +11525,8 @@
         el("h3", { text: "For sale" }),
         el("ul", { cls: "items" }, stock),
         el("h3", { text: "Your goods" }),
-        mine.length ? el("ul", { cls: "items" }, mine) : el("p", { cls: "note", text: "Nothing they would buy." })
+        mine.length ? el("ul", { cls: "items" }, mine) : el("p", { cls: "note", text: "Nothing they would buy." }),
+        ...marketRows(t, re)
       ]);
   }
   function showEnd() {
@@ -9406,7 +11535,17 @@
       cls: "note",
       text: "This world: " + R.biomeOf(V.S).name + ", shrine of " + R.godOf(V.S).name + ". Its people were " + R.civOf(V.S).name + ". Seed " + V.S.seed + "."
     });
-    if (won)
+    if (won && V.S.over.ending)
+      openModal(R.byId(R.C.plots.kinds, V.S.over.plot).name + ": the end", [
+        el("p", { text: V.S.over.ending }),
+        el("p", { text: who + ", on day " + c.day + ", traveller " + V.S.travellers + " of this world." }),
+        world,
+        el("div", { cls: "row" }, [
+          btn("New world", () => start(randomSeed()), "primary"),
+          btn("Same world again", () => start(V.S.seed))
+        ])
+      ]);
+    else if (won)
       openModal("The " + V.S.quest.relic + " is home", [
         el("p", {
           text: who + " carried it to the " + V.S.quest.dest + " on day " + c.day + ", traveller " + V.S.travellers + " of this world."
@@ -9456,7 +11595,14 @@
     inn: "#8a6a1f",
     shop: "#2f7fb5",
     hamlet: "#d8c9a0",
-    trap: "#e0302a"
+    trap: "#e0302a",
+    den: "#5a2a22",
+    camp: "#c0612f",
+    lost: "#e8d27a",
+    stone: "#111111",
+    herbs: "#6fae4f",
+    siege: "#c0612f",
+    shelter: "#a07a4a"
   };
   var INDOOR_COLS = { 6: "#3a3631", 7: "#9a948a" };
   var mapView = { zoom: 54, dx: 0, dy: 0 };
@@ -9503,7 +11649,7 @@
         g.arc((c.x + 0.5) * ts, (c.y + 0.5) * ts, 4, 0, 7);
         g.fill();
       }
-    youAt(g, (P2.x + G2.half) / G2.ts * ts, (P2.z + G2.half) / G2.ts * ts);
+    youAt(g, (P3.x + G2.half) / G2.ts * ts, (P3.z + G2.half) / G2.ts * ts);
   }
   function youAt(g, px, py) {
     g.beginPath();
@@ -9515,7 +11661,7 @@
     g.stroke();
     g.beginPath();
     g.moveTo(px, py);
-    g.lineTo(px - Math.sin(P2.yaw) * 12, py - Math.cos(P2.yaw) * 12);
+    g.lineTo(px - Math.sin(P3.yaw) * 12, py - Math.cos(P3.yaw) * 12);
     g.strokeStyle = "#fff";
     g.stroke();
   }
@@ -9567,7 +11713,7 @@
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = "#10151d";
     g.fillRect(0, 0, css, css);
-    const wp = R.worldPos(S), fx = R.inOverworld(S) ? (P2.x + G2.half) / G2.ts - S.player.x : 0.5, fy = R.inOverworld(S) ? (P2.z + G2.half) / G2.ts - S.player.y : 0.5, youX = wp.x + fx, youY = wp.y + fy, x0 = youX + mapView.dx - n / 2, y0 = youY + mapView.dy - n / 2;
+    const wp = R.worldPos(S), fx = R.inOverworld(S) ? (P3.x + G2.half) / G2.ts - S.player.x : 0.5, fy = R.inOverworld(S) ? (P3.z + G2.half) / G2.ts - S.player.y : 0.5, youX = wp.x + fx, youY = wp.y + fy, x0 = youX + mapView.dx - n / 2, y0 = youY + mapView.dy - n / 2;
     const regions = {};
     const regionAt = (gx, gy) => {
       const rx = Math.floor(gx / R.W), ry = Math.floor(gy / R.H), cx = wrapN(w.home.cx + rx, w.cols), cy = wrapN(w.home.cy + ry, w.rows), id = R.regionId(S, cx, cy);
@@ -9658,7 +11804,7 @@
         text: "Your goal is on the top panel, with a direction when you know one. It begins with finding the town, whose smoke you can see from far off. Phone: left thumb walks, right thumb looks. Computer: W A S D to walk, drag the view or use Q and E to turn."
       }),
       el("p", {
-        text: "Time only passes when you walk or act, so stop whenever you want to think. Creatures are rare and usually visible before they reach you; a fight is turn by turn, and fleeing is often the right call. Water drains as you travel. Cold drains warmth at night and in storms. Stamina keeps you alive when either runs out."
+        text: "Time only passes when you walk or act, so stop whenever you want to think. Creatures are rare and usually visible before they reach you; a fight is turn by turn, and fleeing is often the right call. A creature's eyes tell its temper: red hunts you, orange guards its ground, yellow keeps to itself. Water drains as you travel. Cold drains warmth at night and in storms. Stamina keeps you alive when either runs out."
       }),
       el("p", {
         text: "You cannot carry enough water to cross in one go. Look for green ground and blue pools, search ruins and caves, leave water and fuel as depots from the Pack screen, and move your camp forward to a cave or ruin."
@@ -9670,6 +11816,35 @@
       el("p", {
         text: ((o) => o.text + (o.dir && o.dir !== "here" ? ", to the " + o.dir : "") + ".")(R.objective(V.S)) + (V.S.quest.told ? " " + V.S.town.elder + " of " + V.S.town.name + " told you: the " + V.S.quest.relic + " lies in the " + V.S.quest.vault.name + " and belongs at the " + V.S.quest.dest + "." : " The town will know what this land needs.")
       }),
+      ...(() => {
+        const known = R.plotsOf(V.S).filter((p) => p.kind === "relic" ? V.S.quest.told && !p.main : p.known);
+        if (!known.length) return [];
+        const cur = R.tracked(V.S);
+        return [
+          el("h3", { text: "Troubles" }),
+          el(
+            "ul",
+            { cls: "items" },
+            known.map((p) => {
+              const k = R.byId(R.C.plots.kinds, p.kind), o = p.kind === "relic" ? { text: k.text } : R.plotObjective(V.S, p);
+              return el("li", { cls: "item" }, [
+                el("div", null, [
+                  el("strong", { text: k.name + (p.main ? " (the great trouble)" : "") }),
+                  el("p", {
+                    text: p.done ? "Done." : p.failed ? "Failed." : o.text + (o.dir && o.dir !== "here" ? ", to the " + o.dir : "") + "."
+                  })
+                ]),
+                !p.done && !p.failed && cur !== p ? btn("Follow", () => {
+                  R.trackPlot(V.S, p.id);
+                  render();
+                  save();
+                  openMenu();
+                }) : el("span", { cls: "wt", text: cur === p ? "followed" : "" })
+              ]);
+            })
+          )
+        ];
+      })(),
       el("h3", { text: "Traveller" }),
       el("p", {
         text: R.charTitle(V.S.char) + ", traveller " + V.S.travellers + " of " + V.S.tun.lives + ". " + R.byId(R.C.races, V.S.char.race).text + " " + R.byId(R.C.classes, V.S.char.cls).text
@@ -9785,6 +11960,40 @@
         });
         return el("div", null, [box2, el("div", { cls: "row" }, [copy, loadIt]), msg]);
       })(),
+      el("h3", { text: "Settings" }),
+      el("p", {
+        cls: "note",
+        text: "Graphics quality for this device. Low draws less land and fewer trees, at a lower resolution: use it if the game stutters. Smoothing of edges changes the next time the page is loaded."
+      }),
+      el(
+        "div",
+        { cls: "row" },
+        Object.keys(QUALITY).map(
+          (k) => btn(
+            QUALITY[k].label + (SET.quality === k ? " (now)" : ""),
+            () => {
+              setQuality(k);
+              renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
+              resize();
+              buildStatic();
+              buildDynamic();
+              openMenu();
+            },
+            SET.quality === k ? "primary" : ""
+          )
+        )
+      ),
+      (() => {
+        const cb = el("input", { type: "checkbox", id: "perf-meter" });
+        cb.checked = !!SET.meter;
+        cb.addEventListener("change", () => {
+          SET.meter = cb.checked;
+          saveSettings();
+        });
+        return el("ul", { cls: "items" }, [
+          el("li", { cls: "item" }, [el("label", { for: "perf-meter", text: "Show the performance meter" }), cb])
+        ]);
+      })(),
       el("h3", { text: "Tinker" }),
       el("p", { cls: "note", text: "Switch whole systems off, or change the numbers while you play." }),
       sw,
@@ -9809,8 +12018,8 @@
   }
   var cv = $("c");
   var look = (mx, my, k) => {
-    P2.yaw -= mx * k;
-    P2.pitch = clamp2(P2.pitch - my * k, -1.2, 1.2);
+    P3.yaw -= mx * k;
+    P3.pitch = clamp2(P3.pitch - my * k, -1.2, 1.2);
   };
   document.addEventListener("keydown", (e) => {
     if (!$("modal").hidden) {
@@ -9930,13 +12139,24 @@
     get S() {
       return V.S;
     },
-    P: P2,
+    P: P3,
     V,
     VIEW,
     input,
     scene,
     renderer,
     buildStatic,
+    PF,
+    Q,
+    setQuality(name) {
+      setQuality(name);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
+      resize();
+    },
+    // a fresh world on this seed, without the character screen (for the benchmark)
+    newWorld(seed) {
+      enter(R.newGame(seed));
+    },
     // for tests and tinkering from the console: redraw everything after changing the state by hand
     refresh() {
       sync();

@@ -81,7 +81,10 @@ on('worldBorn', (s, d) => {
   let prev = s.world.home;
   for (let n = 0; n < 4; n++) {
     const fresh = (list) => list.filter((o) => o.id !== HOME && !chain.some((c) => c.id === o.id));
-    let opts = fresh(side(prev));
+    // keep to the ring of regions round home where it can, so a large world does not push the story into the far,
+    // more dangerous country (the far country is for whoever goes looking)
+    let opts = fresh(side(prev)).filter((o) => near.some((n) => n.id === o.id));
+    if (!opts.length) opts = fresh(side(prev));
     if (!opts.length) opts = fresh(near);
     if (!opts.length) opts = near;
     const pick = opts[Math.floor(r() * opts.length)];
@@ -281,3 +284,4 @@ function waterAt(s, gx, gy, known) {
       }
 }
 SWITCHES.push(['plot', 'The plot across the world (new worlds)']);
+export { spot, flatten, regionMap, waterAt, road };

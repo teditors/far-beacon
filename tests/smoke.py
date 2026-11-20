@@ -8,7 +8,7 @@ SHOTS = '--shots' in sys.argv
 async def main():
     os.makedirs(os.path.join(ROOT, 'build/shots'), exist_ok=True)
     async with async_playwright() as p:
-        b = await p.chromium.launch(args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
+        b = await p.chromium.launch(args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], **({'executable_path': os.environ['CHROME']} if os.environ.get('CHROME') else {}))
         pg = await b.new_page(viewport={'width': 390, 'height': 780})
         errs = []
         pg.on('pageerror', lambda e: errs.append(str(e)))
@@ -27,6 +27,16 @@ async def main():
         await shot('2-walk')
         for b_ in ['#btn-pack', '#btn-map', '#btn-menu']:
             await pg.click(b_); await pg.wait_for_timeout(150); await pg.click('#modal-close'); steps.append(b_[5:])
+        # the performance meter, turned on from Menu, and the low quality setting
+        await pg.click('#btn-menu'); await pg.wait_for_timeout(150)
+        await pg.locator('#modal-body button', has_text='Low').click(); await pg.wait_for_timeout(300)
+        await pg.check('#perf-meter'); await pg.click('#modal-close'); await pg.wait_for_timeout(1200)
+        meter = await pg.evaluate("()=>{const e=document.getElementById('perf');return e&&!e.hidden?e.textContent:''}")
+        assert 'fps' in meter and 'draws' in meter and 'low' in meter, 'performance meter not shown: %r' % meter
+        steps.append('meter: ' + meter.split('\n')[1])
+        await pg.click('#btn-menu'); await pg.wait_for_timeout(150)
+        await pg.locator('#modal-body button', has_text='Medium').click(); await pg.wait_for_timeout(300)
+        await pg.uncheck('#perf-meter'); await pg.click('#modal-close')
         # the town, walked into
         async def goto(kind, area_check=None):
             await pg.evaluate("k=>{const g=window.__g,S=g.S,f=Rules.findHere(S,k);S.player.x=f.x;S.player.y=f.y;g.refresh();}", kind)
@@ -109,7 +119,32 @@ async def main():
         assert crossed, 'could not walk into the next region'
         st = await pg.evaluate("()=>{const g=window.__g,S=g.S;return {x:S.player.x,px:g.P.x,area:S.area,biome:S.biome}}")
         assert st['x'] < 8 and st['px'] < -280, 'did not arrive on the west edge of the next region: %r' % st
-        await shot('7-next-region'); steps.append('cross a border (' + st['area'] + ', ' + st['biome'] + ')')
+        # the new land is built over the next frames, a few milliseconds each, while the old one stands in; then swapped
+        for _ in range(60):
+            if await pg.evaluate("()=>{const v=window.__g.V;return v.shift&&v.shift.x===0&&v.shift.z===0}"): break
+            await pg.wait_for_timeout(100)
+        sp = await pg.evaluate("()=>window.__g.PF.parts")
+        assert 'spread' in sp and sp['frames'] > 3 and sp['longest'] < 40, 'the new land was not built over several frames: %r' % sp
+        await shot('7-next-region'); steps.append('cross a border (' + st['area'] + ', ' + st['biome'] + ', built over %d frames, at most %d ms each)' % (sp['frames'], sp['longest']))
+        # another town: walk in from the south, talk to its elder
+        tid = await pg.evaluate("()=>{const g=window.__g,S=g.S,t=S.towns[0],d=Rules.townDoor(S,t);Rules.travelTo(S,t.area,d.x,d.y);S.creatures.length=0;S.combat=null;S.player.stamina=100;g.refresh();const a=g.V.townAt;g.P.x=a.x+1.9;g.P.z=a.z+80;g.P.yaw=0;g.P.pitch=0;return g.V.townId===t.id?t.id:'wrong town in view: '+g.V.townId}")
+        assert tid.startswith('t_'), tid
+        await pg.keyboard.down('w')
+        for _ in range(80):
+            await pg.wait_for_timeout(250)
+            if await pg.evaluate("()=>window.__g.S.area") == tid: break
+        await pg.wait_for_timeout(600); await pg.keyboard.up('w')
+        assert await pg.evaluate("()=>window.__g.S.area") == tid, 'did not walk into the other town'
+        await shot('7b-other-town')
+        await goto('elder'); await press('Talk to')
+        title = await pg.evaluate("()=>document.getElementById('modal-title').textContent")
+        tname = await pg.evaluate("()=>window.__g.S.towns[0].name")
+        assert tname in title, 'the other town\'s elder is not of that town: %r' % title
+        await pg.click('#modal-close'); steps.append('another town (' + tname + ')')
+        # step out over the south edge from any open tile on it (towns are laid out differently every world)
+        left = await pg.evaluate("()=>{const g=window.__g,S=g.S;for(let x=0;x<Rules.W;x++){if(!Rules.passable(S,x,Rules.H-1))continue;S.player.x=x;S.player.y=Rules.H-1;S.combat=null;S.player.stamina=100;if(Rules.move(S,0,1)){g.refresh();return x}}return -1}")
+        assert left >= 0, 'no open tile on the south edge of the other town'
+        assert await pg.evaluate("()=>Rules.inOverworld(window.__g.S)"), 'could not leave the other town'
         await pg.click('#btn-map'); await pg.wait_for_timeout(200); await shot('8-world-map')
         assert await pg.evaluate("()=>document.getElementById('worldcv').width>0"), 'no world map'
         await pg.click('#modal-close'); steps.append('world map')

@@ -26,6 +26,11 @@ import townlife from './townlife.js';
 import roster from './roster.js';
 import hamlets from './hamlets.js';
 import tiers from './tiers.js';
+import worldSize from './worldsize.js';
+import moreTowns from './moretowns.js';
+import plots from './plots.js';
+import crafting from './crafting.js';
+import trade from './trade.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -55,4 +60,9 @@ export const CONTENT = Object.assign(
   roster,
   hamlets,
   tiers,
+  worldSize,
+  moreTowns,
+  plots,
+  crafting,
+  trade,
 );

@@ -555,6 +555,44 @@ section('Tiers by distance', ['tiers'], () => {
   line();
 });
 
+section('Crafting', ['crafting'], () => {
+  const X = C.crafting;
+  line('Materials are carried in the pack and weigh something; wood is your fuel. Kills leave ' + Object.keys(X.kills).map((f) => f + 's ' + JSON.stringify(X.kills[f])).join(', ') + ' (one more of each from a tier 3 creature); searching a ruin, cache or cave gives ' + JSON.stringify(X.search) + '; gathering wood finds herbs ' + Math.round(X.herbChance * 100) + '% of the time.');
+  line();
+  table(['Material', 'Weight', 'Value', 'Notes'], X.mats.map((m) => [m.name, m.wt, m.value, m.text]));
+  table(['Recipe', 'Needs', 'Minutes', 'Makes'], X.recipes.map((r) => [r.name, Object.keys(r.needs).map((k) => r.needs[k] + ' ' + (k === 'fuel' ? 'wood' : k)).join(', '), r.mins, r.text]));
+});
+
+section('Trade', ['trade'], () => {
+  const X = C.trade;
+  line('A town that makes a good sells it at ' + X.made + ' of its price and has ' + X.stock.join(' to ') + ' to sell; one that does not pays ' + X.wanted + ' times. Each town\'s prices wander ' + Math.round(X.wander * 100) + '% either way, and a town buys from you at ' + X.spread + ' of its own price. Materials from crafting sell in every town at their value.');
+  line();
+  table(['Good', 'Price', 'Weight', 'Made where'], X.goods.map((g) => [g.name, g.price, g.wt, JSON.stringify(g.made)]));
+  table(['Year', 'Prices'], Object.keys(X.year).map((y) => [y, JSON.stringify(X.year[y])]));
+});
+
+section('Plots', ['plots'], () => {
+  const X = C.plots;
+  line('Every world has one great trouble, told by the elder of the story\'s town; finishing it wins the world, with its own ending. When it is not the relic, the old story is still there, told on the next talk, and carrying the relic home pays ' + X.relicSide.coin + ' coin. Each other town may have a trouble of its own (' + X.side.join(' to ') + ' in a world), paying ' + X.reward.coin.join(' to ') + ' coin. A sickness and a great beast in one world: ' + Math.round(X.linkChance * 100) + '% of the time the cure is in the beast\'s hoard. Finishing a side trouble tells you of the next one ' + Math.round(X.chainChance * 100) + '% of the time. A town you crossed in a feud sells at ' + X.hostile.buy + ' times the price; one you helped at ' + X.friend.buy + '.');
+  line();
+  table(['Plot', 'As the great trouble', 'As a side trouble', 'Steps'], X.kinds.map((k) => [k.name, k.main || '', k.side || '', k.steps ? k.steps.map((st) => st.text).join('; ') + (k.branches ? '; then by the side chosen' : '') : k.text]));
+  line();
+  table(['Place', 'Told'], Object.keys(X.sites).map((k) => [X.sites[k].name, X.sites[k].text]));
+});
+
+section('More towns', ['moreTowns'], () => {
+  const X = C.moreTowns;
+  line('Besides the town of the story, one more town for about every ' + X.perRegions + ' regions (at least ' + X.least + ', at most ' + X.most + '), never at home and never two in a region. Each is made like the first: a name, an elder, a merchant, a shop, a size and services (town life), a culture (town cultures) and its own streets.');
+  line();
+});
+
+section('The size of the world', ['worldSize'], () => {
+  const X = C.worldSize;
+  line('Rolled from the seed before the land is made (a year that sets the size, such as the wide world, wins). At most ' + X.most + ' regions. Turned on its side means the across and down ranges may swap.');
+  line();
+  table(['Shape', 'Weight', 'Across', 'Down', 'On its side', 'Told'], X.shapes.map((e) => [e.name, e.w, e.cols.join(' to '), e.rows.join(' to '), e.swap ? 'yes' : '', e.text]));
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

@@ -1,7 +1,7 @@
 /* Items: generation, names, weight and descriptions. */
 import { trait } from './civ.js';
 import { C, byId, srand } from './core.js';
-import { ITEM_HOOKS } from './hooks.js';
+import { ITEM_HOOKS, WEIGHTS } from './hooks.js';
 
 /* Items */
 function makeItem(s, baseId, pre, suf, known) {
@@ -72,7 +72,9 @@ function itemWeight(s, it) {
   return w;
 }
 function weight(s) {
-  return s.player.water + s.player.fuel * 0.5 + s.player.items.reduce((a, it) => a + itemWeight(s, it), 0);
+  let w = s.player.water + s.player.fuel * 0.5 + s.player.items.reduce((a, it) => a + itemWeight(s, it), 0);
+  for (const f of WEIGHTS) w += f(s);
+  return w;
 }
 
 const isCursed = (it) => itemAffixes(it).some((a) => a.cursed);

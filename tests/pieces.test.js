@@ -42,9 +42,16 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   for (let i = 1; i <= 20; i++) {
     const s = R.newGame(i);
     need(s.town.stock.filter((x) => x.art).length === 1, 'seed ' + i + ': no artifact in the shop');
+    // in a world larger than 3 x 3 the far region may not be built yet: walk there, and it is placed as it is built
+    if (s.artifacts.region) {
+      const a = s.artifacts.region, cx = +a.id.slice(1).split('_')[0], cy = +a.id.split('_')[1];
+      need(!(s.areas[a.id] && s.areas[a.id].map), 'seed ' + i + ': the far artifact was not placed when its region was built');
+      R.switchRegion(s, cx, cy, { x: 18, y: 18 });
+    }
     need(!s.artifacts.region, 'seed ' + i + ': the far artifact was not placed when its region was built');
     let n = 0;
     for (const id in s.areas) if (s.areas[id].map) for (const k in s.areas[id].map.depots) n += s.areas[id].map.depots[k].items.filter((x) => x.art).length;
+    for (const k in s.depots) n += s.depots[k].items.filter((x) => x.art).length;
     need(n === 1, 'seed ' + i + ': the far artifact is in ' + n + ' places');
     const v = R.findSite(s, 'vault');
     goPlace(s, v); v.st.open = true; s.player.fuel = 5;
@@ -83,8 +90,9 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   }
   need(Object.keys(seen).length === R.C.regionRares.list.length, 'not every rare region turned up in 120 worlds');
   const s = findSeed((s) => Object.values(s.regionRares).includes('heavy'));
-  const id = Object.keys(s.regionRares).find((k) => s.regionRares[k] === 'heavy'), rec = s.areas[id], before = R.stat(s, 'staminaCost', 1);
-  R.switchRegion(s, rec.cx, rec.cy, { x: 18, y: 18 });
+  const id = Object.keys(s.regionRares).find((k) => s.regionRares[k] === 'heavy'), before = R.stat(s, 'staminaCost', 1);
+  R.switchRegion(s, +id.slice(1).split('_')[0], +id.split('_')[1], { x: 18, y: 18 }); // built now if it was not yet
+  const rec = s.areas[id];
   s.player.stamina = 100; s.creatures = [];
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (R.move(s, dx, dy)) break;
   need(rec.rareTold && s.log.some((l) => /rare country/.test(l.msg)), 'walking into a rare region did not tell you');
@@ -408,5 +416,117 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   goPlace(h, { area: id, x: 18, y: 18 });
   need(!R.genItem(h, { relic: true, noConsumables: true }).tier, 'NO=tiers still made a fine item');
 }
+// Worlds of varying size: sizes vary, odd shapes happen, none is too large, and NO=worldsize gives 3 x 3.
+{
+  const sizes = new Set();
+  let odd = 0;
+  for (let i = 1; i <= 120; i++) {
+    const s = R.newGame(i), w = s.world;
+    sizes.add(w.cols + 'x' + w.rows);
+    if (Math.abs(w.cols - w.rows) >= 3) odd++;
+    need(w.cols >= 2 && w.rows >= 2 && w.cols * w.rows <= R.C.worldSize.most && w.sketch.length === w.cols * w.rows, 'seed ' + i + ': a world of ' + w.cols + ' x ' + w.rows);
+    need(s.year !== 'wide' || (w.cols === 5 && w.rows === 5), 'seed ' + i + ': a wide year is not 5 x 5');
+  }
+  need(sizes.size >= 10 && odd >= 3, 'too little variety in world sizes: ' + [...sizes].join(' '));
+  const o = R.newGame(1, { worldsize: true });
+  need(o.world.cols === 3 && o.world.rows === 3, 'NO=worldsize is not 3 x 3');
+}
+// More towns: every world has others, each in its own region, each can be walked into and used like the first.
+{
+  let towns = 0, cultures = 0;
+  for (let i = 1; i <= 12; i++) {
+    const s = R.newGame(i);
+    need((s.towns || []).length >= 1, 'seed ' + i + ': no other town');
+    need(new Set(R.allTowns(s).map((t) => t.area || 'overworld')).size === R.allTowns(s).length, 'seed ' + i + ': two towns in one region');
+    for (const t of s.towns || []) {
+      towns++;
+      if (t.culture) cultures++;
+      const d = R.townDoor(s, t);
+      goPlace(s, { area: t.area, x: d.x, y: d.y }); s.creatures = []; s.player.stamina = 100; s.player.coin = 100;
+      need(R.move(s, 0, -1) && R.areaRec(s).kind === 'town' && s.area === t.id && R.curTown(s) === t, 'seed ' + i + ': could not walk into ' + t.name);
+      const el = R.findHere(s, 'elder'), shop = R.findHere(s, 'shop'), inn = R.findHere(s, 'inn');
+      need(el && shop && inn, 'seed ' + i + ': ' + t.name + ' lacks an elder, a shop or an inn');
+      if (!el || !shop || !inn) continue;
+      s.player.x = el.x; s.player.y = el.y;
+      need(R.talkElder(s) && t.speech.length && !s.quest.told, 'seed ' + i + ': the elder of ' + t.name + ' said nothing, or told the story');
+      need(s.town.speech.length === 0 || s.town !== t, 'the story town spoke instead');
+      s.player.x = shop.x; s.player.y = shop.y;
+      const n = t.stock.length;
+      need(R.buy(s, t.stock[0].id) && t.stock.length === n - 1, 'seed ' + i + ': could not buy in ' + t.name);
+      s.player.x = inn.x; s.player.y = inn.y; s.player.hp = 1;
+      need(R.inn(s) && s.player.hp === s.player.hpMax, 'seed ' + i + ': no bed in ' + t.name);
+      s.player.x = 18; s.player.y = 35;
+      R.move(s, 0, 1);
+      need(s.area === t.area, 'seed ' + i + ': could not walk out of ' + t.name);
+    }
+  }
+  need(cultures === towns, 'some other towns have no culture');
+  need(!(R.newGame(3, { moretowns: true }).towns || []).length, 'NO=moretowns still made towns');
+}
+// Crafting: kills, searches and gathering give materials; each recipe makes what it says; a torch lights the dark.
+{
+  const s = R.newGame(4);
+  s.creatures = [];
+  const c = s.areas[Object.keys(s.areas).find((k) => s.areas[k].kind === 'region' && s.areas[k].map && s.areas[k].map.creatures.length)].map.creatures[0];
+  R.emit(s, 'killed', { sp: c.sp, tier: c.tier, c });
+  need(Object.values(s.player.mats || {}).some((n) => n > 0), 'a kill gave no materials');
+  const before = R.weight(s);
+  s.player.mats = { hide: 9, bone: 9, salvage: 9, herbs: 9 };
+  need(R.weight(s) > before + 5, 'materials weigh nothing');
+  s.player.fuel = 20;
+  for (const r of R.C.crafting.recipes) {
+    if (r.makes === 'shelter') continue;
+    const n = s.player.items.length;
+    need(R.craft(s, r.id) && s.player.items.length === n + 1 && s.player.items[n].base === r.makes, 'could not make ' + r.id);
+  }
+  const torch = s.player.items.find((i) => i.base === 'torch');
+  s.player.items.forEach((i) => { if (i.base === 'lantern') delete i.eq; });
+  const dark = R.stat(s, 'nightSight', 0);
+  R.useItem(s, torch.id);
+  need(R.stat(s, 'nightSight', 0) > dark, 'a torch gives no light');
+  // a shelter, on open ground
+  let k = 0; while (s.sites[k] || s.terrain[k] === 2 || s.terrain[k] >= 4) k++;
+  s.player.x = k % R.W; s.player.y = Math.floor(k / R.W);
+  need(!R.inShelter(s) && R.craft(s, 'shelter') && R.inShelter(s), 'a shelter is not shelter');
+  // a traveller's materials lie with the body
+  s.player.mats = { hide: 3 };
+  s.over = { won: false, cause: 'thirst' };
+  const at = s.player.y * R.W + s.player.x, area = s.area;
+  R.nextTraveller(s, R.makeChar(Math.random, s));
+  const body = R.mapOf(s, area).depots[at];
+  need(body && body.mats && body.mats.hide === 3 && !(s.player.mats || {}).hide, 'materials did not stay with the body');
+  const o = R.newGame(4, { crafting: true });
+  o.off.crafting = true;
+  need(!R.recipes(o).length, 'NO=crafting still offers recipes');
+}
+// Trade: a town sells cheap what it makes and buys dear what it does not; goods weigh; a profit is to be had.
+{
+  let profit = 0, worlds = 0;
+  for (let i = 1; i <= 15; i++) {
+    const s = R.newGame(i), prices = {};
+    for (const t of R.allTowns(s)) {
+      const d = R.townDoor(s, t);
+      R.travelTo(s, t.area || 'overworld', d.x, d.y); s.creatures = [];
+      R.move(s, 0, -1);
+      for (const g of R.market(s)) (prices[g.id] = prices[g.id] || []).push(g);
+      s.player.x = 18; s.player.y = 35; R.move(s, 0, 1);
+    }
+    let best = 0;
+    for (const id in prices) { const made = prices[id].filter((g) => g.made), want = prices[id].filter((g) => !g.made); if (made.length && want.length) best = Math.max(best, Math.max(...want.map((g) => g.sell)) - Math.min(...made.map((g) => g.buy))); }
+    if (best > 0) worlds++;
+    profit += best;
+  }
+  need(worlds >= 10, 'only ' + worlds + ' of 15 worlds have a trade worth making');
+  const s = R.newGame(2), t = s.town, d = R.townDoor(s);
+  R.travelTo(s, t.area || 'overworld', d.x, d.y); s.creatures = []; R.move(s, 0, -1);
+  const g = R.market(s).find((x) => x.made && x.stock > 0);
+  if (g) {
+    s.player.coin = 100; const w = R.weight(s);
+    need(R.buyGood(s, g.id) && s.player.coin === 100 - g.buy && R.weight(s) > w, 'could not buy ' + g.id);
+    need(R.sellGood(s, g.id) && s.player.coin === 100 - g.buy + g.sell && g.sell < g.buy, 'selling back did not pay less than buying');
+  }
+  s.player.mats = { hide: 2 };
+  need(R.sellMat(s, 'hide') && s.player.mats.hide === 1, 'could not sell a hide');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting, trade');

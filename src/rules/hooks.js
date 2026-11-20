@@ -15,6 +15,17 @@ const TALK = [];
 // ITEM_HOOKS: functions (s, item, options) that may finish an item genItem has just made.
 const ITEM_HOOKS = [];
 const LOADERS = [];
+// TUNERS: functions (seed, tun, off, year) run in newGame right after the year has set the tuning numbers and before
+// the world is sketched, so a piece can change the world's size or other numbers fixed at creation.
+const TUNERS = [];
+// TOWN_MAKERS: functions (s, t, r) run for each town made after the first (a piece adds towns), with s.town standing
+// for the new town t (see withTown) and r its own random stream, so a piece can give it what the first town gets.
+const TOWN_MAKERS = [];
+// WEIGHTS: functions (s) giving more weight the traveller carries (materials, trade goods).
+const WEIGHTS = [];
+// RUMOURS: functions (s, out) that may push rumours onto the list a townsperson picks from; each is a function () giving
+// the words (and marking the map, if the rumour points somewhere).
+const RUMOURS = [];
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
-export { NOTES, SWITCHES, SKETCHERS, LOADERS, ACTIONS, TALK, ITEM_HOOKS, worldNotes };
+export { NOTES, SWITCHES, SKETCHERS, LOADERS, TUNERS, TOWN_MAKERS, WEIGHTS, RUMOURS, ACTIONS, TALK, ITEM_HOOKS, worldNotes };

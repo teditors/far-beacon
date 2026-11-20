@@ -71,7 +71,7 @@ for (let seed = 1; seed <= 150; seed++) {
   need(s.player.x === d.x && s.player.y === d.y, 'old save: the traveller was left inside the town walls');
 }
 // 3b. the wider world: every region is sound, borders wrap, and a save with many regions round-trips
-let bigSave = 0, borderSame = 0, borderAll = 0, edgeAll = 0, edgeSame = 0, riverAll = 0, riverSame = 0, roadAll = 0, roadSame = 0;
+let bigWorld = '', bigSave = 0, borderSame = 0, borderAll = 0, edgeAll = 0, edgeSame = 0, riverAll = 0, riverSame = 0, roadAll = 0, roadSame = 0;
 for (let seed = 1; seed <= 40; seed++) {
   const s = R.newGame(seed), w = s.world, tag = 'seed ' + seed + ': ';
   need(w.cols * w.rows === w.sketch.length && new Set(w.sketch.map((e) => e.biome)).size >= 2, tag + 'the world sketch is wrong');
@@ -104,10 +104,11 @@ for (let seed = 1; seed <= 40; seed++) {
     for (const k in s.sites) need(s.terrain[k] !== 2 && +k >= 0 && +k < R.W * R.H, tag + id + ' has a site in a bad place');
     for (const c of s.creatures) need(s.species[c.sp], tag + id + ' has a creature of no species');
     need(cx === w.home.cx && cy === w.home.cy ? true : !Object.values(s.sites).some((x) => x.kind === 'well'), tag + id + ' has a second well');
-    for (const k of ['town', 'vault']) placeCount[k] = (placeCount[k] || 0) + Object.values(s.sites).filter((x) => x.kind === k).length;
+    for (const k of ['town', 'vault']) placeCount[k] = (placeCount[k] || 0) + Object.values(s.sites).filter((x) => x.kind === k && !x.town).length;
+    placeCount.more = (placeCount.more || 0) + Object.values(s.sites).filter((x) => x.kind === 'town' && x.town).length;
   }
   // borders: mountains nearly always agree, and rivers and roads cross at the same tiles on both sides
-  need(placeCount.town === 1 && placeCount.vault === 1, tag + 'the town and the locked place are not each in exactly one region: ' + JSON.stringify(placeCount));
+  need(placeCount.town === 1 && placeCount.vault === 1 && placeCount.more === (s.towns || []).length, tag + 'the town and the locked place are not each in exactly one region: ' + JSON.stringify(placeCount));
   const mapOf = (cx, cy) => { const id = R.regionId(s, (cx + w.cols) % w.cols, (cy + w.rows) % w.rows); return id === s.area ? s : s.areas[id].map; };
   for (let cy = 0; cy < w.rows; cy++) for (let cx = 0; cx < w.cols; cx++) {
     const a = mapOf(cx, cy), e = mapOf(cx + 1, cy), so = mapOf(cx, cy + 1);
@@ -126,6 +127,7 @@ for (let seed = 1; seed <= 40; seed++) {
   s.camp = { area: s.area, i: 18 * R.W + 18 };
   need(R.campHere(s) === 18 * R.W + 18, tag + 'camp not found where it was pitched');
   const text = R.serialize(s), res = R.deserialize(text);
+  if (text.length > bigSave) bigWorld = w.cols + ' x ' + w.rows;
   bigSave = Math.max(bigSave, text.length);
   need(res.state && R.serialize(scripted(s, 60, seed)) === R.serialize(scripted(res.state, 60, seed)), tag + 'a many-region save plays differently after loading');
   // dying far from home: the next traveller still sets out from the well
@@ -139,7 +141,7 @@ need(edgeSame / edgeAll > 0.95, 'mountains disagree across borders too often: ' 
 need(riverAll > 0 && riverSame === riverAll, 'rivers do not line up across borders: ' + riverSame + ' / ' + riverAll);
 need(roadSame === roadAll, 'roads do not line up across borders: ' + roadSame + ' / ' + roadAll);
 warns.push('borders: mountains agree on ' + ((100 * edgeSame) / edgeAll).toFixed(1) + '% of tiles, ' + riverAll + ' river crossings and ' + roadAll + ' road crossings all line up');
-warns.push('largest save with all ' + 9 + ' regions: ' + Math.round(bigSave / 1024) + ' KB');
+warns.push('largest save with every region visited: ' + Math.round(bigSave / 1024) + ' KB (' + bigWorld + ')');
 // 4. snapshot: tells you when a change alters what existing seeds generate (that is sometimes intended)
 const snapFile = path.join(__dirname, 'snapshot.json');
 const hash = (s) => crypto.createHash('sha1').update(R.serialize(s)).digest('hex').slice(0, 12);

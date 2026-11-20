@@ -2,7 +2,7 @@
 import { depotHere, restHour } from './actions.js';
 import { AXES, learn, traitText } from './civ.js';
 import { makeCreature, spOf, startCombat } from './combat.js';
-import { C, H, W, WALL, byId, clamp, clock, idx, say, srand } from './core.js';
+import { C, H, W, WALL, byId, clamp, clock, emit, idx, say, srand } from './core.js';
 import { autoEquip, fitWater } from './equipment.js';
 import { genItem, isCursed, itemName, makeItem } from './items.js';
 import { dirFrom, dirTo, reveal, siteHere, sightRadius } from './map.js';
@@ -15,6 +15,9 @@ import {
   inTownBlock,
   mapOf,
   townArea,
+  townBlockAt,
+  townId,
+  curTown,
   allMaps,
   areaRec,
   enterArea,
@@ -30,7 +33,7 @@ import { advance } from './systems.js';
 
 /* Quest, town and vault */
 const hasItem = (s, base) => s.player.items.some((i) => i.base === base);
-const atTown = (s) => s.area === 'town';
+const atTown = (s) => areaRec(s).kind === 'town';
 // Mark a place on the map of the region it is in (home by default), wherever the player happens to be standing.
 function mark(s, x, y, area) {
   const m = area ? mapOf(s, area) : worldMap(s);
@@ -89,6 +92,31 @@ const wareKind = (it) => {
 };
 const buyPrice = (s, it) =>
   Math.max(1, Math.round(itemValue(it) * stat(s, 'town.buy', 1) * stat(s, 'town.buy.' + wareKind(it), 1)));
+// A town's record: where it stands, its name and people, and its shop. Used for the story's town and any other.
+function makeTownRec(s, r, x, y, race) {
+  const T = C.town,
+    pick = (a) => a[Math.floor(r() * a.length)];
+  race = race || pick(C.races.filter((e) => !e.exotic && !e.roster));
+  const t = {
+    x,
+    y,
+    name: pick(T.a) + pick(T.b),
+    race: race.id,
+    elder: pick(race.names),
+    merchant: pick(race.names),
+    fuel: T.fuel,
+    stock: [],
+    speech: [],
+  };
+  while (t.merchant === t.elder) t.merchant = pick(race.names);
+  for (const b of T.staples) t.stock.push(makeItem(s, b, null, null, true));
+  for (let i = 0; i < T.stock; i++) {
+    const it = genItem(s, { noConsumables: i < 3 });
+    it.known = true;
+    t.stock.push(it);
+  }
+  return t;
+}
 function makeQuest(s, r, townP, vaultP, a0, goalP) {
   const Q = C.quest,
     T = C.town,
@@ -103,24 +131,7 @@ function makeQuest(s, r, townP, vaultP, a0, goalP) {
       keyTile: null,
       beast: null,
     });
-  s.town = {
-    x: townP.x,
-    y: townP.y,
-    name: pick(T.a) + pick(T.b),
-    race: race.id,
-    elder: pick(race.names),
-    merchant: pick(race.names),
-    fuel: T.fuel,
-    stock: [],
-    speech: [],
-  };
-  while (s.town.merchant === s.town.elder) s.town.merchant = pick(race.names);
-  for (const b of T.staples) s.town.stock.push(makeItem(s, b, null, null, true));
-  for (let i = 0; i < T.stock; i++) {
-    const it = genItem(s, { noConsumables: i < 3 });
-    it.known = true;
-    s.town.stock.push(it);
-  }
+  s.town = makeTownRec(s, r, townP.x, townP.y, race);
   if (q.dest === 'shrine') {
     for (const k in s.sites) if (s.sites[k].kind === 'shrine') delete s.sites[k]; // the shrine stands near where the beacon would have been
     for (let tries = 0; tries < 80; tries++) {
@@ -184,6 +195,8 @@ function findLoose(s, base) {
   return null;
 }
 function objective(s) {
+  const po = PLOT_HOOKS.objective && PLOT_HOOKS.objective(s);
+  if (po) return po;
   const q = s.quest,
     t = s.town,
     v = findSite(s, 'vault'),
@@ -245,10 +258,13 @@ function objective(s) {
 }
 function talkElder(s) {
   if (s.over || !atTown(s)) return false;
+  if (curTown(s) !== s.town) return talkOtherElder(s);
   const q = s.quest,
     t = s.town,
     v = findSite(s, 'vault'),
     sp = (t.speech = []);
+  // the world's great trouble, when it is not the relic, is told first; the relic's story waits for the next talk
+  if (PLOT_HOOKS.storyTalk && PLOT_HOOKS.storyTalk(s, sp)) return true;
   if (!q.told) {
     q.told = true;
     mark(s, v.x, v.y, v.area);
@@ -319,9 +335,38 @@ function talkElder(s) {
   }
   return true;
 }
+// The elder of a town that is not the story's: news of the land, pieces' talk (ELDER_TALK), and the way to the town
+// that knows what this land needs.
+const ELDER_TALK = [];
+// Filled by plots.js (which this module cannot import): the world's other troubles.
+const PLOT_HOOKS = { storyTalk: null, objective: null, relicWins: () => true, relicSideDone: null };
+function talkOtherElder(s) {
+  const t = curTown(s),
+    sp = (t.speech = []);
+  for (const f of ELDER_TALK) f(s, t, sp);
+  if (!sp.length) {
+    const m = s.town;
+    if (!s.quest.told) {
+      mark(s, m.x, m.y, townArea(s));
+      sp.push(
+        '"You want ' +
+          m.name +
+          '. Its elder, ' +
+          m.elder +
+          ', knows what this land is waiting for. I have marked it on your map."',
+      );
+    } else sp.push('"Rest here, traveller. ' + m.name + ' sent you, I think; the road goes on from here."');
+  }
+  if (!t.met) {
+    t.met = true;
+    gainXp(s, 10);
+  }
+  say(s, t.elder + ', elder of ' + t.name + ', speaks with you.');
+  return true;
+}
 function buy(s, id) {
   if (s.over || !atTown(s)) return false;
-  const t = s.town,
+  const t = curTown(s),
     i = t.stock.findIndex((x) => x.id === id);
   if (i < 0) return false;
   const price = buyPrice(s, t.stock[i]);
@@ -337,7 +382,7 @@ function buy(s, id) {
   return true;
 }
 function buyFuel(s) {
-  const t = s.town;
+  const t = curTown(s);
   if (s.over || !atTown(s) || t.fuel < 1) return false;
   if (s.player.coin < priceOf(s, 'fuelPrice')) {
     say(s, 'You cannot afford that.');
@@ -363,7 +408,7 @@ function sell(s, id) {
   s.player.items.splice(i, 1);
   delete it.eq;
   it.known = true;
-  s.town.stock.push(it);
+  curTown(s).stock.push(it);
   s.player.coin += price;
   fitWater(s);
   say(s, 'You sell the ' + itemName(it) + ' for ' + price + ' coin.');
@@ -379,7 +424,7 @@ function appraise(s, id) {
   }
   s.player.coin -= priceOf(s, 'appraisePrice');
   it.known = true;
-  say(s, s.town.merchant + ' turns it over twice: ' + itemName(it) + '.', isCursed(it) ? 'bad' : 'good');
+  say(s, curTown(s).merchant + ' turns it over twice: ' + itemName(it) + '.', isCursed(it) ? 'bad' : 'good');
   return true;
 }
 function inn(s) {
@@ -417,25 +462,28 @@ function unlock(s) {
 // Walking into the town's block at outdoor tile (ox, oy): you arrive on the facing edge of the town, or `at` if the view
 // gives the exact tile (it must be on that edge). A wall there turns you back.
 function enterTown(s, ox, oy, at) {
-  const st = s.sites[idx(s.town.x, s.town.y)];
-  if (s.over || s.area !== townArea(s) || !inTownBlock(s, ox, oy)) return false;
-  let p = townEntry(s, s.player.x, s.player.y, ox, oy);
+  const t = townBlockAt(s, ox, oy);
+  if (s.over || !t) return false;
+  const st = s.sites[idx(t.x, t.y)] || {},
+    id = townId(t);
+  let p = townEntry(s, s.player.x, s.player.y, ox, oy, t);
   if (at && (at.x === p.x || at.y === p.y) && at.x >= 0 && at.y >= 0 && at.x < W && at.y < H) p = { x: at.x, y: at.y };
-  if (mapOf(s, 'town').terrain[idx(p.x, p.y)] === WALL) {
-    say(s, 'The wall of ' + s.town.name + '. ' + (s.town.walled ? 'Its gates are where the streets meet the wall.' : ''));
+  if (mapOf(s, id).terrain[idx(p.x, p.y)] === WALL) {
+    say(s, 'The wall of ' + t.name + '. ' + (t.walled ? 'Its gates are where the streets meet the wall.' : ''));
     return false;
   }
-  enterArea(s, 'town', { kind: 'town', indoor: true, name: s.town.name }, p);
+  enterArea(s, id, { kind: 'town', indoor: true, name: t.name }, p);
   if (!st.entered) {
     st.entered = true;
     gainXp(s, 20);
     say(
       s,
       'You walk into ' +
-        s.town.name +
+        t.name +
         '.' +
-        (s.quest.told ? '' : ' The elder will be at the hall on the north side of the square.'),
+        (s.quest.told || t !== s.town ? '' : ' The elder will be at the hall on the north side of the square.'),
     );
+    emit(s, 'townEntered', { town: id });
   }
   return true;
 }
@@ -498,12 +546,16 @@ function goUp(s) {
 function offer(s) {
   const st = siteHere(s);
   if (s.over || !st || st.kind !== 'shrine' || s.quest.dest !== 'shrine' || !hasItem(s, 'relic')) return false;
-  s.over = { won: true };
   say(s, 'You set the ' + s.quest.relic + ' on the shrine. Something that was held breath for an age lets go.', 'good');
+  if (PLOT_HOOKS.relicWins(s)) s.over = { won: true };
+  else PLOT_HOOKS.relicSideDone(s);
   return true;
 }
 
 export {
+  ELDER_TALK,
+  PLOT_HOOKS,
+  makeTownRec,
   hasItem,
   atTown,
   mark,

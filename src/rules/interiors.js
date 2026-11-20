@@ -1,7 +1,7 @@
 /* Generators for the places you walk into: the town and the levels of the locked place.
    Each is built the first time you enter, from its own named random stream, and kept after that. */
 import { W, H, WALL, FLOOR, idx, stream } from './core.js';
-import { GENERATORS } from './areas.js';
+import { GENERATORS, townSfx } from './areas.js';
 import { makeCreature } from './combat.js';
 import { genItem, makeItem } from './items.js';
 
@@ -12,8 +12,8 @@ const inside = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1;
 // An open square (now and then walled, with gates), a plaza and well in the middle, and the elder's hall, the inn and the
 // shop facing the plaza. Houses fill the rest. The town is small and lit, so all of it is visible from the start.
 GENERATORS.town = (s, rec) => {
-  const r = stream(s.seed, 'area:town'),
-    rw = stream(s.seed, 'town:walls'),
+  const r = stream(s.seed, 'area:town' + townSfx(s)),
+    rw = stream(s.seed, 'town:walls' + townSfx(s)),
     terrain = blank(FLOOR),
     sites = {},
     c = 18,

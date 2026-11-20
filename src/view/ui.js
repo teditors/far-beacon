@@ -2,6 +2,8 @@
 import { $, G, P, R, V, VIEW, clamp, el, f1 } from './ctx.js';
 import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSeed, save, start, sync } from './run.js';
 import { box, buildDynamic, buildStatic, renderer, resize, scene } from './scene.js';
+import { Q, QUALITY, SET, saveSettings, setQuality } from './quality.js';
+import { PF } from './perf.js';
 
 /* ---------- HUD and panels ---------- */
 function meter(id, v, max, txt) {
@@ -285,6 +287,114 @@ function resRow(kind, label) {
     ]),
   ]);
 }
+// Materials you carry, and what you could make of them (crafting).
+function craftRows() {
+  const list = R.recipes(V.S);
+  if (!list.length) return [];
+  const m = V.S.player.mats || {},
+    have = R.C.crafting.mats.filter((x) => m[x.id] > 0);
+  return [
+    el('h3', { text: 'Materials' }),
+    el('p', {
+      cls: 'note',
+      text:
+        (have.length ? have.map((x) => m[x.id] + ' ' + x.name.toLowerCase()).join(', ') + ', and ' : '') +
+        Math.floor(V.S.player.fuel) +
+        ' wood (your fuel). Hides and bone come from kills, salvage from ruins and caches, herbs from gathering wood.',
+    }),
+    el('h3', { text: 'Make' }),
+    el(
+      'ul',
+      { cls: 'items' },
+      list.map(({ r, ok }) =>
+        el('li', { cls: 'item' }, [
+          el('div', null, [
+            el('strong', { text: r.name }),
+            el('p', {
+              text:
+                r.text +
+                ' Needs ' +
+                Object.keys(r.needs)
+                  .map((k) => r.needs[k] + ' ' + (k === 'fuel' ? 'wood' : R.byId(R.C.crafting.mats, k).name.toLowerCase()))
+                  .join(', ') +
+                '; ' +
+                r.mins +
+                ' min.',
+            }),
+          ]),
+          ok
+            ? btn('Make', () => {
+                act(() => R.craft(V.S, r.id));
+                if (r.makes === 'shelter') buildStatic(); // it stands in the land from now on
+                if (!V.S.over) openPack();
+              })
+            : el('span', { cls: 'wt', text: '' }),
+        ]),
+      ),
+    ),
+  ];
+}
+// The market: trade goods, cheap where they are made and dear where they are not, and materials to sell.
+function marketRows(t, re) {
+  const rows = R.market(V.S);
+  if (!rows.length) return [];
+  const made = rows.filter((m) => m.made),
+    tip = made.length ? R.bestMarket(V.S, made[0].id) : null,
+    m = V.S.player.mats || {},
+    mats = (R.C.crafting ? R.C.crafting.mats : []).filter((x) => m[x.id] > 0);
+  return [
+    el('h3', { text: 'Market' }),
+    el('p', {
+      cls: 'note',
+      text:
+        (made.length
+          ? t.name + ' makes ' + made.map((x) => x.name.toLowerCase()).join(' and ') + ', and sells it cheap.'
+          : t.name + ' makes nothing to trade, and pays well for what others make.') +
+        (tip && tip.t !== t ? ' ' + t.merchant + ': "' + made[0].name + ' fetch the most in ' + tip.t.name + '."' : ''),
+    }),
+    el(
+      'ul',
+      { cls: 'items' },
+      rows.map((g) =>
+        el('li', { cls: 'item' }, [
+          el('div', null, [
+            el('strong', { text: g.name + (g.have ? ' (you have ' + g.have + ')' : '') }),
+            el('p', { text: g.text + ' ' + g.wt + ' wt each.' + (g.made ? ' Made here: ' + g.stock + ' left.' : '') }),
+          ]),
+          el('div', { cls: 'row' }, [
+            g.stock > 0
+              ? btn(
+                  'Buy ' + g.buy,
+                  re(() => R.buyGood(V.S, g.id)),
+                )
+              : null,
+            g.have > 0
+              ? btn(
+                  'Sell ' + g.sell,
+                  re(() => R.sellGood(V.S, g.id)),
+                )
+              : null,
+          ]),
+        ]),
+      ),
+    ),
+    ...(mats.length
+      ? [
+          el('h3', { text: 'Materials' }),
+          el(
+            'div',
+            { cls: 'row' },
+            mats.map((x) =>
+              btn(
+                'Sell ' + x.name.toLowerCase() + ' (' + m[x.id] + '), ' + x.value + ' each',
+                re(() => R.sellMat(V.S, x.id)),
+              ),
+            ),
+          ),
+        ]
+      : []),
+  ];
+}
 function openPack() {
   const d = R.depotHere(V.S);
   openModal('Pack', [
@@ -306,6 +416,7 @@ function openPack() {
         )
       : el('p', { cls: 'note', text: 'No gear here.' }),
     el('ul', { cls: 'items' }, [resRow('water', 'Water (1 wt each)'), resRow('fuel', 'Fuel (0.5 wt each)')]),
+    ...craftRows(),
     el('h3', { text: 'Carrying' }),
     V.S.player.items.length
       ? el(
@@ -365,9 +476,9 @@ function openService() {
 }
 function openTown(section) {
   if (!['elder', 'inn', 'shop'].includes(section)) return openService();
-  if (section === 'elder' && !V.S.quest.told) act(() => R.talkElder(V.S));
-  const t = V.S.town,
-    p = V.S.player,
+  const t = R.curTown(V.S);
+  if (section === 'elder' && (!V.S.quest.told || t !== V.S.town)) act(() => R.talkElder(V.S));
+  const p = V.S.player,
     T = R.C.town,
     race = R.byId(R.C.races, t.race).name.toLowerCase(),
     re = (fn) => () => {
@@ -422,6 +533,14 @@ function openTown(section) {
           'small',
         ),
       ]),
+      ...R.plotChoices(V.S).map((o) =>
+        el('div', { cls: 'row' }, [
+          btn(
+            o.label,
+            re(() => R.choosePlot(V.S, o.plot, o.id)),
+          ),
+        ]),
+      ),
     ]);
   else if (section === 'inn')
     openModal('The inn', [
@@ -466,6 +585,7 @@ function openTown(section) {
       el('ul', { cls: 'items' }, stock),
       el('h3', { text: 'Your goods' }),
       mine.length ? el('ul', { cls: 'items' }, mine) : el('p', { cls: 'note', text: 'Nothing they would buy.' }),
+      ...marketRows(t, re),
     ]);
 }
 function showEnd() {
@@ -487,7 +607,17 @@ function showEnd() {
       V.S.seed +
       '.',
   });
-  if (won)
+  if (won && V.S.over.ending)
+    openModal(R.byId(R.C.plots.kinds, V.S.over.plot).name + ': the end', [
+      el('p', { text: V.S.over.ending }),
+      el('p', { text: who + ', on day ' + c.day + ', traveller ' + V.S.travellers + ' of this world.' }),
+      world,
+      el('div', { cls: 'row' }, [
+        btn('New world', () => start(randomSeed()), 'primary'),
+        btn('Same world again', () => start(V.S.seed)),
+      ]),
+    ]);
+  else if (won)
     openModal('The ' + V.S.quest.relic + ' is home', [
       el('p', {
         text:
@@ -546,6 +676,13 @@ const MAPC = {
   shop: '#2f7fb5',
   hamlet: '#d8c9a0',
   trap: '#e0302a',
+  den: '#5a2a22',
+  camp: '#c0612f',
+  lost: '#e8d27a',
+  stone: '#111111',
+  herbs: '#6fae4f',
+  siege: '#c0612f',
+  shelter: '#a07a4a',
 };
 const INDOOR_COLS = { 6: '#3a3631', 7: '#9a948a' };
 // The map screen. Indoors: the town or the level you are on. Outdoors: the whole world as one continuous map, drawn from
@@ -779,7 +916,7 @@ function openMenu() {
       text: 'Your goal is on the top panel, with a direction when you know one. It begins with finding the town, whose smoke you can see from far off. Phone: left thumb walks, right thumb looks. Computer: W A S D to walk, drag the view or use Q and E to turn.',
     }),
     el('p', {
-      text: 'Time only passes when you walk or act, so stop whenever you want to think. Creatures are rare and usually visible before they reach you; a fight is turn by turn, and fleeing is often the right call. Water drains as you travel. Cold drains warmth at night and in storms. Stamina keeps you alive when either runs out.',
+      text: "Time only passes when you walk or act, so stop whenever you want to think. Creatures are rare and usually visible before they reach you; a fight is turn by turn, and fleeing is often the right call. A creature's eyes tell its temper: red hunts you, orange guards its ground, yellow keeps to itself. Water drains as you travel. Cold drains warmth at night and in storms. Stamina keeps you alive when either runs out.",
     }),
     el('p', {
       text: 'You cannot carry enough water to cross in one go. Look for green ground and blue pools, search ruins and caves, leave water and fuel as depots from the Pack screen, and move your camp forward to a cave or ruin.',
@@ -805,6 +942,43 @@ function openMenu() {
             '.'
           : ' The town will know what this land needs.'),
     }),
+    ...(() => {
+      // the troubles you know of: the one on the top panel, and a button to follow another
+      const known = R.plotsOf(V.S).filter((p) => (p.kind === 'relic' ? V.S.quest.told && !p.main : p.known));
+      if (!known.length) return [];
+      const cur = R.tracked(V.S);
+      return [
+        el('h3', { text: 'Troubles' }),
+        el(
+          'ul',
+          { cls: 'items' },
+          known.map((p) => {
+            const k = R.byId(R.C.plots.kinds, p.kind),
+              o = p.kind === 'relic' ? { text: k.text } : R.plotObjective(V.S, p);
+            return el('li', { cls: 'item' }, [
+              el('div', null, [
+                el('strong', { text: k.name + (p.main ? ' (the great trouble)' : '') }),
+                el('p', {
+                  text: p.done
+                    ? 'Done.'
+                    : p.failed
+                      ? 'Failed.'
+                      : o.text + (o.dir && o.dir !== 'here' ? ', to the ' + o.dir : '') + '.',
+                }),
+              ]),
+              !p.done && !p.failed && cur !== p
+                ? btn('Follow', () => {
+                    R.trackPlot(V.S, p.id);
+                    render();
+                    save();
+                    openMenu();
+                  })
+                : el('span', { cls: 'wt', text: cur === p ? 'followed' : '' }),
+            ]);
+          }),
+        ),
+      ];
+    })(),
     el('h3', { text: 'Traveller' }),
     el('p', {
       text:
@@ -964,6 +1138,40 @@ function openMenu() {
       });
       return el('div', null, [box, el('div', { cls: 'row' }, [copy, loadIt]), msg]);
     })(),
+    el('h3', { text: 'Settings' }),
+    el('p', {
+      cls: 'note',
+      text: 'Graphics quality for this device. Low draws less land and fewer trees, at a lower resolution: use it if the game stutters. Smoothing of edges changes the next time the page is loaded.',
+    }),
+    el(
+      'div',
+      { cls: 'row' },
+      Object.keys(QUALITY).map((k) =>
+        btn(
+          QUALITY[k].label + (SET.quality === k ? ' (now)' : ''),
+          () => {
+            setQuality(k);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
+            resize();
+            buildStatic();
+            buildDynamic();
+            openMenu();
+          },
+          SET.quality === k ? 'primary' : '',
+        ),
+      ),
+    ),
+    (() => {
+      const cb = el('input', { type: 'checkbox', id: 'perf-meter' });
+      cb.checked = !!SET.meter;
+      cb.addEventListener('change', () => {
+        SET.meter = cb.checked;
+        saveSettings();
+      });
+      return el('ul', { cls: 'items' }, [
+        el('li', { cls: 'item' }, [el('label', { for: 'perf-meter', text: 'Show the performance meter' }), cb]),
+      ]);
+    })(),
     el('h3', { text: 'Tinker' }),
     el('p', { cls: 'note', text: 'Switch whole systems off, or change the numbers while you play.' }),
     sw,
@@ -1120,6 +1328,17 @@ window.__g = {
   scene,
   renderer,
   buildStatic,
+  PF,
+  Q,
+  setQuality(name) {
+    setQuality(name);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
+    resize();
+  },
+  // a fresh world on this seed, without the character screen (for the benchmark)
+  newWorld(seed) {
+    enter(R.newGame(seed));
+  },
   // for tests and tinkering from the console: redraw everything after changing the state by hand
   refresh() {
     sync();

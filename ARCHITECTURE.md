@@ -71,7 +71,8 @@ rules never need to know where they are. Every other area is parked in `s.areas[
 ## The world
 
 The outdoors is a grid of regions (`s.world`: `cols`, `rows`, `home`, and a `sketch` with each region's biome and
-danger). The size is stored per world, so worlds can differ. Each region is an area of kind `region`, parked like
+danger). The size is stored per world and rolled from the seed (the `worldsize` piece, from 2 x 3 to 7 x 7); nothing
+may assume 3 x 3. Each region is an area of kind `region`, parked like
 any other; the home region keeps the id `overworld`, the rest are `r<cx>_<cy>`, built by `GENERATORS.region` the
 first time the player arrives.
 
@@ -93,8 +94,25 @@ first time the player arrives.
   `findSite(s, kind)` (returns `area`), `townArea(s)`, `keyRuin(s)`, `beastOf(s)` and `mark(s, x, y, area)`; never
   assume the home region. `localPos(s, area, x, y)` gives a place in the frame of the region the player is in, and
   `homePos` in home coordinates, for directions. With `NO=plot` everything stays home as before.
+- Several towns: `s.town` is the story's (area `'town'`), others are in `s.towns` (`id` = area id, `area` = region).
+  Use `curTown(s)` in anything that happens in a town, `allTowns(s)`, `townById`, `townInRegion`, and `withTown(s, t,
+  fn)` to run one-town code for another town. `addTown(s, cx, cy, r)` (moretowns.js) makes one.
+- Plots (`plots.js`, content in `content/plots.js`): `s.plots`, each a list of steps over roles placed at creation. One is
+  `main` (the great trouble: finishing it wins, `s.over.ending`). The relic's story is the plot of kind `relic`, run by
+  quest.js as before; `PLOT_HOOKS` in quest.js lets plots.js take over the story town's talk and the goal line.
+  `plotGoal(s, p)` says where a plot wants you next (the bot uses it). A new plot is a content entry using the role
+  and step kinds listed at the top of content/plots.js.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
 - `inOverworld(s)` means "outdoors, in any region".
+
+## The phone budget
+
+The game must run on a phone. `src/view/quality.js` holds the graphics presets (Low / Medium / High) and the device's
+settings (`farbeacon.settings` in browser storage, not in the run). Anything visual that costs reads `Q` (the preset in
+use) rather than a constant: `terrain.js` takes the drawn margin and the ground's fineness from it (`setDetail`), the
+scene takes tree and rock density, the renderer its pixel ratio. `src/view/perf.js` is the on-screen meter. Measure a
+change with `python3 tools/bench.py low medium high` before and after. Saves write map grids as run-length text
+(`packGrid` in save.js).
 
 ## Plugging a piece in
 

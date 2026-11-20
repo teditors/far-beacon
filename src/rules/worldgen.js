@@ -6,7 +6,7 @@ import { GENERATORS, HOME, ensureTown, ensureAround, sketchOf, wrap } from './ar
 import { crossings, makeSketch, worldNoise } from './world.js';
 import { C, H, VERSION, W, byId, clamp, emit, idx, say, stream } from './core.js';
 import { rollYear, yearTuning } from './year.js';
-import { SKETCHERS } from './hooks.js';
+import { SKETCHERS, TUNERS } from './hooks.js';
 import { makeItem } from './items.js';
 import { dirTo } from './map.js';
 import { makeQuest } from './quest.js';
@@ -288,7 +288,9 @@ function newGame(seed, off) {
   const habit = byId(C.civ.habit, civ.habit),
     age = byId(C.civ.age, civ.age),
     doom = byId(C.civ.doom, civ.doom);
+  for (const f of TUNERS) f(seed, tun, off, year); // a piece may change numbers fixed at creation (the world's size)
   const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
+  if (tun.world.shape) world.shape = tun.world.shape;
   for (const f of SKETCHERS) f(seed, world, off); // a piece may change what the regions are before land is built
   biome = byId(C.biomes, world.sketch[world.home.cy * world.cols + world.home.cx].biome);
   const { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
