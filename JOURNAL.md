@@ -56,8 +56,8 @@ one). The builds are a few ms slower, within the noise of the software renderer.
 floating castle in god mode on the Pixel and send the numbers**: it is the one place whose cost is fill rate (a lot
 of open sky), which the software renderer cannot judge.
 
-**Bot win rate** (`node tests/playtest.js 150`, every piece on, default settings), sets 5 / 1000 / 2000: **32, 27, 21
-(80 / 450, 18%)** at the end (30, 29, 23 before the kin), against 86 / 450 (19%) at the start. The floor is 8%. With a new trouble forced (40 worlds each):
+**Bot win rate** (`node tests/playtest.js 150`, every piece on, default settings), sets 5 / 1000 / 2000: **32, 28, 21
+(81 / 450, 18%)** at the end (30, 29, 23 before the kin), against 86 / 450 (19%) at the start. The floor is 8%. With a new trouble forced (40 worlds each):
 the tyrant 2, the king under the hill 2, the drowned cure 1, lost beyond the door 2: the bot can do them all, but
 they are long, hard journeys, so they are rare as great troubles.
 
@@ -103,7 +103,7 @@ seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after.
   (merrow), and never otherwise (32 of 150 test worlds offer one); the first log line says so.
 
 **In play.** A way in to the new places without waiting for the shop or the dungeon, at a price on the ground. Bot
-win rate 32, 27, 21 (80 / 450, 18%; it plays them like anyone else).
+win rate 32, 28, 21 (81 / 450, 18%; it plays them like anyone else).
 
 **Commits.** "Windborn and merrow: kin of the sky and the sea". Switch: `kin` (at creation).
 
@@ -117,6 +117,8 @@ win rate 32, 27, 21 (80 / 450, 18%; it plays them like anyone else).
 - **The door** has a model: two stone posts and a lintel, with another sky glowing through (violet going out, pale
   blue coming home). The map marks doors, thrones and cellars.
 - **How to play** (Menu) tells of dungeons, the sky, deep water and doors in one paragraph.
+- The plot's places inside levels are drawn: a throne for a villain, a black stone, an herb patch, bones at a den, a
+  tent for a camp or the lost, and a town's cellar stair.
 - `python3 tools/bench.py places` measures a dungeon level, a floating castle, the open sea, a place under it and
   another world; the browser smoke test now visits one of each kind of new place.
 
