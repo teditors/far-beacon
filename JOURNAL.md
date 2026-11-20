@@ -1,9 +1,111 @@
 # Commission 4
 
+## Summary
+
+Seven entries, in the order the brief asked: the testing tools first, then dungeons, the sky, the sea, other worlds,
+and the plot using them all; then fixtures, the door's model and the benchmark of the new places. Every check passes,
+old saves load (no `VERSION` bump: every new field is optional; saves from v0.14 and from inside each new place are
+now fixtures), and the bot wins as often as before.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C4.1 | God mode (unseen, unhurt, through walls, any door, flying, breathing water) with a jump list and a tap on the map; world settings folded under "New world" | (tools) | pearl, for testing |
+| C4.2 | Dungeons: six themes, 1 to 4 levels, deeper is harder and richer, a Heart and a prize, an artifact in the deepest; the locked place and the odd levels fit in; far maps packed in memory | `deeps` | pearl |
+| C4.3 | The sky: ways to fly and what flying costs; drifting isles, floating castles, cloud cities, a low moon over their shadows | `sky` | pearl |
+| C4.4 | The sea: whole sea regions with islands, lakes, deep water, coracles and gills; floating towns, wrecks, merfolk halls, sea caves, drowned shrines | `sea` | pearl |
+| C4.5 | Other worlds: rare doors to worlds of their own seed, stranger, made only where touched | `realms` | pearl, rare |
+| C4.6 | The plot goes below, above, under and beyond; four new troubles; routes to anywhere; every door used; the bot follows routes | `plots` | pearl |
+| C4.7 | Fixtures from v0.14 and from inside the new places; the door drawn; how to play; `bench.py places` | (tests, view) | small |
+
+**The limits** (node, `--expose-gc`; god mode walking every place):
+- **How deep a dungeon can go**: as deep as you like, as far as the rules go. Each walked level adds about **2.1 KB to
+  the save** and **34 KB to the heap** (far levels packed) and takes 0.4 to 2 ms to build. A 200-level dungeon walked
+  to the bottom: 483 KB save, 7 MB heap, 44 ms to load; 500 levels: 1.1 MB, 17 MB, 128 ms. Browser storage (about
+  5 MB) bites first: **about 1000 walked levels in a world** before a save is at risk. Ordinary dungeons are 1 to 4
+  levels and the plot's 2 to 4, for play, not memory; the depth setting goes to 16.
+- **How many places a world can hold**: the largest world the settings allow (7 x 7, four times the dungeons, 16
+  deep, sky, sea, doors, five more towns) held **323 places in 321 areas** (49 regions, 8 towns, 241 dungeon levels,
+  sky, water and another world). A fresh one saves in **128 KB** and takes 109 ms to make; with **every place walked
+  it saves in 662 KB**, holds **8.5 MB of heap** and loads in 70 ms. An ordinary 7 x 7 world fully walked: 108 areas,
+  266 KB, 5.9 MB. Unwalked places cost a few numbers each: a level is built only when reached, another world only
+  where touched.
+- **How big a save gets**: a fresh ordinary world 64 KB (59 before this commission: the stairs, shadows and doors);
+  a fully walked ordinary 7 x 7 world 266 KB; the largest possible world fully walked 662 KB. All well inside 5 MB.
+- **Memory**: packing far maps cuts the heap by about two fifths (a 7 x 7 world with every dungeon walked: 6.5 MB
+  packed, 9.4 MB if everything were kept as lists; four times the dungeons: 11.3 MB against 19.7). A door to another
+  world costs 15 KB of save fresh and nothing more until walked.
+
+**Performance, before and after** (`tools/bench.py`, software renderer at 412 x 915, seeds 11 / 222 / 3333; slow in
+absolute terms, comparable across rows):
+
+| | build ms | draw calls | triangles | frame ms | save, fresh world |
+| --- | --- | --- | --- | --- | --- |
+| before, Low | 39 | 70 | 80,974 | 61.1 | 59 KB |
+| after, Low | 50 | 67 | 81,806 | 60.7 | 64 KB |
+| before, Medium (default) | 61 | 83 | 150,419 | 101.4 | 59 KB |
+| after, Medium | 71 | 80 | 151,161 | 100.0 | 64 KB |
+| before, High | 118 | 89 | 282,865 | 151.5 | 59 KB |
+| after, High | 118 | 90 | 283,930 | 141.6 | 64 KB |
+
+Outdoors nothing measurable changed (a shadow's floating place is one or two draw calls, in the regions that have
+one). The builds are a few ms slower, within the noise of the software renderer. **Inside the new places, on Medium**
+(`python3 tools/bench.py places`): a dungeon level 18 draw calls / 3k triangles / 30 ms a frame; a floating castle 11
+/ 17k / 85 ms (the whole sky is drawn behind it); the open sea 50 / 142k / 106 ms (as land); under the sea 2 / 4k /
+22 ms; another world 24 / 139k / 72 ms. None costs more than ordinary land. **Andrew: with the meter on, visit a
+floating castle in god mode on the Pixel and send the numbers**: it is the one place whose cost is fill rate (a lot
+of open sky), which the software renderer cannot judge.
+
+**Bot win rate** (`node tests/playtest.js 150`, every piece on, default settings), sets 5 / 1000 / 2000: **30, 29, 23
+(82 / 450, 18%)**, against 86 / 450 (19%) at the start. The floor is 8%. With a new trouble forced (40 worlds each):
+the tyrant 2, the king under the hill 2, the drowned cure 1, lost beyond the door 2: the bot can do them all, but
+they are long, hard journeys, so they are rare as great troubles.
+
+**My three best.**
+1. **Routes (C4.6)**: one function that knows the way from anywhere to anything, through stairs, shadows, sea caves
+   and doors. The goal line, the bot and the tests all use it, and every new kind of place only has to say how it is
+   entered. It is what makes the new places part of the game rather than side rooms.
+2. **Levels built when reached, and far maps packed (C4.2)**: the reason a world can hold hundreds of places and stay
+   under 10 MB, and why a 500-level dungeon is possible at all.
+3. **Other worlds by swapping the world (C4.5)**: a whole second world for one small module, because every region rule
+   already read `s.world` and `s.seed`; it cost no rewrite of the land, the view or the map.
+
+**What I would do next.**
+1. Measure a floating castle and the open sea on the Pixel (above), and if the sky is costly, draw less of it.
+2. Give other worlds their own dungeons and sky places, and a stranger year (two moons, long nights) of their own.
+3. A flying race and a merfolk race, offered in worlds that have sky places or a sea (the roster has room).
+4. Teach the bot to cross deep water by boat and to trade for a coracle, so the playtest measures the sea; and to
+   prepare better for long journeys (it dies of thirst on the way to most of the new troubles).
+5. Models for the plot's sites inside levels (a throne, a cage), and textures for dungeon walls.
+6. When merging to main as v0.15, a CHANGELOG row (I left CHANGELOG.md alone, as the earlier commissions did): "The
+   fourth commission. God mode and world settings; dungeons below the world in six kinds; ways to fly and places in
+   the sky; seas, lakes, boats and places under the water; rare doors to other worlds; troubles that go below, above,
+   under and beyond, with a goal line that finds the way. See `JOURNAL.md`."
+
+**Parallel sessions.** I did not use them: every piece leaned on the one before (the plot on all four kinds of
+place, routes on every level), so they would have waited on each other.
+
+---
+
 Newest entry first. Performance numbers are from `tools/bench.py` (a real browser on a software renderer at 412 x 915,
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
+
+## C4.7: saves kept, a door to see, and the new places measured
+
+**What it is.** Housekeeping after the pieces.
+- **Fixtures**: four saves made by v0.14 (the game on main: walked about, in another town, in the locked place, a
+  trouble told) and five made inside the new places (down a dungeon, in the sky, flying, under the sea, beyond a
+  door) are now in `tests/fixtures/`, so the state test proves Andrew's current game keeps loading, and any later
+  format change must keep these loading too. `tools/once/make-fixtures.js` makes the new places' ones.
+- **The door** has a model: two stone posts and a lintel, with another sky glowing through (violet going out, pale
+  blue coming home). The map marks doors, thrones and cellars.
+- **How to play** (Menu) tells of dungeons, the sky, deep water and doors in one paragraph.
+- `python3 tools/bench.py places` measures a dungeon level, a floating castle, the open sea, a place under it and
+  another world; the browser smoke test now visits one of each kind of new place.
+
+**Commits.** "Saves from v0.14 ... kept as fixtures", "Doors you can see, how to play tells of the new places, and the
+benchmark measures them".
 
 ## C4.6: the plot goes below, above, under the water and beyond
 
