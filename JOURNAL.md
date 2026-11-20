@@ -4,6 +4,36 @@ Newest entry first. Performance numbers are from `tools/bench.py` (a real browse
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
 
+## C3.5: crafting
+
+**What it is.** The land now gives materials, carried in the pack: **hide** and **bone** from what you kill (a hound
+leaves a hide, a brute a hide and a bone, a wight two bones, a serpent a hide; more from a tier 3 creature),
+**salvage** (cloth, cord, pitch) from searching ruins and caches, bone from caves, and **herbs** half the time you
+gather wood. Wood is your fuel. Pack has a **Make** list, survival first:
+- Waterskin (2 hide): 3 more water. Hide boots (2 hide). Fur cloak (3 hide, 1 bone): the cold bites half as hard.
+- Torch (1 wood, 1 salvage): light for 8 hours, enough for the locked place without a lantern.
+- Bandages (1 herb, 1 salvage): 6 health, in a fight too. Healing salve (2 herbs, 1 wood). Warming draught (1 herb, 1 wood).
+- Bone spear (2 bone, 1 wood).
+- Shelter (3 wood, 1 hide): a hide-roofed lean-to where you stand, drawn in the land, that shelters you from storms
+  and lets you sleep, for good. A shelter on the road is a camp you never have to carry.
+
+**In play.** Fights now pay in something useful, ruins in more than a chance of an item, and a long leg can be
+broken with a shelter. Bot win rate, sets 5 / 1000 / 2000: 30, 28, 30 (88 / 450, 20%); with `NO=crafting` 26, 24,
+34 (84). The bot makes waterskins first, then a fur cloak, a torch when it has no light, and bandages, and uses
+bandages like salves.
+
+**Commits.** "Crafting". Switch: `crafting` (in play).
+
+**Shared bricks.** `WEIGHTS` in hooks.js (anything else the traveller carries that weighs something); `use.light` on a
+consumable (hours of light); a `shelter` site counts as shelter; `emit` is on the Rules object for tests.
+
+**Choices made without asking.** Materials are counts (`s.player.mats`), not items, so the pack does not fill with
+forty hides. They are lost when a traveller dies (the body keeps its items, coin and water, not its materials): a
+small loss, and it keeps depots simple. Wood stays fuel rather than becoming a material of its own, so a recipe
+that needs wood competes with your fires, which is the point.
+
+**Verdict: pearl.** Small, and it ties fighting and searching to surviving.
+
 ## C3.4: many plots
 
 **What it is.** The story is no longer always the relic. Every world now has one **great trouble**, told by the elder

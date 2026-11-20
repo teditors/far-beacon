@@ -48,6 +48,12 @@ function maintain(s,stats){ const p=s.player,st=R.siteHere(s);
   if(R.biome)0;
   if(R.biomeOf(s).melt&&p.water<1.5&&p.fuel>=2) R.melt(s);
   if(p.warmth<35&&p.fuel>=1) R.fire(s);
+  // crafting: more water first, then a cloak, a light for the locked place, and bandages
+  if(!s.combat&&!NO.crafting){ const ok=id=>{const r=R.recipes(s).find(x=>x.r.id===id); return r&&r.ok;};
+    if(R.waterCap(s)<12&&ok('waterskin')) R.craft(s,'waterskin');
+    else if(ok('furcloak')&&!p.items.some(i=>i.base==='furcloak')) R.craft(s,'furcloak');
+    else if(!R.stat(s,'nightSight',0)&&!p.items.some(i=>i.base==='torch')&&p.fuel>=3&&ok('torch')) R.craft(s,'torch');
+    else if(p.items.filter(i=>i.base==='bandage').length<2&&ok('bandage')) R.craft(s,'bandage'); }
   // freezing in a storm in the open, where no fire will light: make for the nearest trees or shelter
   if(p.warmth<40&&s.weather.storm&&!R.inShelter(s)&&!R.groundHere(s).blind&&R.inOverworld(s)){ let best=null,bd=9; for(let y=Math.max(0,p.y-6);y<=Math.min(W-1,p.y+6);y++) for(let x=Math.max(0,p.x-6);x<=Math.min(W-1,p.x+6);x++){ const i=y*W+x,st=s.sites[i]; if((s.terrain[i]===3&&R.terrainInfo(s,3).blind)||(st&&['cave','ruin','well'].includes(st.kind))){ const d=Math.abs(x-p.x)+Math.abs(y-p.y); if(d<bd){bd=d;best={x,y};} } }
     if(best){ for(let k=0;k<bd&&!s.over&&!s.combat;k++) if(!bfsStep(s,best.x,best.y)) break; if(p.fuel>=1&&!s.combat) R.fire(s); } } if(s.weather.storm&&!R.inShelter(s)&&!R.groundHere(s).blind&&p.warmth<60){ const ok=[[1,0],[-1,0],[0,1],[0,-1]].find(([dx,dy])=>{const x=p.x+dx,y=p.y+dy;return x>=0&&y>=0&&x<36&&y<36&&s.terrain[y*36+x]===3;}); if(ok)R.move(s,ok[0],ok[1]); }
@@ -65,7 +71,7 @@ function maintain(s,stats){ const p=s.player,st=R.siteHere(s);
   if(R.weight(s)>R.carryCap(s)) p.water=Math.max(0,p.water-(R.weight(s)-R.carryCap(s))-0.1);
 }
 function fight(s,stats){ let g=0; while(s.combat&&!s.over&&g++<80){ const p=s.player,a=R.actions(s).map(x=>x.id),f=R.foe(s);
-  if(p.hp<=p.hpMax*0.3){ const salve=p.items.find(i=>i.base==='salve'); if(salve){R.useItem(s,salve.id);continue;} if(a.includes('mend')&&p.mana>=3){R.mend(s);continue;} if(!s.quest||f.bound||f.key){} R.flee(s); stats.flees++; continue; }
+  if(p.hp<=p.hpMax*0.3){ const salve=p.items.find(i=>i.base==='salve'||i.base==='bandage'); if(salve){R.useItem(s,salve.id);continue;} if(a.includes('mend')&&p.mana>=3){R.mend(s);continue;} if(!s.quest||f.bound||f.key){} R.flee(s); stats.flees++; continue; }
   { const mv=R.actions(s).find(x=>x.id==='classMove'&&x.arg!=='vanish'); if(mv&&p.stamina>30&&R.classMove(s,mv.arg)) continue; } // a class's own fight move, when it can afford one
   if(a.includes('firebolt')&&p.mana>=2)R.firebolt(s); else if(a.includes('smite')&&p.mana>=2)R.smite(s); else if(a.includes('power')&&p.stamina>30)R.power(s); else R.attack(s);} }
 // Inside the town or the locked place: walk the shortest open path, one step per turn.
@@ -100,11 +106,12 @@ function play(seed){ trail=[]; const s=R.newGame(seed,NO); const stats={seed,sea
     const p=s.player, v0=R.findSite(s,'vault'), v=Object.assign({st:v0.st},loc(s,v0)), here=R.siteHere(s);
     { const tg=target(s); if(tg&&tg.town&&p.x===tg.x&&p.y===tg.y){ stats.shopped=false; stats.rested=false; stats.drank=false; trail=[]; R.move(s,0,-1); continue; } }
     { const d=door(s); if(p.x===d.x&&p.y===d.y&&((!s.quest.told&&!plotMain(s))||p.water<R.waterCap(s)*0.85||(!R.stat(s,'nightSight',0)&&(v.st.open||R.hasItem(s,'key'))))){ stats.shopped=false; stats.rested=false; stats.drank=false; trail=[]; R.move(s,0,-1); continue; } }
+    if(v.x===p.x&&v.y===p.y&&!R.hasItem(s,'relic')&&v.st.open&&!R.stat(s,'nightSight',0)){ const tc=p.items.find(i=>i.base==='torch'); if(tc) R.useItem(s,tc.id); }
     if(v.x===p.x&&v.y===p.y&&!R.hasItem(s,'relic')){ if(!v.st.open)R.unlock(s); if(v.st.open&&p.water<R.waterCap(s)*0.7){ stats.refill=true; } else if(v.st.open){ if(!R.stat(s,'nightSight',0)){ stats.noLight=(stats.noLight||0)+1; } else { if(p.hp<p.hpMax*0.6){ R.sleep(s); } R.enterVault(s); if(!stats.dungeon)stats.dungeon=R.clock(s).day; continue; } } }
     if(R.siteHere(s)&&R.siteHere(s).kind==='shrine'&&R.hasItem(s,'relic')) R.offer(s);
     { const pa=R.actions(s).find(a=>a.id==='plotAct'); if(pa&&R.plotAct(s,pa.arg)) continue; }
     // water safety: if water won't get us to the target, go to known water first
-    let t=target(s); if(stats.refill){ const kw0=knownWater(s); if(kw0&&p.water<R.waterCap(s)*0.9) t=kw0.p; else stats.refill=false; } if(!R.stat(s,'nightSight',0)&&(v.st.open||R.hasItem(s,'key'))&&!R.hasItem(s,'relic')) t=door(s);
+    let t=target(s); if(stats.refill){ const kw0=knownWater(s); if(kw0&&p.water<R.waterCap(s)*0.9) t=kw0.p; else stats.refill=false; } if(!R.stat(s,'nightSight',0)&&!p.items.some(i=>i.base==='torch')&&(v.st.open||R.hasItem(s,'key'))&&!R.hasItem(s,'relic')) t=door(s);
     const wr=R.stat(s,'waterDrain',s.tun.waterPerHour)*0.4, need=dist(p,t)*wr, kw=knownWater(s);
     const back=kw?kw.d*wr:0;
     // once it decides to go for water it keeps to that water (held in home-region coordinates, so a border does not

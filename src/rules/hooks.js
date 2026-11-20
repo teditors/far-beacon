@@ -21,6 +21,8 @@ const TUNERS = [];
 // TOWN_MAKERS: functions (s, t, r) run for each town made after the first (a piece adds towns), with s.town standing
 // for the new town t (see withTown) and r its own random stream, so a piece can give it what the first town gets.
 const TOWN_MAKERS = [];
+// WEIGHTS: functions (s) giving more weight the traveller carries (materials, trade goods).
+const WEIGHTS = [];
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
-export { NOTES, SWITCHES, SKETCHERS, LOADERS, TUNERS, TOWN_MAKERS, ACTIONS, TALK, ITEM_HOOKS, worldNotes };
+export { NOTES, SWITCHES, SKETCHERS, LOADERS, TUNERS, TOWN_MAKERS, WEIGHTS, ACTIONS, TALK, ITEM_HOOKS, worldNotes };

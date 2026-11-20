@@ -126,6 +126,15 @@ const BUILD = {
   siege(s) {
     return BUILD.camp(s);
   },
+  shelter() {
+    const g = new THREE.Group(),
+      hide = std(0x8a6a48),
+      pole = std(0x4a3a2a),
+      roof = box(3.4, 0.12, 3, hide, 0, 1.5, 0);
+    roof.rotation.x = 0.5;
+    g.add(roof, box(0.15, 2.4, 0.15, pole, -1.5, 1.2, -1.2), box(0.15, 2.4, 0.15, pole, 1.5, 1.2, -1.2));
+    return g;
+  },
   lost() {
     const g = new THREE.Group(),
       w = std(0x6a5038),

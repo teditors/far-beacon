@@ -463,5 +463,34 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   need(cultures === towns, 'some other towns have no culture');
   need(!(R.newGame(3, { moretowns: true }).towns || []).length, 'NO=moretowns still made towns');
 }
+// Crafting: kills, searches and gathering give materials; each recipe makes what it says; a torch lights the dark.
+{
+  const s = R.newGame(4);
+  s.creatures = [];
+  const c = s.areas[Object.keys(s.areas).find((k) => s.areas[k].kind === 'region' && s.areas[k].map && s.areas[k].map.creatures.length)].map.creatures[0];
+  R.emit(s, 'killed', { sp: c.sp, tier: c.tier, c });
+  need(Object.values(s.player.mats || {}).some((n) => n > 0), 'a kill gave no materials');
+  const before = R.weight(s);
+  s.player.mats = { hide: 9, bone: 9, salvage: 9, herbs: 9 };
+  need(R.weight(s) > before + 5, 'materials weigh nothing');
+  s.player.fuel = 20;
+  for (const r of R.C.crafting.recipes) {
+    if (r.makes === 'shelter') continue;
+    const n = s.player.items.length;
+    need(R.craft(s, r.id) && s.player.items.length === n + 1 && s.player.items[n].base === r.makes, 'could not make ' + r.id);
+  }
+  const torch = s.player.items.find((i) => i.base === 'torch');
+  s.player.items.forEach((i) => { if (i.base === 'lantern') delete i.eq; });
+  const dark = R.stat(s, 'nightSight', 0);
+  R.useItem(s, torch.id);
+  need(R.stat(s, 'nightSight', 0) > dark, 'a torch gives no light');
+  // a shelter, on open ground
+  let k = 0; while (s.sites[k] || s.terrain[k] === 2 || s.terrain[k] >= 4) k++;
+  s.player.x = k % R.W; s.player.y = Math.floor(k / R.W);
+  need(!R.inShelter(s) && R.craft(s, 'shelter') && R.inShelter(s), 'a shelter is not shelter');
+  const o = R.newGame(4, { crafting: true });
+  o.off.crafting = true;
+  need(!R.recipes(o).length, 'NO=crafting still offers recipes');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting');

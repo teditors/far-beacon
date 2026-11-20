@@ -287,6 +287,53 @@ function resRow(kind, label) {
     ]),
   ]);
 }
+// Materials you carry, and what you could make of them (crafting).
+function craftRows() {
+  const list = R.recipes(V.S);
+  if (!list.length) return [];
+  const m = V.S.player.mats || {},
+    have = R.C.crafting.mats.filter((x) => m[x.id] > 0);
+  return [
+    el('h3', { text: 'Materials' }),
+    el('p', {
+      cls: 'note',
+      text:
+        (have.length ? have.map((x) => m[x.id] + ' ' + x.name.toLowerCase()).join(', ') + ', and ' : '') +
+        Math.floor(V.S.player.fuel) +
+        ' wood (your fuel). Hides and bone come from kills, salvage from ruins and caches, herbs from gathering wood.',
+    }),
+    el('h3', { text: 'Make' }),
+    el(
+      'ul',
+      { cls: 'items' },
+      list.map(({ r, ok }) =>
+        el('li', { cls: 'item' }, [
+          el('div', null, [
+            el('strong', { text: r.name }),
+            el('p', {
+              text:
+                r.text +
+                ' Needs ' +
+                Object.keys(r.needs)
+                  .map((k) => r.needs[k] + ' ' + (k === 'fuel' ? 'wood' : R.byId(R.C.crafting.mats, k).name.toLowerCase()))
+                  .join(', ') +
+                '; ' +
+                r.mins +
+                ' min.',
+            }),
+          ]),
+          ok
+            ? btn('Make', () => {
+                act(() => R.craft(V.S, r.id));
+                if (r.makes === 'shelter') buildStatic(); // it stands in the land from now on
+                if (!V.S.over) openPack();
+              })
+            : el('span', { cls: 'wt', text: '' }),
+        ]),
+      ),
+    ),
+  ];
+}
 function openPack() {
   const d = R.depotHere(V.S);
   openModal('Pack', [
@@ -308,6 +355,7 @@ function openPack() {
         )
       : el('p', { cls: 'note', text: 'No gear here.' }),
     el('ul', { cls: 'items' }, [resRow('water', 'Water (1 wt each)'), resRow('fuel', 'Fuel (0.5 wt each)')]),
+    ...craftRows(),
     el('h3', { text: 'Carrying' }),
     V.S.player.items.length
       ? el(
@@ -572,6 +620,7 @@ const MAPC = {
   stone: '#111111',
   herbs: '#6fae4f',
   siege: '#c0612f',
+  shelter: '#a07a4a',
 };
 const INDOOR_COLS = { 6: '#3a3631', 7: '#9a948a' };
 // The map screen. Indoors: the town or the level you are on. Outdoors: the whole world as one continuous map, drawn from

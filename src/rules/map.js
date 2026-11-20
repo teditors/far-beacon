@@ -32,7 +32,8 @@ const isShelter = (site) =>
     site.kind === 'well' ||
     site.kind === 'town' ||
     site.kind === 'vault' ||
-    site.kind === 'hamlet');
+    site.kind === 'hamlet' ||
+    site.kind === 'shelter');
 const inShelter = (s) => indoors(s) || isShelter(siteHere(s));
 const atCamp = (s) => campHere(s) === here(s);
 const passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL && !inTownBlock(s, x, y);
@@ -70,6 +71,7 @@ const SITE_NAME = {
   inn: 'inn',
   shop: 'shop',
   trap: 'trap',
+  shelter: 'shelter',
 };
 const siteName = (s, site) =>
   site.kind === 'ruin'

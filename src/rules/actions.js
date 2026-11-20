@@ -634,7 +634,18 @@ function useItem(s, id) {
   if (use.warmth) p.warmth = clamp(p.warmth + use.warmth, 0, 100);
   if (use.water) p.water = Math.min(Math.max(waterCap(s), p.water), p.water + use.water);
   if (use.hp) p.hp = Math.min(p.hpMax, p.hp + use.hp);
-  say(s, 'You drink the ' + itemName(it) + '.', (use.stamina || 0) < -5 ? 'bad' : 'good');
+  if (use.light) s.lightUntil = s.time + use.light * 60; // a torch
+  say(
+    s,
+    (use.light
+      ? 'You light the '
+      : use.hp && !b.mystery && it.base === 'bandage'
+        ? 'You bind your wounds with the '
+        : 'You drink the ') +
+      itemName(it) +
+      '.',
+    (use.stamina || 0) < -5 ? 'bad' : 'good',
+  );
   p.items.splice(i, 1);
   if (s.combat) {
     s.combat.round++;

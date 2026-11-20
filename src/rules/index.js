@@ -134,8 +134,11 @@ import {
   trackPlot,
   tracked,
 } from './plots.js'; // after the towns: troubles need towns
+import { craft, recipes } from './crafting.js';
 
 const api = {
+  craft,
+  recipes,
   choosePlot,
   mainPlot,
   plotAct,
@@ -199,6 +202,7 @@ const api = {
   livesLeft,
   shrineBearing,
   on,
+  emit,
   AXES,
   trait,
   traitText,

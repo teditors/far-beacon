@@ -29,6 +29,7 @@ import tiers from './tiers.js';
 import worldSize from './worldsize.js';
 import moreTowns from './moretowns.js';
 import plots from './plots.js';
+import crafting from './crafting.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -61,4 +62,5 @@ export const CONTENT = Object.assign(
   worldSize,
   moreTowns,
   plots,
+  crafting,
 );
