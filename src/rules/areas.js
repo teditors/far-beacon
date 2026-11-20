@@ -89,6 +89,13 @@ function ensureTown(s) {
 }
 // The map of any area: the live one if the player is in it, the parked one otherwise.
 const mapOf = (s, id) => (id === s.area ? s : s.areas[id].map);
+// A region's record, built now if it was not yet (for pieces that put things in regions the player has not been near).
+function ensureRegion(s, cx, cy) {
+  const id = regionId(s, cx, cy);
+  if (!s.areas[id]) s.areas[id] = { id, kind: 'region', cx, cy, biome: sketchOf(s, cx, cy).biome };
+  buildArea(s, s.areas[id]);
+  return s.areas[id];
+}
 // The eight regions around the one the player is in are built before they are needed, so that they can be seen
 // from across the border. Built, not visited: nothing in them changes until the player walks in.
 function ensureAround(s) {
@@ -231,6 +238,7 @@ export {
   switchRegion,
   mapOf,
   ensureAround,
+  ensureRegion,
   buildArea,
   ensureTown,
   inTownBlock,

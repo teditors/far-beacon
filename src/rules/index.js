@@ -115,6 +115,7 @@ import { serviceInfo, useService } from './townlife.js';
 import { classMove } from './roster.js';
 import './hamlets.js';
 import './tiers.js';
+import './worldsize.js';
 import './plot.js'; // last: it moves quest places that earlier pieces may have changed
 
 const api = {

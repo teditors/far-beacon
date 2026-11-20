@@ -2,7 +2,7 @@
    creature, fetch a parcel, go and see a place), paid on your return. Sometimes the one who asks is lying.
    State: s.errand = { kind, text, area, x, y, cid, done, reward, liar, giver }, s.errandsDone. Switch: s.off.errands. */
 import { C, W, H, aOrAn, byId, idx, on, say, srand } from './core.js';
-import { HOME, homePos, townArea, worldPos, regionId, wrap } from './areas.js';
+import { HOME, ensureRegion, homePos, townArea, worldPos, regionId, wrap } from './areas.js';
 import { dirFrom } from './map.js';
 import { genItem, itemName, makeItem } from './items.js';
 import { siteName } from './map.js';
@@ -33,16 +33,21 @@ function errandInfo(s) {
   };
 }
 
+// A few tries: the first errand rolled may need something its region does not have.
 function askErrand(s) {
   if (s.over || s.off.errands || s.errand || !atInn(s)) return false;
+  for (let i = 0; i < 6; i++) if (tryErrand(s)) return true;
+  return false;
+}
+function tryErrand(s) {
   const pick = (a) => a[Math.floor(srand(s) * a.length)], // from the play stream: errands are offered during play
     X = E(),
     home = s.areas[townArea(s)] || s.world.home, // the regions around the town
     near = [];
   for (let dy = -1; dy <= 1; dy++)
     for (let dx = -1; dx <= 1; dx++) {
-      const id = regionId(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows));
-      if (id !== townArea(s) && mapOf(s, id)) near.push(id);
+      const id = ensureRegion(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows)).id;
+      if (id !== townArea(s) && mapOf(s, id) && !near.includes(id)) near.push(id);
     }
   if (!near.length) return false;
   const kind = pick(X.kinds),

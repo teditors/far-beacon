@@ -3054,6 +3054,52 @@
   // src/content/tiers.js
   var tiers_default = { tiers: { max: 3, names: { 2: "Fine", 3: "Superb" }, step: 0.5 } };
 
+  // src/content/worldsize.js
+  var worldsize_default = {
+    worldSize: {
+      shapes: [
+        {
+          id: "small",
+          name: "A small world",
+          w: 3,
+          cols: [2, 3],
+          rows: [3, 3],
+          swap: true,
+          text: "the places of the story are close together, and the far country is never far"
+        },
+        {
+          id: "usual",
+          name: "An ordinary world",
+          w: 5,
+          cols: [3, 4],
+          rows: [3, 4],
+          text: "a fair journey from one side to the other"
+        },
+        {
+          id: "long",
+          name: "A long world",
+          w: 2,
+          cols: [2, 3],
+          rows: [5, 7],
+          swap: true,
+          text: "a narrow land, short one way and long the other"
+        },
+        {
+          id: "broad",
+          name: "A broad world",
+          w: 2,
+          cols: [4, 5],
+          rows: [4, 6],
+          swap: true,
+          text: "wide country, with room for the far places to be truly far"
+        },
+        { id: "vast", name: "A vast world", w: 1, cols: [6, 7], rows: [6, 7], text: "more land than one life can walk" }
+      ],
+      most: 49
+      // never more regions than this, whatever is rolled
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -3082,7 +3128,8 @@
     townlife_default,
     roster_default,
     hamlets_default,
-    tiers_default
+    tiers_default,
+    worldsize_default
   );
 
   // src/rules/core.js
@@ -3292,6 +3339,12 @@
     buildArea(s, s.areas.town);
   }
   var mapOf = (s, id) => id === s.area ? s : s.areas[id].map;
+  function ensureRegion(s, cx, cy) {
+    const id = regionId(s, cx, cy);
+    if (!s.areas[id]) s.areas[id] = { id, kind: "region", cx, cy, biome: sketchOf(s, cx, cy).biome };
+    buildArea(s, s.areas[id]);
+    return s.areas[id];
+  }
   function ensureAround(s) {
     const here2 = outdoorRec(s);
     for (let dy = -1; dy <= 1; dy++)
@@ -3407,6 +3460,7 @@
   var TALK = [];
   var ITEM_HOOKS = [];
   var LOADERS = [];
+  var TUNERS = [];
   var SWITCHES = [];
   var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 
@@ -5910,7 +5964,9 @@
       civ.name = pick(st.a) + pick(st.b) + pick(st.c);
     }
     const habit = byId(C.civ.habit, civ.habit), age = byId(C.civ.age, civ.age), doom = byId(C.civ.doom, civ.doom);
+    for (const f of TUNERS) f(seed, tun, off, year);
     const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
+    if (tun.world.shape) world.shape = tun.world.shape;
     for (const f of SKETCHERS) f(seed, world, off);
     biome = byId(C.biomes, world.sketch[world.home.cy * world.cols + world.home.cx].biome);
     const { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
@@ -6515,11 +6571,15 @@
   }
   function askErrand(s) {
     if (s.over || s.off.errands || s.errand || !atInn(s)) return false;
+    for (let i = 0; i < 6; i++) if (tryErrand(s)) return true;
+    return false;
+  }
+  function tryErrand(s) {
     const pick = (a) => a[Math.floor(srand(s) * a.length)], X4 = E(), home = s.areas[townArea(s)] || s.world.home, near = [];
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
-        const id = regionId(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows));
-        if (id !== townArea(s) && mapOf2(s, id)) near.push(id);
+        const id = ensureRegion(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows)).id;
+        if (id !== townArea(s) && mapOf2(s, id) && !near.includes(id)) near.push(id);
       }
     if (!near.length) return false;
     const kind2 = pick(X4.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X4.liarChance, giver = pick(X4.givers) + (liar ? " " + pick(X4.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
@@ -7557,6 +7617,38 @@
   });
   SWITCHES.push(["tiers", "Finer things far from home"]);
 
+  // src/rules/worldsize.js
+  var Z = () => C.worldSize;
+  function rollSize(seed) {
+    const r = stream(seed, "worldsize"), shapes = Z().shapes;
+    let t = shapes.reduce((a, e) => a + e.w, 0) * r(), sh = shapes[shapes.length - 1];
+    for (const e of shapes)
+      if ((t -= e.w) < 0) {
+        sh = e;
+        break;
+      }
+    const span = ([a, b]) => a + Math.floor(r() * (b - a + 1));
+    let cols = span(sh.cols), rows = span(sh.rows);
+    if (sh.swap && r() < 0.5) [cols, rows] = [rows, cols];
+    while (cols * rows > Z().most) cols > rows ? cols-- : rows--;
+    return { shape: sh.id, cols, rows };
+  }
+  TUNERS.push((seed, tun, off, year) => {
+    if (off.worldsize || year && year.tun && year.tun.world) return;
+    const z = rollSize(seed);
+    tun.world = { cols: z.cols, rows: z.rows, shape: z.shape };
+  });
+  var shapeOf = (s) => s.world && s.world.shape ? byId(Z().shapes, s.world.shape) : null;
+  SWITCHES.push(["worldsize", "Worlds of varying size"]);
+  NOTES.push((s) => {
+    const sh = shapeOf(s);
+    return sh ? [{ label: sh.name, text: s.world.cols + " regions across and " + s.world.rows + " down: " + sh.text + "." }] : [];
+  });
+  on("worldBorn", (s) => {
+    const sh = shapeOf(s);
+    if (sh && sh.id !== "usual") say(s, sh.name + ", " + s.world.cols + " regions by " + s.world.rows + ": " + sh.text + ".");
+  });
+
   // src/rules/plot.js
   var HOME_TOWN_CHANCE = 0.25;
   function neighbours(s) {
@@ -7618,7 +7710,8 @@
     let prev = s.world.home;
     for (let n = 0; n < 4; n++) {
       const fresh = (list) => list.filter((o) => o.id !== HOME && !chain.some((c) => c.id === o.id));
-      let opts = fresh(side(prev));
+      let opts = fresh(side(prev)).filter((o) => near.some((n2) => n2.id === o.id));
+      if (!opts.length) opts = fresh(side(prev));
       if (!opts.length) opts = fresh(near);
       if (!opts.length) opts = near;
       const pick = opts[Math.floor(r() * opts.length)];

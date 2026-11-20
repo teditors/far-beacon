@@ -15,6 +15,9 @@ const TALK = [];
 // ITEM_HOOKS: functions (s, item, options) that may finish an item genItem has just made.
 const ITEM_HOOKS = [];
 const LOADERS = [];
+// TUNERS: functions (seed, tun, off, year) run in newGame right after the year has set the tuning numbers and before
+// the world is sketched, so a piece can change the world's size or other numbers fixed at creation.
+const TUNERS = [];
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
-export { NOTES, SWITCHES, SKETCHERS, LOADERS, ACTIONS, TALK, ITEM_HOOKS, worldNotes };
+export { NOTES, SWITCHES, SKETCHERS, LOADERS, TUNERS, ACTIONS, TALK, ITEM_HOOKS, worldNotes };

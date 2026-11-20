@@ -42,9 +42,16 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   for (let i = 1; i <= 20; i++) {
     const s = R.newGame(i);
     need(s.town.stock.filter((x) => x.art).length === 1, 'seed ' + i + ': no artifact in the shop');
+    // in a world larger than 3 x 3 the far region may not be built yet: walk there, and it is placed as it is built
+    if (s.artifacts.region) {
+      const a = s.artifacts.region, cx = +a.id.slice(1).split('_')[0], cy = +a.id.split('_')[1];
+      need(!(s.areas[a.id] && s.areas[a.id].map), 'seed ' + i + ': the far artifact was not placed when its region was built');
+      R.switchRegion(s, cx, cy, { x: 18, y: 18 });
+    }
     need(!s.artifacts.region, 'seed ' + i + ': the far artifact was not placed when its region was built');
     let n = 0;
     for (const id in s.areas) if (s.areas[id].map) for (const k in s.areas[id].map.depots) n += s.areas[id].map.depots[k].items.filter((x) => x.art).length;
+    for (const k in s.depots) n += s.depots[k].items.filter((x) => x.art).length;
     need(n === 1, 'seed ' + i + ': the far artifact is in ' + n + ' places');
     const v = R.findSite(s, 'vault');
     goPlace(s, v); v.st.open = true; s.player.fuel = 5;
@@ -83,8 +90,9 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   }
   need(Object.keys(seen).length === R.C.regionRares.list.length, 'not every rare region turned up in 120 worlds');
   const s = findSeed((s) => Object.values(s.regionRares).includes('heavy'));
-  const id = Object.keys(s.regionRares).find((k) => s.regionRares[k] === 'heavy'), rec = s.areas[id], before = R.stat(s, 'staminaCost', 1);
-  R.switchRegion(s, rec.cx, rec.cy, { x: 18, y: 18 });
+  const id = Object.keys(s.regionRares).find((k) => s.regionRares[k] === 'heavy'), before = R.stat(s, 'staminaCost', 1);
+  R.switchRegion(s, +id.slice(1).split('_')[0], +id.split('_')[1], { x: 18, y: 18 }); // built now if it was not yet
+  const rec = s.areas[id];
   s.player.stamina = 100; s.creatures = [];
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (R.move(s, dx, dy)) break;
   need(rec.rareTold && s.log.some((l) => /rare country/.test(l.msg)), 'walking into a rare region did not tell you');
@@ -408,5 +416,20 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   goPlace(h, { area: id, x: 18, y: 18 });
   need(!R.genItem(h, { relic: true, noConsumables: true }).tier, 'NO=tiers still made a fine item');
 }
+// Worlds of varying size: sizes vary, odd shapes happen, none is too large, and NO=worldsize gives 3 x 3.
+{
+  const sizes = new Set();
+  let odd = 0;
+  for (let i = 1; i <= 120; i++) {
+    const s = R.newGame(i), w = s.world;
+    sizes.add(w.cols + 'x' + w.rows);
+    if (Math.abs(w.cols - w.rows) >= 3) odd++;
+    need(w.cols >= 2 && w.rows >= 2 && w.cols * w.rows <= R.C.worldSize.most && w.sketch.length === w.cols * w.rows, 'seed ' + i + ': a world of ' + w.cols + ' x ' + w.rows);
+    need(s.year !== 'wide' || (w.cols === 5 && w.rows === 5), 'seed ' + i + ': a wide year is not 5 x 5');
+  }
+  need(sizes.size >= 10 && odd >= 3, 'too little variety in world sizes: ' + [...sizes].join(' '));
+  const o = R.newGame(1, { worldsize: true });
+  need(o.world.cols === 3 && o.world.rows === 3, 'NO=worldsize is not 3 x 3');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size');

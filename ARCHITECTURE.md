@@ -71,7 +71,8 @@ rules never need to know where they are. Every other area is parked in `s.areas[
 ## The world
 
 The outdoors is a grid of regions (`s.world`: `cols`, `rows`, `home`, and a `sketch` with each region's biome and
-danger). The size is stored per world, so worlds can differ. Each region is an area of kind `region`, parked like
+danger). The size is stored per world and rolled from the seed (the `worldsize` piece, from 2 x 3 to 7 x 7); nothing
+may assume 3 x 3. Each region is an area of kind `region`, parked like
 any other; the home region keeps the id `overworld`, the rest are `r<cx>_<cy>`, built by `GENERATORS.region` the
 first time the player arrives.
 

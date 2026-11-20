@@ -555,6 +555,13 @@ section('Tiers by distance', ['tiers'], () => {
   line();
 });
 
+section('The size of the world', ['worldSize'], () => {
+  const X = C.worldSize;
+  line('Rolled from the seed before the land is made (a year that sets the size, such as the wide world, wins). At most ' + X.most + ' regions. Turned on its side means the across and down ranges may swap.');
+  line();
+  table(['Shape', 'Weight', 'Across', 'Down', 'On its side', 'Told'], X.shapes.map((e) => [e.name, e.w, e.cols.join(' to '), e.rows.join(' to '), e.swap ? 'yes' : '', e.text]));
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

@@ -4,6 +4,40 @@ Newest entry first. Performance numbers are from `tools/bench.py` (a real browse
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
 
+## C3.2: worlds of varying size
+
+**What it is.** The number of regions across and down is now rolled from the seed: a small world (2 or 3 by 3), an
+ordinary one (3 or 4 each way), a long one (2 or 3 by 5 to 7, either way round), a broad one (4 or 5 by 4 to 6) or,
+rarely, a vast one (6 or 7 each way). A 4 x 7 world is as likely as a 5 x 5. At most 49 regions. The rare wide year
+still makes exactly 5 x 5. The world's shape is told at the start (unless it is ordinary) and listed in the Journal.
+
+**In play.** Small worlds put the far country a step away; long and vast ones have land beyond the story to wander
+into, with its lairs, rare countries and the far artifact (always in the farthest region). Bot win rate, sets 5 / 1000
+/ 2000: 20, 18, 15 (53 / 450, 12%); with `NO=worldsize` 20, 19, 11 (50 / 450).
+
+**Budget.** Drawing costs the same in any size of world: only the player's region and its eight neighbours are ever
+built for the view. What grows is the save, with what you explore: a 7 x 7 world with every region visited saves in
+162 KB (it would have been about 500 KB before C3.1's packing). Making a 7 x 7 world takes 50 ms in Node.
+
+**Commits.** "Worlds of varying size". Switch: `worldsize` (at creation; off gives the old 3 x 3).
+
+**Shared brick.** `TUNERS` in hooks.js: functions run in `newGame` after the year sets the tuning numbers and before
+the world is sketched. `s.world.shape` names the shape (optional).
+
+**Choices made without asking.**
+- The first try let the plot's chain of regions (town, key, locked place, destination) wander away from home in large
+  worlds, into regions of danger 2 and 3: the bot's win rate fell to 22 / 450 (5%). The chain now keeps to the ring of
+  regions round home where it can, as it always did in a 3 x 3 world, and the win rate came back. Plots that go
+  further afield are for C3.3.
+- No world is narrower than 2 regions, so a region never borders itself.
+- The artifacts and rare-region tests no longer assume every region is built at creation; in a large world a region
+  is built (and its artifact placed) when you first get near.
+- Errands at the inn now build the regions round the town if they are not yet built, and try a few times before
+  saying there is no work: in a large world the first errand rolled could point into an unbuilt region.
+  `ensureRegion(s, cx, cy)` (areas.js) builds any region on demand.
+
+**Verdict: pearl.** Cheap, and every world now has a different map.
+
 ## C3.1: a performance meter, a quality setting, and a cheaper game
 
 **What it is.** Menu now has a **Settings** section, kept per device rather than per run:
