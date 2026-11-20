@@ -500,7 +500,11 @@ const atTrader = (s) => {
   const st = siteHere(s);
   return st && st.kind === 'trader' ? st : null;
 };
-const traderOf = (st) => byId(K().kinds, st.place).trader || (C.sea && C.sea.traders && C.sea.traders[st.place]);
+const traderOf = (st) => {
+  // a sky place's own trader, or one of the sea's (the floating town, the merfolk halls)
+  const kd = byId(K().kinds, st.place);
+  return (kd && kd.trader) || (C.sea && C.sea.traders && C.sea.traders[st.place]) || null;
+};
 TALK.push({
   info(s) {
     const st = atTrader(s),

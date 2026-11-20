@@ -93,6 +93,16 @@ seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after.
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
 
+## C4.10: fix: talking to a floating town's trader froze the screen
+
+**From Andrew** (god mode, Saltholm): talking to the figure on the floating town froze the screen, and teleporting
+anywhere after left it black until the browser was reopened. The talk button looked its trader up among the sky's
+places first, and a sea place is not one of them, so drawing the buttons threw an error on every frame. Fixed in
+`traderOf` (sky.js): a sky place's trader, else the sea's. The merfolk halls had the same fault. `tests/c4.test.js`
+now talks to the raft-master.
+
+**Commits.** "Talking to a floating town's trader no longer freezes the screen".
+
 ## C4.9: dungeons in other worlds
 
 **What it is.** Each other world rolls one or two dungeons of its own (any theme, 2 to 4 levels), their stairs in

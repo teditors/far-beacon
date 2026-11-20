@@ -195,6 +195,13 @@ const done = [];
   R.rest(s);
   need(R.passable(s, raft.x, raft.y) && R.hasBoat(s), 'a coracle does not carry you over deep water');
   need(R.enterWater(s) && R.areaRec(s).place === 'raft' && R.findHere(s, 'trader'), 'could not board the floating town, or it has no trader');
+  { // its trader talks and trades (this once crashed every frame: the sky's trader list did not know the sea's)
+    const tr = R.findHere(s, 'trader'), was = [s.player.x, s.player.y];
+    s.player.x = tr.x; s.player.y = tr.y;
+    const a = R.actions(s).find((x) => x.section === 'trader'), info = R.serviceInfo(s);
+    need(a && info && info.options.some((o) => o.arg === 'divehelm'), 'the raft-master will not talk or trade');
+    [s.player.x, s.player.y] = was;
+  }
   const ex = R.findHere(s, 'exit'); s.player.x = ex.x; s.player.y = ex.y; R.goUp(s);
   need(R.inOverworld(s) && s.player.x === raft.x, 'leaving the floating town did not put you back on the water');
   // under the water: a way to breathe first, and drowning without it

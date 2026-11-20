@@ -10429,7 +10429,10 @@
     const st = siteHere(s);
     return st && st.kind === "trader" ? st : null;
   };
-  var traderOf = (st) => byId(K().kinds, st.place).trader || C.sea && C.sea.traders && C.sea.traders[st.place];
+  var traderOf = (st) => {
+    const kd = byId(K().kinds, st.place);
+    return kd && kd.trader || C.sea && C.sea.traders && C.sea.traders[st.place] || null;
+  };
   TALK.push({
     info(s) {
       const st = atTrader(s), T2 = st && traderOf(st);
