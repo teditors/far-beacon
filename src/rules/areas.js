@@ -18,8 +18,22 @@ const wrapDelta = (a, b, m) => {
   if (d > m / 2) d -= m;
   return d;
 };
-const regionId = (s, cx, cy) => (cx === s.world.home.cx && cy === s.world.home.cy ? HOME : 'r' + cx + '_' + cy);
-const sketchOf = (s, cx, cy) => s.world.sketch[cy * s.world.cols + cx];
+// Region ids: 'overworld' for home, 'r<cx>_<cy>' for the rest; in another world (s.realm), '<realm>:r<cx>_<cy>'.
+const regionId = (s, cx, cy) =>
+  s.realm ? s.realm + ':r' + cx + '_' + cy : cx === s.world.home.cx && cy === s.world.home.cy ? HOME : 'r' + cx + '_' + cy;
+// A region's record, made if it was not yet (it belongs to the world the traveller is in).
+const regionRec = (s, cx, cy) => {
+  const id = regionId(s, cx, cy);
+  if (!s.areas[id]) {
+    s.areas[id] = { id, kind: 'region', cx, cy, biome: sketchOf(s, cx, cy).biome };
+    if (s.realm) s.areas[id].realm = s.realm;
+  }
+  return s.areas[id];
+};
+// A region's entry in the sketch of the world you are in (a region of another world, asked about from here, gets a
+// plain entry rather than nothing).
+const sketchOf = (s, cx, cy) =>
+  (cx < s.world.cols && cy < s.world.rows && s.world.sketch[cy * s.world.cols + cx]) || { biome: s.biome, danger: 0 };
 // The outdoor region the player is in, or is inside a building of.
 function outdoorRec(s) {
   let rec = areaRec(s);
@@ -33,8 +47,7 @@ const regionOffset = (s, rec) => ({
 });
 // Step sideways into another region. Regions are neighbours, not nested, so there is no way "back out".
 function switchRegion(s, cx, cy, at) {
-  const id = regionId(s, cx, cy);
-  if (!s.areas[id]) s.areas[id] = { id, kind: 'region', cx, cy, biome: sketchOf(s, cx, cy).biome };
+  const id = regionRec(s, cx, cy).id;
   park(s);
   unpark(s, id);
   s.areas[id].from = null;
@@ -138,8 +151,7 @@ function ensureTown(s) {
 const mapOf = (s, id) => (id === s.area ? s : thawMap(s.areas[id].map));
 // A region's record, built now if it was not yet (for pieces that put things in regions the player has not been near).
 function ensureRegion(s, cx, cy) {
-  const id = regionId(s, cx, cy);
-  if (!s.areas[id]) s.areas[id] = { id, kind: 'region', cx, cy, biome: sketchOf(s, cx, cy).biome };
+  const id = regionRec(s, cx, cy).id;
   buildArea(s, s.areas[id]);
   return s.areas[id];
 }
@@ -151,9 +163,7 @@ function ensureAround(s) {
     for (let dx = -1; dx <= 1; dx++) {
       const cx = wrap(here.cx + dx, s.world.cols),
         cy = wrap(here.cy + dy, s.world.rows),
-        id = regionId(s, cx, cy);
-      if (!s.areas[id]) s.areas[id] = { id, kind: 'region', cx, cy, biome: sketchOf(s, cx, cy).biome };
-      const rec = s.areas[id];
+        rec = regionRec(s, cx, cy);
       buildArea(s, rec);
     }
 }
@@ -237,16 +247,68 @@ function leaveArea(s) {
   coolDown(s);
   return true;
 }
-// Straight back to the overworld from any depth (used when a new traveller sets out).
+// Straight back to the overworld from any depth (used when a new traveller sets out), and from any other world.
 function toOverworld(s) {
   while (!inOverworld(s)) if (!leaveArea(s)) break;
+  if (s.realm) setRealm(s, null);
   if (s.area !== HOME) switchRegion(s, s.world.home.cx, s.world.home.cy, s.start);
 }
+/* Other worlds (the `realms` piece). A world other than home is { id, seed, world, name } in s.realms; the one the
+   traveller is in is s.realm (none at home), and its sketch and seed are s.world and s.seed while they are there,
+   so every region rule works unchanged. Home's are kept in s.realms.home while away. setRealm swaps them; nothing
+   is parked or moved (call switchRegion after, to go somewhere). */
+function setRealm(s, rid) {
+  const from = s.realm || 'home',
+    to = rid || 'home';
+  if (from === to) return;
+  s.realms = s.realms || {};
+  s.realms[from] = Object.assign(s.realms[from] || { id: from }, { world: s.world, seed: s.seed });
+  const R = s.realms[to];
+  s.world = R.world;
+  s.seed = R.seed;
+  delete R.world;
+  if (to === 'home') {
+    delete s.realm;
+    delete s.realms.home;
+  } else s.realm = to;
+}
+// Run fn as if in another world (to build its regions while the traveller is elsewhere), then come back.
+function withRealm(s, rid, fn) {
+  const was = s.realm || null;
+  if ((rid || null) === was) return fn();
+  setRealm(s, rid);
+  try {
+    return fn();
+  } finally {
+    setRealm(s, was);
+  }
+}
+// Through a door: into region (cx, cy) of world rid (null for home), standing on `at`.
+function enterRealm(s, rid, cx, cy, at) {
+  while (!inOverworld(s)) if (!leaveArea(s)) break;
+  park(s);
+  setRealm(s, rid);
+  const rec = regionRec(s, cx, cy);
+  unpark(s, rec.id);
+  rec.from = null;
+  s.biome = rec.biome;
+  s.player.x = at.x;
+  s.player.y = at.y;
+  s.lastGround = s.terrain[idx(at.x, at.y)];
+  s.onRoad = false;
+  ensureAround(s);
+  coolDown(s);
+}
+const realmOf = (s, areaId) => {
+  let rec = s.areas[areaId];
+  while (rec && rec.kind !== 'region' && rec.from) rec = s.areas[rec.from.area];
+  return (rec && rec.realm) || null;
+};
 
 // The overworld's map, wherever the player is.
 // The home region's map (where the quest places are), wherever the player is.
 function worldMap(s) {
-  return s.area === HOME ? s : s.areas[HOME].map;
+  return mapOf(s, HOME);
 }
 // Where the player is in home-region coordinates. In another region this runs past the home map's edges, which is
 // what makes directions to home-region places come out right. Inside a building it is the door they came in by.
@@ -350,4 +412,9 @@ export {
   allMaps,
   forgetMaps,
   coolDown,
+  regionRec,
+  setRealm,
+  withRealm,
+  enterRealm,
+  realmOf,
 };

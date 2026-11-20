@@ -32,11 +32,15 @@ const PLACES = [];
 const COSTS = [];
 // LOOKS: functions (s, rec) giving how a level a piece owns looks ({ stone, floor, bg, glow, void, title... }), or null.
 const LOOKS = [];
+// OBJECTIVES: functions (s, goalArea) that may turn the goal into another: the way to the door of the world the goal
+// is in ({ text, at: { area, x, y } }), or null to leave it alone. goalArea null means a place of the home world.
+const OBJECTIVES = [];
 // LEVELS: for levels a piece owns, by area kind: LEVELS[kind](s) takes the stair down (goDown calls it).
 const LEVELS = {};
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 export {
+  OBJECTIVES,
   COSTS,
   LOOKS,
   LEVELS,

@@ -89,8 +89,9 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
     }
   }
   need(Object.keys(seen).length === R.C.regionRares.list.length, 'not every rare region turned up in 120 worlds');
-  const s = findSeed((s) => Object.values(s.regionRares).includes('heavy'));
-  const id = Object.keys(s.regionRares).find((k) => s.regionRares[k] === 'heavy'), before = R.stat(s, 'staminaCost', 1);
+  const homeRare = (s) => Object.keys(s.regionRares).find((k) => s.regionRares[k] === 'heavy' && !k.includes(':')); // not another world's
+  const s = findSeed(homeRare);
+  const id = homeRare(s), before = R.stat(s, 'staminaCost', 1);
   R.switchRegion(s, +id.slice(1).split('_')[0], +id.split('_')[1], { x: 18, y: 18 }); // built now if it was not yet
   const rec = s.areas[id];
   s.player.stamina = 100; s.creatures = [];
@@ -438,7 +439,7 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
     const s = R.newGame(i);
     need((s.towns || []).length >= 1, 'seed ' + i + ': no other town');
     need(new Set(R.allTowns(s).map((t) => t.area || 'overworld')).size === R.allTowns(s).length, 'seed ' + i + ': two towns in one region');
-    for (const t of s.towns || []) {
+    for (const t of (s.towns || []).filter((t) => !t.realm)) { // another world's town is walked into from there (c4.test.js)
       towns++;
       if (t.culture) cultures++;
       const d = R.townDoor(s, t);

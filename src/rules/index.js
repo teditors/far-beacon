@@ -143,6 +143,7 @@ import './moretowns.js'; // after the plot: other towns go where the story's pla
 import { deepById, deepsOf, enterDeep, levelLook, levelTitle } from './deeps.js'; // after the towns: a town may have a cellar
 import { aloft, canFly, flyDown, flyUp, land, skiesOf, skyOn, takeOff } from './sky.js'; // after the dungeons: a way to fly may lie in one
 import { breathes, enterWater, hasBoat, seaPlacesOf } from './sea.js';
+import { doorsOf, realmName, realmsOf, stepThrough } from './realms.js'; // before the plots: they use the doors
 import {
   choosePlot,
   mainPlot,
@@ -162,6 +163,10 @@ import { genOf, parseSet, settings } from './worldset.js';
 
 const api = {
   setGodMode,
+  doorsOf,
+  realmName,
+  realmsOf,
+  stepThrough,
   breathes,
   enterWater,
   hasBoat,
@@ -416,6 +421,7 @@ const ACTIONS = [
   'skyOn',
   'flyDown',
   'enterWater',
+  'stepThrough',
 ];
 for (const k of ACTIONS) {
   const fn = api[k];

@@ -33,7 +33,7 @@ import { ELDER_TALK, PLOT_HOOKS, findHere, mark } from './quest.js';
 import { gainXp } from './progress.js';
 import { road, spot, waterAt } from './plot.js';
 import { SOURCES } from './stats.js';
-import { ACTIONS, NOTES, RUMOURS, SWITCHES } from './hooks.js';
+import { ACTIONS, NOTES, OBJECTIVES, RUMOURS, SWITCHES } from './hooks.js';
 
 const P = () => C.plots;
 const kindOf = (p) => byId(P().kinds, p.kind);
@@ -136,7 +136,7 @@ function placeRoles(s, p, r, link) {
   for (const key in k.roles || {}) {
     const R = k.roles[key];
     if (R.town) {
-      const others = [s.town].concat(s.towns || []).filter((t) => townId(t) !== p.giver);
+      const others = [s.town].concat(s.towns || []).filter((t) => townId(t) !== p.giver && !t.realm);
       if (!others.length) return false;
       roles[key] = townId(pick(others));
     } else if (R.place) {
@@ -305,7 +305,7 @@ on('worldBorn', (s, d) => {
   if (!mp) mp = add(byId(X.kinds, 'relic'), 'town', true);
   if (mp.kind !== 'relic') add(byId(X.kinds, 'relic'), 'town', false); // the old story is still there, for whoever hears it
   // a trouble for some of the other towns
-  const towns = (s.towns || []).slice(),
+  const towns = (s.towns || []).filter((t) => !t.realm), // another world's town has no trouble to tell
     want = Math.min(towns.length, X.side[0] + Math.floor(r() * (X.side[1] - X.side[0] + 1)));
   for (let i = 0; i < want && towns.length; i++) {
     const t = towns.splice(Math.floor(r() * towns.length), 1)[0];
@@ -373,8 +373,27 @@ function plotGoal(s, p) {
   if (!p || p.kind === 'relic') return null;
   return stepPlace(s, p, stepOf(p));
 }
-// The top panel's goal for a plot other than the relic's.
+// The top panel's goal for a plot other than the relic's. A goal in another world (or, from another world, at home)
+// goes by the door first (OBJECTIVES, from the realms piece).
 function plotObjective(s, p) {
+  const o = plotObjectiveHere(s, p),
+    st = stepOf(p),
+    at = st && p.known ? stepPlace(s, p, st) : st ? { town: p.giver } : null,
+    area = at ? (at.town ? townArea(s, townById(s, at.town) || s.town) : at.area) : null;
+  if (at)
+    for (const f of OBJECTIVES) {
+      const w = f(s, area);
+      if (w)
+        return {
+          text: w.text + ': ' + o.text.charAt(0).toLowerCase() + o.text.slice(1),
+          dir: w.at
+            ? dirFrom(worldPos(s), homePos(s, w.at.area, w.at.x, w.at.y).x, homePos(s, w.at.area, w.at.x, w.at.y).y)
+            : null,
+        };
+    }
+  return o;
+}
+function plotObjectiveHere(s, p) {
   const st = stepOf(p);
   if (!st) return { text: p.done ? 'Done: ' + kindOf(p).name : kindOf(p).name + ': failed', dir: null };
   if (!p.known) return { text: 'Find ' + townName(s, p.giver), dir: dirToTown(s, p.giver) };

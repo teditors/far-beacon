@@ -630,6 +630,14 @@ section('The sea', ['sea'], () => {
   line();
 });
 
+section('Other worlds', ['realms'], () => {
+  const X = C.realms;
+  line('Rarely (the doors world setting) a world has a door of old stone in one of its regions, and through it lies another world: made from a seed of its own, ' + X.sizes.map((z) => z.join(' x ')).join(', ') + ' regions, its countries its own ' + Math.round(X.genChance * 100) + '% of the time and something strange in ' + Math.round(X.rareChance * 100) + '% of its regions, with one town of its own. A second door (and a third) comes ' + Math.round(X.moreDoors * 100) + '% of the time. Only the regions you or the plot touch are made. The plot always uses a door.');
+  line();
+  line('Names: ' + X.names.join(', ') + '.');
+  line();
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

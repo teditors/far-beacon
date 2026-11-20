@@ -30,7 +30,7 @@ import {
 import { gainXp, roll } from './progress.js';
 import { stat } from './stats.js';
 import { advance } from './systems.js';
-import { LEVELS } from './hooks.js';
+import { LEVELS, OBJECTIVES } from './hooks.js';
 
 /* Quest, town and vault */
 const hasItem = (s, base) => s.player.items.some((i) => i.base === base);
@@ -198,6 +198,15 @@ function findLoose(s, base) {
 function objective(s) {
   const po = PLOT_HOOKS.objective && PLOT_HOOKS.objective(s);
   if (po) return po;
+  for (const f of OBJECTIVES) {
+    // the old story's places are all in the home world: from another world, the way back is first
+    const o = f(s, null);
+    if (o)
+      return {
+        text: o.text,
+        dir: o.at ? dirFrom(worldPos(s), homePos(s, o.at.area, o.at.x, o.at.y).x, homePos(s, o.at.area, o.at.x, o.at.y).y) : null,
+      };
+  }
   const q = s.quest,
     t = s.town,
     v = findSite(s, 'vault'),

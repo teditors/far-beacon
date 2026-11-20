@@ -5,18 +5,7 @@
    State: s.godMode (on now), s.cheated (ever on). Places: PLACES in hooks.js, filled by every piece that adds a kind
    of place, each { id, group, label, go(s) }. */
 import { W, H, idx, say } from './core.js';
-import {
-  HOME,
-  allTowns,
-  outdoorRec,
-  regionId,
-  sketchOf,
-  switchRegion,
-  toOverworld,
-  townArea,
-  townDoor,
-  townId,
-} from './areas.js';
+import { HOME, allTowns, enterRealm, inOverworld, leaveArea, switchRegion, townArea, townDoor, townId } from './areas.js';
 import { PLACES, NOTES } from './hooks.js';
 import { SOURCES } from './stats.js';
 import { SYSTEMS } from './systems.js';
@@ -76,9 +65,10 @@ function freeNear(m, x, y) {
   return { x: x, y: y };
 }
 // Go to an outdoor region of the world the traveller is in (from anywhere), landing near (x, y) or its middle.
-function jumpRegion(s, cx, cy, x, y) {
-  toOverworld(s);
-  switchRegion(s, cx, cy, { x: s.player.x, y: s.player.y });
+function jumpRegion(s, cx, cy, x, y, realm) {
+  while (!inOverworld(s)) if (!leaveArea(s)) break;
+  if ((s.realm || null) !== (realm || null)) enterRealm(s, realm || null, cx, cy, { x: 18, y: 18 });
+  else switchRegion(s, cx, cy, { x: s.player.x, y: s.player.y });
   const p = freeNear(s, x === undefined ? 18 : x, y === undefined ? 18 : y);
   s.player.x = p.x;
   s.player.y = p.y;
@@ -88,11 +78,11 @@ function jumpRegion(s, cx, cy, x, y) {
 // The places the list offers: every region and town, and whatever the other pieces add.
 function places(s) {
   const out = [],
-    w = s.world;
+    w = s.realm ? s.realms.home.world : s.world; // the home world's regions, wherever you are
   for (let cy = 0; cy < w.rows; cy++)
     for (let cx = 0; cx < w.cols; cx++) {
-      const id = regionId(s, cx, cy),
-        b = byId(C.biomes, sketchOf(s, cx, cy).biome);
+      const id = cx === w.home.cx && cy === w.home.cy ? HOME : 'r' + cx + '_' + cy,
+        b = byId(C.biomes, w.sketch[cy * w.cols + cx].biome);
       out.push({
         id: 'region:' + id,
         group: 'Regions',
@@ -108,9 +98,9 @@ function places(s) {
       label: t.name,
       go: (s) => {
         const rec = s.areas[townArea(s, t)];
-        if (!rec || rec.realm !== s.areas[outdoorRec(s).id].realm) return false;
+        if (!rec) return false;
         const d = townDoor(s, t);
-        jumpRegion(s, rec.cx, rec.cy, d.x, d.y);
+        jumpRegion(s, rec.cx, rec.cy, d.x, d.y, t.realm);
         s.player.x = d.x;
         s.player.y = d.y;
         return enterTown(s, t.x, t.y + 2) || true;
@@ -137,7 +127,7 @@ function jumpMap(s, gx, gy) {
     ty = ((Math.floor(gy) % (w.rows * H)) + w.rows * H) % (w.rows * H),
     cx = (h.cx + Math.floor(tx / W)) % w.cols,
     cy = (h.cy + Math.floor(ty / H)) % w.rows;
-  return jumpRegion(s, cx, cy, tx % W, ty % H);
+  return jumpRegion(s, cx, cy, tx % W, ty % H, s.realm); // the map shows the world you are in
 }
 NOTES.push((s) =>
   s.cheated

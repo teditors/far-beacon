@@ -210,5 +210,44 @@ const done = [];
   need(back && back.area === s.area && back.seaPlaces.length === s.seaPlaces.length, 'a save under the sea did not come back');
   done.push('the sea (' + worlds + ' of 120 worlds; ' + [...kinds].join(', ') + ')');
 }
+// Other worlds: rare doors, each to a world of its own seed and stranger countries, made only where touched; through
+// and back, saved on the far side, a new traveller sets out from home.
+{
+  let worlds = 0, many = 0;
+  for (let seed = 1; seed <= 300; seed++) {
+    const s = R.newGame(seed);
+    if (!s.doors) continue;
+    worlds++;
+    if (s.doors.length > 1) many++;
+  }
+  need(worlds >= 8 && worlds <= 50, worlds + ' of 300 worlds have a door, not rarely');
+  const s = R.newGame(5, {}, { doors: 1, maxDoors: 3 });
+  need(s.doors.length >= 1 && s.doors.every((d) => s.realms[d.realm] && s.realms[d.realm].seed !== s.seed), 'a door without a world of its own');
+  const d = s.doors[0], o = s.realms[d.realm], made = () => Object.keys(s.areas).filter((id) => id.startsWith(d.realm + ':')).length;
+  need(made() <= 12, 'another world made ' + made() + ' areas before anyone went there');
+  const gens = o.world.sketch.filter((e) => /^g/.test(e.biome)).length;
+  need(gens >= o.world.sketch.length * 0.3, 'another world is no stranger than home: ' + gens + ' of ' + o.world.sketch.length + ' own countries');
+  R.setGodMode(s, true); R.jumpTo(s, 'door:' + d.realm); R.setGodMode(s, false);
+  const homeSeed = s.seed;
+  need(R.stepThrough(s) && s.realm === d.realm && s.seed === o.seed && s.area.startsWith(d.realm + ':'), 'stepping through the door did not lead to the other world');
+  need(/back through the door/.test(R.objective(s).text), 'the goal does not point home through the door: ' + R.objective(s).text);
+  for (let i = 0; i < 30; i++) R.move(s, 1, 0);
+  const text = R.serialize(s), back = R.deserialize(text).state;
+  need(back && back.realm === d.realm && R.serialize(back) === text, 'a save in another world does not load the same');
+  R.setGodMode(back, true); R.jumpTo(back, 'realm:' + d.realm + ':0_0'); R.jumpTo(back, 'door:' + d.realm); R.setGodMode(back, false);
+  need(!back.realm && back.seed === homeSeed && back.area === d.area, 'god mode did not jump between the worlds');
+  R.setGodMode(s, true); R.jumpTo(s, 'realm:' + d.realm + ':' + d.back.area.split(':r')[1]); R.setGodMode(s, false);
+  s.player.x = d.back.x; s.player.y = d.back.y;
+  need(R.stepThrough(s) && !s.realm && s.seed === homeSeed && s.area === d.area && s.player.x === d.x, 'the door home did not lead home');
+  // dying in another world: the next traveller sets out from the well at home
+  R.stepThrough(s); s.over = { won: false, cause: 'test' }; s.combat = null;
+  need(R.nextTraveller(s, R.makeChar(() => 0.5, s)) && !s.realm && s.area === 'overworld', 'the next traveller did not set out from home');
+  const ot = s.towns.find((t) => t.realm === d.realm);
+  R.setGodMode(s, true);
+  need(ot && R.jumpTo(s, 'town:' + ot.id) && R.areaRec(s).kind === 'town' && s.realm === d.realm && R.findHere(s, 'elder'), 'could not walk into the town of another world');
+  R.setGodMode(s, false);
+  need(!R.newGame(5, { realms: true }, { doors: 1 }).doors && !R.newGame(5, {}, { doors: 0 }).doors, 'doors with doors switched off');
+  done.push('other worlds (' + worlds + ' of 300 worlds, ' + many + ' with more than one door)');
+}
 if (errs.length) { console.log('commission 4 problems:\n  ' + errs.join('\n  ')); process.exit(1); }
 console.log('c4 ok: ' + done.join(', '));

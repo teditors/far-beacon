@@ -5,6 +5,39 @@ seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after.
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
 
+## C4.5: other worlds
+
+**What it is.** Doors to other worlds (`realms` piece, `content/realms.js`, `rules/realms.js`).
+- Rarely (the `doors` setting, 8% by default; 16 of 300 test worlds) a **door of old stone** stands alone in a region
+  of the world, and through it lies **another world**: a grid of 2 x 3 to 3 x 4 regions made from **a seed of its
+  own**, like home but stranger: about two in three of its regions are countries of its own (generated biomes), and
+  half hold something strange (rare regions; home has 15%). It has **one town of its own** (its own people, elder,
+  inn and shop). Now and then a world has a second or third door, each to a world of its own.
+- Step through and you come out of the other world's door, under another sky. Its map, its directions and its
+  dangers are its own; the goal line says "Go back through the door, home" when what you need is at home. Step back
+  through to come home. A traveller who dies there leaves their body there; the next one sets out from the well at
+  home as always. Saves made on the far side load on the far side.
+- **How it works**: while you are in another world its sketch and seed stand in `s.world` and `s.seed`, and its
+  regions are named after it (`o1:r2_0`), so every rule about regions (land, borders, rivers, roads, creatures,
+  towns, the view, the map) works there unchanged and nothing collides with home. `setRealm`, `withRealm` and
+  `enterRealm` in areas.js swap the two; nothing else knows. The plot uses every door (next entry).
+
+**Memory.** Only what is touched is made: a fresh world with a door saves in 76 KB instead of 61 (the far side's
+arrival region, its neighbours and its town); walking every region of the other world brings it to 116 KB, and far
+maps there are packed like any others, so the heap stays near where it was (1.4 MB for the new world either way).
+The other world never doubles the cost of the game.
+
+**Shared bricks.** `OBJECTIVES` in hooks.js (a goal in another world goes by its door; the plots and the old story
+both ask it), `realmOf(s, area)`, `regionRec`; `sketchOf` now answers safely for a region of another world.
+
+**Choices made without asking.** Other worlds share home's year, god and lost people (each is one per state and
+swapping them would reach into many pieces); they are stranger through their countries and rare regions. They have
+no dungeons, sky places or doors of their own yet: easy to add, since those pieces only need to run for the far
+side's regions. Another world's town has no trouble of its own (the plot decides what happens there). The jump list
+has every region of every other world and each door.
+
+**Commits.** "Doors to other worlds". Switch: `realms` (at creation).
+
 ## C4.4: the sea, lakes, and under the water
 
 **What it is.** Real water, and places on it and under it (`sea` piece, `content/sea.js`, `rules/sea.js`).
