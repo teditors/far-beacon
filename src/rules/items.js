@@ -1,6 +1,7 @@
 /* Items: generation, names, weight and descriptions. */
 import { trait } from './civ.js';
 import { C, byId, srand } from './core.js';
+import { ITEM_HOOKS } from './hooks.js';
 
 /* Items */
 function makeItem(s, baseId, pre, suf, known) {
@@ -38,23 +39,32 @@ function genItem(s, o) {
     it.mark = s.civ.affinity;
     it.markName = s.civ.name;
   }
+  for (const f of ITEM_HOOKS) f(s, it, o); // pieces may finish a found item (tiers by distance, ...)
   return it;
 }
 function itemName(it) {
   const b = byId(C.bases, it.base);
   if (it.label) return it.label;
   if (it.artName) return it.artName;
-  if (!it.known) return b.name + ' (unstudied)';
+  if (!it.known) return (it.tier >= 3 ? 'Superb ' : it.tier === 2 ? 'Fine ' : '') + b.name + ' (unstudied)'; // fine work shows
   if (b.mystery) return C.flasks[it.effect].name;
   const p = it.pre ? byId(C.affixes, it.pre).name + ' ' : '',
     f = it.suf ? ' ' + byId(C.affixes, it.suf).name : '';
-  const mk = it.mark ? it.markName + ' ' : '';
-  return p || f || mk ? mk + p + b.name + f : b.plain ? b.name : 'Plain ' + b.name;
+  const mk = it.mark ? it.markName + ' ' : '',
+    tq = it.tier >= 3 ? 'Superb ' : it.tier === 2 ? 'Fine ' : '';
+  return p || f || mk ? tq + mk + p + b.name + f : b.plain ? b.name : 'Plain ' + b.name;
 }
 function itemAffixes(it) {
   const a = [it.pre, it.suf].filter(Boolean).map((id) => byId(C.affixes, id));
   if (it.mark) a.push(byId(C.civ.affinity, it.mark));
-  return a;
+  if (!it.tier || it.tier < 2) return a;
+  // a finer item: every affix it has does more (a curse included). Half again for each tier above the first.
+  const k = 1 + 0.5 * (it.tier - 1),
+    up = (m) =>
+      Object.assign({}, m, {
+        value: m.op === 'mul' ? 1 + (m.value - 1) * k : m.op === 'add' ? Math.round(m.value * k * 10) / 10 : m.value,
+      });
+  return a.map((x) => Object.assign({}, x, { mods: x.mods.map(up) }));
 }
 function itemWeight(s, it) {
   let w = byId(C.bases, it.base).wt;

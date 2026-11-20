@@ -1,3 +1,273 @@
+# Commission 2
+
+## Summary
+
+Twelve entries: Andrew's six asks first, then my own. Every check passes; the bot still wins.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C2.1 | Open towns: no Enter or Leave buttons, most towns unwalled, walled ones with several gates | (change) | pearl |
+| C2.2 | Town life: hamlet to city, generated streets, healer, temple, trainer, smith, mapmaker, stable, townsfolk with rumours, graveyards | `townlife` | pearl |
+| C2.3 | Many races and classes: 2 to 12 races and 8 to 20 classes per world, 45 hybrids, fight moves, kill gains | `roster` | pearl |
+| C2.4 | The plot across the world: town, key, locked place and destination in a chain of regions, roads and springs, a travelling bot | `plot` | pearl (needs easing) |
+| C2.5 | One map: the world as a single continuous map, pan and zoom | (change) | pearl |
+| C2.6 | Hamlets in the country between places | `hamlets` | pearl |
+| C2.7 | Easier legs: springs every seven tiles | (balance) | |
+| C2.8 | Finer things far from home: Fine and Superb items | `tiers` | pearl |
+| C2.9 | Rare countries that change the land: Drowned, Dry, Burned | `regionrares` | maybe |
+| C2.10 | Frail classes set out with an extra waterskin and coin | `roster` | (balance) |
+| C2.11 | In a quarter of worlds the town is at home | `plot` | (balance) |
+| C2.12 | Townsfolk wander the streets | `townlife` | maybe |
+
+**Bot win rate, commission 2's switchable pieces on vs off** (`NO=townlife,roster,plot,hamlets,tiers`), sets 5 /
+1000 / 2000: on 9, 16, 9 (34 / 450, 8%) before C2.10 and C2.11, 18, 17, 13 (48 / 450, 11%) after; off 24, 35, 32 (91 / 450, 20%). Almost all of the difference is the plot
+across the world (C2.4) and the frailer new classes (C2.3). The game is now a journey; it is clearly harder, and the
+bot, which now travels between regions, still wins about one world in twelve.
+
+**My three best.** The plot across the world (C2.4), because it turns a map into a journey and gives every other piece
+a reason to exist; town life (C2.2), because the town became a place; and the roster (C2.3), because the character
+screen is now different every world and the new classes play differently in a fight.
+
+**What I would do next.**
+1. Ease the journey for people as well as the bot: some worlds with the town in the home region, a "first night"
+   shelter on the road, or a third waterskin for frail classes. Then measure again.
+2. More than one town: the hamlets (C2.6) show the way; full towns in other regions would need the town code to take
+   a town id instead of the one 'town' area.
+3. People who move beyond the town: travellers on the roads (townsfolk now wander, C2.12).
+4. Named streams for items made at generation time, so pieces stop shifting each other's play dice.
+5. Class balance: frail classes (d6, a dagger) die far more; give them more water, coin or a better start.
+
+---
+
+Newest entry first. Baseline before any piece (bot, sets 5 / 1000 / 2000): 17, 32, 25 (74 / 450).
+
+## C2.12: townsfolk wander
+
+Part of C2.2: as you walk about a town, its townsfolk wander the streets, a step at a time, never onto a door, a grave,
+the well or you. Their rumours go with them. No change for the bot. Switch: `townlife`.
+
+## C2.11: sometimes the town is at home
+
+A variation of C2.4: in a quarter of worlds the town stands in the home region, near the well, and the chain of
+regions (key, locked place, destination) starts from home. It varies the shape of the journey and eases it. Bot win
+rate, sets 5 / 1000 / 2000: 18, 17, 13 (48 / 450, 11%), up from 40. Switch: part of `plot`.
+
+## C2.10: frail classes set out better provided
+
+A balance change to C2.3: a class with a hit die of d6 or less (Wizard, Rogue, Bard, Merchant, Scout, Herbalist,
+Druid, Necromancer, Witch...) sets out with an extra waterskin, its skins topped up and 10 more coin. Bot win rate,
+sets 5 / 1000 / 2000: 12, 15, 13 (40 / 450), up from 34. Switch: part of `roster`.
+
+## C2.9: rare countries that change the land
+
+**What it is.** Three new rare countries (C1 piece 5) that change the land itself rather than a number: **Drowned**
+(nearly half the flat ground has gone under, bog and standing water everywhere), **Dry** (every spring has failed but
+the sure one) and **Burned** (a great fire took every wood: no wood to gather and no cover from the wind). The change
+never touches a region's outer rows, so its borders still meet its neighbours'.
+
+**In play.** Crossing into such a country changes how you travel through it, which matters now that the story
+crosses the world. Bot win rate, sets 5 / 1000 / 2000: see the summary (no change expected: rare regions are 15% of
+regions away from home).
+
+**Commits.** "Rare countries that change the land". Switch: `regionrares`, as before.
+
+**Verdict: maybe.** The idea of rares that change the rules of the land is right; these three are the simplest.
+
+## C2.8: finer things far from home
+
+**What it is.** An item with affixes (or a lost people's mark) found away from home is finer: its tier is 1 plus the
+distance of the region from home, plus one on the deepest level of the locked place, at most 3. A Fine item's affixes
+do half again as much, a Superb item's twice as much, curses included ("Superb Keen Sword": to hit +2; "Fine
+Threadbare Cloak": the cold bites even harder). The fineness shows in the name even before the item is studied, and
+it is worth more in town.
+
+**In play.** Now that the story crosses the world (C2.4), the far country pays for the risk. Bot win rate, sets 5 /
+1000 / 2000: 9, 16, 10 (35; 37 before: no change).
+
+**Commits.** "Finer things far from home". Switch: `tiers` (when an item is found).
+
+**Shared brick.** `ITEM_HOOKS` in hooks.js: a piece may finish any item `genItem` makes. `itemAffixes` scales a finer
+item's modifiers, so everything that reads affixes (stats, descriptions) sees the scaled numbers.
+
+**Choices made without asking.** Tiers scale the existing affixes rather than adding new "greater" affixes: the
+menu stays one list, and the Almanac needs only a rule. This is the commission-1 idea "item tiers by distance",
+alongside far finds (C1 piece 15), which gives more items far away.
+
+**Verdict: pearl.**
+
+## C2.7: easier legs
+
+A balance change to C2.4: sure springs along the legs of the journey every seven tiles instead of nine. Bot win rate,
+sets 5 / 1000 / 2000: 11, 16, 10 (37 / 450, 8%), up from 17. I also tried putting every leg's springs on the map from
+the start instead of having the elder mark them: no better (34), so the elder still marks them. Still half the old
+win rate (72 without the plot); the next easing would be the town in the home region in some worlds.
+
+## C2.6: hamlets
+
+**What it is.** About half the regions away from home have a hamlet: a few turf-roofed houses round a well, by a road
+when there is one. You can draw water there, sleep under a roof, pay 3 coin for a bed by the fire (eight hours, you
+wake whole), buy wood, a salve, a tonic, a draught or a waterskin, and hear a rumour that marks a real place (the same
+rumours as the townsfolk of C2.2). Told when you first walk in, listed in the Journal, drawn as houses round a well,
+and marked on the map.
+
+**In play.** The country between the places of the story has people in it, and the long legs of C2.4 have somewhere
+to stop. Bot win rate, sets 5 / 1000 / 2000: 7, 5, 5 (17, against 19 before: the bot does not seek them out).
+
+**Commits.** "Hamlets". Switch: `hamlets` (when a region is built; in play it stops the trading and beds).
+
+**Shared bricks.** `TALK` in hooks.js: `{ info(s), use(s, option, arg) }` for anyone a piece puts in the world; the
+one dialog (`serviceInfo` / `useService`) asks them first. `arrive()` no longer says anything for a kind of place it
+does not know, so a piece's own kind of place can speak for itself.
+
+**Verdict: pearl.** Cheap, and the world feels inhabited.
+
+## C2.5: one map
+
+**What it is.** Outdoors, the Map screen is now the whole world as one continuous map, drawn tile by tile from every
+region you have seen, with fog where you have not been, the roads, every place you know of, your camp and you.
+There is no grid of squares and no border lines (you see a border only where the land itself changes). It is
+centred on you and wraps around like the world. Drag to look around; + and - zoom from a close view to more than the
+whole world; "Centre on me" brings it back. Inside the town or the locked place the map shows that place as before.
+
+**In play.** You can see the whole journey at once: the road to the town, the springs the elder marked across three
+regions, the locked place two countries away. No change for the bot.
+
+**Commits.** "One map". No switch: it replaces the old map screen.
+
+**Choices made without asking.** The zoom and pan are kept between openings of the map (in the view, not the save).
+The rare-country marks of C1 piece 5 are gone from the map with the grid; rare countries are still told in the log
+and the Journal.
+
+**Verdict: pearl.**
+
+## C2.4: the plot across the world
+
+**What it is.** The quest's places no longer all lie in the home region. You set out from the well at home; the town
+is in a region next to it, the key (in a ruin, or carried by the beast) in the next, the locked place in the next and
+the beacon or shrine in the next: a chain of regions, each sharing an edge with the one before, every place on the
+side of its region nearest the place before it. Old paved roads join them, one leg to the next, carrying across region
+borders, and sure springs lie every nine tiles or so along each leg: those on the way to the town are on your map
+from the start, the elder marks the rest. The opening line, the objective, directions and the compass all point
+across regions. Nothing about the world's size is assumed: the chain is built from neighbouring regions, and a region
+with no room for a place passes it on to the next.
+
+**In play.** The game is now a journey across the land instead of a tour of one map, which is what the other pieces
+(rare regions, lairs, generated biomes) were waiting for. It is much harder. Bot win rate, sets 5 / 1000 / 2000:
+8, 6, 5 with it; 22, 25, 25 without (19 vs 72 out of 450). The bot still wins sometimes.
+
+**The bot now travels.** Places are given to it in the frame of the region it stands in (`localPos`), so it walks
+off a region's edge toward them; it remembers water seen in the regions around; it commits to one water target
+(held in home coordinates, so a border does not change its mind); it hops from spring to spring when a target is
+beyond its water; and it makes for trees or shelter when freezing in a storm where no fire will light. Its
+path-finder no longer loops forever on a target in another region.
+
+**Commits.** "The plot across the world". Switch: `plot` (at creation).
+
+**Choices made without asking.**
+- Roads on every leg, and springs along them, after measuring: without roads almost every bot died of thirst or cold
+  on the way to the town. Roads that run along a border are laid on both sides of it, so roads still line up.
+- The beast clears the creatures near where it is put, and may stand in a Silent region (it came from elsewhere).
+- Old saves keep their old layout (everything at home); `area` fields default to home.
+- `travelTo(s, area, x, y)` was added for tests and tinkering; the tests use it to reach places in other regions.
+
+**Verdict: pearl**, with a balance warning: it needs easing (more water, or the town in the home region in some
+worlds) before it reaches main.
+
+## C2.3: many races and classes
+
+**What it is.** A world now offers 2 to 12 races and 8 to 20 classes (it was 3 and 3), drawn with usual ones three
+times as likely as an exotic one, and the first traveller is one of them. New races: Gnome, Highlander, Riverfolk
+(wades rivers fast and never gets chilled doing it), Plainsfolk and Forest-born; exotic Ghoul-kin (foul water does not
+hurt, every kill heals), Half-giant, Scalekin, Crowfolk and Wispborn (creatures do not hunt you, mana comes back as
+you walk). Every pair of usual races also has a **hybrid** (45 of them: Dwarf-elf, Gnome-riverfolk...), made from
+half of each parent. New classes, each with something of its own in a fight or on the road:
+- Knight (Shield wall blunts the next blow), Barbarian (Rage: a huge blow paid in blood), Monk (Flurry: two
+  strikes), Hunter (Aimed shot; every kill gives water and strength), Bard (Lullaby: the creature loses its turn;
+  cheaper in town), Merchant (40 coin, buys cheap and sells dear), Scout (Vanish: always escape), Herbalist (wounds
+  mend as you walk, foul water is harmless), Pilgrim, Druid (Thorns and Regrow), Sapper (Firepot burns fuel to burn
+  the creature), Duelist (Riposte);
+- exotic: Necromancer (Drain life heals you by the damage; kills restore you), Witch (Hex), Dowser (water skins fill
+  a little by themselves), Lamplighter (the lantern burns no oil; Flare), Gravedigger.
+
+**In play.** The character screen is a real choice now, and different every world. Bot win rate, sets 5 / 1000 /
+2000: 23, 18, 22 with it; 21, 35, 27 without (63 vs 83). Harder: many new classes are frail (d6 hit dice, a dagger),
+and the bot picks at random. The bot now uses a class's fight move when it can afford it.
+
+**Commits.** "Many races and classes". Switch: `roster`.
+
+**Shared bricks.** `emit(s, 'killed', { sp, tier })` from combat; `s.combat.ward` (a blow blunted); `strike` takes a
+`hit` bonus; new stats `wetSafe`, `foulSafe` and `moveTime.river`; the actions hook now also runs in a fight; the
+view passes a button's `arg` to its action (`classMove(s, id)`).
+
+**Choices made without asking.**
+- New races and classes are added to the content lists by the piece's module, marked `roster`; the old draw and the
+  town's people still use only the old ones, so `NO=roster` gives back the old game exactly.
+- Regenerating creatures (C1 piece 6) now heal 1 a round, not 2: a frail class could not out-damage a plated,
+  regenerating guardian. The quest test now finishes a fight that goes on too long.
+
+**Verdict: pearl.** Balance needs a look later (perhaps frail classes start with more water or coin).
+
+## C2.2: town life
+
+**What it is.** A town now has a size: a hamlet, a village, a market town or a city. Its layout is generated:
+main streets run out from the square to the edges (a ring road in towns and cities), and buildings stand on lots
+along both sides of each street, so no two towns look alike. Beside the elder, the inn and the shop there are
+services, each a building with a person at the door under a painted sign:
+- **the healer** (all wounds, cold and weariness, for 6 coin);
+- **the priest** of a temple to this world's god, who tells you the god's terms, marks the shrine, and gives a
+  day's blessing;
+- **the old campaigner**, who teaches lessons from a menu (foraging, the long march, swordwork, sleeping rough...),
+  at most three per traveller, which die with them;
+- **the smith**, who hones a weapon to Keen, reinforces armor, or strips a curse;
+- **the mapmaker**, who sells a map of this country or of the lands beyond;
+- **the stablehand**, who sells a pack mule (carry 10 more).
+
+A hamlet has one service, a city six. The town's culture (C1 piece 8) decides some of them: smiths always have a
+smithy, herbalists a healer, pious towns and pilgrims a temple, traders and lore-keepers a mapmaker. Townsfolk
+stand about the streets with names and trades, and each has something to say: a rumour that marks a real place
+(a lair, the far artifact, a sweet spring, the shrine, a rare country), a trait of the lost people, a warning about
+a creature, or just talk. Villages and bigger have a graveyard with epitaphs that name this world's storms and
+creatures. Bigger towns sell more and are more often walled.
+
+**In play.** The town is somewhere to spend coin and time, and something to read. Bot win rate, sets 5 / 1000 /
+2000: 21, 36, 27 with it; 24, 31, 27 without (84 vs 82). The bot uses only the elder, the shop and the inn.
+
+**Commits.** "Town life". Switch: `townlife`.
+
+**Shared bricks.** `ACTIONS` in hooks.js: a piece can add buttons for where the player stands. `serviceInfo(s)` and
+`useService(s, option, arg)` let the view show any person's talk and offers with one generic dialog.
+
+**Choices made without asking.**
+- The elder's hall is always the first lot on the north street, so "the hall on the north side of the square" stays
+  true.
+- Service prices go through the stat stack (`town.heal`, `town.bless`...), so town cultures can change them later.
+- The pack mule is a new item base with no slot (it works while you have it), added by this piece's module.
+- Lessons are stored on the character (`s.char.lessons`), the blessing as `s.blessUntil`; both optional.
+
+**Verdict: pearl.** It is the biggest single change to what a town is. Next: people who move about, and a market.
+
+## C2.1: open towns, walked into from any side, with no buttons
+
+**What it is.** The "Enter <town>" and "Leave <town>" buttons are gone. Three towns in four have no wall at all: walk
+into the town's block from any side and you are in its streets; walk off any edge and you are back outside, on the
+matching spot. One town in four is walled, with a gate wherever a main street meets the wall: always the south one,
+and one to three more. A walled town's wall (and any house on an open town's edge) is solid from outside: you slide
+along it.
+
+**In play.** The town is part of the land now, not a door. Bot win rate unchanged (8 / 40 in the check run).
+
+**Commits.** "Open towns". No switch: this changes something that already existed.
+
+**How it works.** The town's map still exactly fills its 5 x 5 outdoor block. `townEntry` and `townExit` (areas.js)
+map an outdoor tile and side to the matching edge tile of the town, and back. The view passes the exact town tile it
+is about to step onto (`move(s, dx, dy, at)`) so the picture and the rules agree, and its wall collision outdoors is
+now "is the town tile here a wall".
+
+**Choices made without asking.**
+- A walled town always has its south gate, so `townDoor` (the tile below it) still always leads in; the bot and the
+  tests use it.
+- Old saves keep their old walled town with one gate; you leave it by walking out through that gate. No migration.
+
 # Journal of commission/1
 
 ## Summary (end of the first session)

@@ -9,21 +9,24 @@ const blank = (fill) => new Array(W * H).fill(fill);
 const inside = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1;
 
 /* ---------- the town ---------- */
-// A walled square with a gate to the south, a plaza and well in the middle, and the elder's hall, the inn and the
+// An open square (now and then walled, with gates), a plaza and well in the middle, and the elder's hall, the inn and the
 // shop facing the plaza. Houses fill the rest. The town is small and lit, so all of it is visible from the start.
 GENERATORS.town = (s, rec) => {
   const r = stream(s.seed, 'area:town'),
+    rw = stream(s.seed, 'town:walls'),
     terrain = blank(FLOOR),
     sites = {},
-    c = 18;
-  for (let i = 0; i < W; i++)
-    for (const [x, y] of [
-      [i, 0],
-      [i, H - 1],
-      [0, i],
-      [W - 1, i],
-    ])
-      terrain[idx(x, y)] = WALL;
+    c = 18,
+    walled = rw() < 0.25; // most towns are open; a walled one has a gate where each main street meets the wall
+  if (walled)
+    for (let i = 0; i < W; i++)
+      for (const [x, y] of [
+        [i, 0],
+        [i, H - 1],
+        [0, i],
+        [W - 1, i],
+      ])
+        terrain[idx(x, y)] = WALL;
   const block = (x0, y0, w, h) => {
     for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (inside(x, y)) terrain[idx(x, y)] = WALL;
   };
@@ -51,10 +54,24 @@ GENERATORS.town = (s, rec) => {
     block(x0, y0, w, h);
     n++;
   }
-  const gate = { x: c, y: H - 2 };
-  terrain[idx(c, H - 1)] = FLOOR;
-  sites[idx(gate.x, gate.y)] = { kind: 'exit', seen: true };
-  rec.entry = { x: gate.x, y: gate.y - 1 };
+  // gates: always the south one (the way the road comes in), and one to three more
+  if (walled) {
+    const sides = [
+        [c, H - 1],
+        [c, 0],
+        [0, c],
+        [W - 1, c],
+      ],
+      n = 2 + Math.floor(rw() * 3);
+    for (let k = 0; k < n; k++) {
+      const [x, y] = sides[k];
+      terrain[idx(x, y)] = FLOOR;
+      sites[idx(x, y)] = { kind: 'gate', seen: true };
+    }
+  }
+  rec.walled = walled;
+  s.town.walled = walled;
+  rec.entry = { x: c, y: H - 2 };
   return { terrain, sites, seen: blank(1) };
 };
 

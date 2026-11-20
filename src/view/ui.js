@@ -61,7 +61,7 @@ function render() {
         {
           cls: 'act',
           type: 'button',
-          on: () => (a.id === 'pactAsk' ? openPact() : a.id === 'townAsk' ? openTown(a.section) : act(() => R[a.id](V.S))),
+          on: () => (a.id === 'pactAsk' ? openPact() : a.id === 'townAsk' ? openTown(a.section) : act(() => R[a.id](V.S, a.arg))),
         },
         [el('span', { text: a.label }), el('small', { text: a.hint })],
       ),
@@ -335,7 +335,36 @@ function openPact() {
   ]);
 }
 // The town's people, one at a time: section is 'elder', 'inn' or 'shop', matching where you are standing.
+// Anyone else in town: what they say and what they offer, from R.serviceInfo.
+function openService() {
+  const info = R.serviceInfo(V.S);
+  if (!info) return;
+  openModal(info.title, [
+    ...info.text.map((t) => el('p', { text: t })),
+    info.options.length ? el('p', { cls: 'note', text: 'You have ' + V.S.player.coin + ' coin.' }) : null,
+    el(
+      'ul',
+      { cls: 'items' },
+      info.options.map((o) =>
+        el('li', { cls: 'item' }, [
+          el('div', null, [el('strong', { text: o.label }), o.note ? el('p', { text: o.note }) : null]),
+          el('div', { cls: 'row' }, [
+            btn(
+              o.price ? o.price + ' coin' : 'Yes',
+              () => {
+                act(() => R.useService(V.S, o.id, o.arg));
+                if (!V.S.over) openService();
+              },
+              'small' + (V.S.player.coin >= o.price ? ' sel' : ''),
+            ),
+          ]),
+        ]),
+      ),
+    ),
+  ]);
+}
 function openTown(section) {
+  if (!['elder', 'inn', 'shop'].includes(section)) return openService();
   if (section === 'elder' && !V.S.quest.told) act(() => R.talkElder(V.S));
   const t = V.S.town,
     p = V.S.player,
@@ -515,87 +544,54 @@ const MAPC = {
   elder: '#b8443c',
   inn: '#8a6a1f',
   shop: '#2f7fb5',
+  hamlet: '#d8c9a0',
   trap: '#e0302a',
 };
 const INDOOR_COLS = { 6: '#3a3631', 7: '#9a948a' };
+// The map screen. Indoors: the town or the level you are on. Outdoors: the whole world as one continuous map, drawn from
+// every region you have seen, centred on you; it wraps around like the world. Drag to pan, + and - to zoom.
+const mapView = { zoom: 54, dx: 0, dy: 0 }; // tiles across the canvas, and how far it has been panned from you
 function openMap() {
-  const cv = el('canvas', { id: 'mapcv', 'aria-label': 'Your map so far' }),
-    rec = R.areaRec(V.S),
+  const rec = R.areaRec(V.S),
     indoor = R.indoors(V.S);
-  openModal(
-    indoor
-      ? rec.kind === 'town'
-        ? V.S.town.name
-        : 'The ' + V.S.quest.vault.name + ', level ' + rec.level + ' of ' + rec.levels
-      : 'Map',
-    [
-      cv,
-      el('p', {
-        cls: 'note',
-        text: indoor
-          ? rec.kind === 'town'
-            ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: the gate."
-            : 'Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see.'
-          : 'This region. Only what you have seen or surveyed. White dot: you. Gold: camp. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: depot. Red dot: a creature you can currently see.',
-      }),
-      ...(indoor
-        ? []
-        : [
-            el('h3', { text: 'The world' }),
-            el('canvas', { id: 'worldcv', 'aria-label': 'The regions of the world you have walked in' }),
-            el('p', {
-              cls: 'note',
-              text: 'Each square is a region like the one above. White outline: where you are. Gold dot: the well you set out from. Dark: country you have not walked. The world wraps around: walk off any edge and you come in on the far side.',
-            }),
-          ]),
-    ],
-  );
-  if (!indoor) drawWorld();
+  if (!indoor) return openWorldMap();
+  const cv = el('canvas', { id: 'mapcv', 'aria-label': 'Your map so far' });
+  openModal(rec.kind === 'town' ? V.S.town.name : 'The ' + V.S.quest.vault.name + ', level ' + rec.level + ' of ' + rec.levels, [
+    cv,
+    el('p', {
+      cls: 'note',
+      text:
+        rec.kind === 'town'
+          ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: a gate."
+          : 'Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see.',
+    }),
+  ]);
   const css = cv.clientWidth,
     dpr = window.devicePixelRatio || 1;
   cv.width = cv.height = Math.round(css * dpr);
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const ts = css / R.W,
-    cols = R.biomeOf(V.S).colors;
+  const ts = css / R.W;
   g.fillStyle = '#10151d';
   g.fillRect(0, 0, css, css);
   for (let y = 0; y < R.H; y++)
     for (let x = 0; x < R.W; x++) {
       const i = y * R.W + x;
       if (!V.S.seen[i]) continue;
-      g.fillStyle = INDOOR_COLS[V.S.terrain[i]] || cols[V.S.terrain[i]];
+      g.fillStyle = INDOOR_COLS[V.S.terrain[i]] || '#9a948a';
       g.fillRect(x * ts, y * ts, ts + 0.5, ts + 0.5);
-      if (V.S.road[i]) {
-        g.fillStyle = '#8c8a86';
-        g.fillRect((x + 0.25) * ts, (y + 0.25) * ts, ts * 0.5, ts * 0.5);
-      }
       const st = V.S.sites[i];
-      if (st) {
-        g.fillStyle = st.kind === 'spring' && st.known && st.foul ? '#6f6a35' : MAPC[st.kind];
+      if (st && MAPC[st.kind]) {
+        g.fillStyle = MAPC[st.kind];
         g.fillRect(x * ts - 1, y * ts - 1, ts + 2, ts + 2);
       }
-      if (V.S.depots[i] && i !== R.campHere(V.S)) {
+      if (V.S.depots[i]) {
         g.fillStyle = '#000';
         g.beginPath();
         g.arc((x + 0.5) * ts, (y + 0.5) * ts, ts * 0.3, 0, 7);
         g.fill();
       }
     }
-  if (R.campHere(V.S) !== null) {
-    const x = R.campHere(V.S) % R.W,
-      y = Math.floor(R.campHere(V.S) / R.W);
-    g.fillStyle = '#e0a84a';
-    g.strokeStyle = '#1a1205';
-    g.lineWidth = 1.5;
-    g.beginPath();
-    g.moveTo((x + 0.5) * ts - 6, (y + 1) * ts + 2);
-    g.lineTo((x + 0.5) * ts, y * ts - 6);
-    g.lineTo((x + 0.5) * ts + 6, (y + 1) * ts + 2);
-    g.closePath();
-    g.fill();
-    g.stroke();
-  }
   for (const c of V.S.creatures)
     if (c.seen && Math.max(Math.abs(c.x - V.S.player.x), Math.abs(c.y - V.S.player.y)) <= 4) {
       g.fillStyle = '#e0302a';
@@ -603,8 +599,9 @@ function openMap() {
       g.arc((c.x + 0.5) * ts, (c.y + 0.5) * ts, 4, 0, 7);
       g.fill();
     }
-  const px = ((P.x + G.half) / G.ts) * ts,
-    py = ((P.z + G.half) / G.ts) * ts;
+  youAt(g, ((P.x + G.half) / G.ts) * ts, ((P.z + G.half) / G.ts) * ts);
+}
+function youAt(g, px, py) {
   g.beginPath();
   g.arc(px, py, 4.5, 0, 7);
   g.fillStyle = '#fff';
@@ -618,40 +615,136 @@ function openMap() {
   g.strokeStyle = '#fff';
   g.stroke();
 }
-function drawWorld() {
-  const cv = $('worldcv'),
-    w = V.S.world,
-    css = Math.min(cv.parentNode.clientWidth || 240, 240),
-    cell = css / Math.max(w.cols, w.rows),
-    dpr = window.devicePixelRatio || 1,
-    here = R.outdoorRec(V.S);
-  cv.style.width = cell * w.cols + 'px';
-  cv.style.height = cell * w.rows + 'px';
+function openWorldMap() {
+  const cv = el('canvas', { id: 'worldcv', 'aria-label': 'Your map of the world so far' });
+  cv.style.touchAction = 'none';
+  const zoom = (f) => () => {
+    mapView.zoom = Math.max(18, Math.min(V.S.world.cols * R.W * 1.5, Math.round(mapView.zoom * f)));
+    drawWorldMap(cv);
+  };
+  openModal('Map', [
+    cv,
+    el('div', { cls: 'row' }, [
+      btn('+', zoom(1 / 1.5)),
+      btn('-', zoom(1.5)),
+      btn('Centre on me', () => {
+        mapView.dx = mapView.dy = 0;
+        drawWorldMap(cv);
+      }),
+    ]),
+    el('p', {
+      cls: 'note',
+      text: 'The world as you have seen it. Drag to look around; it wraps around, like the world. White dot: you. Gold: camp and the well. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: something left lying. Red dot: a creature you can see.',
+    }),
+  ]);
+  // drag to pan
+  let drag = null;
+  cv.addEventListener('pointerdown', (e) => {
+    drag = { x: e.clientX, y: e.clientY, dx: mapView.dx, dy: mapView.dy };
+    cv.setPointerCapture(e.pointerId);
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const ts = cv.clientWidth / mapView.zoom;
+    mapView.dx = drag.dx - (e.clientX - drag.x) / ts;
+    mapView.dy = drag.dy - (e.clientY - drag.y) / ts;
+    drawWorldMap(cv);
+  });
+  cv.addEventListener('pointerup', () => (drag = null));
+  drawWorldMap(cv);
+}
+function drawWorldMap(cv) {
+  cv.style.width = '100%';
   cv.style.display = 'block';
-  cv.style.marginTop = '8px';
-  cv.width = Math.round(cell * w.cols * dpr);
-  cv.height = Math.round(cell * w.rows * dpr);
+  const css = cv.clientWidth || 300;
+  cv.style.height = css + 'px';
+  const S = V.S,
+    w = S.world,
+    WW = w.cols * R.W,
+    HH = w.rows * R.H,
+    dpr = window.devicePixelRatio || 1,
+    n = mapView.zoom,
+    ts = css / n,
+    wrapN = (v, m) => ((v % m) + m) % m;
+  cv.width = cv.height = Math.round(css * dpr);
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  for (let cy = 0; cy < w.rows; cy++)
-    for (let cx = 0; cx < w.cols; cx++) {
-      const rec = V.S.areas[R.regionId(V.S, cx, cy)];
-      g.fillStyle = rec && rec.visited ? R.byId(R.C.biomes, rec.biome).colors[0] : '#10151d';
-      g.fillRect(cx * cell + 1, cy * cell + 1, cell - 2, cell - 2);
-      if (cx === w.home.cx && cy === w.home.cy) {
-        g.fillStyle = '#e0a84a';
+  g.fillStyle = '#10151d';
+  g.fillRect(0, 0, css, css);
+  // where you are, in world tiles from the home region's corner, and the corner of the window
+  const wp = R.worldPos(S),
+    fx = R.inOverworld(S) ? (P.x + G.half) / G.ts - S.player.x : 0.5,
+    fy = R.inOverworld(S) ? (P.z + G.half) / G.ts - S.player.y : 0.5,
+    youX = wp.x + fx,
+    youY = wp.y + fy,
+    x0 = youX + mapView.dx - n / 2,
+    y0 = youY + mapView.dy - n / 2;
+  const regions = {};
+  const regionAt = (gx, gy) => {
+    const rx = Math.floor(gx / R.W),
+      ry = Math.floor(gy / R.H),
+      cx = wrapN(w.home.cx + rx, w.cols),
+      cy = wrapN(w.home.cy + ry, w.rows),
+      id = R.regionId(S, cx, cy);
+    if (!(id in regions)) {
+      const rec = S.areas[id],
+        m = rec ? R.mapOf(S, id) : null;
+      regions[id] = m && m.terrain ? { m, cols: R.byId(R.C.biomes, rec.biome).colors, id } : null;
+    }
+    return { r: regions[id], x: gx - rx * R.W, y: gy - ry * R.H };
+  };
+  for (let sy = Math.floor(y0); sy < y0 + n + 1; sy++)
+    for (let sx = Math.floor(x0); sx < x0 + n + 1; sx++) {
+      const { r, x, y } = regionAt(sx, sy);
+      if (!r) continue;
+      const i = y * R.W + x,
+        m = r.m;
+      if (!m.seen[i]) continue;
+      const px = (sx - x0) * ts,
+        py = (sy - y0) * ts;
+      g.fillStyle = r.cols[m.terrain[i]] || '#555';
+      g.fillRect(px, py, ts + 0.6, ts + 0.6);
+      if (m.road[i]) {
+        g.fillStyle = '#8c8a86';
+        g.fillRect(px + ts * 0.25, py + ts * 0.25, ts * 0.5, ts * 0.5);
+      }
+      const st = m.sites[i];
+      if (st && MAPC[st.kind]) {
+        const big = Math.max(ts + 2, 5);
+        g.fillStyle = st.kind === 'spring' && st.known && st.foul ? '#6f6a35' : MAPC[st.kind];
+        g.fillRect(px + ts / 2 - big / 2, py + ts / 2 - big / 2, big, big);
+      }
+      if (m.depots[i] && !(S.camp && S.camp.area === r.id && S.camp.i === i)) {
+        g.fillStyle = '#000';
         g.beginPath();
-        g.arc((cx + 0.5) * cell, (cy + 0.5) * cell, 4, 0, 7);
+        g.arc(px + ts / 2, py + ts / 2, Math.max(1.5, ts * 0.3), 0, 7);
         g.fill();
       }
-      if (rec && rec.rareTold && R.regionRareOf(V.S, rec.id)) {
-        g.fillStyle = '#c9a0ff'; // a rare country you have been to
-        g.fillRect((cx + 0.5) * cell - 3, cy * cell + 6, 6, 6);
+      if (S.camp && S.camp.area === r.id && S.camp.i === i) {
+        g.fillStyle = '#e0a84a';
+        g.beginPath();
+        g.moveTo(px + ts / 2 - 6, py + ts + 2);
+        g.lineTo(px + ts / 2, py - 6);
+        g.lineTo(px + ts / 2 + 6, py + ts + 2);
+        g.closePath();
+        g.fill();
       }
     }
-  g.strokeStyle = '#fff';
-  g.lineWidth = 2;
-  g.strokeRect(here.cx * cell + 2, here.cy * cell + 2, cell - 4, cell - 4);
+  // creatures you can see, near you
+  if (R.inOverworld(S))
+    for (const c of S.creatures)
+      if (c.seen && Math.max(Math.abs(c.x - S.player.x), Math.abs(c.y - S.player.y)) <= 4) {
+        g.fillStyle = '#e0302a';
+        g.beginPath();
+        g.arc((wp.x + c.x - S.player.x + 0.5 - x0) * ts, (wp.y + c.y - S.player.y + 0.5 - y0) * ts, 4, 0, 7);
+        g.fill();
+      }
+  // you, wherever the window has been panned to (the world wraps, so find the copy of you that is in view)
+  let ux = wrapN(youX - x0, WW),
+    uy = wrapN(youY - y0, HH);
+  if (ux > n + 1) ux -= WW;
+  if (uy > n + 1) uy -= HH;
+  youAt(g, ux * ts, uy * ts);
 }
 function openMenu() {
   const sw = el(

@@ -501,7 +501,7 @@
       if (!window.THREE)
         document.getElementById('log').innerHTML =
           '<li class="bad new">The 3D library did not load. Check your connection and reload the page.</li>';
-      var GAME_VERSION = 'v0.12';
+      var GAME_VERSION = 'v0.13';
       var INTRO_EXTRA = 'Your goal is on the top panel. Stores are in Pack; controls and past messages are in Menu.';
     </script>
     <script>
@@ -1743,6 +1743,19 @@
         },
         { id: "rich", name: "Rich", text: "Every cache here is full.", gen: { richCaches: true } },
         {
+          id: "drowned",
+          name: "Drowned",
+          text: "Much of the low ground here has gone under: bog and standing water everywhere.",
+          gen: { drown: 0.45 }
+        },
+        { id: "dry", name: "Dry", text: "The springs of this country have failed. Only one is left.", gen: { dry: true } },
+        {
+          id: "burned",
+          name: "Burned",
+          text: "A great fire went through here. No woods are left: no wood to burn, and no cover from the wind.",
+          gen: { burn: true }
+        },
+        {
           id: "hollow",
           name: "Hollow",
           text: "The wind never stops: storms here bite twice as hard.",
@@ -1759,7 +1772,7 @@
       list: [
         { id: "plated", text: "It is plated like a beetle: hard to hit.", ac: 3 },
         { id: "thief", text: "It goes for your water: every hit spills some.", steal: 1 },
-        { id: "regen", text: "Its wounds close as you watch.", regen: 2 },
+        { id: "regen", text: "Its wounds close as you watch.", regen: 1 },
         { id: "twice", text: "It strikes twice, quick and light.", attacks: 2, hpMul: 0.75 },
         { id: "nocturnal", text: "It hunts only by night. By day it sleeps.", nightOnly: true },
         { id: "frost", text: "Its touch is ice.", chill: 10 },
@@ -2453,6 +2466,581 @@
     farFinds: { chance: 0.45 }
   };
 
+  // src/content/townlife.js
+  var townlife_default = {
+    townLife: {
+      sizes: [
+        { id: "hamlet", name: "a hamlet", w: 2, services: 1, folk: 2, stock: -2, walled: 0.1, graveyard: false },
+        { id: "village", name: "a village", w: 4, services: 2, folk: 4, stock: 0, walled: 0.2, graveyard: true },
+        { id: "town", name: "a market town", w: 3, services: 4, folk: 6, stock: 2, walled: 0.3, graveyard: true },
+        { id: "city", name: "a city", w: 1, services: 6, folk: 9, stock: 4, walled: 0.6, graveyard: true }
+      ],
+      services: [
+        {
+          id: "healer",
+          role: "the healer",
+          color: 15262416,
+          hat: 8034906,
+          always: ["herbalists"],
+          text: "Herbs hang from the beams. Everything smells of bitter leaf."
+        },
+        {
+          id: "temple",
+          role: "the priest",
+          color: 14271098,
+          hat: 16777215,
+          always: ["pious", "pilgrims"],
+          text: "A small temple to this land's god, lit by one lamp."
+        },
+        {
+          id: "trainer",
+          role: "the old campaigner",
+          color: 6965818,
+          hat: 3811866,
+          always: [],
+          text: "A yard of beaten earth, a rack of poles, and an old traveller who has seen worse than you."
+        },
+        {
+          id: "smith",
+          role: "the smith",
+          color: 3815994,
+          hat: 9054746,
+          always: ["smiths"],
+          text: "Heat, hammering, and a forge that never goes out."
+        },
+        {
+          id: "mapmaker",
+          role: "the mapmaker",
+          color: 3104655,
+          hat: 13214247,
+          always: ["traders", "lore"],
+          text: "Every wall is covered in maps, half of them wrong."
+        },
+        {
+          id: "stable",
+          role: "the stablehand",
+          color: 9071162,
+          hat: 5917226,
+          always: ["weavers"],
+          text: "Mules, a goat, the smell of hay."
+        }
+      ],
+      prices: { heal: 6, bless: 6, mapHome: 8, mapNear: 15, improve: 15, uncurse: 10, mule: 30 },
+      lessonsOffered: 3,
+      maxLessons: 3,
+      lessons: [
+        {
+          id: "forage",
+          name: "Foraging",
+          price: 12,
+          text: "You find twice the wood.",
+          mods: [{ stat: "gatherYield", op: "add", value: 1 }]
+        },
+        {
+          id: "march",
+          name: "The long march",
+          price: 14,
+          text: "Every step costs a little less.",
+          mods: [{ stat: "staminaCost", op: "mul", value: 0.9 }]
+        },
+        {
+          id: "storms",
+          name: "Dressing for storms",
+          price: 10,
+          text: "Storms chill you less.",
+          mods: [{ stat: "stormCold", op: "mul", value: 0.6 }]
+        },
+        {
+          id: "sip",
+          name: "Sip, don't gulp",
+          price: 12,
+          text: "Your water goes a little further.",
+          mods: [{ stat: "waterDrain", op: "mul", value: 0.92 }]
+        },
+        { id: "blade", name: "Swordwork", price: 15, text: "To hit +1.", mods: [{ stat: "hit", op: "add", value: 1 }] },
+        { id: "guard", name: "Keeping your guard", price: 15, text: "Armor +1.", mods: [{ stat: "ac", op: "add", value: 1 }] },
+        {
+          id: "eyes",
+          name: "Reading the land",
+          price: 10,
+          text: "Survey range +1.",
+          mods: [{ stat: "surveyRadius", op: "add", value: 1 }]
+        },
+        {
+          id: "sleep",
+          name: "Sleeping rough",
+          price: 10,
+          text: "Rest restores more.",
+          mods: [{ stat: "restGain", op: "mul", value: 1.15 }]
+        }
+      ],
+      blessing: {
+        hours: 24,
+        text: "for a day, water goes further and rest restores more",
+        mods: [
+          { stat: "waterDrain", op: "mul", value: 0.85 },
+          { stat: "restGain", op: "mul", value: 1.2 }
+        ]
+      },
+      mule: {
+        id: "mule",
+        name: "Pack Mule",
+        wt: 0,
+        w: 0,
+        plain: true,
+        value: 30,
+        text: "Follows you and carries a load.",
+        mods: [{ stat: "carryCap", op: "add", value: 10 }]
+      },
+      epitaphs: [
+        "They went out for water and did not come back.",
+        "Beloved. Lost in the {storm}.",
+        "Killed by a {species}.",
+        "Walked to the {dir} to see what was there.",
+        "Kept the well for forty years.",
+        "Taken by the cold in a hard winter.",
+        "She found the {site} and never told us where."
+      ],
+      folkRoles: [
+        "a carter",
+        "a washerwoman",
+        "a goatherd",
+        "a drunk",
+        "a child",
+        "a pilgrim",
+        "a mason",
+        "a fisher",
+        "a beggar",
+        "a guard",
+        "a weaver",
+        "an old woman"
+      ],
+      flavour: [
+        '"Fine weather for it, if you like weather."',
+        '"Mind the well, it is deeper than it looks."',
+        '"The ruins? Leave them be. Nothing good ever came out of a ruin."',
+        '"My grandmother saw the beacon lit, once. She said it turned the clouds gold."',
+        '"Buy something, or get out of my light."',
+        '"They say the old people could talk to the springs."'
+      ]
+    }
+  };
+
+  // src/content/roster.js
+  var roster_default = {
+    roster: {
+      offer: { races: [2, 12], classes: [8, 20], weights: { usual: 3, hybrid: 0.2, exotic: 0.6 } },
+      // a frail class (hit die this or less) sets out with more to keep it alive: an extra waterskin and some coin
+      frail: { hd: 6, items: ["waterskin"], coin: 10 },
+      races: [
+        {
+          id: "gnome",
+          name: "Gnome",
+          adj: { int: 2, str: -2 },
+          text: "Quick-witted and small: understands things in no time, and spots traps before they spring.",
+          mods: [
+            { stat: "studyTime", op: "mul", value: 0.4 },
+            { stat: "trapSafe", op: "add", value: 1 },
+            { stat: "carryCap", op: "add", value: -2 }
+          ],
+          names: ["Fizz", "Nim", "Bodkin", "Tilly", "Wren", "Pocket", "Sprocket", "Mab"]
+        },
+        {
+          id: "highlander",
+          name: "Highlander",
+          adj: { con: 1, str: 1, cha: -1 },
+          text: "Raised on the slopes: hills and mountains slow you less, and the cold bites less.",
+          mods: [
+            { stat: "moveTime.hill", op: "mul", value: 0.75 },
+            { stat: "moveTime.mountain", op: "mul", value: 0.85 },
+            { stat: "cold", op: "mul", value: 0.9 }
+          ],
+          names: ["Ewan", "Morag", "Fergus", "Isla", "Callum", "Ailsa", "Ruairi", "Kenna"]
+        },
+        {
+          id: "riverfolk",
+          name: "Riverfolk",
+          adj: { dex: 1, con: 1, int: -1 },
+          text: "Born on boats: you cross rivers in a fraction of the time, never get chilled by wading, and know sweet water from foul.",
+          mods: [
+            { stat: "moveTime.river", op: "mul", value: 0.4 },
+            { stat: "wetSafe", op: "add", value: 1 },
+            { stat: "tasteWater", op: "add", value: 1 }
+          ],
+          names: ["Reed", "Marsh", "Tamsin", "Eddy", "Brook", "Wade", "Nell", "Kip"]
+        },
+        {
+          id: "plainsfolk",
+          name: "Plainsfolk",
+          adj: { dex: 1, wis: 1, str: -1 },
+          text: "Of the open country: quick over flat ground, and you see a long way.",
+          mods: [
+            { stat: "moveTime.plain", op: "mul", value: 0.85 },
+            { stat: "surveyRadius", op: "add", value: 1 }
+          ],
+          names: ["Tarek", "Saba", "Oren", "Lia", "Dov", "Hana", "Amos", "Zara"]
+        },
+        {
+          id: "forestborn",
+          name: "Forest-born",
+          adj: { wis: 1, dex: 1, cha: -1 },
+          text: "Raised under trees: woods hardly slow you, and you always find wood to burn.",
+          mods: [
+            { stat: "moveTime.forest", op: "mul", value: 0.6 },
+            { stat: "gatherYield", op: "add", value: 1 }
+          ],
+          names: ["Ash", "Rowan", "Briar", "Hazel", "Alder", "Fern", "Sorrel", "Oakes"]
+        },
+        {
+          id: "ghoulkin",
+          exotic: true,
+          name: "Ghoul-kin",
+          adj: { con: 2, str: 1, cha: -3 },
+          text: "Something in your blood is not alive. Foul water does not hurt you, and every kill closes your wounds. You rest badly.",
+          mods: [
+            { stat: "foulSafe", op: "add", value: 1 },
+            { stat: "restGain", op: "mul", value: 0.8 }
+          ],
+          onKill: { hp: 4 },
+          names: ["Morrow", "Grim", "Sallow", "Vesk", "Hollis", "Murk"]
+        },
+        {
+          id: "halfgiant",
+          exotic: true,
+          name: "Half-giant",
+          adj: { str: 3, con: 1, dex: -2, int: -1 },
+          text: "Huge: you carry a great load and shrug off blows, but you are slow and thirsty.",
+          mods: [
+            { stat: "carryCap", op: "add", value: 10 },
+            { stat: "ac", op: "add", value: 1 },
+            { stat: "moveTime", op: "mul", value: 1.1 },
+            { stat: "waterDrain", op: "mul", value: 1.15 }
+          ],
+          names: ["Haldor", "Brunna", "Tor", "Gunnhild", "Ymir", "Skadi"]
+        },
+        {
+          id: "scalekin",
+          exotic: true,
+          name: "Scalekin",
+          adj: { con: 2, dex: 1, cha: -2, wis: -1 },
+          text: "Cold-blooded and scaled: armored, and you need little water, but cold is deadly to you.",
+          mods: [
+            { stat: "ac", op: "add", value: 2 },
+            { stat: "waterDrain", op: "mul", value: 0.7 },
+            { stat: "cold", op: "mul", value: 1.4 }
+          ],
+          names: ["Ssark", "Ithis", "Kesh", "Zathra", "Vex", "Sorrith"]
+        },
+        {
+          id: "crowfolk",
+          exotic: true,
+          name: "Crowfolk",
+          adj: { dex: 2, wis: 1, str: -2, con: -1 },
+          text: "Light-boned and sharp-eyed: you see far, find things others miss, and climb like you half fly. You carry little.",
+          mods: [
+            { stat: "surveyRadius", op: "add", value: 2 },
+            { stat: "luck", op: "add", value: 0.1 },
+            { stat: "moveTime.mountain", op: "mul", value: 0.6 },
+            { stat: "carryCap", op: "add", value: -3 }
+          ],
+          names: ["Caw", "Glint", "Sable", "Rook", "Jet", "Quill"]
+        },
+        {
+          id: "wispborn",
+          exotic: true,
+          name: "Wispborn",
+          adj: { wis: 2, cha: 1, con: -3 },
+          text: "Half light, half person. You see in the dark and creatures do not hunt you, but you are frail.",
+          mods: [
+            { stat: "nightSight", op: "add", value: 1 },
+            { stat: "quiet", op: "add", value: 1 }
+          ],
+          tick: { mana: 0.5 },
+          names: ["Flicker", "Glimmer", "Lume", "Will", "Shimmer", "Gleam"]
+        }
+      ],
+      classes: [
+        {
+          id: "knight",
+          name: "Knight",
+          text: "Armored and steady. Starts with a sword and a mail shirt.",
+          kit: ["sword", "mail"],
+          hd: 10,
+          fight: "Shield wall: the next blow is blunted.",
+          mods: [{ stat: "carryCap", op: "add", value: 2 }],
+          moves: [
+            { id: "shieldwall", label: "Shield wall", hint: "blunt the next blow by 5, 3 stamina", cost: { stamina: 3 }, ward: 5 }
+          ]
+        },
+        {
+          id: "barbarian",
+          name: "Barbarian",
+          text: "Hard to kill and hard to chill. Starts with a great axe.",
+          kit: ["axe"],
+          hd: 12,
+          fight: "Rage: a huge blow that costs you blood.",
+          mods: [{ stat: "cold", op: "mul", value: 0.85 }],
+          moves: [{ id: "rage", label: "Rage", hint: "+6 damage, 2 hit points", cost: { hp: 2 }, strike: { flat: 6 } }]
+        },
+        {
+          id: "monk",
+          name: "Monk",
+          text: "Trained in body and breath: every step costs less, and blows find you less. Starts with a staff.",
+          kit: ["staff"],
+          hd: 8,
+          fight: "Flurry: two strikes at once.",
+          mods: [
+            { stat: "staminaCost", op: "mul", value: 0.88 },
+            { stat: "ac", op: "add", value: 1 }
+          ],
+          moves: [{ id: "flurry", label: "Flurry", hint: "strike twice, 6 stamina", cost: { stamina: 6 }, strike: { times: 2 } }]
+        },
+        {
+          id: "hunter",
+          name: "Hunter",
+          text: "Lives off the land: every kill gives water and strength. Starts with a spear and a cloak.",
+          kit: ["spear", "cloak"],
+          hd: 8,
+          fight: "Aimed shot: a careful throw that rarely misses.",
+          mods: [{ stat: "surveyRadius", op: "add", value: 1 }],
+          onKill: { water: 1, stamina: 15 },
+          moves: [
+            {
+              id: "aimed",
+              label: "Aimed shot",
+              hint: "to hit +4, 3 stamina",
+              cost: { stamina: 3 },
+              strike: { hit: 4, ranged: true }
+            }
+          ]
+        },
+        {
+          id: "bard",
+          name: "Bard",
+          text: "Everyone likes a bard: things cost less in town, and luck follows you. Starts with a dagger and 15 coin.",
+          kit: ["dagger"],
+          hd: 6,
+          start: { coin: 15 },
+          fight: "Lullaby: the creature loses its turn.",
+          mods: [
+            { stat: "town.buy", op: "mul", value: 0.8 },
+            { stat: "luck", op: "add", value: 0.15 }
+          ],
+          moves: [{ id: "lullaby", label: "Lullaby", hint: "it loses its turn, 8 stamina", cost: { stamina: 8 }, stun: true }]
+        },
+        {
+          id: "merchant",
+          name: "Merchant",
+          text: "Buys cheap, sells dear, and carries a lot. Starts with a frame pack and 40 coin.",
+          kit: ["framepack"],
+          hd: 6,
+          start: { coin: 40 },
+          fight: "Nothing special.",
+          mods: [
+            { stat: "town.buy", op: "mul", value: 0.75 },
+            { stat: "town.sellRate", op: "mul", value: 1.4 },
+            { stat: "carryCap", op: "add", value: 2 }
+          ]
+        },
+        {
+          id: "scout",
+          name: "Scout",
+          text: "Fast and watchful: quicker everywhere, sees further, and can always slip away. Starts with boots and a spyglass.",
+          kit: ["boots", "spyglass"],
+          hd: 6,
+          fight: "Vanish: get away, every time.",
+          mods: [
+            { stat: "moveTime", op: "mul", value: 0.9 },
+            { stat: "surveyRadius", op: "add", value: 1 }
+          ],
+          moves: [{ id: "vanish", label: "Vanish", hint: "always escape, 3 stamina", cost: { stamina: 3 }, flee: true }]
+        },
+        {
+          id: "herbalist",
+          name: "Herbalist",
+          text: "Knows every leaf: your wounds slowly mend as you go, and foul water does you no harm. Starts with a staff and two salves.",
+          kit: ["staff", "salve", "salve"],
+          hd: 6,
+          fight: "Nothing special.",
+          mods: [{ stat: "foulSafe", op: "add", value: 1 }],
+          tick: { hp: 0.5 }
+        },
+        {
+          id: "pilgrim",
+          name: "Pilgrim",
+          text: "Walks far on little: needs less water, and always knows where the shrine lies. Starts with a staff and a waterskin.",
+          kit: ["staff", "waterskin"],
+          hd: 8,
+          fight: "Nothing special.",
+          mods: [
+            { stat: "waterDrain", op: "mul", value: 0.85 },
+            { stat: "shrineSense", op: "add", value: 1 }
+          ]
+        },
+        {
+          id: "druid",
+          name: "Druid",
+          text: "Speaks for the wild: woods hardly slow you and give more wood. Starts with a staff.",
+          kit: ["staff"],
+          hd: 6,
+          caster: "wis",
+          manaPer: 3,
+          fight: "Spells: Thorns and Regrow.",
+          mods: [
+            { stat: "moveTime.forest", op: "mul", value: 0.7 },
+            { stat: "gatherYield", op: "add", value: 1 }
+          ],
+          moves: [
+            {
+              id: "thorns",
+              label: "Thorns",
+              hint: "+1d8, from afar, 2 mana",
+              cost: { mana: 2 },
+              strike: { dice: [1, 8], ranged: true }
+            },
+            { id: "regrow", label: "Regrow", hint: "heal 2d4, 3 mana", cost: { mana: 3 }, heal: [2, 4] }
+          ]
+        },
+        {
+          id: "sapper",
+          name: "Sapper",
+          text: "Handy with rope and fire: finds traps, searches fast. Starts with a rope, a compass and 3 fuel.",
+          kit: ["rope", "compass"],
+          hd: 8,
+          start: { fuel: 3 },
+          fight: "Firepot: burns fuel to burn the creature.",
+          mods: [
+            { stat: "trapSafe", op: "add", value: 1 },
+            { stat: "searchTime", op: "mul", value: 0.6 }
+          ],
+          moves: [
+            {
+              id: "firepot",
+              label: "Firepot",
+              hint: "+2d6, 1 fuel",
+              cost: { fuel: 1 },
+              strike: { dice: [2, 6], ranged: true, hit: 2 }
+            }
+          ]
+        },
+        {
+          id: "duelist",
+          name: "Duelist",
+          text: "A blade and nerve. Starts with a sword and boots.",
+          kit: ["sword", "boots"],
+          hd: 8,
+          fight: "Riposte: blunt the next blow and strike back at once.",
+          mods: [{ stat: "hit", op: "add", value: 1 }],
+          moves: [
+            { id: "riposte", label: "Riposte", hint: "blunt 3, then strike, 4 stamina", cost: { stamina: 4 }, ward: 3, strike: {} }
+          ]
+        },
+        {
+          id: "necromancer",
+          exotic: true,
+          name: "Necromancer",
+          text: "Draws on death: your spells feed on what they hurt, and every kill restores you. The cold finds you easily. Starts with a dagger and a lantern.",
+          kit: ["dagger", "lantern"],
+          hd: 4,
+          caster: "int",
+          manaPer: 3,
+          fight: "Drain life: hurt it and heal yourself by as much.",
+          mods: [{ stat: "cold", op: "mul", value: 1.15 }],
+          onKill: { mana: 2, hp: 2 },
+          moves: [
+            {
+              id: "drain",
+              label: "Drain life",
+              hint: "+1d8, heals you, 2 mana",
+              cost: { mana: 2 },
+              strike: { dice: [1, 8], ranged: true },
+              drain: true
+            }
+          ]
+        },
+        {
+          id: "witch",
+          exotic: true,
+          name: "Witch",
+          text: "Luck bends around you. Starts with a staff and a flask.",
+          kit: ["staff", "flask"],
+          hd: 6,
+          caster: "cha",
+          manaPer: 3,
+          fight: "Hex: the creature loses its turn and you strike.",
+          mods: [{ stat: "luck", op: "add", value: 0.25 }],
+          moves: [{ id: "hex", label: "Hex", hint: "it loses its turn, 2 mana", cost: { mana: 2 }, stun: true }]
+        },
+        {
+          id: "dowser",
+          exotic: true,
+          name: "Dowser",
+          text: "Water speaks to you: you always know the way to the nearest spring, sweet from foul, and your skins fill a little by themselves. Starts with a staff.",
+          kit: ["staff"],
+          hd: 6,
+          fight: "Nothing special.",
+          mods: [
+            { stat: "wellfinder", op: "add", value: 1 },
+            { stat: "tasteWater", op: "add", value: 1 }
+          ],
+          tick: { water: 0.2 }
+        },
+        {
+          id: "lamplighter",
+          exotic: true,
+          name: "Lamplighter",
+          text: "Your lantern never burns oil. Starts with a lantern and 3 fuel.",
+          kit: ["lantern"],
+          hd: 6,
+          start: { fuel: 3 },
+          fight: "Flare: blind the creature for a turn, with 1 fuel.",
+          mods: [{ stat: "fuelUse", op: "mul", value: 0 }],
+          moves: [{ id: "flare", label: "Flare", hint: "it loses its turn, 1 fuel", cost: { fuel: 1 }, stun: true }]
+        },
+        {
+          id: "gravedigger",
+          exotic: true,
+          name: "Gravedigger",
+          text: "At home among the dead: ruins give up more to you, and every kill puts heart into you. Starts with a spear.",
+          kit: ["spear"],
+          hd: 8,
+          fight: "Nothing special.",
+          mods: [
+            { stat: "searchTime", op: "mul", value: 0.7 },
+            { stat: "luck", op: "add", value: 0.15 }
+          ],
+          onKill: { hp: 3 }
+        }
+      ]
+    }
+  };
+
+  // src/content/hamlets.js
+  var hamlets_default = {
+    hamlets: {
+      chance: 0.45,
+      // per region away from home
+      a: ["Low", "High", "Far", "Thorn", "Cold", "Black", "Little", "Old"],
+      b: ["cot", "stead", "ing", "hope", "well", "croft", "fold", "hithe"],
+      bed: 3,
+      goods: [
+        { base: "salve", price: 9 },
+        { base: "tonic", price: 7 },
+        { base: "draught", price: 7 },
+        { base: "waterskin", price: 8 }
+      ],
+      fuel: 2,
+      talk: [
+        "A few houses round a well. People here see few travellers, and are glad of news.",
+        "Smoke from three chimneys, a dog, a well with a bucket on a chain.",
+        "A huddle of turf-roofed houses. Someone is singing."
+      ]
+    }
+  };
+
+  // src/content/tiers.js
+  var tiers_default = { tiers: { max: 3, names: { 2: "Fine", 3: "Superb" }, step: 0.5 } };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -2477,7 +3065,11 @@
     floors_default,
     relics_default,
     lairs_default,
-    farfinds_default
+    farfinds_default,
+    townlife_default,
+    roster_default,
+    hamlets_default,
+    tiers_default
   );
 
   // src/rules/core.js
@@ -2664,8 +3256,24 @@
   }
   var TOWN_R = 2;
   var TOWN_GATE = { x: W / 2, y: H - 1 };
-  var inTownBlock = (s, x, y) => s.area === HOME && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
+  var townArea = (s) => s.town && s.town.area || HOME;
+  var inTownBlock = (s, x, y) => s.area === townArea(s) && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
   var townDoor = (s) => ({ x: s.town.x, y: s.town.y + TOWN_R + 1 });
+  var TOWN_SPAN = W / (2 * TOWN_R + 1);
+  function townEntry(s, px, py, ox2, oy2) {
+    const bx = ox2 - (s.town.x - TOWN_R), by = oy2 - (s.town.y - TOWN_R), mid = (b) => Math.min(W - 1, Math.floor((b + 0.5) * TOWN_SPAN));
+    if (px < s.town.x - TOWN_R) return { x: 0, y: mid(by) };
+    if (px > s.town.x + TOWN_R) return { x: W - 1, y: mid(by) };
+    if (py < s.town.y - TOWN_R) return { x: mid(bx), y: 0 };
+    return { x: mid(bx), y: H - 1 };
+  }
+  function townExit(s, tx, ty, dx, dy) {
+    const o = (t) => Math.min(2 * TOWN_R, Math.max(0, Math.floor(t / TOWN_SPAN))), x0 = s.town.x - TOWN_R, y0 = s.town.y - TOWN_R;
+    if (dx < 0) return { x: x0 - 1, y: y0 + o(ty) };
+    if (dx > 0) return { x: s.town.x + TOWN_R + 1, y: y0 + o(ty) };
+    if (dy < 0) return { x: x0 + o(tx), y: y0 - 1 };
+    return { x: x0 + o(tx), y: s.town.y + TOWN_R + 1 };
+  }
   function ensureTown(s) {
     if (!s.areas.town) s.areas.town = { id: "town", kind: "town", indoor: true, name: s.town.name };
     buildArea(s, s.areas.town);
@@ -2761,6 +3369,13 @@
       }
     }
   }
+  function localPos(s, area, x, y) {
+    const here2 = outdoorRec(s), there = s.areas[area] || here2;
+    return {
+      x: x + wrapDelta(there.cx, here2.cx, s.world.cols) * W,
+      y: y + wrapDelta(there.cy, here2.cy, s.world.rows) * H
+    };
+  }
   function homePos(s, areaId, x, y) {
     let rec = s.areas[areaId], pos = { x, y };
     while (rec.kind !== "region" && rec.from) {
@@ -2771,6 +3386,16 @@
     return { x: pos.x + o.dx, y: pos.y + o.dy };
   }
   var campHere = (s) => s.camp && s.camp.area === s.area ? s.camp.i : null;
+
+  // src/rules/hooks.js
+  var NOTES = [];
+  var SKETCHERS = [];
+  var ACTIONS = [];
+  var TALK = [];
+  var ITEM_HOOKS = [];
+  var LOADERS = [];
+  var SWITCHES = [];
+  var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 
   // src/rules/items.js
   function makeItem(s, baseId, pre, suf, known) {
@@ -2804,22 +3429,27 @@
       it.mark = s.civ.affinity;
       it.markName = s.civ.name;
     }
+    for (const f of ITEM_HOOKS) f(s, it, o);
     return it;
   }
   function itemName(it) {
     const b = byId(C.bases, it.base);
     if (it.label) return it.label;
     if (it.artName) return it.artName;
-    if (!it.known) return b.name + " (unstudied)";
+    if (!it.known) return (it.tier >= 3 ? "Superb " : it.tier === 2 ? "Fine " : "") + b.name + " (unstudied)";
     if (b.mystery) return C.flasks[it.effect].name;
     const p = it.pre ? byId(C.affixes, it.pre).name + " " : "", f = it.suf ? " " + byId(C.affixes, it.suf).name : "";
-    const mk = it.mark ? it.markName + " " : "";
-    return p || f || mk ? mk + p + b.name + f : b.plain ? b.name : "Plain " + b.name;
+    const mk = it.mark ? it.markName + " " : "", tq = it.tier >= 3 ? "Superb " : it.tier === 2 ? "Fine " : "";
+    return p || f || mk ? tq + mk + p + b.name + f : b.plain ? b.name : "Plain " + b.name;
   }
   function itemAffixes(it) {
     const a = [it.pre, it.suf].filter(Boolean).map((id) => byId(C.affixes, id));
     if (it.mark) a.push(byId(C.civ.affinity, it.mark));
-    return a;
+    if (!it.tier || it.tier < 2) return a;
+    const k = 1 + 0.5 * (it.tier - 1), up = (m) => Object.assign({}, m, {
+      value: m.op === "mul" ? 1 + (m.value - 1) * k : m.op === "add" ? Math.round(m.value * k * 10) / 10 : m.value
+    });
+    return a.map((x) => Object.assign({}, x, { mods: x.mods.map(up) }));
   }
   function itemWeight(s, it) {
     let w = byId(C.bases, it.base).wt;
@@ -2912,7 +3542,7 @@
   }
   var groundHere = (s) => terrainInfo(s, s.terrain[here(s)]);
   var siteHere = (s) => s.sites[here(s)] || null;
-  var isShelter = (site) => !!site && (site.kind === "cave" || site.kind === "ruin" || site.kind === "well" || site.kind === "town" || site.kind === "vault");
+  var isShelter = (site) => !!site && (site.kind === "cave" || site.kind === "ruin" || site.kind === "well" || site.kind === "town" || site.kind === "vault" || site.kind === "hamlet");
   var inShelter = (s) => indoors(s) || isShelter(siteHere(s));
   var atCamp = (s) => campHere(s) === here(s);
   var passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL && !inTownBlock(s, x, y);
@@ -2927,7 +3557,10 @@
     if (!dx && !dy) return "here";
     return DIRS[(Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8 + 8) % 8];
   }
-  var bearing = (s) => dirFrom(worldPos(s), s.goal.x, s.goal.y);
+  var bearing = (s) => {
+    const g = homePos(s, s.goal.area || "overworld", s.goal.x, s.goal.y);
+    return dirFrom(worldPos(s), g.x, g.y);
+  };
   var SITE_NAME = {
     spring: "spring",
     cave: "cave",
@@ -2936,6 +3569,7 @@
     well: "well",
     beacon: "beacon",
     town: "town",
+    gate: "gate",
     exit: "way out",
     stairsDown: "stair down",
     stairsUp: "stair up",
@@ -3163,21 +3797,14 @@
     return t;
   }
 
-  // src/rules/hooks.js
-  var NOTES = [];
-  var SKETCHERS = [];
-  var LOADERS = [];
-  var SWITCHES = [];
-  var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
-
   // src/rules/exotics.js
   if (!C.races.some((r) => r.exotic)) C.races.push(...C.exoticRaces);
   if (!C.classes.some((r) => r.exotic)) C.classes.push(...C.exoticClasses);
   on("worldBorn", (s, d) => {
     if (d.off.exotics) return;
-    const r = stream(s.seed, "exotics"), X2 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
-    if (r() < X2.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
-    if (r() < X2.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
+    const r = stream(s.seed, "exotics"), X4 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
+    if (r() < X4.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
+    if (r() < X4.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
     sworn(s);
   });
   function sworn(s) {
@@ -3321,8 +3948,8 @@
     if (!sp || s.off.specials || sp.named) return NONE;
     const key = s.seed + ":" + sp.name;
     if (!(key in cache)) {
-      const r = stream(s.seed, "special:" + sp.name), X2 = C.specials;
-      cache[key] = r() < X2.chance ? X2.list[Math.floor(r() * X2.list.length)].id : null;
+      const r = stream(s.seed, "special:" + sp.name), X4 = C.specials;
+      cache[key] = r() < X4.chance ? X4.list[Math.floor(r() * X4.list.length)].id : null;
     }
     return cache[key] ? byId(C.specials.list, cache[key]) : NONE;
   }
@@ -3403,7 +4030,7 @@
   }
   function strike(s, o) {
     o = o || {};
-    const c = foe(s), sp = spOf(s, c), wp = weaponOf(s), sc = scores(s.char), ab = wp.w.finesse || o.ranged ? Math.max(amod(sc.dex), amod(sc.str)) : amod(sc.str), d20 = roll(s, 1, 20), tot = d20 + prof(s) + ab + stat(s, "hit", 0);
+    const c = foe(s), sp = spOf(s, c), wp = weaponOf(s), sc = scores(s.char), ab = wp.w.finesse || o.ranged ? Math.max(amod(sc.dex), amod(sc.str)) : amod(sc.str), d20 = roll(s, 1, 20), tot = d20 + prof(s) + ab + stat(s, "hit", 0) + (o.hit || 0);
     if (d20 === 1 || d20 !== 20 && tot < c.ac) {
       clog(s, "You miss the " + sp.name + ".");
       return false;
@@ -3436,6 +4063,7 @@
     }
     const f = formOf(s, c), xp = f.xp * c.tier;
     s.combat = null;
+    emit(s, "killed", { sp: c.sp, tier: c.tier });
     s.creatures = s.creatures.filter((x) => x.id !== c.id);
     say(s, lead + " for " + dmg + ". The " + sp.name + " is dead. " + xp + " experience.", "good");
     if (sp.rare === "gilded" || srand(s) < 0.25) {
@@ -3476,7 +4104,11 @@
       clog(s, "The " + sp.name + " misses you.");
       return;
     }
-    const dmg = Math.max(1, roll(s, f.dice[0], f.dice[1]) + c.add);
+    let dmg = Math.max(1, roll(s, f.dice[0], f.dice[1]) + c.add);
+    if (s.combat && s.combat.ward) {
+      dmg = Math.max(0, dmg - s.combat.ward);
+      s.combat.ward = 0;
+    }
     p.hp -= dmg;
     let extra = "";
     if (f.chill && !s.off.warmth) {
@@ -3749,8 +4381,9 @@
   // src/rules/quest.js
   var hasItem = (s, base) => s.player.items.some((i) => i.base === base);
   var atTown = (s) => s.area === "town";
-  function mark(s, x, y) {
-    const m = worldMap(s);
+  function mark(s, x, y, area) {
+    const m = area ? mapOf(s, area) : worldMap(s);
+    if (!m) return;
     for (let j = -1; j <= 1; j++)
       for (let i = -1; i <= 1; i++) {
         const xx = x + i, yy = y + j;
@@ -3759,13 +4392,22 @@
     const st = m.sites[idx(x, y)];
     if (st) st.seen = true;
   }
-  function findSite(s, kind) {
-    const m = worldMap(s);
-    for (const k in m.sites) if (m.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: m.sites[k] };
+  function findSite(s, kind2) {
+    const ids = [HOME, ...Object.keys(s.areas).filter((id) => id !== HOME && s.areas[id].kind === "region")];
+    for (const id of ids) {
+      const m = mapOf(s, id);
+      if (!m || !m.sites) continue;
+      for (const k in m.sites) if (m.sites[k].kind === kind2) return { x: k % W, y: Math.floor(k / W), st: m.sites[k], area: id };
+    }
     return null;
   }
-  function findHere(s, kind) {
-    for (const k in s.sites) if (s.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: s.sites[k] };
+  var keyRuin = (s) => s.quest.keyTile === null || s.quest.keyTile === void 0 ? null : { area: s.quest.keyArea || HOME, x: s.quest.keyTile % W, y: Math.floor(s.quest.keyTile / W) };
+  function beastOf(s) {
+    const area = s.quest.beastArea || HOME, m = mapOf(s, area), c = m && m.creatures.find((x) => x.id === s.quest.beast);
+    return c ? { area, x: c.x, y: c.y, c } : null;
+  }
+  function findHere(s, kind2) {
+    for (const k in s.sites) if (s.sites[k].kind === kind2) return { x: k % W, y: Math.floor(k / W), st: s.sites[k] };
     return null;
   }
   function itemValue(it) {
@@ -3775,6 +4417,7 @@
     for (const id of [it.pre, it.suf]) if (id) v += byId(C.affixes, id).cursed ? -4 : 8;
     if (it.mark) v += 6;
     if (it.art && C.artifacts) v += C.artifacts.value;
+    if (it.tier > 1) v += 8 * (it.tier - 1);
     return Math.max(1, v);
   }
   var townNum = (s, k) => stat(s, "town." + k, C.town[k]);
@@ -3786,7 +4429,7 @@
   var buyPrice = (s, it) => Math.max(1, Math.round(itemValue(it) * stat(s, "town.buy", 1) * stat(s, "town.buy." + wareKind(it), 1)));
   function makeQuest(s, r, townP, vaultP, a0, goalP) {
     const Q = C.quest, T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
-    const race = pick(C.races.filter((e) => !e.exotic)), q = s.quest = {
+    const race = pick(C.races.filter((e) => !e.exotic && !e.roster)), q = s.quest = {
       key: pick(Q.keys),
       vault: pick(Q.vaults),
       relic: pick(Q.relics) + " of the " + s.civ.name,
@@ -3869,7 +4512,7 @@
     return null;
   }
   function objective(s) {
-    const q = s.quest, t = s.town, v = findSite(s, "vault"), wp = worldPos(s), toWorld = (p) => dirFrom(wp, p.x, p.y), toHere = (p) => dirTo(s, p.x, p.y), vaultName = q.vault.name, inVault = areaRec(s).kind === "vault";
+    const q = s.quest, t = s.town, v = findSite(s, "vault"), wp = worldPos(s), toWorld = (p) => p.area ? dirFrom(wp, homePos(s, p.area, p.x, p.y).x, homePos(s, p.area, p.x, p.y).y) : dirFrom(wp, p.x, p.y), toHere = (p) => dirTo(s, p.x, p.y), vaultName = q.vault.name, inVault = areaRec(s).kind === "vault";
     const loose = (base, what) => {
       const l = findLoose(s, base);
       if (!l) return null;
@@ -3909,14 +4552,13 @@
     if (!q.told)
       return {
         text: s.area === "town" ? "Talk to the elder" : "Find the town",
-        dir: s.area === "town" ? toHere(findHere(s, "elder")) : toWorld(t)
+        dir: s.area === "town" ? toHere(findHere(s, "elder")) : toWorld({ area: townArea(s), x: t.x, y: t.y })
       };
     if (q.key === "beast") {
-      const c = worldMap(s).creatures.find((x) => x.id === q.beast);
-      return c ? { text: "Kill the " + spOf(s, c).name + ", which has the key", dir: toWorld(c) } : { text: "Take the key from the lair", dir: null };
+      const b = beastOf(s);
+      return b ? { text: "Kill the " + spOf(s, b.c).name + ", which has the key", dir: toWorld(b) } : { text: "Take the key from the lair", dir: null };
     }
-    if (q.key === "ruin")
-      return { text: "Search the ruin where the key lies", dir: toWorld({ x: q.keyTile % W, y: Math.floor(q.keyTile / W) }) };
+    if (q.key === "ruin") return { text: "Search the ruin where the key lies", dir: toWorld(keyRuin(s)) };
     return { text: "Find the key to the " + vaultName, dir: null };
   }
   function talkElder(s) {
@@ -3924,15 +4566,20 @@
     const q = s.quest, t = s.town, v = findSite(s, "vault"), sp = t.speech = [];
     if (!q.told) {
       q.told = true;
-      mark(s, v.x, v.y);
+      mark(s, v.x, v.y, v.area);
       const d = q.dest === "beacon" ? s.goal : findSite(s, "shrine");
-      mark(s, d.x, d.y);
-      const wm = worldMap(s);
-      for (const k in wm.sites)
-        if (wm.sites[k].sure) {
-          wm.sites[k].known = true;
-          mark(s, k % W, Math.floor(k / W));
+      mark(s, d.x, d.y, d.area);
+      const kr = keyRuin(s), bs = beastOf(s);
+      for (const id of new Set([HOME, townArea(s), v.area, d.area, kr && kr.area, bs && bs.area].filter(Boolean))) {
+        const wm = mapOf(s, id);
+        if (wm) {
+          for (const k in wm.sites)
+            if (wm.sites[k].sure) {
+              wm.sites[k].known = true;
+              mark(s, k % W, Math.floor(k / W), id);
+            }
         }
+      }
       sp.push(
         '"You came across the open ground alone? Then listen. ' + (q.dest === "beacon" ? "The beacon is dying. It was lit with" : "The shrine has stood empty since the " + s.civ.name + " took from it") + " the " + q.relic + ", and the " + s.civ.name + " locked that away in the " + q.vault.name + ' before the end."'
       );
@@ -3945,16 +4592,16 @@
         s.player.items.push(k);
         sp.push('"Here is the key. We have kept it three generations, and not one of us has dared use it."');
       } else if (q.key === "beast") {
-        const c = worldMap(s).creatures.find((x) => x.id === q.beast);
+        const b = beastOf(s), c = b && b.c;
         if (c) {
           c.seen = true;
-          mark(s, c.x, c.y);
+          mark(s, c.x, c.y, b.area);
           sp.push(
             '"The key is gone. The ' + spOf(s, c).name + ' took the last warden, key and all. Its lair is marked too. I am sorry."'
           );
         }
       } else {
-        mark(s, q.keyTile % W, Math.floor(q.keyTile / W));
+        mark(s, q.keyTile % W, Math.floor(q.keyTile / W), keyRuin(s).area);
         sp.push('"The key was buried with the last warden, in a ruin of theirs. I have marked that as well."');
       }
       const left = AXES.filter((a) => !s.civKnown[a]);
@@ -3976,16 +4623,16 @@
     if (s.over || !atTown(s)) return false;
     const t = s.town, i = t.stock.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const price = buyPrice(s, t.stock[i]);
-    if (s.player.coin < price) {
+    const price2 = buyPrice(s, t.stock[i]);
+    if (s.player.coin < price2) {
       say(s, "You cannot afford that.");
       return false;
     }
-    s.player.coin -= price;
+    s.player.coin -= price2;
     const it = t.stock.splice(i, 1)[0];
     s.player.items.push(it);
     autoEquip(s, it);
-    say(s, "You buy the " + itemName(it) + " for " + price + " coin.");
+    say(s, "You buy the " + itemName(it) + " for " + price2 + " coin.");
     return true;
   }
   function buyFuel(s) {
@@ -4005,8 +4652,8 @@
     if (s.over || !atTown(s)) return false;
     const i = s.player.items.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const it = s.player.items[i], price = sellPrice(it, s);
-    if (!price) {
+    const it = s.player.items[i], price2 = sellPrice(it, s);
+    if (!price2) {
       say(s, "No one here will buy that.");
       return false;
     }
@@ -4014,9 +4661,9 @@
     delete it.eq;
     it.known = true;
     s.town.stock.push(it);
-    s.player.coin += price;
+    s.player.coin += price2;
     fitWater(s);
-    say(s, "You sell the " + itemName(it) + " for " + price + " coin.");
+    say(s, "You sell the " + itemName(it) + " for " + price2 + " coin.");
     return true;
   }
   function appraise(s, id) {
@@ -4062,18 +4709,24 @@
     say(s, "The key turns. Cold air comes up the stair.", "good");
     return true;
   }
-  function enterTown(s) {
-    const d = townDoor(s), st = s.sites[idx(s.town.x, s.town.y)];
-    if (s.over || s.area !== HOME || s.player.x !== d.x || s.player.y !== d.y) return false;
-    enterArea(s, "town", { kind: "town", indoor: true, name: s.town.name }, TOWN_GATE);
+  function enterTown(s, ox2, oy2, at) {
+    const st = s.sites[idx(s.town.x, s.town.y)];
+    if (s.over || s.area !== townArea(s) || !inTownBlock(s, ox2, oy2)) return false;
+    let p = townEntry(s, s.player.x, s.player.y, ox2, oy2);
+    if (at && (at.x === p.x || at.y === p.y) && at.x >= 0 && at.y >= 0 && at.x < W && at.y < H) p = { x: at.x, y: at.y };
+    if (mapOf(s, "town").terrain[idx(p.x, p.y)] === WALL) {
+      say(s, "The wall of " + s.town.name + ". " + (s.town.walled ? "Its gates are where the streets meet the wall." : ""));
+      return false;
+    }
+    enterArea(s, "town", { kind: "town", indoor: true, name: s.town.name }, p);
     if (!st.entered) {
       st.entered = true;
       gainXp(s, 20);
+      say(
+        s,
+        "You walk into " + s.town.name + "." + (s.quest.told ? "" : " The elder will be at the hall on the north side of the square.")
+      );
     }
-    say(
-      s,
-      "You pass the gate of " + s.town.name + "." + (s.quest.told ? "" : " The elder will be at the hall on the north side of the square.")
-    );
     return true;
   }
   var vaultLevelId = (n) => "vault" + n;
@@ -4107,14 +4760,14 @@
     say(s, "Level " + n + " of " + floors.length + (n === floors.length ? ". The air is older here." : "."));
     return true;
   }
-  function leaveTown(s) {
+  function leaveTown(s, dx, dy) {
     if (s.over || areaRec(s).kind !== "town") return false;
+    if (dx === void 0) dy = 1;
+    const o = townExit(s, s.player.x, s.player.y, dx || 0, dy || 0);
     leaveArea(s);
-    const d = townDoor(s);
-    s.player.x = d.x;
-    s.player.y = d.y;
-    s.lastGround = s.terrain[idx(d.x, d.y)];
-    say(s, "You leave " + s.town.name + " by the south gate.");
+    s.player.x = o.x;
+    s.player.y = o.y;
+    s.lastGround = s.terrain[idx(o.x, o.y)];
     return true;
   }
   function goUp(s) {
@@ -4138,6 +4791,7 @@
   }
 
   // src/rules/actions.js
+  var foulHarm = (s) => stat(s, "foulSafe", 0) > 0 ? 0 : 1;
   function moveCost(s, x, y) {
     const tt = s.terrain[idx(x, y)], tn = TERR[tt], g = terrainInfo(s, tt);
     let mins = g.moveMin * stat(s, "moveTime", 1) * stat(s, "moveTime." + tn, 1);
@@ -4149,7 +4803,7 @@
     }
     return { mins, cost: sta * s.tun.staminaScale * stat(s, "staminaCost", 1), base: s.tun.moveMin.plain };
   }
-  function move(s, dx, dy) {
+  function move(s, dx, dy, at) {
     if (s.over) return false;
     let nx = s.player.x + dx, ny = s.player.y + dy;
     const out = nx < 0 || ny < 0 || nx >= W || ny >= H, was = s.lastGround, leftCamp = atCamp(s);
@@ -4158,14 +4812,8 @@
       say(s, "You are carrying too much to move. Leave something here.", "bad");
       return false;
     }
-    if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) {
-      const d = townDoor(s);
-      if (s.player.x === d.x && s.player.y === d.y && dx === 0 && dy === -1) return enterTown(s);
-      say(s, "The wall of " + s.town.name + ". The gate is in the south side.");
-      return false;
-    }
-    if (out && areaRec(s).kind === "town")
-      return s.player.x === TOWN_GATE.x && s.player.y === TOWN_GATE.y && dx === 0 && dy === 1 ? leaveTown(s) : false;
+    if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) return enterTown(s, nx, ny, at);
+    if (out && areaRec(s).kind === "town") return leaveTown(s, dx, dy);
     let back = null;
     if (out) {
       const rec = areaRec(s);
@@ -4204,7 +4852,8 @@
     }
     const g = groundHere(s);
     s.lastGround = s.terrain[here(s)];
-    if (g.wet && !s.off.warmth) s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
+    if (g.wet && !s.off.warmth && stat(s, "wetSafe", 0) <= 0)
+      s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
     if (s.lastGround !== was && s.lastGround >= 3 && s.lastGround < WALL)
       say(
         s,
@@ -4300,13 +4949,13 @@
         cave: "A cave: shelter from wind and weather.",
         ruin: "A ruin of " + (s.known.civ ? civOf(s).name : "some lost people") + ". " + trait(s, "age").sign + " " + trait(s, "doom").sign,
         cache: "Someone left a cache here under stones.",
-        town: "The town of " + s.town.name + ". Smoke, voices, a well. Enter it to talk and trade.",
+        town: "The town of " + s.town.name + ". Smoke, voices, a well. Walk in to talk and trade.",
         vault: "The " + s.quest.vault.name + ". A heavy door, and a stair going down behind it.",
         beacon: s.quest.dest === "beacon" ? "The beacon. Its fire is failing. It needs something it does not have." : "The beacon. Its fire is steady: whatever this land needs, it is not here.",
         shrine: "A shrine to " + godOf(s).name + ", raised by " + (s.known.civ ? civOf(s).name : "a lost people") + ".",
         well: "The well at your first camp."
       }[st.kind];
-      say(s, txt);
+      if (txt) say(s, txt);
     }
   }
   function survey(s) {
@@ -4330,11 +4979,11 @@
     return true;
   }
   function restHour(s) {
-    const gain = (atCamp(s) ? 22 : inShelter(s) ? 14 : 8) * stat(s, "restGain", 1);
+    const gain2 = (atCamp(s) ? 22 : inShelter(s) ? 14 : 8) * stat(s, "restGain", 1);
     advance(s, 60, "rest");
     if (!s.over && s.player.water > 0) {
       const p = s.player;
-      p.stamina = Math.min(100, p.stamina + gain);
+      p.stamina = Math.min(100, p.stamina + gain2);
       p.hp = Math.min(p.hpMax, p.hp + (atCamp(s) ? 2 + p.level : inShelter(s) ? 1 : 0));
       p.mana = Math.min(p.manaMax, p.mana + (atCamp(s) ? 2 : 1));
     }
@@ -4394,7 +5043,7 @@
       return true;
     }
     if (!st) return false;
-    if (st.kind === "well" || st.kind === "town") {
+    if (st.kind === "well" || st.kind === "town" || st.kind === "hamlet") {
       advance(s, 15, "rest");
       topUp(s);
       say(s, "You fill up at the well.");
@@ -4405,7 +5054,7 @@
       const g = topUp(s, st.water);
       st.water -= g;
       if (st.foulWater && g > 0) {
-        s.player.stamina = Math.max(0, s.player.stamina - 15);
+        s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 15);
         say(s, "The cistern water is foul. You feel it at once.", "bad");
       }
       say(
@@ -4419,7 +5068,7 @@
       st.known = true;
       advance(s, 15, "rest");
       if (st.foul) {
-        s.player.stamina = Math.max(0, s.player.stamina - 5);
+        s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 5);
         say(s, "You taste it and gag. This spring is foul. Boil it, or drink and pay for it.", "bad");
         return true;
       }
@@ -4429,7 +5078,7 @@
     }
     advance(s, 15, "rest");
     if (st.foul) {
-      s.player.stamina = Math.max(0, s.player.stamina - 15);
+      s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 15);
       say(s, "You fill up with foul water and feel it at once.", "bad");
     } else say(s, "You fill up at the spring.");
     topUp(s);
@@ -4554,7 +5203,7 @@
         s.player.coin += n;
         found.push(n + " coin");
       }
-      if (s.quest.keyTile === here(s)) {
+      if (s.quest.keyTile === here(s) && (s.quest.keyArea || "overworld") === s.area) {
         const k = makeItem(s, "key", null, null, true);
         k.label = "Key to the " + s.quest.vault.name;
         d().items.push(k);
@@ -4681,22 +5330,22 @@
     }
     return true;
   }
-  function transfer(s, kind, n) {
-    if (s.over || kind !== "water" && kind !== "fuel") return false;
+  function transfer(s, kind2, n) {
+    if (s.over || kind2 !== "water" && kind2 !== "fuel") return false;
     const p = s.player;
     if (n > 0) {
-      const a = Math.min(n, p[kind]);
+      const a = Math.min(n, p[kind2]);
       if (a <= 0) return false;
-      depotHere(s, true)[kind] += a;
-      p[kind] -= a;
+      depotHere(s, true)[kind2] += a;
+      p[kind2] -= a;
     } else {
       const d = depotHere(s);
       if (!d) return false;
-      let a = Math.min(-n, d[kind]);
-      if (kind === "water") a = Math.min(a, Math.max(0, waterCap(s) - p.water));
+      let a = Math.min(-n, d[kind2]);
+      if (kind2 === "water") a = Math.min(a, Math.max(0, waterCap(s) - p.water));
       if (a <= 0) return false;
-      d[kind] -= a;
-      p[kind] += a;
+      d[kind2] -= a;
+      p[kind2] += a;
       tidy(s);
     }
     return true;
@@ -4745,14 +5394,15 @@
         a.push({ id: "smite", label: "Smite", hint: "+1d8, 2 mana" });
         a.push({ id: "mend", label: "Mend", hint: "heal, 3 mana" });
       }
+      for (const f of ACTIONS) f(s, st, a);
       a.push({ id: "flee", label: "Flee", hint: "-5 stamina" });
       return a;
     }
     if (s.char.cls === "cleric" && p.hp < p.hpMax && p.mana >= 3) a.push({ id: "mend", label: "Mend", hint: "heal, 3 mana" });
+    for (const f of ACTIONS) f(s, st, a);
     if (!indoors(s)) a.push({ id: "survey", label: "Survey", hint: "30 min" });
     if (st) {
-      if (st.kind === "exit")
-        a.push({ id: "goUp", label: areaRec(s).kind === "town" ? "Leave " + s.town.name : "Climb out", hint: "back outside" });
+      if (st.kind === "exit" && areaRec(s).kind !== "town") a.push({ id: "goUp", label: "Climb out", hint: "back outside" });
       if (st.kind === "stairsUp") a.push({ id: "goUp", label: "Go up", hint: "level " + (areaRec(s).level - 1) });
       if (st.kind === "stairsDown")
         a.push({ id: "goDown", label: "Go down", hint: "level " + (areaRec(s).level + 1) + " of " + areaRec(s).levels });
@@ -4760,7 +5410,7 @@
       if (st.kind === "inn") a.push({ id: "townAsk", section: "inn", label: "The inn", hint: "a bed for the night" });
       if (st.kind === "shop")
         a.push({ id: "townAsk", section: "shop", label: "Trade with " + s.town.merchant, hint: "buy, sell, appraise" });
-      if (st.kind === "well" || st.kind === "ruin" && st.water > 0.05 && !st.foulWater || st.kind === "spring" && (!st.known || !st.foul))
+      if (st.kind === "well" || st.kind === "hamlet" || st.kind === "ruin" && st.water > 0.05 && !st.foulWater || st.kind === "spring" && (!st.known || !st.foul))
         a.push({ id: "fill", label: st.kind === "spring" && !st.known ? "Taste the spring" : "Fill water", hint: "15 min" });
       if (st.kind === "spring" && st.known && st.foul || st.kind === "ruin" && st.foulWater && st.water > 0.05) {
         a.push({ id: "boil", label: "Boil and fill", hint: "1 fuel" });
@@ -4786,8 +5436,6 @@
       if (st.kind === "vault" && st.open)
         a.push({ id: "enterVault", label: "Go into the " + s.quest.vault.name, hint: st.floors.length + " levels, needs a light" });
     }
-    if (s.area === "overworld" && s.town && p.x === townDoor(s).x && p.y === townDoor(s).y)
-      a.push({ id: "enterTown", label: "Enter " + s.town.name, hint: "the gate is just north" });
     const g = groundHere(s);
     if (!st && g.drink) a.push({ id: "fill", label: "Fill from the " + g.name, hint: "15 min" });
     if (g.dig && !s.dug[here(s)]) a.push({ id: "dig", label: "Dig for water", hint: "1 h, -12 stamina" });
@@ -4811,9 +5459,10 @@
   }
   function shrineBearing(s) {
     if (stat(s, "shrineSense", 0) <= 0) return null;
-    const m = worldMap(s);
-    for (const k in m.sites) if (m.sites[k].kind === "shrine") return dirFrom(worldPos(s), k % W, Math.floor(k / W));
-    return null;
+    const sh = findSite(s, "shrine");
+    if (!sh) return null;
+    const p = homePos(s, sh.area, sh.x, sh.y);
+    return dirFrom(worldPos(s), p.x, p.y);
   }
   function wellfinder(s) {
     if (indoors(s) || stat(s, "wellfinder", 0) <= 0) return null;
@@ -4834,15 +5483,16 @@
   var blank = (fill2) => new Array(W * H).fill(fill2);
   var inside = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1;
   GENERATORS.town = (s, rec) => {
-    const r = stream(s.seed, "area:town"), terrain = blank(FLOOR), sites = {}, c = 18;
-    for (let i = 0; i < W; i++)
-      for (const [x, y] of [
-        [i, 0],
-        [i, H - 1],
-        [0, i],
-        [W - 1, i]
-      ])
-        terrain[idx(x, y)] = WALL;
+    const r = stream(s.seed, "area:town"), rw = stream(s.seed, "town:walls"), terrain = blank(FLOOR), sites = {}, c = 18, walled = rw() < 0.25;
+    if (walled)
+      for (let i = 0; i < W; i++)
+        for (const [x, y] of [
+          [i, 0],
+          [i, H - 1],
+          [0, i],
+          [W - 1, i]
+        ])
+          terrain[idx(x, y)] = WALL;
     const block = (x0, y0, w, h) => {
       for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (inside(x, y)) terrain[idx(x, y)] = WALL;
     };
@@ -4865,14 +5515,26 @@
       block(x0, y0, w, h);
       n++;
     }
-    const gate = { x: c, y: H - 2 };
-    terrain[idx(c, H - 1)] = FLOOR;
-    sites[idx(gate.x, gate.y)] = { kind: "exit", seen: true };
-    rec.entry = { x: gate.x, y: gate.y - 1 };
+    if (walled) {
+      const sides = [
+        [c, H - 1],
+        [c, 0],
+        [0, c],
+        [W - 1, c]
+      ], n = 2 + Math.floor(rw() * 3);
+      for (let k = 0; k < n; k++) {
+        const [x, y] = sides[k];
+        terrain[idx(x, y)] = FLOOR;
+        sites[idx(x, y)] = { kind: "gate", seen: true };
+      }
+    }
+    rec.walled = walled;
+    s.town.walled = walled;
+    rec.entry = { x: c, y: H - 2 };
     return { terrain, sites, seen: blank(1) };
   };
   GENERATORS.vault = (s, rec) => {
-    const lvl = rec.level, last2 = lvl === rec.levels, kind = rec.floor, r = stream(s.seed, "area:vault" + lvl), terrain = blank(WALL), sites = {}, depots = {}, creatures = [];
+    const lvl = rec.level, last2 = lvl === rec.levels, kind2 = rec.floor, r = stream(s.seed, "area:vault" + lvl), terrain = blank(WALL), sites = {}, depots = {}, creatures = [];
     const rooms = [];
     for (let tries = 0; tries < 300 && rooms.length < 9; tries++) {
       const w = 4 + Math.floor(r() * 5), h = 4 + Math.floor(r() * 5), x = 2 + Math.floor(r() * (W - w - 4)), y = 2 + Math.floor(r() * (H - h - 4));
@@ -4919,7 +5581,7 @@
     const far = rooms.slice(1).sort((a, b) => dist[idx(b.cx, b.cy)] - dist[idx(a.cx, a.cy)])[0] || start2;
     sites[idx(entry.x, entry.y - 1 >= start2.y ? entry.y - 1 : entry.y)] = { kind: lvl === 1 ? "exit" : "stairsUp" };
     rec.entry = { x: entry.x, y: entry.y };
-    const tier = Math.min(3, lvl), others = rooms.filter((o) => o !== start2 && o !== far), pickRoom = () => others[Math.floor(r() * others.length)] || far, spot = (o) => {
+    const tier = Math.min(3, lvl), others = rooms.filter((o) => o !== start2 && o !== far), pickRoom = () => others[Math.floor(r() * others.length)] || far, spot2 = (o) => {
       for (let t = 0; t < 30; t++) {
         const x = o.x + Math.floor(r() * o.w), y = o.y + Math.floor(r() * o.h), i = idx(x, y);
         if (!sites[i] && !depots[i] && !creatures.some((c) => c.x === x && c.y === y)) return { x, y };
@@ -4928,7 +5590,7 @@
     };
     let cid = 200 + lvl * 10;
     const guard = (o, t) => {
-      const p = spot(o), c = makeCreature(s, cid++, s.quest.guardSp, p.x, p.y, t);
+      const p = spot2(o), c = makeCreature(s, cid++, s.quest.guardSp, p.x, p.y, t);
       creatures.push(c);
       return c;
     };
@@ -4939,12 +5601,12 @@
       guard(far, 2).warden = true;
     } else sites[idx(far.cx, far.cy)] = { kind: "stairsDown" };
     guard(pickRoom(), Math.max(1, tier - 1));
-    if (kind === "guard") guard(pickRoom(), tier);
-    if (kind === "loot") {
-      const o = pickRoom(), p = spot(o), it = genItem(s, { relic: true, noConsumables: true });
+    if (kind2 === "guard") guard(pickRoom(), tier);
+    if (kind2 === "loot") {
+      const o = pickRoom(), p = spot2(o), it = genItem(s, { relic: true, noConsumables: true });
       depots[idx(p.x, p.y)] = { water: 0, fuel: 0, items: [it], coin: 6 + Math.floor(r() * 12), store: true };
     }
-    if (kind === "trap")
+    if (kind2 === "trap")
       for (let n = 0; n < 4 && corridor.length; n++) {
         const i = corridor.splice(Math.floor(r() * corridor.length), 1)[0];
         if (!sites[i]) sites[i] = { kind: "trap", sprung: false };
@@ -4984,10 +5646,10 @@
     };
   }
   function edgeRoll(seed, key) {
-    const r = stream(seed, "edge:" + key), river = r() < 0.55, at = 4 + Math.floor(r() * 28), forward = r() < 0.5, road = r() < 0.6;
+    const r = stream(seed, "edge:" + key), river = r() < 0.55, at = 4 + Math.floor(r() * 28), forward = r() < 0.5, road2 = r() < 0.6;
     let roadAt = 4 + Math.floor(r() * 28);
     if (Math.abs(roadAt - at) < 2) roadAt = at >= 18 ? at - 3 : at + 3;
-    return { river, at, forward, road, roadAt };
+    return { river, at, forward, road: road2, roadAt };
   }
   function crossings(seed, world, cx, cy) {
     const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S = edgeRoll(seed, "h:" + cx + ":" + cy), N2 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
@@ -5145,16 +5807,16 @@
     };
   }
   function finishSites(sites, habit, doom, rR, ports) {
-    const ruinTiles = Object.keys(sites).filter((k) => sites[k].kind === "ruin").map(Number).sort((a, b) => a % W - b % W), road = {};
+    const ruinTiles = Object.keys(sites).filter((k) => sites[k].kind === "ruin").map(Number).sort((a, b) => a % W - b % W), road2 = {};
     if (habit.roads)
       for (let k = 0; k + 1 < ruinTiles.length; k++) {
         let x = ruinTiles[k] % W, y = Math.floor(ruinTiles[k] / W);
         const tx = ruinTiles[k + 1] % W, ty = Math.floor(ruinTiles[k + 1] / W);
-        road[idx(x, y)] = 1;
+        road2[idx(x, y)] = 1;
         while (x !== tx || y !== ty) {
           if (x !== tx && (y === ty || rR() < Math.abs(tx - x) / (Math.abs(tx - x) + Math.abs(ty - y)))) x += Math.sign(tx - x);
           else y += Math.sign(ty - y);
-          road[idx(x, y)] = 1;
+          road2[idx(x, y)] = 1;
         }
       }
     for (const k in sites) {
@@ -5178,17 +5840,17 @@
           if (Math.abs(rt % W - x) + Math.abs(Math.floor(rt / W) - y) < Math.abs(best % W - x) + Math.abs(Math.floor(best / W) - y))
             best = rt;
         const tx = best % W, ty = Math.floor(best / W);
-        road[idx(x, y)] = 1;
+        road2[idx(x, y)] = 1;
         x = clamp(x, 1, W - 2);
         y = clamp(y, 1, H - 2);
-        road[idx(x, y)] = 1;
+        road2[idx(x, y)] = 1;
         while (x !== tx || y !== ty) {
           if (x !== tx && (y === ty || rR() < Math.abs(tx - x) / (Math.abs(tx - x) + Math.abs(ty - y)))) x += Math.sign(tx - x);
           else y += Math.sign(ty - y);
-          road[idx(x, y)] = 1;
+          road2[idx(x, y)] = 1;
         }
       }
-    return road;
+    return road2;
   }
   var cacheSite = (rS) => () => ({
     kind: "cache",
@@ -5211,7 +5873,7 @@
     place(Math.max(2, age.ruins - 2), () => ({ kind: "ruin", searched: false }), habit.onHills ? 1 : 0);
     place(3, () => ({ kind: "cave", searched: false, loot: rS() < 0.4 }), 1);
     place(3, cacheSite(rS));
-    const road = finishSites(sites, habit, doom, stream(s.seed, "roads" + tag), crossings(s.seed, s.world, rec.cx, rec.cy)), map = { terrain, elev, sites, road, creatures: [] };
+    const road2 = finishSites(sites, habit, doom, stream(s.seed, "roads" + tag), crossings(s.seed, s.world, rec.cx, rec.cy)), map = { terrain, elev, sites, road: road2, creatures: [] };
     placeCreatures(s, stream(s.seed, "creatures" + tag), map, {
       count: C.creature.count - 2,
       species: speciesFor(s, rec.biome),
@@ -5286,7 +5948,7 @@
     place(4, () => ({ kind: "cave", searched: false, loot: rS() < 0.4 }), 1);
     place(4, cacheSite(rS));
     place(1, () => ({ kind: "shrine" }));
-    const road = finishSites(sites, habit, doom, rR, crossings(seed, world, world.home.cx, world.home.cy));
+    const road2 = finishSites(sites, habit, doom, rR, crossings(seed, world, world.home.cx, world.home.cy));
     const s = {
       v: VERSION,
       seed,
@@ -5302,7 +5964,7 @@
       biome: biome.id,
       civ,
       civKnown: {},
-      road,
+      road: road2,
       god: god.id,
       known: { civ: false, god: false },
       pact: null,
@@ -5338,7 +6000,7 @@
       }
       return a.slice(0, n);
     };
-    const usual = (list) => list.filter((e) => !e.exotic);
+    const usual = (list) => list.filter((e) => !e.exotic && !e.roster);
     s.offer = { races: draw(usual(C.races), C.offer.races), classes: draw(usual(C.classes), C.offer.classes) };
     s.species = makeSpecies(s, rnd("species"), biome.id);
     s.speciesByBiome = { [biome.id]: s.species.map((_, i) => i) };
@@ -5642,6 +6304,21 @@
           st.water += 2;
         }
       }
+      const inner = (k) => k % 36 > 1 && k % 36 < 34 && k > 71 && k < 36 * 34;
+      if (g.drown) {
+        const rd = stream(s.seed, "drown:" + rec.id);
+        for (let k = 0; k < m.terrain.length; k++)
+          if (inner(k) && m.terrain[k] === 0 && !m.sites[k] && !(m.road && m.road[k]) && rd() < g.drown) {
+            m.terrain[k] = 5;
+            m.elev[k] = -0.15;
+          }
+      }
+      if (g.burn) {
+        for (let k = 0; k < m.terrain.length; k++) if (inner(k) && m.terrain[k] === 3) m.terrain[k] = 0;
+      }
+      if (g.dry) {
+        for (const k in m.sites) if (m.sites[k].kind === "spring" && !m.sites[k].sure) delete m.sites[k];
+      }
       if (g.noCreatures) m.creatures = [];
       if (g.moreCreatures) {
         const danger = sketchOf(s, rec.cx, rec.cy).danger, n = m.creatures.length;
@@ -5694,7 +6371,7 @@
   };
   on("worldBorn", (s, d) => {
     if (d.off.towns) return;
-    const r = stream(s.seed, "townCulture"), pick = (a) => a[Math.floor(r() * a.length)], X2 = T(), rare = r() < X2.rareChance ? pick(X2.rares) : null, trade = pick(X2.trades), custom = pick(X2.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
+    const r = stream(s.seed, "townCulture"), pick = (a) => a[Math.floor(r() * a.length)], X4 = T(), rare = r() < X4.rareChance ? pick(X4.rares) : null, trade = pick(X4.trades), custom = pick(X4.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
     s.townCulture = { trade: trade.id, custom: custom.id, rare: rare ? rare.id : null };
     if (trade.stock)
       for (let i = 0; i < trade.stock.n; i++) s.town.stock.push(makeItem(s, pick(trade.stock.bases), null, null, true));
@@ -5740,13 +6417,13 @@
       if (p.elder === "shrine") {
         const sh = findSite(s, "shrine");
         if (sh) {
-          mark(s, sh.x, sh.y);
+          mark(s, sh.x, sh.y, sh.area);
           s.known.god = true;
           sp.push('"The shrine of ' + godOf(s).name + " is marked on your map. Its terms are these: " + godOf(s).terms + '"');
         }
       }
       if (p.elder === "springs") {
-        const m = worldMap(s);
+        const m = mapOf(s, townArea(s));
         let n = 0;
         for (const k in m.sites)
           if (m.sites[k].kind === "spring" && Math.max(Math.abs(k % W - s.town.x), Math.abs(Math.floor(k / W) - s.town.y)) <= 8) {
@@ -5783,22 +6460,22 @@
   }
   function askErrand(s) {
     if (s.over || s.off.errands || s.errand || !atInn(s)) return false;
-    const pick = (a) => a[Math.floor(srand(s) * a.length)], X2 = E(), home = s.world.home, near = [];
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], X4 = E(), home = s.areas[townArea(s)] || s.world.home, near = [];
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
         const id = regionId(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows));
-        if (id !== HOME && mapOf2(s, id)) near.push(id);
+        if (id !== townArea(s) && mapOf2(s, id)) near.push(id);
       }
     if (!near.length) return false;
-    const kind = pick(X2.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X2.liarChance, giver = pick(X2.givers) + (liar ? " " + pick(X2.tells) : ""), reward = kind.reward[0] + Math.floor(srand(s) * (kind.reward[1] - kind.reward[0] + 1)), e = { kind: kind.id, area, liar, giver, reward, done: false };
+    const kind2 = pick(X4.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X4.liarChance, giver = pick(X4.givers) + (liar ? " " + pick(X4.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
     let fill2 = { region: byId(C.biomes, rec.biome).name, reward };
-    if (kind.id === "slay") {
+    if (kind2.id === "slay") {
       const live = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
       if (!live.length) return false;
       const c = pick(live);
       Object.assign(e, { cid: c.id, x: c.x, y: c.y });
       fill2.species = s.species[c.sp].name;
-      fill2.victims = pick(kind.victims);
+      fill2.victims = pick(kind2.victims);
     } else {
       const spots = Object.keys(m.sites).filter((k2) => ["ruin", "cave", "cache"].includes(m.sites[k2].kind));
       if (!spots.length) return false;
@@ -5806,8 +6483,8 @@
       Object.assign(e, { x: k % W, y: Math.floor(k / W) });
       fill2.site = m.sites[k].kind === "ruin" ? "ruin" : siteName(s, m.sites[k]);
       fill2.asite = aOrAn(fill2.site);
-      if (kind.id === "fetch") {
-        fill2.thing = pick(kind.things);
+      if (kind2.id === "fetch") {
+        fill2.thing = pick(kind2.things);
         const it = makeItem(s, "parcel", null, null, true);
         it.label = fill2.thing.charAt(0).toUpperCase() + fill2.thing.slice(1);
         it.errand = true;
@@ -5816,7 +6493,7 @@
     }
     const where = homePos(s, area, e.x, e.y);
     fill2.dir = dirFrom(worldPos(s), where.x, where.y);
-    e.text = kind.text.replace(/\{(\w+)\}/g, (_, k) => fill2[k]);
+    e.text = kind2.text.replace(/\{(\w+)\}/g, (_, k) => fill2[k]);
     s.errand = e;
     for (let j = -1; j <= 1; j++)
       for (let i = -1; i <= 1; i++) {
@@ -5941,12 +6618,12 @@
       h *= 60;
     }
     h = ((h + deg) % 360 + 360) % 360;
-    const C2 = (1 - Math.abs(2 * l - 1)) * s, X2 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X2, 0] : h < 120 ? [X2, C2, 0] : h < 180 ? [0, C2, X2] : h < 240 ? [0, X2, C2] : h < 300 ? [X2, 0, C2] : [C2, 0, X2];
+    const C2 = (1 - Math.abs(2 * l - 1)) * s, X4 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X4, 0] : h < 120 ? [X4, C2, 0] : h < 180 ? [0, C2, X4] : h < 240 ? [0, X4, C2] : h < 300 ? [X4, 0, C2] : [C2, 0, X4];
     const out = Math.round((r1 + m) * 255) << 16 | Math.round((g1 + m) * 255) << 8 | Math.round((b1 + m) * 255);
     return num ? out : "#" + out.toString(16).padStart(6, "0");
   }
   function makeBiome(seed, n) {
-    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X2 = G(), cl = pick(X2.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X2.landforms), wa = pick(suits(X2.waters)), wo = pick(suits(X2.woodlands)), gr = pick(suits(X2.grounds)), rare = r() < X2.rareChance ? pick(X2.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
+    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X4 = G(), cl = pick(X4.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X4.landforms), wa = pick(suits(X4.waters)), wo = pick(suits(X4.woodlands)), gr = pick(suits(X4.grounds)), rare = r() < X4.rareChance ? pick(X4.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
     const forest = copy(wo.forest);
     if (rare && rare.treeMul) {
       forest.tree.h = forest.tree.h.map((h) => h * rare.treeMul);
@@ -5995,11 +6672,11 @@
   SKETCHERS.push((seed, world, off) => {
     if (off.biomegen) return;
     ensureBiomes(seed);
-    const r = stream(seed, "biomegen:sketch"), X2 = G();
+    const r = stream(seed, "biomegen:sketch"), X4 = G();
     for (let cy = 0; cy < world.rows; cy++)
       for (let cx = 0; cx < world.cols; cx++) {
-        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X2.perWorld);
-        if (roll2 < (home ? X2.homeChance : X2.regionChance))
+        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X4.perWorld);
+        if (roll2 < (home ? X4.homeChance : X4.regionChance))
           world.sketch[cy * world.cols + cx].biome = ofSeed(seed) + (home ? 0 : which);
       }
   });
@@ -6174,9 +6851,873 @@
   });
   SWITCHES.push(["farfinds", "Richer far country"]);
 
+  // src/rules/townlife.js
+  var L2 = () => C.townLife;
+  var SERVICE_IDS = () => L2().services.map((x) => x.id);
+  var price = (s, k) => Math.max(0, Math.round(stat(s, "town." + k, L2().prices[k])));
+  if (!C.bases.some((b) => b.id === "mule")) {
+    const m = L2().mule;
+    C.bases.push({ id: m.id, name: m.name, wt: m.wt, w: m.w, plain: true, mods: m.mods, text: m.text });
+    C.value.mule = m.value;
+  }
+  for (const sv of L2().services) SITE_NAME[sv.id] = sv.role.replace(/^the /, "") + "'s door";
+  Object.assign(SITE_NAME, { folk: "townsperson", grave: "grave" });
+  on("worldBorn", (s, d) => {
+    if (d.off.townlife) return;
+    const r = stream(s.seed, "townlife"), X4 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
+    let t = X4.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X4.sizes[0];
+    for (const e of X4.sizes)
+      if ((t -= e.w) < 0) {
+        size = e;
+        break;
+      }
+    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X4.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
+    while (want.length < size.services && rest2.length) want.push(rest2.splice(Math.floor(r() * rest2.length), 1)[0]);
+    const ls = X4.lessons.map((l) => l.id);
+    s.town.size = size.id;
+    s.town.services = want;
+    s.town.lessons = [];
+    while (s.town.lessons.length < X4.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
+    if (size.stock < 0) s.town.stock.splice(5, -size.stock);
+    for (let i = 0; i < size.stock; i++) {
+      const b = pick(["sword", "spear", "cloak", "boots", "framepack", "compass", "spyglass", "salve", "tonic", "draught"]);
+      s.town.stock.push(makeItem(s, b, null, null, true));
+    }
+  });
+  var oldTown = GENERATORS.town;
+  GENERATORS.town = (s, rec) => {
+    if (s.off.townlife || !s.town.size) return oldTown(s, rec);
+    const X4 = L2(), size = byId(X4.sizes, s.town.size), r = stream(s.seed, "area:town2"), rw = stream(s.seed, "town:walls"), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring(x, y), used = new Array(W * H).fill(0);
+    if (walled)
+      for (let i = 0; i < W; i++)
+        for (const [x, y] of [
+          [i, 0],
+          [i, H - 1],
+          [0, i],
+          [W - 1, i]
+        ])
+          terrain[idx(x, y)] = WALL;
+    const lots = [];
+    for (const [ax, ay] of [
+      [0, -1],
+      [0, 1],
+      [1, 0],
+      [-1, 0]
+    ])
+      for (const side of [-1, 1]) {
+        let pos = plaza + 1;
+        while (pos < 15) {
+          const len = 3 + Math.floor(r() * 3), depth = 3 + Math.floor(r() * 3), cells = [];
+          let door = null;
+          for (let a = 0; a < len; a++)
+            for (let b = 0; b < depth; b++) {
+              const along = pos + a, across = 3 + b;
+              const x = c + ax * along + (ax ? 0 : side * across), y = c + ay * along + (ay ? 0 : side * across);
+              cells.push([x, y]);
+            }
+          {
+            const along = pos + Math.floor(len / 2);
+            door = { x: c + ax * along + (ax ? 0 : side * 2), y: c + ay * along + (ay ? 0 : side * 2) };
+          }
+          const ok = cells.every(([x, y]) => {
+            if (x < 2 || y < 2 || x > W - 3 || y > H - 3 || street(x, y)) return false;
+            for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (used[idx(x + i, y + j)]) return false;
+            return true;
+          });
+          if (ok) {
+            for (const [x, y] of cells) used[idx(x, y)] = 1;
+            lots.push({ cells, door, dist: pos, arm: ay < 0 ? "N" : ay > 0 ? "S" : ax > 0 ? "E" : "W" });
+            pos += len + 1;
+          } else pos += 1;
+        }
+      }
+    lots.sort((a, b) => a.dist - b.dist || (a.arm === "N" ? -1 : 0));
+    const names = byId(C.races, s.town.race).names.slice(), taken = /* @__PURE__ */ new Set([s.town.elder, s.town.merchant]), nameOf = () => {
+      const free = names.filter((n2) => !taken.has(n2)), n = free.length ? pick(free) : pick(names) + " the Younger";
+      taken.add(n);
+      return n;
+    };
+    const build = (lot, site) => {
+      for (const [x, y] of lot.cells) terrain[idx(x, y)] = WALL;
+      if (site) sites[idx(lot.door.x, lot.door.y)] = Object.assign({ seen: true }, site);
+    };
+    const north = lots.findIndex((l) => l.arm === "N");
+    const order = [lots.splice(north >= 0 ? north : 0, 1)[0], ...lots.splice(0)];
+    const queue = [
+      { kind: "elder" },
+      { kind: "inn" },
+      { kind: "shop" },
+      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X4.services, id).role }))
+    ];
+    let li = 0;
+    for (const q of queue) if (order[li]) build(order[li++], q);
+    if (size.graveyard && order[li]) {
+      const lot = order[li++], sp = s.species.filter((x) => !x.named), fill3 = (t) => t.replace("{storm}", byId(C.biomes, s.biome).storm.name).replace("{species}", sp.length ? pick(sp).name : "wolf").replace("{dir}", pick(["north", "south", "east", "west"])).replace("{site}", pick(["spring", "ruin", "cave"])), nm = byId(C.races, s.town.race).names;
+      lot.cells.forEach(([x, y], i) => {
+        if ((x + y) % 2 === 0 && i % 2 === 0)
+          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill3(pick(X4.epitaphs)) };
+      });
+    }
+    const fill2 = { hamlet: 0.35, village: 0.55, town: 0.8, city: 1 }[size.id];
+    for (; li < order.length; li++) if (r() < fill2) build(order[li], null);
+    sites[idx(c, c)] = { kind: "well", seen: true };
+    for (let n = 0, tries = 0; n < size.folk && tries < 300; tries++) {
+      const x = 2 + Math.floor(r() * (W - 4)), y = 2 + Math.floor(r() * (H - 4)), k = idx(x, y);
+      if (terrain[k] !== FLOOR || sites[k] || Math.abs(x - c) <= 1 && Math.abs(y - c) <= 1) continue;
+      let nearDoor = false;
+      for (const key in sites) if (Math.abs(key % W - x) + Math.abs(Math.floor(key / W) - y) <= 1) nearDoor = true;
+      if (nearDoor) continue;
+      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X4.folkRoles) };
+      n++;
+    }
+    if (walled) {
+      const ends = [
+        [c, H - 1],
+        [c, 0],
+        [0, c],
+        [W - 1, c]
+      ], n = 2 + Math.floor(rw() * 3);
+      for (let k = 0; k < n; k++) {
+        terrain[idx(ends[k][0], ends[k][1])] = FLOOR;
+        sites[idx(ends[k][0], ends[k][1])] = { kind: "gate", seen: true };
+      }
+    }
+    rec.walled = walled;
+    s.town.walled = walled;
+    rec.entry = { x: c, y: H - 2 };
+    return { terrain, sites, seen: new Array(W * H).fill(1) };
+  };
+  var svc = (kind2) => byId(L2().services, kind2);
+  var learned = (s) => s.char && s.char.lessons || [];
+  var blessed = (s) => s.blessUntil && s.time < s.blessUntil;
+  var dirOf = (s, area, x, y) => {
+    const p = homePos(s, area, x, y);
+    return dirFrom(worldPos(s), p.x, p.y);
+  };
+  var markIn = (s, area, k) => {
+    const m = mapOf(s, area);
+    if (!m) return;
+    const x = k % W, y = Math.floor(k / W);
+    for (let j = -1; j <= 1; j++)
+      for (let i = -1; i <= 1; i++) if (x + i >= 0 && y + j >= 0 && x + i < W && y + j < H) m.seen[idx(x + i, y + j)] = 1;
+    if (m.sites[k]) m.sites[k].seen = true;
+  };
+  function rumour(s) {
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], out = [];
+    for (const id in s.areas) {
+      const a = s.areas[id], m = mapOf(s, id);
+      if (a.kind !== "region" || !m || !m.creatures) continue;
+      for (const c of m.creatures)
+        if (c.lair && !c.seen)
+          out.push(
+            () => (markIn(s, id, c.y * W + c.x), '"They say the ' + s.species[c.sp].name + " lies in a cave to the " + dirOf(s, id, c.x, c.y) + ', on a hoard. Nobody who went for it came back."')
+          );
+      for (const k in m.depots)
+        if (m.depots[k].items.some((i) => i.art))
+          out.push(
+            () => (markIn(s, id, +k), '"My uncle swore there is a cache to the ' + dirOf(s, id, k % W, Math.floor(k / W)) + " with something in it the " + s.civ.name + ' made. I have marked where he said."')
+          );
+      for (const k in m.sites)
+        if (m.sites[k].kind === "spring" && m.sites[k].sure && !m.sites[k].known && id === townArea(s))
+          out.push(() => {
+            m.sites[k].known = true;
+            markIn(s, id, +k);
+            return '"There is a sweet spring to the ' + dirOf(s, id, k % W, Math.floor(k / W)) + '. Drink there, not from the others."';
+          });
+    }
+    const sh = findSite(s, "shrine");
+    if (sh && !s.known.god)
+      out.push(
+        () => (mark(s, sh.x, sh.y, sh.area), '"There is a shrine to the ' + dirOf(s, sh.area, sh.x, sh.y) + ". To " + godOf(s).name + '. My mother would go there to ask for rain."')
+      );
+    for (const id in s.regionRares || {})
+      if (s.areas[id] && !s.areas[id].rareTold)
+        out.push(
+          () => '"Do not go into the country to the ' + dirOf(s, id, 18, 18) + ". It is not like here. " + byId(C.regionRares.list, s.regionRares[id]).text + '"'
+        );
+    const left = AXES.filter((a) => !s.civKnown[a]);
+    if (left.length)
+      out.push(() => {
+        const ax = pick(left), tx = traitText(ax, s.civ[ax]);
+        learn(s, ax);
+        return '"The ' + s.civ.name + "? " + tx.label + ", my grandfather said. " + tx.text + '"';
+      });
+    const home = mapOf(s, townArea(s)).creatures.filter((c) => !s.species[c.sp].met);
+    if (home.length)
+      out.push(() => {
+        const sp = s.species[pick(home).sp];
+        return '"Watch out for the ' + sp.name + ". " + byId(C.creature.tempers, sp.temper).text + '"';
+      });
+    return out.length && srand(s) < 0.8 ? pick(out)() : pick(L2().flavour);
+  }
+  function serviceInfo(s) {
+    for (const t of TALK) {
+      const i = t.info(s);
+      if (i) return i;
+    }
+    const st = siteHere(s);
+    if (!st || s.off.townlife || s.area !== "town") return null;
+    const p = s.player, opt = [], text = [];
+    if (st.kind === "folk") {
+      if (!st.said) st.said = rumour(s);
+      return { title: st.name + ", " + st.role, text: [st.said], options: [] };
+    }
+    if (st.kind === "grave") return { title: "A grave", text: ["Here lies " + st.name + ". " + st.text], options: [] };
+    const sv = svc(st.kind);
+    if (!sv) return null;
+    text.push(sv.text);
+    if (st.kind === "healer")
+      opt.push({ id: "heal", label: "Be healed", price: price(s, "heal"), note: "all wounds, cold and weariness" });
+    if (st.kind === "temple") {
+      text.push(
+        '"Our god is ' + godOf(s).name + ". Its terms are these: " + godOf(s).terms + ' Its shrine is marked on your map."'
+      );
+      if (!blessed(s)) opt.push({ id: "bless", label: "Ask a blessing", price: price(s, "bless"), note: L2().blessing.text });
+      else text.push("You carry the blessing still.");
+    }
+    if (st.kind === "trainer") {
+      if (learned(s).length >= L2().maxLessons) text.push('"You have learned all you will learn from me. Go and use it."');
+      else
+        for (const id of s.town.lessons || [])
+          if (!learned(s).includes(id)) {
+            const l = byId(L2().lessons, id);
+            opt.push({ id: "learn", arg: id, label: l.name, price: l.price, note: l.text });
+          }
+    }
+    if (st.kind === "smith")
+      for (const it of p.items) {
+        const b = byId(C.bases, it.base);
+        if (it.known && isCursed(it))
+          opt.push({ id: "uncurse", arg: it.id, label: "Strip the curse from the " + itemName(it), price: price(s, "uncurse") });
+        else if (b.weapon && !it.pre)
+          opt.push({
+            id: "improve",
+            arg: it.id,
+            label: "Hone the " + itemName(it),
+            price: price(s, "improve"),
+            note: "it becomes Keen"
+          });
+        else if (["armor", "cloak"].includes(b.slot) && !it.suf)
+          opt.push({
+            id: "improve",
+            arg: it.id,
+            label: "Reinforce the " + itemName(it),
+            price: price(s, "improve"),
+            note: "of Warding"
+          });
+      }
+    if (st.kind === "mapmaker") {
+      opt.push({
+        id: "mapHome",
+        label: "A map of this country",
+        price: price(s, "mapHome"),
+        note: "shows every place in the land around the town"
+      });
+      opt.push({
+        id: "mapNear",
+        label: "A map of the lands beyond",
+        price: price(s, "mapNear"),
+        note: "marks the springs, ruins and caves of the countries next to this one"
+      });
+    }
+    if (st.kind === "stable" && !p.items.some((i) => i.base === "mule"))
+      opt.push({ id: "mule", label: "Buy a pack mule", price: price(s, "mule"), note: "carry 10 more" });
+    return { title: st.name + ", " + sv.role, text, options: opt };
+  }
+  function useService(s, optId, arg) {
+    for (const t of TALK) if (t.info(s)) return t.use(s, optId, arg);
+    const info = serviceInfo(s), o = info && info.options.find((x) => x.id === optId && (arg === void 0 || x.arg === arg));
+    if (!o || s.over) return false;
+    const p = s.player;
+    if (p.coin < o.price) {
+      say(s, "You cannot afford that.");
+      return false;
+    }
+    p.coin -= o.price;
+    if (optId === "heal") {
+      p.hp = p.hpMax;
+      p.warmth = 100;
+      p.stamina = 100;
+      say(s, "Poultices, a hot drink and a hard bench. You feel whole.", "good");
+    } else if (optId === "bless") {
+      s.blessUntil = s.time + L2().blessing.hours * 60;
+      say(s, "The priest marks your forehead with ash: " + L2().blessing.text + ".", "good");
+    } else if (optId === "learn") {
+      s.char.lessons = learned(s).concat([o.arg]);
+      say(s, "You learn " + byId(L2().lessons, o.arg).name.toLowerCase() + ". " + byId(L2().lessons, o.arg).text, "good");
+      gainXp(s, 10);
+    } else if (optId === "improve" || optId === "uncurse") {
+      const it = p.items.find((i) => i.id === o.arg), b = byId(C.bases, it.base);
+      if (optId === "uncurse") {
+        if (it.pre && byId(C.affixes, it.pre).cursed) it.pre = null;
+        if (it.suf && byId(C.affixes, it.suf).cursed) it.suf = null;
+      } else if (b.weapon) it.pre = "keen";
+      else it.suf = "warding";
+      say(s, "The smith hands it back: " + itemName(it) + ".", "good");
+    } else if (optId === "mapHome") {
+      const m = mapOf(s, townArea(s));
+      m.seen.fill(1);
+      for (const k in m.sites) m.sites[k].seen = true;
+      say(s, "A good map, on oiled cloth. Every place in this country is on it now.", "good");
+    } else if (optId === "mapNear") {
+      let n = 0;
+      for (const id in s.areas) {
+        const m = mapOf(s, id);
+        if (id === townArea(s) || s.areas[id].kind !== "region" || !m) continue;
+        for (const k in m.sites) if (["spring", "ruin", "cave"].includes(m.sites[k].kind)) markIn(s, id, +k), n++;
+      }
+      say(s, "A map of the lands beyond, with " + n + " places marked. Half of it may even be right.", "good");
+    } else if (optId === "mule") {
+      p.items.push(makeItem(s, "mule", null, null, true));
+      say(s, "A grey mule with a patient face. It will carry what you cannot.", "good");
+    }
+    return true;
+  }
+  on("did", (s, d) => {
+    if (d.id !== "move" || s.area !== "town" || s.off.townlife) return;
+    for (const k of Object.keys(s.sites)) {
+      const st = s.sites[k];
+      if (st.kind !== "folk" || srand(s) > 0.3) continue;
+      const x = k % W, y = Math.floor(k / W), [dx, dy] = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1]
+      ][Math.floor(srand(s) * 4)], nk = idx(x + dx, y + dy);
+      if (x + dx < 1 || y + dy < 1 || x + dx > W - 2 || y + dy > H - 2) continue;
+      if (s.terrain[nk] !== FLOOR || s.sites[nk] || x + dx === s.player.x && y + dy === s.player.y) continue;
+      s.sites[nk] = st;
+      delete s.sites[k];
+    }
+  });
+  on("did", (s, d) => {
+    if (d.id !== "move" || s.off.townlife) return;
+    const st = siteHere(s);
+    if (st && st.kind === "temple" && !s.known.god) {
+      s.known.god = true;
+      const sh = findSite(s, "shrine");
+      if (sh) mark(s, sh.x, sh.y, sh.area);
+    }
+    if (st && st.kind === "grave" && !st.read) {
+      st.read = true;
+      say(s, "A grave. Here lies " + st.name + ". " + st.text);
+    }
+  });
+  ACTIONS.push((s, st, a) => {
+    if (!st || s.combat || s.area !== "town" || s.off.townlife) return;
+    if (svc(st.kind)) a.push({ id: "townAsk", section: st.kind, label: "Talk to " + st.name, hint: svc(st.kind).role });
+    if (st.kind === "folk") a.push({ id: "townAsk", section: "folk", label: "Talk to " + st.name, hint: st.role });
+  });
+  SOURCES.push({
+    id: "townlife",
+    fn(s, out) {
+      for (const id of learned(s)) for (const m of byId(L2().lessons, id).mods) out.push(m);
+      if (blessed(s)) for (const m of L2().blessing.mods) out.push(m);
+    }
+  });
+  SWITCHES.push(["townlife", "Town life"]);
+  NOTES.push((s) => {
+    if (!s.town.size || s.off.townlife) return [];
+    const out = [
+      {
+        label: s.town.name + ", " + byId(L2().sizes, s.town.size).name,
+        text: "Here you can find " + ["the elder", "the inn", "a shop"].concat(s.town.services.map((id) => svc(id).role)).join(", ") + "."
+      }
+    ];
+    if (learned(s).length)
+      out.push({
+        label: "Lessons learned",
+        text: learned(s).map((id) => byId(L2().lessons, id).name).join(", ") + "."
+      });
+    return out;
+  });
+
+  // src/rules/roster.js
+  var X2 = () => C.roster;
+  var OLD_USUAL = ["human", "dwarf", "elf", "halfling", "orc"];
+  if (!C.races.some((r) => r.roster)) {
+    for (const r of X2().races) C.races.push(Object.assign({ roster: true }, r));
+    for (const c of X2().classes) C.classes.push(Object.assign({ roster: true }, c));
+    const usual = C.races.filter((r) => !r.exotic && (OLD_USUAL.includes(r.id) || r.roster)), half = (m) => Object.assign({}, m, { value: m.op === "mul" ? 1 + (m.value - 1) / 2 : m.op === "add" ? m.value / 2 : m.value });
+    for (let i = 0; i < usual.length; i++)
+      for (let j = i + 1; j < usual.length; j++) {
+        const a = usual[i], b = usual[j], adj = {};
+        for (const k of /* @__PURE__ */ new Set([...Object.keys(a.adj), ...Object.keys(b.adj)])) {
+          const v = Math.round(((a.adj[k] || 0) + (b.adj[k] || 0)) / 2);
+          if (v) adj[k] = v;
+        }
+        C.races.push({
+          id: "hy-" + a.id + "-" + b.id,
+          roster: true,
+          hybrid: true,
+          name: a.name.replace(/^Half-/, "") + "-" + b.name.replace(/^Half-/, "").toLowerCase(),
+          adj,
+          text: "Half " + a.name.toLowerCase() + ", half " + b.name.toLowerCase() + ": a little of what each is good at.",
+          mods: [...a.mods.map(half), ...b.mods.map(half)],
+          names: a.names.slice(0, 4).concat(b.names.slice(0, 4))
+        });
+      }
+  }
+  var kind = (e) => e.hybrid ? "hybrid" : e.exotic ? "exotic" : "usual";
+  on("worldBorn", (s, d) => {
+    if (d.off.roster) return;
+    const r = stream(s.seed, "roster"), W8 = X2().offer.weights, draw = (list, n) => {
+      const pool = list.slice(), out = [];
+      while (out.length < n && pool.length) {
+        let t = pool.reduce((a, e) => a + W8[kind(e)], 0) * r();
+        let k = 0;
+        for (; k < pool.length - 1; k++) if ((t -= W8[kind(pool[k])]) < 0) break;
+        out.push(pool.splice(k, 1)[0].id);
+      }
+      return out;
+    }, [r0, r1] = X2().offer.races, [c0, c1] = X2().offer.classes;
+    s.offer = {
+      races: draw(
+        C.races.filter((e) => !(d.off.exotics && e.exotic)),
+        r0 + Math.floor(r() * (r1 - r0 + 1))
+      ),
+      classes: draw(
+        C.classes.filter((e) => !(d.off.exotics && e.exotic)),
+        c0 + Math.floor(r() * (c1 - c0 + 1))
+      )
+    };
+    const ch = s.char;
+    ch.race = s.offer.races[Math.floor(r() * s.offer.races.length)];
+    ch.cls = s.offer.classes[Math.floor(r() * s.offer.classes.length)];
+    ch.name = byId(C.races, ch.race).names[Math.floor(r() * byId(C.races, ch.race).names.length)];
+    spawn(s, ch);
+    setOut(s);
+  });
+  function setOut(s) {
+    if (s.off.roster) return;
+    const p = s.player;
+    for (const e of [byId(C.races, s.char.race), byId(C.classes, s.char.cls)]) {
+      const st = e.start;
+      if (!st) continue;
+      p.coin += st.coin || 0;
+      p.fuel += st.fuel || 0;
+      p.water = Math.min(waterCap(s), p.water + (st.water || 0));
+    }
+    const fr = X2().frail, cls = byId(C.classes, s.char.cls);
+    if (fr && cls.hd <= fr.hd) {
+      for (const b of fr.items) p.items.push(makeItem(s, b, null, null, true));
+      p.coin += fr.coin;
+      p.water = Math.min(waterCap(s), p.water + 3);
+    }
+    if (byId(C.classes, s.char.cls).sworn) {
+      s.pact = s.god;
+      s.pactBroken = false;
+    }
+  }
+  on("did", (s, d) => {
+    if (d.id === "setCharacter" || d.id === "nextTraveller") setOut(s);
+  });
+  var parts = (s) => s.char ? [byId(C.races, s.char.race), byId(C.classes, s.char.cls)] : [];
+  function gain(s, g) {
+    const p = s.player;
+    if (g.hp) p.hp = Math.min(p.hpMax, p.hp + g.hp);
+    if (g.water) p.water = Math.min(waterCap(s), p.water + g.water);
+    if (g.stamina) p.stamina = Math.min(100, p.stamina + g.stamina);
+    if (g.mana) p.mana = Math.min(p.manaMax, p.mana + g.mana);
+  }
+  SYSTEMS.push({
+    id: "roster",
+    fn(s, dt, ctx) {
+      for (const e of parts(s))
+        if (e.tick) {
+          const t = Object.assign({}, e.tick);
+          if (ctx.activity !== "move") delete t.stamina;
+          for (const k in t) t[k] *= dt;
+          gain(s, t);
+        }
+    }
+  });
+  on("killed", (s) => {
+    if (s.off.roster) return;
+    for (const e of parts(s))
+      if (e.onKill) {
+        gain(s, e.onKill);
+        say(s, "The kill puts heart into you.", "good");
+      }
+  });
+  var movesOf = (s) => s.off.roster ? [] : byId(C.classes, s.char.cls).moves || [];
+  function classMove(s, id) {
+    if (!s.combat || s.over) return false;
+    const mv = movesOf(s).find((m) => m.id === id) || movesOf(s)[0];
+    if (!mv) return false;
+    const p = s.player, cost = mv.cost || {}, short = Object.keys(cost).find((k) => k === "hp" ? p.hp <= cost.hp : (p[k] || 0) < cost[k]);
+    if (short) {
+      say(s, "Not enough " + (short === "hp" ? "strength left" : short) + " for that.");
+      return false;
+    }
+    for (const k in cost) p[k] -= cost[k];
+    const c = foe(s), before = c.hp;
+    if (mv.ward) s.combat.ward = mv.ward;
+    if (mv.heal) {
+      const n = roll(s, mv.heal[0], mv.heal[1]);
+      p.hp = Math.min(p.hpMax, p.hp + n);
+      say(s, mv.label + ": " + n + " hit points back.", "good");
+    }
+    if (mv.flee) {
+      c.cool = 5;
+      s.combat = null;
+      say(s, "You are gone before the " + spOf(s, c).name + " knows it.", "good");
+      return true;
+    }
+    if (mv.strike)
+      for (let k = 0; k < (mv.strike.times || 1) && s.combat; k++)
+        strike(s, {
+          dmg: (mv.strike.dice ? roll(s, mv.strike.dice[0], mv.strike.dice[1]) : 0) + (mv.strike.flat || 0),
+          hit: mv.strike.hit,
+          ranged: mv.strike.ranged
+        });
+    if (mv.drain) {
+      const dealt = Math.max(0, before - Math.max(0, c.hp));
+      p.hp = Math.min(p.hpMax, p.hp + dealt);
+      if (dealt) say(s, "You drink " + dealt + " of its life.", "good");
+    }
+    if (!s.combat) return true;
+    s.combat.round++;
+    if (mv.stun) say(s, "The " + spOf(s, c).name + " reels, and does nothing.", "good");
+    else enemyTurn(s);
+    return true;
+  }
+  ACTIONS.push((s, st, a) => {
+    if (!s.combat) return;
+    for (const m of movesOf(s)) a.push({ id: "classMove", arg: m.id, label: m.label, hint: m.hint });
+  });
+  SWITCHES.push(["roster", "Many races and classes"]);
+  NOTES.push(
+    (s) => s.off.roster ? [] : [
+      {
+        label: "Peoples and callings of this world",
+        text: s.offer.races.length + " races and " + s.offer.classes.length + " classes: " + s.offer.races.map((id) => byId(C.races, id).name).join(", ") + "; " + s.offer.classes.map((id) => byId(C.classes, id).name).join(", ") + "."
+      }
+    ]
+  );
+
+  // src/rules/hamlets.js
+  var X3 = () => C.hamlets;
+  SITE_NAME.hamlet = "hamlet";
+  {
+    const region = GENERATORS.region;
+    GENERATORS.region = (s, rec) => {
+      const m = region(s, rec);
+      if (s.off.hamlets || rec.id === HOME) return m;
+      const r = stream(s.seed, "hamlet:" + rec.id), pick = (a) => a[Math.floor(r() * a.length)];
+      if (r() >= X3().chance) return m;
+      const clear = (k2) => {
+        const x = k2 % 36, y = Math.floor(k2 / 36);
+        if (x < 4 || y < 4 || x > 31 || y > 31 || m.terrain[k2] === 2 || m.terrain[k2] >= 4) return false;
+        for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) if (m.sites[idx(x + i, y + j)]) return false;
+        return true;
+      };
+      const byRoad = Object.keys(m.road || {}).map(Number).filter((k2) => clear(k2 + 1)), all = [];
+      for (let k2 = 0; k2 < 36 * 36; k2++) if (clear(k2)) all.push(k2);
+      const k = byRoad.length ? byRoad[Math.floor(r() * byRoad.length)] + 1 : all.length ? pick(all) : null;
+      if (k === null) return m;
+      m.sites[k] = { kind: "hamlet", name: pick(X3().a) + pick(X3().b), talk: pick(X3().talk) };
+      m.creatures = m.creatures.filter((c) => Math.max(Math.abs(c.x - k % 36), Math.abs(c.y - Math.floor(k / 36))) > 3);
+      return m;
+    };
+  }
+  var atHamlet = (s) => {
+    const st = siteHere(s);
+    return st && st.kind === "hamlet" && !s.off.hamlets ? st : null;
+  };
+  TALK.push({
+    info(s) {
+      const st = atHamlet(s);
+      if (!st) return null;
+      if (!st.said) st.said = rumour(s);
+      const H2 = X3();
+      return {
+        title: st.name,
+        text: [st.talk, st.said],
+        options: [
+          { id: "bed", label: "A bed by the fire", price: H2.bed, note: "eight hours; wake whole" },
+          { id: "fuel", label: "A bundle of wood", price: H2.fuel, note: "1 fuel" },
+          ...H2.goods.map((g) => ({
+            id: "buy",
+            arg: g.base,
+            label: "A " + C.bases.find((b) => b.id === g.base).name.toLowerCase(),
+            price: g.price
+          }))
+        ]
+      };
+    },
+    use(s, opt, arg) {
+      const st = atHamlet(s), p = s.player, o = this.info(s).options.find((x) => x.id === opt && (arg === void 0 || x.arg === arg));
+      if (!st || !o || s.over) return false;
+      if (p.coin < o.price) {
+        say(s, "You cannot afford that.");
+        return false;
+      }
+      p.coin -= o.price;
+      if (opt === "bed") {
+        const w = p.water;
+        for (let i = 0; i < 8 && !s.over; i++) restHour(s);
+        if (s.over) return true;
+        p.water = Math.max(p.water, w);
+        p.hp = p.hpMax;
+        p.stamina = 100;
+        p.warmth = 100;
+        say(s, "A bed by the fire in " + st.name + ". You wake whole.", "good");
+      } else if (opt === "fuel") p.fuel += 1;
+      else {
+        p.items.push(makeItem(s, o.arg, null, null, true));
+        say(s, "You buy a " + o.label.replace(/^A /, "").toLowerCase() + ".");
+      }
+      return true;
+    }
+  });
+  ACTIONS.push((s, st, a) => {
+    if (!s.combat && st && st.kind === "hamlet" && !s.off.hamlets)
+      a.push({ id: "townAsk", section: "hamlet", label: "Talk in " + st.name, hint: "a bed, wood, news" });
+  });
+  on("did", (s, d) => {
+    const st = d.id === "move" ? siteHere(s) : null;
+    if (!st || st.kind !== "hamlet" || st.told) return;
+    st.told = true;
+    st.seen = true;
+    say(s, st.name + ", a hamlet. " + st.talk + " There is a well, and shelter.", "good");
+  });
+  SWITCHES.push(["hamlets", "Hamlets"]);
+  NOTES.push((s) => {
+    const known = [];
+    for (const id in s.areas) {
+      const m = s.areas[id].map || (id === s.area ? s : null);
+      if (m && m.sites) {
+        for (const k in m.sites) if (m.sites[k].kind === "hamlet" && m.sites[k].told) known.push(m.sites[k].name);
+      }
+    }
+    return known.length ? [{ label: "Hamlets you have found", text: known.join(", ") + "." }] : [];
+  });
+
+  // src/rules/tiers.js
+  ITEM_HOOKS.push((s, it) => {
+    if (s.off.tiers || !it.pre && !it.suf && !it.mark || !s.player) return;
+    const rec = outdoorRec(s), danger = rec && rec.cx !== void 0 ? sketchOf(s, rec.cx, rec.cy).danger : 0, deep = areaRec(s).kind === "vault" && areaRec(s).level === areaRec(s).levels ? 1 : 0, t = Math.min(C.tiers.max, 1 + danger + deep);
+    if (t > 1) it.tier = t;
+  });
+  SWITCHES.push(["tiers", "Finer things far from home"]);
+
+  // src/rules/plot.js
+  var HOME_TOWN_CHANCE = 0.25;
+  function neighbours(s) {
+    const h = s.world.home, out = [];
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const cx = wrap(h.cx + dx, s.world.cols), cy = wrap(h.cy + dy, s.world.rows), id = regionId(s, cx, cy);
+        if (id !== HOME && !out.some((o) => o.id === id)) out.push({ id, cx, cy });
+      }
+    return out;
+  }
+  function regionMap(s, n) {
+    if (!s.areas[n.id])
+      s.areas[n.id] = { id: n.id, kind: "region", cx: n.cx, cy: n.cy, biome: s.world.sketch[n.cy * s.world.cols + n.cx].biome };
+    buildArea(s, s.areas[n.id]);
+    return s.areas[n.id].map;
+  }
+  function spot(m, r, hw, hd, near) {
+    let best = null;
+    for (let t = 0; t < 600; t++) {
+      const x = 3 + hw + Math.floor(r() * (W - 6 - 2 * hw)), y = 3 + hw + Math.floor(r() * (H - 6 - hw - hd));
+      let ok = true;
+      for (let j = -hw - 1; j <= hd + 1 && ok; j++)
+        for (let i = -hw - 1; i <= hw + 1 && ok; i++) {
+          const k = idx(x + i, y + j), inner = Math.abs(i) <= hw && j >= -hw && j <= hd;
+          if (m.sites[k] || inner && (m.terrain[k] === 2 || m.terrain[k] === 4 || m.terrain[k] === 5)) ok = false;
+        }
+      if (ok) {
+        if (!near) return { x, y };
+        if (!best || Math.abs(x - near.x) + Math.abs(y - near.y) < Math.abs(best.x - near.x) + Math.abs(best.y - near.y))
+          best = { x, y };
+      }
+    }
+    return best;
+  }
+  function flatten(m, x, y, hw, hd) {
+    for (let j = -hw; j <= hd; j++)
+      for (let i = -hw; i <= hw; i++) {
+        const k = idx(x + i, y + j);
+        m.terrain[k] = 0;
+        m.elev[k] = 0;
+      }
+    m.creatures = m.creatures.filter((c) => Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) > hw + 3);
+  }
+  on("worldBorn", (s, d) => {
+    if (d.off.plot) return;
+    const r = stream(s.seed, "plot"), near = neighbours(s);
+    if (!near.length) return;
+    const side = (c) => [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1]
+    ].map(([dx, dy]) => {
+      const cx = wrap(c.cx + dx, s.world.cols), cy = wrap(c.cy + dy, s.world.rows);
+      return { id: regionId(s, cx, cy), cx, cy };
+    });
+    const chain = [];
+    let prev = s.world.home;
+    for (let n = 0; n < 4; n++) {
+      const fresh = (list) => list.filter((o) => o.id !== HOME && !chain.some((c) => c.id === o.id));
+      let opts = fresh(side(prev));
+      if (!opts.length) opts = fresh(near);
+      if (!opts.length) opts = near;
+      const pick = opts[Math.floor(r() * opts.length)];
+      chain.push(pick);
+      prev = pick;
+    }
+    const take = (n) => chain[n === 0 ? 0 : n === 3 ? 1 : n === 1 ? 2 : 3], home = s;
+    const inFrame = (pl, n) => {
+      const a = s.areas[take(n).id], b = s.areas[pl.area];
+      return { x: pl.x + wrapDelta(b.cx, a.cx, s.world.cols) * W, y: pl.y + wrapDelta(b.cy, a.cy, s.world.rows) * H };
+    };
+    const move2 = (kind2, n, hw, hd, prev2) => {
+      const k = Object.keys(home.sites).find((key) => home.sites[key].kind === kind2);
+      if (k === void 0) return null;
+      for (let tryN = 0; tryN < 4; tryN++) {
+        const nn = (n + tryN) % 4, m = regionMap(s, take(nn)), p = spot(m, r, hw, hd, prev2 ? inFrame(prev2, nn) : null);
+        if (!p) continue;
+        flatten(m, p.x, p.y, hw, hd);
+        m.sites[idx(p.x, p.y)] = home.sites[k];
+        delete home.sites[k];
+        return { area: take(nn).id, x: p.x, y: p.y };
+      }
+      return null;
+    };
+    const dist2 = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    const well = { area: HOME, x: s.start.x, y: s.start.y };
+    const t = r() < HOME_TOWN_CHANCE ? null : move2("town", 0, 2, 3, well);
+    if (t) Object.assign(s.town, t);
+    const townAt = t ? { area: t.area, x: t.x, y: t.y + 3 } : well;
+    let keyAt = townAt;
+    if (s.quest.key === "ruin") {
+      const m = regionMap(s, take(3)), ref = inFrame(townAt, 3), ruins = Object.keys(m.sites).filter((k) => m.sites[k].kind === "ruin").sort((a, b) => dist2({ x: a % W, y: Math.floor(a / W) }, ref) - dist2({ x: b % W, y: Math.floor(b / W) }, ref));
+      if (ruins.length) {
+        s.quest.keyTile = +ruins[0];
+        s.quest.keyArea = take(3).id;
+        keyAt = { area: take(3).id, x: ruins[0] % W, y: Math.floor(ruins[0] / W) };
+      }
+    }
+    if (s.quest.key === "beast") {
+      const i = home.creatures.findIndex((c) => c.id === s.quest.beast), m = regionMap(s, take(3)), p = spot(m, r, 0, 0, inFrame(townAt, 3));
+      if (i >= 0 && p) {
+        const c = home.creatures.splice(i, 1)[0];
+        c.x = p.x;
+        c.y = p.y;
+        m.creatures = m.creatures.filter((o) => Math.max(Math.abs(o.x - p.x), Math.abs(o.y - p.y)) > 2);
+        m.creatures.push(c);
+        s.quest.beastArea = take(3).id;
+        keyAt = { area: take(3).id, x: p.x, y: p.y };
+      }
+    }
+    const v = move2("vault", 1, 1, 1, keyAt) || keyAt;
+    if (s.quest.dest === "beacon") {
+      const g = move2("beacon", 2, 1, 1, v);
+      if (g) s.goal = g;
+    } else {
+      const g = move2("shrine", 2, 1, 1, v);
+      if (g) s.goal = Object.assign(s.goal, g);
+    }
+    const at = (area, x, y) => ({ area, x, y }), maps = Object.keys(s.areas).flatMap((id) => s.areas[id].map ? [[id, s.areas[id].map]] : [[id, s]]), find = (kind2) => {
+      for (const [id, m] of maps)
+        if (s.areas[id].kind === "region") {
+          for (const k in m.sites) if (m.sites[k].kind === kind2) return at(id, k % W, Math.floor(k / W));
+        }
+      return null;
+    }, door = at(s.town.area || HOME, s.town.x, s.town.y + 3), keyLeg = s.quest.key === "ruin" && s.quest.keyArea ? at(s.quest.keyArea, s.quest.keyTile % W, Math.floor(s.quest.keyTile / W)) : s.quest.key === "beast" && s.quest.beastArea ? (() => {
+      const c = s.areas[s.quest.beastArea].map.creatures.find((x) => x.id === s.quest.beast);
+      return c ? at(s.quest.beastArea, c.x, c.y) : null;
+    })() : null, legs = [
+      [at(HOME, s.start.x, s.start.y), door, true],
+      ...keyAt ? [
+        [door, keyAt, false],
+        [keyAt, find("vault"), false]
+      ] : [[door, find("vault"), false]],
+      [find("vault"), s.quest.dest === "beacon" ? find("beacon") : find("shrine"), false]
+    ];
+    for (const [a, b, known] of legs) {
+      if (!a || !b) continue;
+      const pa = homePos(s, a.area, a.x, a.y), pb = homePos(s, b.area, b.x, b.y), n = Math.floor(Math.hypot(pb.x - pa.x, pb.y - pa.y) / 7);
+      for (let i = 1; i <= n; i++) {
+        const gx = Math.round(pa.x + (pb.x - pa.x) * i / (n + 1)), gy = Math.round(pa.y + (pb.y - pa.y) * i / (n + 1));
+        waterAt(s, gx, gy, known);
+      }
+    }
+    for (const [a, b] of legs) road(s, a, b);
+    const tp = homePos(s, s.town.area || HOME, s.town.x, s.town.y), line = s.log.find((l) => /^Somewhere to the /.test(l.msg));
+    if (line) line.msg = line.msg.replace(/^Somewhere to the [a-z-]+/, "Somewhere to the " + dirFrom(worldPos(s), tp.x, tp.y));
+  });
+  function road(s, a, b) {
+    if (!a || !b) return;
+    const pa = homePos(s, a.area, a.x, a.y), pb = homePos(s, b.area, b.x, b.y), lay = (gx, gy) => {
+      const h = s.world.home, rx = Math.floor(gx / W), ry = Math.floor(gy / H), cx = wrap(h.cx + rx, s.world.cols), cy = wrap(h.cy + ry, s.world.rows), id = regionId(s, cx, cy), m = id === HOME ? s : regionMap(s, { id, cx, cy });
+      m.road[idx(gx - rx * W, gy - ry * H)] = 1;
+    }, put = (gx, gy) => {
+      const todo = [[gx, gy]], done = /* @__PURE__ */ new Set();
+      while (todo.length) {
+        const [x2, y2] = todo.pop(), key = x2 + "," + y2;
+        if (done.has(key)) continue;
+        done.add(key);
+        lay(x2, y2);
+        const lx2 = (x2 % W + W) % W, ly2 = (y2 % H + H) % H;
+        if (lx2 === 0) todo.push([x2 - 1, y2]);
+        if (lx2 === W - 1) todo.push([x2 + 1, y2]);
+        if (ly2 === 0) todo.push([x2, y2 - 1]);
+        if (ly2 === H - 1) todo.push([x2, y2 + 1]);
+      }
+    };
+    let x = pa.x, y = pa.y;
+    put(x, y);
+    while (x !== pb.x || y !== pb.y) {
+      if (x !== pb.x && (y === pb.y || Math.abs(pb.x - x) >= Math.abs(pb.y - y))) x += Math.sign(pb.x - x);
+      else y += Math.sign(pb.y - y);
+      put(x, y);
+    }
+  }
+  function waterAt(s, gx, gy, known) {
+    const h = s.world.home, rx = Math.floor(gx / W), ry = Math.floor(gy / H), cx = wrap(h.cx + rx, s.world.cols), cy = wrap(h.cy + ry, s.world.rows), n = { id: regionId(s, cx, cy), cx, cy }, m = n.id === HOME ? s : regionMap(s, n), x0 = gx - rx * W, y0 = gy - ry * H;
+    for (let rad = 0; rad < 5; rad++)
+      for (let j = -rad; j <= rad; j++)
+        for (let i = -rad; i <= rad; i++) {
+          const x = x0 + i, y = y0 + j, k = idx(x, y);
+          if (x < 2 || y < 2 || x > W - 3 || y > H - 3 || m.sites[k] || m.terrain[k] === 2 || m.terrain[k] >= 4) continue;
+          let near = false;
+          for (const key in m.sites)
+            if (m.sites[key].kind === "town" && Math.abs(key % W - x) <= 3 && Math.abs(Math.floor(key / W) - y) <= 4) near = true;
+          if (near) continue;
+          m.sites[k] = { kind: "spring", foul: false, known, sure: true, seen: known };
+          if (known) {
+            for (let b = -1; b <= 1; b++)
+              for (let a = -1; a <= 1; a++) if (x + a >= 0 && y + b >= 0 && x + a < W && y + b < H) m.seen[idx(x + a, y + b)] = 1;
+          }
+          return;
+        }
+  }
+  SWITCHES.push(["plot", "The plot across the world (new worlds)"]);
+
   // src/rules/index.js
   var api = {
+    // for tests and tinkering: put the traveller on a tile of any outdoor region (from outdoors)
+    travelTo(s, area, x, y) {
+      const rec = s.areas[area];
+      if (rec && rec.kind === "region" && s.area !== area) switchRegion(s, rec.cx, rec.cy, { x, y });
+      s.player.x = x;
+      s.player.y = y;
+    },
     worldNotes,
+    genItem,
+    itemAffixes,
+    localPos,
+    townArea,
+    keyRuin,
+    beastOf,
+    classMove,
+    serviceInfo,
+    useService,
     stormOfNow: stormOf,
     askErrand,
     claimErrand,
@@ -6323,7 +7864,7 @@
       ...SWITCHES
     ]
   };
-  var ACTIONS = [
+  var ACTIONS2 = [
     "move",
     "survey",
     "rest",
@@ -6357,9 +7898,10 @@
     "goUp",
     "offer",
     "askErrand",
-    "claimErrand"
+    "claimErrand",
+    "useService"
   ];
-  for (const k of ACTIONS) {
+  for (const k of ACTIONS2) {
     const fn = api[k];
     api[k] = function(s) {
       if (s.combat) return false;
@@ -6367,7 +7909,7 @@
     };
   }
   for (const k of [
-    ...ACTIONS,
+    ...ACTIONS2,
     "attack",
     "power",
     "firebolt",
@@ -6430,8 +7972,8 @@
   var INDOOR_TS = 4;
   var TOWN_TS = (2 * R.TOWN_R + 1) * TS / R.W;
   var G2 = { ts: TS, half: HALF };
-  function setGeometry(kind) {
-    G2.ts = kind === "town" ? TOWN_TS : kind === "vault" ? INDOOR_TS : TS;
+  function setGeometry(kind2) {
+    G2.ts = kind2 === "town" ? TOWN_TS : kind2 === "vault" ? INDOOR_TS : TS;
     G2.half = R.W * G2.ts / 2;
   }
   var FR = { x: 0, y: 0, z: 0 };
@@ -6439,7 +7981,7 @@
   var toTile = (x) => clamp2(Math.floor((x + G2.half) / G2.ts), 0, R.W - 1);
 
   // src/view/terrain.js
-  var PAD = { town: 102, vault: 11, beacon: 9, spring: 6 };
+  var PAD = { town: 102, vault: 11, beacon: 9, spring: 6, hamlet: 10 };
   var MARGIN = 22;
   var EW = R.W + 2 * MARGIN;
   var CC = CELL * 2;
@@ -6625,6 +8167,27 @@
       d.position.set(0, 0.6, 6.2);
       d.scale.set(1, 1, 0.5);
       g.add(m, d);
+      return g;
+    },
+    hamlet() {
+      const g = new THREE.Group(), wall = std(12101768), roof = std(6965810);
+      g.add(BUILD.well());
+      for (const [x, z, r] of [
+        [-5, -3, 0.3],
+        [4, -4, -0.4],
+        [5, 4, 1.2],
+        [-4, 5, 2]
+      ]) {
+        const h = new THREE.Group();
+        h.add(box(4, 2.6, 3.2, wall, 0, 1.3, 0));
+        const top = new THREE.Mesh(new THREE.ConeGeometry(3.2, 2, 4), roof);
+        top.position.y = 3.6;
+        top.rotation.y = Math.PI / 4;
+        h.add(top);
+        h.position.set(x, 0, z);
+        h.rotation.y = r;
+        g.add(h);
+      }
       return g;
     },
     cache() {
@@ -6828,7 +8391,12 @@
     else if (st.kind === "shop")
       g.add(person(3104655), box(1.8, 0.9, 0.9, std(7031338), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(13214247), -0.4, 1.1, -1.1));
     else if (st.kind === "well") g.add(BUILD.well());
-    else if (st.kind === "exit" && inTown)
+    else if (st.kind === "folk") g.add(person(6974042));
+    else if (st.kind === "grave") g.add(box(0.5, 1, 0.2, std(9079430), 0, 0.5, 0), box(1.2, 0.15, 2, std(5920336), 0, 0.08, 0.9));
+    else if (R.C.townLife && R.byId(R.C.townLife.services, st.kind)) {
+      const sv = R.byId(R.C.townLife.services, st.kind);
+      g.add(person(sv.color, sv.hat), box(1.4, 0.8, 0.12, std(sv.hat), 0, 3.4, -ts / 2 + 0.2));
+    } else if ((st.kind === "exit" || st.kind === "gate") && inTown)
       g.add(
         box(0.6, 5, 0.6, std(7037784), -ts / 2, 2.5, 0),
         box(0.6, 5, 0.6, std(7037784), ts / 2, 2.5, 0),
@@ -6866,8 +8434,8 @@
     return g;
   }
   function applyFrame() {
-    const kind = R.areaRec(V.S).kind, inTown = kind === "town" && V.townAt;
-    if (kind === "vault") return;
+    const kind2 = R.areaRec(V.S).kind, inTown = kind2 === "town" && V.townAt;
+    if (kind2 === "vault") return;
     FR.x = inTown ? V.townAt.x : 0;
     FR.y = inTown ? V.townAt.y : 0;
     FR.z = inTown ? V.townAt.z : 0;
@@ -7031,20 +8599,20 @@
     dispose(dynGroup);
     dynGroup = new THREE.Group();
     scene.add(dynGroup);
-    const kind = R.areaRec(V.S).kind;
-    if (kind === "vault") return drawArea(V.S.area, "vault");
+    const kind2 = R.areaRec(V.S).kind;
+    if (kind2 === "vault") return drawArea(V.S.area, "vault");
     drawArea(R.outdoorRec(V.S).id, "region");
     if (V.townAt && V.S.areas.town) drawArea("town", "town");
   }
-  function drawArea(id, kind) {
-    const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind !== "region", ts = kind === "town" ? TOWN_TS : kind === "vault" ? G2.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
+  function drawArea(id, kind2) {
+    const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind2 !== "region", ts = kind2 === "town" ? TOWN_TS : kind2 === "vault" ? G2.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
     const at = (k, dx, dz) => {
       let x = (k % R.W + 0.5) * ts - half + (dx || 0), z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0), y = 0;
-      if (kind === "town") {
+      if (kind2 === "town") {
         x += V.townAt.x;
         z += V.townAt.z;
         y = V.townAt.y + 0.08;
-      } else if (kind === "region") y = V.base.height(x, z);
+      } else if (kind2 === "region") y = V.base.height(x, z);
       return [x - FR.x, y - FR.y, z - FR.z];
     };
     const ground = (x, z) => V.terrain.height(x, z);
@@ -7066,7 +8634,7 @@
       }
     if (indoor)
       for (const k in map.sites) {
-        const st = map.sites[k], [x, y, z] = at(+k), g = interiorSite(st, ts, kind === "town");
+        const st = map.sites[k], [x, y, z] = at(+k), g = interiorSite(st, ts, kind2 === "town");
         g.position.set(x, y, z);
         if (st.kind === "elder" || st.kind === "inn" || st.kind === "shop") g.rotation.y = Math.atan2(P2.x - x, P2.z - z);
         dynGroup.add(g);
@@ -7220,7 +8788,10 @@
         }
       });
       P2.yaw = [0, -Math.PI / 2, Math.PI, Math.PI / 2][best];
-    } else P2.yaw = Math.atan2(-(tileX(V.S.town.x) - P2.x), -(tileX(V.S.town.y) - P2.z));
+    } else {
+      const t = R.localPos(V.S, R.townArea(V.S), V.S.town.x, V.S.town.y);
+      P2.yaw = Math.atan2(-(tileX(t.x) - P2.x), -(tileX(t.y) - P2.z));
+    }
     shown.t = V.S.time;
     shown.area = V.S.area;
     shown.land = landKey();
@@ -7297,18 +8868,28 @@
       else if (!blocked(P2.x, nz)) nx = P2.x;
       else return;
     }
-    if (!indoor && V.townAt) {
-      const t = V.townAt, h = R.W * TOWN_TS / 2 + 0.7, gx = t.x + (R.TOWN_GATE.x + 0.5) * TOWN_TS - R.W * TOWN_TS / 2, wall = (x, z) => Math.abs(x - t.x) < h && Math.abs(z - t.z) < h && !(Math.abs(x - gx) < TOWN_TS / 2 - 0.5 && z > t.z + h - 6);
-      if (wall(nx, nz)) {
+    let enterAt = null;
+    const townTile = (x, z) => {
+      if (indoor || !V.townAt || !V.S.areas.town) return null;
+      const h = R.W * TOWN_TS / 2, tx2 = Math.floor((x - V.townAt.x + h) / TOWN_TS), tz2 = Math.floor((z - V.townAt.z + h) / TOWN_TS);
+      return tx2 >= 0 && tz2 >= 0 && tx2 < R.W && tz2 < R.H ? { x: tx2, y: tz2 } : null;
+    };
+    {
+      const tm = !indoor && V.townAt ? R.mapOf(V.S, "town") : null, wall = (x, z) => {
+        const t = townTile(x, z);
+        return !!(t && tm && tm.terrain[t.y * R.W + t.x] === R.WALL);
+      };
+      if (tm && wall(nx, nz)) {
         if (!wall(nx, P2.z)) nz = P2.z;
         else if (!wall(P2.x, nz)) nx = P2.x;
         else return;
       }
+      enterAt = townTile(nx, nz);
     }
     const tx = tileOf(nx), tz = tileOf(nz);
     if (tx !== V.S.player.x || tz !== V.S.player.y) {
       if (now < V.blockedUntil) return;
-      const before = V.S.log.length, wasArea = V.S.area, ok = R.move(V.S, tx - V.S.player.x, tz - V.S.player.y);
+      const before = V.S.log.length, wasArea = V.S.area, ok = R.move(V.S, tx - V.S.player.x, tz - V.S.player.y, enterAt);
       if (!ok) {
         V.blockedUntil = now + 1500;
         render();
@@ -7458,7 +9039,7 @@
           {
             cls: "act",
             type: "button",
-            on: () => a.id === "pactAsk" ? openPact() : a.id === "townAsk" ? openTown(a.section) : act(() => R[a.id](V.S))
+            on: () => a.id === "pactAsk" ? openPact() : a.id === "townAsk" ? openTown(a.section) : act(() => R[a.id](V.S, a.arg))
           },
           [el("span", { text: a.label }), el("small", { text: a.hint })]
         )
@@ -7636,26 +9217,26 @@
       el("div", { cls: "row" }, acts)
     ]);
   }
-  function resRow(kind, label) {
+  function resRow(kind2, label) {
     const d = R.depotHere(V.S);
     return el("li", { cls: "item" }, [
       el("div", null, [
         el("strong", { text: label }),
         el("p", {
-          text: "Carrying " + f1(V.S.player[kind]) + (kind === "water" ? " of " + f1(R.waterCap(V.S)) : "") + " \xB7 stored here " + f1(d ? d[kind] : 0)
+          text: "Carrying " + f1(V.S.player[kind2]) + (kind2 === "water" ? " of " + f1(R.waterCap(V.S)) : "") + " \xB7 stored here " + f1(d ? d[kind2] : 0)
         })
       ]),
       el("div", { cls: "row" }, [
         btn("Leave 1", () => {
-          act(() => R.transfer(V.S, kind, 1));
+          act(() => R.transfer(V.S, kind2, 1));
           openPack();
         }),
         btn("Take 1", () => {
-          act(() => R.transfer(V.S, kind, -1));
+          act(() => R.transfer(V.S, kind2, -1));
           openPack();
         }),
         btn("Take all", () => {
-          act(() => R.transfer(V.S, kind, -99));
+          act(() => R.transfer(V.S, kind2, -99));
           openPack();
         })
       ])
@@ -7701,7 +9282,35 @@
       ])
     ]);
   }
+  function openService() {
+    const info = R.serviceInfo(V.S);
+    if (!info) return;
+    openModal(info.title, [
+      ...info.text.map((t) => el("p", { text: t })),
+      info.options.length ? el("p", { cls: "note", text: "You have " + V.S.player.coin + " coin." }) : null,
+      el(
+        "ul",
+        { cls: "items" },
+        info.options.map(
+          (o) => el("li", { cls: "item" }, [
+            el("div", null, [el("strong", { text: o.label }), o.note ? el("p", { text: o.note }) : null]),
+            el("div", { cls: "row" }, [
+              btn(
+                o.price ? o.price + " coin" : "Yes",
+                () => {
+                  act(() => R.useService(V.S, o.id, o.arg));
+                  if (!V.S.over) openService();
+                },
+                "small" + (V.S.player.coin >= o.price ? " sel" : "")
+              )
+            ])
+          ])
+        )
+      )
+    ]);
+  }
   function openTown(section) {
+    if (!["elder", "inn", "shop"].includes(section)) return openService();
     if (section === "elder" && !V.S.quest.told) act(() => R.talkElder(V.S));
     const t = V.S.town, p = V.S.player, T2 = R.C.town, race = R.byId(R.C.races, t.race).name.toLowerCase(), re = (fn) => () => {
       act(fn);
@@ -7846,72 +9455,47 @@
     elder: "#b8443c",
     inn: "#8a6a1f",
     shop: "#2f7fb5",
+    hamlet: "#d8c9a0",
     trap: "#e0302a"
   };
   var INDOOR_COLS = { 6: "#3a3631", 7: "#9a948a" };
+  var mapView = { zoom: 54, dx: 0, dy: 0 };
   function openMap() {
-    const cv2 = el("canvas", { id: "mapcv", "aria-label": "Your map so far" }), rec = R.areaRec(V.S), indoor = R.indoors(V.S);
-    openModal(
-      indoor ? rec.kind === "town" ? V.S.town.name : "The " + V.S.quest.vault.name + ", level " + rec.level + " of " + rec.levels : "Map",
-      [
-        cv2,
-        el("p", {
-          cls: "note",
-          text: indoor ? rec.kind === "town" ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: the gate." : "Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see." : "This region. Only what you have seen or surveyed. White dot: you. Gold: camp. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: depot. Red dot: a creature you can currently see."
-        }),
-        ...indoor ? [] : [
-          el("h3", { text: "The world" }),
-          el("canvas", { id: "worldcv", "aria-label": "The regions of the world you have walked in" }),
-          el("p", {
-            cls: "note",
-            text: "Each square is a region like the one above. White outline: where you are. Gold dot: the well you set out from. Dark: country you have not walked. The world wraps around: walk off any edge and you come in on the far side."
-          })
-        ]
-      ]
-    );
-    if (!indoor) drawWorld();
+    const rec = R.areaRec(V.S), indoor = R.indoors(V.S);
+    if (!indoor) return openWorldMap();
+    const cv2 = el("canvas", { id: "mapcv", "aria-label": "Your map so far" });
+    openModal(rec.kind === "town" ? V.S.town.name : "The " + V.S.quest.vault.name + ", level " + rec.level + " of " + rec.levels, [
+      cv2,
+      el("p", {
+        cls: "note",
+        text: rec.kind === "town" ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: a gate." : "Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see."
+      })
+    ]);
     const css = cv2.clientWidth, dpr = window.devicePixelRatio || 1;
     cv2.width = cv2.height = Math.round(css * dpr);
     const g = cv2.getContext("2d");
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const ts = css / R.W, cols = R.biomeOf(V.S).colors;
+    const ts = css / R.W;
     g.fillStyle = "#10151d";
     g.fillRect(0, 0, css, css);
     for (let y = 0; y < R.H; y++)
       for (let x = 0; x < R.W; x++) {
         const i = y * R.W + x;
         if (!V.S.seen[i]) continue;
-        g.fillStyle = INDOOR_COLS[V.S.terrain[i]] || cols[V.S.terrain[i]];
+        g.fillStyle = INDOOR_COLS[V.S.terrain[i]] || "#9a948a";
         g.fillRect(x * ts, y * ts, ts + 0.5, ts + 0.5);
-        if (V.S.road[i]) {
-          g.fillStyle = "#8c8a86";
-          g.fillRect((x + 0.25) * ts, (y + 0.25) * ts, ts * 0.5, ts * 0.5);
-        }
         const st = V.S.sites[i];
-        if (st) {
-          g.fillStyle = st.kind === "spring" && st.known && st.foul ? "#6f6a35" : MAPC[st.kind];
+        if (st && MAPC[st.kind]) {
+          g.fillStyle = MAPC[st.kind];
           g.fillRect(x * ts - 1, y * ts - 1, ts + 2, ts + 2);
         }
-        if (V.S.depots[i] && i !== R.campHere(V.S)) {
+        if (V.S.depots[i]) {
           g.fillStyle = "#000";
           g.beginPath();
           g.arc((x + 0.5) * ts, (y + 0.5) * ts, ts * 0.3, 0, 7);
           g.fill();
         }
       }
-    if (R.campHere(V.S) !== null) {
-      const x = R.campHere(V.S) % R.W, y = Math.floor(R.campHere(V.S) / R.W);
-      g.fillStyle = "#e0a84a";
-      g.strokeStyle = "#1a1205";
-      g.lineWidth = 1.5;
-      g.beginPath();
-      g.moveTo((x + 0.5) * ts - 6, (y + 1) * ts + 2);
-      g.lineTo((x + 0.5) * ts, y * ts - 6);
-      g.lineTo((x + 0.5) * ts + 6, (y + 1) * ts + 2);
-      g.closePath();
-      g.fill();
-      g.stroke();
-    }
     for (const c of V.S.creatures)
       if (c.seen && Math.max(Math.abs(c.x - V.S.player.x), Math.abs(c.y - V.S.player.y)) <= 4) {
         g.fillStyle = "#e0302a";
@@ -7919,7 +9503,9 @@
         g.arc((c.x + 0.5) * ts, (c.y + 0.5) * ts, 4, 0, 7);
         g.fill();
       }
-    const px = (P2.x + G2.half) / G2.ts * ts, py = (P2.z + G2.half) / G2.ts * ts;
+    youAt(g, (P2.x + G2.half) / G2.ts * ts, (P2.z + G2.half) / G2.ts * ts);
+  }
+  function youAt(g, px, py) {
     g.beginPath();
     g.arc(px, py, 4.5, 0, 7);
     g.fillStyle = "#fff";
@@ -7933,35 +9519,112 @@
     g.strokeStyle = "#fff";
     g.stroke();
   }
-  function drawWorld() {
-    const cv2 = $("worldcv"), w = V.S.world, css = Math.min(cv2.parentNode.clientWidth || 240, 240), cell = css / Math.max(w.cols, w.rows), dpr = window.devicePixelRatio || 1, here2 = R.outdoorRec(V.S);
-    cv2.style.width = cell * w.cols + "px";
-    cv2.style.height = cell * w.rows + "px";
+  function openWorldMap() {
+    const cv2 = el("canvas", { id: "worldcv", "aria-label": "Your map of the world so far" });
+    cv2.style.touchAction = "none";
+    const zoom = (f) => () => {
+      mapView.zoom = Math.max(18, Math.min(V.S.world.cols * R.W * 1.5, Math.round(mapView.zoom * f)));
+      drawWorldMap(cv2);
+    };
+    openModal("Map", [
+      cv2,
+      el("div", { cls: "row" }, [
+        btn("+", zoom(1 / 1.5)),
+        btn("-", zoom(1.5)),
+        btn("Centre on me", () => {
+          mapView.dx = mapView.dy = 0;
+          drawWorldMap(cv2);
+        })
+      ]),
+      el("p", {
+        cls: "note",
+        text: "The world as you have seen it. Drag to look around; it wraps around, like the world. White dot: you. Gold: camp and the well. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: something left lying. Red dot: a creature you can see."
+      })
+    ]);
+    let drag = null;
+    cv2.addEventListener("pointerdown", (e) => {
+      drag = { x: e.clientX, y: e.clientY, dx: mapView.dx, dy: mapView.dy };
+      cv2.setPointerCapture(e.pointerId);
+    });
+    cv2.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const ts = cv2.clientWidth / mapView.zoom;
+      mapView.dx = drag.dx - (e.clientX - drag.x) / ts;
+      mapView.dy = drag.dy - (e.clientY - drag.y) / ts;
+      drawWorldMap(cv2);
+    });
+    cv2.addEventListener("pointerup", () => drag = null);
+    drawWorldMap(cv2);
+  }
+  function drawWorldMap(cv2) {
+    cv2.style.width = "100%";
     cv2.style.display = "block";
-    cv2.style.marginTop = "8px";
-    cv2.width = Math.round(cell * w.cols * dpr);
-    cv2.height = Math.round(cell * w.rows * dpr);
+    const css = cv2.clientWidth || 300;
+    cv2.style.height = css + "px";
+    const S = V.S, w = S.world, WW = w.cols * R.W, HH = w.rows * R.H, dpr = window.devicePixelRatio || 1, n = mapView.zoom, ts = css / n, wrapN = (v, m) => (v % m + m) % m;
+    cv2.width = cv2.height = Math.round(css * dpr);
     const g = cv2.getContext("2d");
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    for (let cy = 0; cy < w.rows; cy++)
-      for (let cx = 0; cx < w.cols; cx++) {
-        const rec = V.S.areas[R.regionId(V.S, cx, cy)];
-        g.fillStyle = rec && rec.visited ? R.byId(R.C.biomes, rec.biome).colors[0] : "#10151d";
-        g.fillRect(cx * cell + 1, cy * cell + 1, cell - 2, cell - 2);
-        if (cx === w.home.cx && cy === w.home.cy) {
-          g.fillStyle = "#e0a84a";
+    g.fillStyle = "#10151d";
+    g.fillRect(0, 0, css, css);
+    const wp = R.worldPos(S), fx = R.inOverworld(S) ? (P2.x + G2.half) / G2.ts - S.player.x : 0.5, fy = R.inOverworld(S) ? (P2.z + G2.half) / G2.ts - S.player.y : 0.5, youX = wp.x + fx, youY = wp.y + fy, x0 = youX + mapView.dx - n / 2, y0 = youY + mapView.dy - n / 2;
+    const regions = {};
+    const regionAt = (gx, gy) => {
+      const rx = Math.floor(gx / R.W), ry = Math.floor(gy / R.H), cx = wrapN(w.home.cx + rx, w.cols), cy = wrapN(w.home.cy + ry, w.rows), id = R.regionId(S, cx, cy);
+      if (!(id in regions)) {
+        const rec = S.areas[id], m = rec ? R.mapOf(S, id) : null;
+        regions[id] = m && m.terrain ? { m, cols: R.byId(R.C.biomes, rec.biome).colors, id } : null;
+      }
+      return { r: regions[id], x: gx - rx * R.W, y: gy - ry * R.H };
+    };
+    for (let sy = Math.floor(y0); sy < y0 + n + 1; sy++)
+      for (let sx = Math.floor(x0); sx < x0 + n + 1; sx++) {
+        const { r, x, y } = regionAt(sx, sy);
+        if (!r) continue;
+        const i = y * R.W + x, m = r.m;
+        if (!m.seen[i]) continue;
+        const px = (sx - x0) * ts, py = (sy - y0) * ts;
+        g.fillStyle = r.cols[m.terrain[i]] || "#555";
+        g.fillRect(px, py, ts + 0.6, ts + 0.6);
+        if (m.road[i]) {
+          g.fillStyle = "#8c8a86";
+          g.fillRect(px + ts * 0.25, py + ts * 0.25, ts * 0.5, ts * 0.5);
+        }
+        const st = m.sites[i];
+        if (st && MAPC[st.kind]) {
+          const big = Math.max(ts + 2, 5);
+          g.fillStyle = st.kind === "spring" && st.known && st.foul ? "#6f6a35" : MAPC[st.kind];
+          g.fillRect(px + ts / 2 - big / 2, py + ts / 2 - big / 2, big, big);
+        }
+        if (m.depots[i] && !(S.camp && S.camp.area === r.id && S.camp.i === i)) {
+          g.fillStyle = "#000";
           g.beginPath();
-          g.arc((cx + 0.5) * cell, (cy + 0.5) * cell, 4, 0, 7);
+          g.arc(px + ts / 2, py + ts / 2, Math.max(1.5, ts * 0.3), 0, 7);
           g.fill();
         }
-        if (rec && rec.rareTold && R.regionRareOf(V.S, rec.id)) {
-          g.fillStyle = "#c9a0ff";
-          g.fillRect((cx + 0.5) * cell - 3, cy * cell + 6, 6, 6);
+        if (S.camp && S.camp.area === r.id && S.camp.i === i) {
+          g.fillStyle = "#e0a84a";
+          g.beginPath();
+          g.moveTo(px + ts / 2 - 6, py + ts + 2);
+          g.lineTo(px + ts / 2, py - 6);
+          g.lineTo(px + ts / 2 + 6, py + ts + 2);
+          g.closePath();
+          g.fill();
         }
       }
-    g.strokeStyle = "#fff";
-    g.lineWidth = 2;
-    g.strokeRect(here2.cx * cell + 2, here2.cy * cell + 2, cell - 4, cell - 4);
+    if (R.inOverworld(S)) {
+      for (const c of S.creatures)
+        if (c.seen && Math.max(Math.abs(c.x - S.player.x), Math.abs(c.y - S.player.y)) <= 4) {
+          g.fillStyle = "#e0302a";
+          g.beginPath();
+          g.arc((wp.x + c.x - S.player.x + 0.5 - x0) * ts, (wp.y + c.y - S.player.y + 0.5 - y0) * ts, 4, 0, 7);
+          g.fill();
+        }
+    }
+    let ux = wrapN(youX - x0, WW), uy = wrapN(youY - y0, HH);
+    if (ux > n + 1) ux -= WW;
+    if (uy > n + 1) uy -= HH;
+    youAt(g, ux * ts, uy * ts);
   }
   function openMenu() {
     const sw = el(

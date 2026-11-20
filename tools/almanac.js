@@ -73,7 +73,7 @@ section('Races', ['races'], () => {
   line();
   table(
     ['Race', 'Ability changes', 'Trait', 'Modifiers', 'Names'],
-    C.races.map((r) => [
+    C.races.filter((r) => !r.hybrid).map((r) => [
       r.name + (r.exotic ? ' (exotic)' : ''),
       Object.keys(r.adj)
         .map((k) => k + ' ' + (r.adj[k] > 0 ? '+' : '') + r.adj[k])
@@ -505,6 +505,53 @@ section('Lairs', ['lairs'], () => {
 
 section('Far finds', ['farFinds'], () => {
   line('For each region of distance from home, a search of a ruin, cave or cache has a ' + Math.round(C.farFinds.chance * 100) + '% chance of one more good item.');
+  line();
+});
+
+section('Town life', ['townLife'], () => {
+  const X = C.townLife;
+  line('The size of a town sets how many services and townsfolk it has, how much is for sale, and how likely a wall is. Every town has the elder, the inn and the shop; services are added from those its culture calls for (always), then at random.');
+  line();
+  table(['Size', 'Chance weight', 'Services', 'Townsfolk', 'Extra stock', 'Walled', 'Graveyard'], X.sizes.map((z) => [z.name, z.w, z.services, z.folk, z.stock, pct(z.walled).replace('+', ''), z.graveyard ? 'yes' : '']));
+  table(['Service', 'Person', 'Always in a town of', 'Text'], X.services.map((v) => [v.id, v.role, v.always.join(', '), v.text]));
+  table(['Price', 'Coin'], Object.keys(X.prices).map((k) => [k, X.prices[k]]));
+  line('A trainer offers ' + X.lessonsOffered + ' lessons, and a traveller learns at most ' + X.maxLessons + '. Lessons die with the traveller.');
+  line();
+  table(['Lesson', 'Price', 'Text', 'Modifiers'], X.lessons.map((l) => [l.name, l.price, l.text, mods(l.mods)]));
+  line('A blessing lasts ' + X.blessing.hours + ' hours: ' + mods(X.blessing.mods) + '. A pack mule: ' + mods(X.mule.mods) + '.');
+  line();
+  line('Townsfolk tell rumours that mark real places (a lair, the far artifact, a sweet spring, the shrine, a rare country), teach a trait of the lost people, or warn of a creature; otherwise one of ' + X.flavour.length + ' lines of talk. Graves carry one of ' + X.epitaphs.length + ' epitaphs.');
+  line();
+});
+
+section('The roster', ['roster'], () => {
+  const X = C.roster,
+    hy = C.races.filter((r) => r.hybrid);
+  line(
+    'A world offers ' + X.offer.races.join(' to ') + ' races and ' + X.offer.classes.join(' to ') + ' classes, drawn with weights: usual ' + X.offer.weights.usual + ', hybrid ' + X.offer.weights.hybrid + ', exotic ' + X.offer.weights.exotic + '. The first traveller is one of them.',
+  );
+  line();
+  line('A frail class (hit die d' + X.frail.hd + ' or less) sets out with ' + X.frail.items.join(', ') + ', ' + X.frail.coin + ' more coin and its skins topped up.');
+  line();
+  line('Hybrids (' + hy.length + '), one for every pair of usual races, with half of each parent\'s modifiers: ' + hy.map((r) => r.name).join(', ') + '.');
+  line();
+  const extra = (e) => [e.start ? 'starts with ' + JSON.stringify(e.start) : '', e.tick ? 'each hour ' + JSON.stringify(e.tick) : '', e.onKill ? 'on a kill ' + JSON.stringify(e.onKill) : ''].filter(Boolean).join('; ');
+  table(['Race', 'Kind', 'Beyond its modifiers'], C.races.filter((r) => !r.hybrid && extra(r)).map((r) => [r.name, r.exotic ? 'exotic' : 'usual', extra(r)]));
+  table(
+    ['Class', 'Fight moves', 'Beyond its modifiers'],
+    C.classes.filter((c) => c.moves || extra(c)).map((c) => [c.name, (c.moves || []).map((m) => m.label + ' (' + m.hint + ')').join('; '), extra(c)]),
+  );
+});
+
+section('Hamlets', ['hamlets'], () => {
+  const X = C.hamlets;
+  line(Math.round(X.chance * 100) + '% of regions away from home have a hamlet: a well, shelter, a bed for ' + X.bed + ' coin, wood for ' + X.fuel + ', and a rumour. Named ' + X.a.join('/') + ' + ' + X.b.join('/') + '.');
+  line();
+  table(['Goods', 'Price'], X.goods.map((g) => [g.base, g.price]));
+});
+
+section('Tiers by distance', ['tiers'], () => {
+  line('An item with affixes found in a region away from home is finer: tier 1 + the distance of that region from home (+1 on the deepest level of the locked place), at most ' + C.tiers.max + '. A Fine (2) or Superb (3) item\'s affixes, curses included, do ' + C.tiers.step * 100 + '% more per tier above the first. Its fineness shows even before it is studied, and adds 8 coin of value per tier.');
   line();
 });
 

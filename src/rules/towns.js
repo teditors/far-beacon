@@ -5,7 +5,7 @@ import { C, W, byId, godOf, on, say, stream } from './core.js';
 import { learn, AXES } from './civ.js';
 import { genItem, makeItem } from './items.js';
 import { mark, findSite } from './quest.js';
-import { worldMap } from './areas.js';
+import { mapOf, townArea } from './areas.js';
 import { SOURCES } from './stats.js';
 import { NOTES, SWITCHES } from './hooks.js';
 
@@ -96,13 +96,13 @@ on('did', (s, d) => {
     if (p.elder === 'shrine') {
       const sh = findSite(s, 'shrine');
       if (sh) {
-        mark(s, sh.x, sh.y);
+        mark(s, sh.x, sh.y, sh.area);
         s.known.god = true;
         sp.push('"The shrine of ' + godOf(s).name + ' is marked on your map. Its terms are these: ' + godOf(s).terms + '"');
       }
     }
     if (p.elder === 'springs') {
-      const m = worldMap(s);
+      const m = mapOf(s, townArea(s));
       let n = 0;
       for (const k in m.sites)
         if (m.sites[k].kind === 'spring' && Math.max(Math.abs((k % W) - s.town.x), Math.abs(Math.floor(k / W) - s.town.y)) <= 8) {

@@ -50,13 +50,39 @@ function buildArea(s, rec) {
   rec.map = GENERATORS[rec.kind](s, rec);
   for (const f of AREA_FIELDS) if (rec.map[f] === undefined) rec.map[f] = AREA_DEFAULTS[f]();
 }
-/* The town stands on a block of 5 x 5 outdoor tiles around its site, walled all round, with its gate in the middle of
-   the south wall. Outdoors those tiles cannot be walked on; the one way in is north from the tile below the gate. */
+/* The town stands on a block of 5 x 5 outdoor tiles around its site. Outdoors those tiles cannot be walked on: walking
+   into the block puts you in the town, on its facing edge (see townEntry), unless a wall stands there. Most towns are
+   open; a walled one has gates where its main streets meet the wall, always including the south one. */
 const TOWN_R = 2,
   TOWN_GATE = { x: W / 2, y: H - 1 }; // the gap in the town's own south wall
+const townArea = (s) => (s.town && s.town.area) || HOME; // the region the town stands in
 const inTownBlock = (s, x, y) =>
-  s.area === HOME && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
+  s.area === townArea(s) && !!s.town && Math.abs(x - s.town.x) <= TOWN_R && Math.abs(y - s.town.y) <= TOWN_R;
 const townDoor = (s) => ({ x: s.town.x, y: s.town.y + TOWN_R + 1 });
+/* The town's own map exactly fills its block of outdoor tiles: each outdoor tile spans W / (2 * TOWN_R + 1) town tiles.
+   Walking into the block from any side enters the town on the facing edge, at the matching place along it; walking off
+   any edge of the town comes out on the outdoor tile beside the block at the matching place. */
+const TOWN_SPAN = W / (2 * TOWN_R + 1);
+// The town tile you arrive on, walking into the block at outdoor tile (ox, oy) from outdoor tile (px, py).
+function townEntry(s, px, py, ox, oy) {
+  const bx = ox - (s.town.x - TOWN_R),
+    by = oy - (s.town.y - TOWN_R),
+    mid = (b) => Math.min(W - 1, Math.floor((b + 0.5) * TOWN_SPAN));
+  if (px < s.town.x - TOWN_R) return { x: 0, y: mid(by) };
+  if (px > s.town.x + TOWN_R) return { x: W - 1, y: mid(by) };
+  if (py < s.town.y - TOWN_R) return { x: mid(bx), y: 0 };
+  return { x: mid(bx), y: H - 1 };
+}
+// The outdoor tile you come out on, walking off the town's map from town tile (tx, ty) by (dx, dy).
+function townExit(s, tx, ty, dx, dy) {
+  const o = (t) => Math.min(2 * TOWN_R, Math.max(0, Math.floor(t / TOWN_SPAN))),
+    x0 = s.town.x - TOWN_R,
+    y0 = s.town.y - TOWN_R;
+  if (dx < 0) return { x: x0 - 1, y: y0 + o(ty) };
+  if (dx > 0) return { x: s.town.x + TOWN_R + 1, y: y0 + o(ty) };
+  if (dy < 0) return { x: x0 + o(tx), y: y0 - 1 };
+  return { x: x0 + o(tx), y: s.town.y + TOWN_R + 1 };
+}
 function ensureTown(s) {
   if (!s.areas.town) s.areas.town = { id: 'town', kind: 'town', indoor: true, name: s.town.name };
   buildArea(s, s.areas.town);
@@ -170,6 +196,16 @@ function forgetMaps(s) {
   }
 }
 
+// A place in any region, in the frame of the region the player is in (or the door they came in by), going the short way
+// round the world. For directions and for walking toward places in other regions.
+function localPos(s, area, x, y) {
+  const here = outdoorRec(s),
+    there = s.areas[area] || here;
+  return {
+    x: x + wrapDelta(there.cx, here.cx, s.world.cols) * W,
+    y: y + wrapDelta(there.cy, here.cy, s.world.rows) * H,
+  };
+}
 // A place in any area, in home-region coordinates (for giving directions to it from anywhere).
 function homePos(s, areaId, x, y) {
   let rec = s.areas[areaId],
@@ -201,7 +237,12 @@ export {
   townDoor,
   TOWN_GATE,
   TOWN_R,
+  TOWN_SPAN,
+  townEntry,
+  townExit,
   homePos,
+  localPos,
+  townArea,
   campHere,
   AREA_FIELDS,
   GENERATORS,

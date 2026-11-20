@@ -45,6 +45,18 @@ on('worldBorn', (s, d) => {
         st.water += 2;
       }
     }
+    // the land itself: never on a region's outer rows, so it still meets its neighbours as before
+    const inner = (k) => k % 36 > 1 && k % 36 < 34 && k > 71 && k < 36 * 34;
+    if (g.drown) {
+      const rd = stream(s.seed, 'drown:' + rec.id);
+      for (let k = 0; k < m.terrain.length; k++)
+        if (inner(k) && m.terrain[k] === 0 && !m.sites[k] && !(m.road && m.road[k]) && rd() < g.drown) {
+          m.terrain[k] = 5;
+          m.elev[k] = -0.15;
+        }
+    }
+    if (g.burn) for (let k = 0; k < m.terrain.length; k++) if (inner(k) && m.terrain[k] === 3) m.terrain[k] = 0;
+    if (g.dry) for (const k in m.sites) if (m.sites[k].kind === 'spring' && !m.sites[k].sure) delete m.sites[k];
     if (g.noCreatures) m.creatures = [];
     if (g.moreCreatures) {
       const danger = sketchOf(s, rec.cx, rec.cy).danger,

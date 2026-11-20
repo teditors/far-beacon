@@ -42,7 +42,7 @@ import { attack, firebolt, flee, foe, formOf, identify, mend, power, smite, spOf
 import { C, FLOOR, H, TERR, VERSION, W, WALL, biomeOf, byId, clock, emit, godOf, on, siteHereKind, stormOf } from './core.js';
 import { aOrAn } from './core.js';
 import { active, equip, slotOf, unequip } from './equipment.js';
-import { describeItem, isCursed, itemName, itemWeight, weight } from './items.js';
+import { describeItem, genItem, isCursed, itemAffixes, itemName, itemWeight, weight } from './items.js';
 import { atCamp, bearing, groundHere, inShelter, passable, reveal, siteHere, siteName, terrainInfo } from './map.js';
 import {
   areaRec,
@@ -95,6 +95,8 @@ import { newGame } from './worldgen.js';
 
 import { serialize, deserialize } from './save.js';
 import { SWITCHES, worldNotes } from './hooks.js';
+import { localPos, townArea } from './areas.js';
+import { keyRuin, beastOf } from './quest.js';
 import { yearOf } from './year.js';
 import './pantheon.js';
 import './artifacts.js';
@@ -109,9 +111,30 @@ import './floors.js';
 import './relics.js';
 import './lairs.js';
 import './farfinds.js';
+import { serviceInfo, useService } from './townlife.js';
+import { classMove } from './roster.js';
+import './hamlets.js';
+import './tiers.js';
+import './plot.js'; // last: it moves quest places that earlier pieces may have changed
 
 const api = {
+  // for tests and tinkering: put the traveller on a tile of any outdoor region (from outdoors)
+  travelTo(s, area, x, y) {
+    const rec = s.areas[area];
+    if (rec && rec.kind === 'region' && s.area !== area) switchRegion(s, rec.cx, rec.cy, { x, y });
+    s.player.x = x;
+    s.player.y = y;
+  },
   worldNotes,
+  genItem,
+  itemAffixes,
+  localPos,
+  townArea,
+  keyRuin,
+  beastOf,
+  classMove,
+  serviceInfo,
+  useService,
   stormOfNow: stormOf,
   askErrand,
   claimErrand,
@@ -293,6 +316,7 @@ const ACTIONS = [
   'offer',
   'askErrand',
   'claimErrand',
+  'useService',
 ];
 for (const k of ACTIONS) {
   const fn = api[k];

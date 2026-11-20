@@ -57,6 +57,30 @@ const BUILD = {
     g.add(m, d);
     return g;
   },
+  hamlet() {
+    // a few small houses round a well
+    const g = new THREE.Group(),
+      wall = std(0xb8a888),
+      roof = std(0x6a4a32);
+    g.add(BUILD.well());
+    for (const [x, z, r] of [
+      [-5, -3, 0.3],
+      [4, -4, -0.4],
+      [5, 4, 1.2],
+      [-4, 5, 2],
+    ]) {
+      const h = new THREE.Group();
+      h.add(box(4, 2.6, 3.2, wall, 0, 1.3, 0));
+      const top = new THREE.Mesh(new THREE.ConeGeometry(3.2, 2, 4), roof);
+      top.position.y = 3.6;
+      top.rotation.y = Math.PI / 4;
+      h.add(top);
+      h.position.set(x, 0, z);
+      h.rotation.y = r;
+      g.add(h);
+    }
+    return g;
+  },
   cache() {
     const g = new THREE.Group(),
       s = std(0x6b675f);
@@ -299,7 +323,13 @@ function interiorSite(st, ts, inTown) {
   else if (st.kind === 'shop')
     g.add(person(0x2f5f8f), box(1.8, 0.9, 0.9, std(0x6b4a2a), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(0xc9a227), -0.4, 1.1, -1.1));
   else if (st.kind === 'well') g.add(BUILD.well());
-  else if (st.kind === 'exit' && inTown)
+  else if (st.kind === 'folk') g.add(person(0x6a6a5a));
+  else if (st.kind === 'grave') g.add(box(0.5, 1, 0.2, std(0x8a8a86), 0, 0.5, 0), box(1.2, 0.15, 2, std(0x5a5650), 0, 0.08, 0.9));
+  else if (R.C.townLife && R.byId(R.C.townLife.services, st.kind)) {
+    // a person at the door of their trade, and a painted sign above it
+    const sv = R.byId(R.C.townLife.services, st.kind);
+    g.add(person(sv.color, sv.hat), box(1.4, 0.8, 0.12, std(sv.hat), 0, 3.4, -ts / 2 + 0.2));
+  } else if ((st.kind === 'exit' || st.kind === 'gate') && inTown)
     g.add(
       box(0.6, 5, 0.6, std(0x6b6358), -ts / 2, 2.5, 0),
       box(0.6, 5, 0.6, std(0x6b6358), ts / 2, 2.5, 0),

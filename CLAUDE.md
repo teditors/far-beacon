@@ -69,7 +69,7 @@ Since v0.12 every feature is a **piece**: one idea that works on its own, the wa
   migration in `src/rules/save.js`. Before bumping, run `node tools/once/make-fixtures.js` to freeze saves in the old
   format into `tests/fixtures/`. The state test loads every fixture, upgrades it, and plays on.
 - The world is a wrapping grid of regions. A border is crossed in exactly one place, `move()` in
-  `src/rules/actions.js`. The home region's id is `'overworld'`. The town and the quest places are in it.
+  `src/rules/actions.js`. The home region's id is `'overworld'`. The quest's places lie across a chain of regions (the `plot` piece).
 - Rules keep separate maps (regions, the town, vault levels). The view stitches them so the player sees no seams.
 - Run `npx prettier --write src` before committing.
 

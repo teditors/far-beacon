@@ -8,7 +8,13 @@ const NOTES = [];
 // built, so a piece can change what each region will be. LOADERS: functions (s) run when a save is loaded, before
 // anything else, so a piece can rebuild what it derives from the seed.
 const SKETCHERS = [];
+// ACTIONS: functions (s, site, list) that may push buttons onto the list of actions for where the player stands.
+const ACTIONS = [];
+// TALK: { info(s), use(s, option, arg) } for people a piece puts in the world; the first whose info(s) answers speaks.
+const TALK = [];
+// ITEM_HOOKS: functions (s, item, options) that may finish an item genItem has just made.
+const ITEM_HOOKS = [];
 const LOADERS = [];
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
-export { NOTES, SWITCHES, SKETCHERS, LOADERS, worldNotes };
+export { NOTES, SWITCHES, SKETCHERS, LOADERS, ACTIONS, TALK, ITEM_HOOKS, worldNotes };

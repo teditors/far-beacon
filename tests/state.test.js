@@ -1,6 +1,6 @@
 // State tests: determinism, saving mid-run, world invariants, and a snapshot that notices when world generation changes.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
-const { Rules: R } = require('./lib');
+const { Rules: R, goPlace } = require('./lib');
 const errs = [], warns = [];
 const need = (c, m) => { if (!c) errs.push(m); };
 function scripted(s, steps, seed) {
@@ -50,16 +50,18 @@ for (let seed = 1; seed <= 150; seed++) {
   need(s.terrain[tile(p)] !== 2, 'seed ' + seed + ': starts on a mountain');
   const v = R.findSite(s, 'vault'), dest = s.quest.dest === 'beacon' ? s.goal : R.findSite(s, 'shrine');
   need(v && dest && s.town, 'seed ' + seed + ': a quest place is missing');
-  need(new Set([tile(s.town), tile(v), tile(dest), tile(p)]).size === 4, 'seed ' + seed + ': two quest places share a tile');
-  need(Object.values(s.sites).filter((x) => x.sure).length >= 3, 'seed ' + seed + ': fewer than three guaranteed springs');
+  const where = (pt) => (pt.area || 'overworld') + ':' + tile(pt);
+  need(new Set([where(Object.assign({ area: R.townArea(s) }, s.town)), where(v), where(dest), where(p)]).size === 4, 'seed ' + seed + ': two quest places share a tile');
+  { let sure = 0; for (const id in s.areas) { const m = R.mapOf(s, id); if (m && m.sites && s.areas[id].kind === 'region') sure += Object.values(m.sites).filter((x) => x.sure).length; } need(sure >= 3, 'seed ' + seed + ': fewer than three guaranteed springs'); }
   for (const c of s.creatures) if (!c.key) need(Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y)) >= 7, 'seed ' + seed + ': a creature starts too close');
   for (const k in s.sites) need(+k >= 0 && +k < R.W * R.H, 'seed ' + seed + ': a site is off the map');
-  // the town's walled block: nothing else stands in it, nobody can be in it, and the tile below its gate is on the map
+  // the town's block: nothing else stands in it, nobody can be in it, and the tile below its south side is on the map
   const door = R.townDoor(s);
+  goPlace(s, { area: R.townArea(s), x: door.x, y: door.y });
   need(door.y < R.H - 1 && s.town.x >= 3 && s.town.x < R.W - 3 && s.town.y >= 3, 'seed ' + seed + ': the town is too near the edge');
   for (const k in s.sites) if (s.sites[k].kind !== 'town') need(!R.inTownBlock(s, k % R.W, Math.floor(k / R.W)), 'seed ' + seed + ': a ' + s.sites[k].kind + ' stands inside the town walls');
   for (const c of s.creatures) need(!R.inTownBlock(s, c.x, c.y), 'seed ' + seed + ': a creature starts inside the town walls');
-  need(!R.inTownBlock(s, p.x, p.y) && !R.passable(s, s.town.x, s.town.y) && R.passable(s, door.x, door.y), 'seed ' + seed + ': the town block is wrong');
+  need(!R.inTownBlock(s, s.player.x, s.player.y) && !R.passable(s, s.town.x, s.town.y) && R.passable(s, door.x, door.y), 'seed ' + seed + ': the town block is wrong');
   need(s.areas.town && s.areas.town.map && s.areas.town.map.terrain.length === R.W * R.H, 'seed ' + seed + ': the town was not built ahead');
 }
 // 3a. a save from before the town had walls: a camp left on the town's tile ends up outside the gate
@@ -91,7 +93,8 @@ for (let seed = 1; seed <= 40; seed++) {
   }
   if (s.over) continue;
   need(s.area === 'overworld', tag + 'walking east round the world did not come home');
-  // every region
+  // every region; the quest's places are spread over the regions, each exactly once
+  const placeCount = {};
   for (let cy = 0; cy < w.rows; cy++) for (let cx = 0; cx < w.cols; cx++) {
     R.switchRegion(s, cx, cy, { x: 18, y: 18 });
     const id = R.regionId(s, cx, cy);
@@ -100,9 +103,11 @@ for (let seed = 1; seed <= 40; seed++) {
     need(Object.values(s.sites).some((x) => x.kind === 'spring' && x.sure), tag + id + ' has no sure spring');
     for (const k in s.sites) need(s.terrain[k] !== 2 && +k >= 0 && +k < R.W * R.H, tag + id + ' has a site in a bad place');
     for (const c of s.creatures) need(s.species[c.sp], tag + id + ' has a creature of no species');
-    need(cx === w.home.cx && cy === w.home.cy ? true : !Object.values(s.sites).some((x) => ['town', 'vault', 'beacon', 'well'].includes(x.kind)), tag + id + ' has a quest place');
+    need(cx === w.home.cx && cy === w.home.cy ? true : !Object.values(s.sites).some((x) => x.kind === 'well'), tag + id + ' has a second well');
+    for (const k of ['town', 'vault']) placeCount[k] = (placeCount[k] || 0) + Object.values(s.sites).filter((x) => x.kind === k).length;
   }
   // borders: mountains nearly always agree, and rivers and roads cross at the same tiles on both sides
+  need(placeCount.town === 1 && placeCount.vault === 1, tag + 'the town and the locked place are not each in exactly one region: ' + JSON.stringify(placeCount));
   const mapOf = (cx, cy) => { const id = R.regionId(s, (cx + w.cols) % w.cols, (cy + w.rows) % w.rows); return id === s.area ? s : s.areas[id].map; };
   for (let cy = 0; cy < w.rows; cy++) for (let cx = 0; cx < w.cols; cx++) {
     const a = mapOf(cx, cy), e = mapOf(cx + 1, cy), so = mapOf(cx, cy + 1);

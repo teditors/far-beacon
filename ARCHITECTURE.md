@@ -88,8 +88,11 @@ first time the player arrives.
   are impassable outdoors (`inTownBlock`). `move()` north from `townDoor(s)` enters it at `TOWN_GATE`; `move()` south
   off the map from the gateway leaves it. The view draws the town's own grid in place and only shifts its origin
   (`FR`, `applyFrame`) when the player goes through the gate; nothing is rebuilt.
-- The quest places (`s.town`, `s.goal`, `s.start`, the locked place) are all in the home region. `worldMap(s)` is
-  the home map; `worldPos(s)` and `homePos` give positions in home coordinates from anywhere, for directions.
+- Since commission 2 (the `plot` piece) the quest places are spread over the regions around home: `s.town.area`,
+  `s.goal.area`, `s.quest.keyArea` / `beastArea`, and the locked place's site lives in its region's map. Use
+  `findSite(s, kind)` (returns `area`), `townArea(s)`, `keyRuin(s)`, `beastOf(s)` and `mark(s, x, y, area)`; never
+  assume the home region. `localPos(s, area, x, y)` gives a place in the frame of the region the player is in, and
+  `homePos` in home coordinates, for directions. With `NO=plot` everything stays home as before.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
 - `inOverworld(s)` means "outdoors, in any region".
 
@@ -113,6 +116,10 @@ More hooks, added by later pieces on the commission/1 branch:
 | `LOADERS` | hooks.js | rebuild what is derived from the seed when a save loads |
 | wrapping `GENERATORS.region` / `.vault` | the piece's module | add to a region or a level as it is built (artifacts, lairs, odd levels) |
 | `town.*` stats | quest.js `priceOf`, `buyPrice` | change the town's prices through the stat stack (town cultures) |
+| `ACTIONS` | hooks.js | add buttons for where the player stands, in or out of a fight (town people, fight moves) |
+| `TALK` | hooks.js | people a piece puts in the world, shown by the one dialog `serviceInfo` / `useService` |
+| `ITEM_HOOKS` | hooks.js | finish an item `genItem` has just made (tiers by distance) |
+| `emit(s, 'killed', ...)` | combat.js | react to a kill (gains on a kill) |
 
 Each piece's checks are a block in `tests/pieces.test.js`, and its menus a section in `tools/almanac.js`.
 

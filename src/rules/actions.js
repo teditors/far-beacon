@@ -19,7 +19,7 @@ import {
   terrainInfo,
 } from './map.js';
 import { gainXp, roll, weaponOf } from './progress.js';
-import { enterTown, hasItem, leaveTown } from './quest.js';
+import { enterTown, findSite, hasItem, leaveTown } from './quest.js';
 import {
   TOWN_GATE,
   inTownBlock,
@@ -33,11 +33,15 @@ import {
   wrap,
   worldMap,
   worldPos,
+  homePos,
 } from './areas.js';
 import { carryCap, stat, waterCap } from './stats.js';
 import { advance } from './systems.js';
+import { ACTIONS as ACTION_HOOKS } from './hooks.js';
 
 /* Actions */
+// How much foul water hurts you: not at all if something makes you safe from it.
+const foulHarm = (s) => (stat(s, 'foulSafe', 0) > 0 ? 0 : 1);
 function moveCost(s, x, y) {
   const tt = s.terrain[idx(x, y)],
     tn = TERR[tt],
@@ -51,7 +55,7 @@ function moveCost(s, x, y) {
   }
   return { mins, cost: sta * s.tun.staminaScale * stat(s, 'staminaCost', 1), base: s.tun.moveMin.plain };
 }
-function move(s, dx, dy) {
+function move(s, dx, dy, at) {
   if (s.over) return false;
   let nx = s.player.x + dx,
     ny = s.player.y + dy;
@@ -63,15 +67,10 @@ function move(s, dx, dy) {
     say(s, 'You are carrying too much to move. Leave something here.', 'bad');
     return false;
   }
-  // The town: in by the gate from the tile south of it, out the same way, and nowhere else through its wall.
-  if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) {
-    const d = townDoor(s);
-    if (s.player.x === d.x && s.player.y === d.y && dx === 0 && dy === -1) return enterTown(s);
-    say(s, 'The wall of ' + s.town.name + '. The gate is in the south side.');
-    return false;
-  }
-  if (out && areaRec(s).kind === 'town')
-    return s.player.x === TOWN_GATE.x && s.player.y === TOWN_GATE.y && dx === 0 && dy === 1 ? leaveTown(s) : false;
+  // The town: walk into its block from any side and you are in it, unless a wall stands there; walk off any edge of
+  // it and you are back outside. `at` is where the view says you arrive, so its picture and the rules agree.
+  if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) return enterTown(s, nx, ny, at);
+  if (out && areaRec(s).kind === 'town') return leaveTown(s, dx, dy);
   // Walking off the edge of a region brings you onto the facing edge of its neighbour; the world wraps around.
   // This is the one place a border is crossed, so that borders can be made seamless later.
   let back = null;
@@ -115,7 +114,8 @@ function move(s, dx, dy) {
   }
   const g = groundHere(s);
   s.lastGround = s.terrain[here(s)];
-  if (g.wet && !s.off.warmth) s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
+  if (g.wet && !s.off.warmth && stat(s, 'wetSafe', 0) <= 0)
+    s.player.warmth = Math.max(0, s.player.warmth - g.wet * s.tun.coldScale);
   if (s.lastGround !== was && s.lastGround >= 3 && s.lastGround < WALL)
     say(
       s,
@@ -233,7 +233,7 @@ function arrive(s) {
         ' ' +
         trait(s, 'doom').sign,
       cache: 'Someone left a cache here under stones.',
-      town: 'The town of ' + s.town.name + '. Smoke, voices, a well. Enter it to talk and trade.',
+      town: 'The town of ' + s.town.name + '. Smoke, voices, a well. Walk in to talk and trade.',
       vault: 'The ' + s.quest.vault.name + '. A heavy door, and a stair going down behind it.',
       beacon:
         s.quest.dest === 'beacon'
@@ -242,7 +242,7 @@ function arrive(s) {
       shrine: 'A shrine to ' + godOf(s).name + ', raised by ' + (s.known.civ ? civOf(s).name : 'a lost people') + '.',
       well: 'The well at your first camp.',
     }[st.kind];
-    say(s, txt);
+    if (txt) say(s, txt); // a piece's own kind of place tells itself
   }
 }
 function survey(s) {
@@ -339,7 +339,7 @@ function fill(s) {
     return true;
   }
   if (!st) return false;
-  if (st.kind === 'well' || st.kind === 'town') {
+  if (st.kind === 'well' || st.kind === 'town' || st.kind === 'hamlet') {
     advance(s, 15, 'rest');
     topUp(s);
     say(s, 'You fill up at the well.');
@@ -350,7 +350,7 @@ function fill(s) {
     const g = topUp(s, st.water);
     st.water -= g;
     if (st.foulWater && g > 0) {
-      s.player.stamina = Math.max(0, s.player.stamina - 15);
+      s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 15);
       say(s, 'The cistern water is foul. You feel it at once.', 'bad');
     }
     say(
@@ -367,7 +367,7 @@ function fill(s) {
     st.known = true;
     advance(s, 15, 'rest');
     if (st.foul) {
-      s.player.stamina = Math.max(0, s.player.stamina - 5);
+      s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 5);
       say(s, 'You taste it and gag. This spring is foul. Boil it, or drink and pay for it.', 'bad');
       return true;
     }
@@ -377,7 +377,7 @@ function fill(s) {
   }
   advance(s, 15, 'rest');
   if (st.foul) {
-    s.player.stamina = Math.max(0, s.player.stamina - 15);
+    s.player.stamina = Math.max(0, s.player.stamina - foulHarm(s) * 15);
     say(s, 'You fill up with foul water and feel it at once.', 'bad');
   } else say(s, 'You fill up at the spring.');
   topUp(s);
@@ -507,7 +507,7 @@ function search(s) {
       s.player.coin += n;
       found.push(n + ' coin');
     }
-    if (s.quest.keyTile === here(s)) {
+    if (s.quest.keyTile === here(s) && (s.quest.keyArea || 'overworld') === s.area) {
       const k = makeItem(s, 'key', null, null, true);
       k.label = 'Key to the ' + s.quest.vault.name;
       d().items.push(k);
@@ -705,14 +705,15 @@ function actions(s) {
       a.push({ id: 'smite', label: 'Smite', hint: '+1d8, 2 mana' });
       a.push({ id: 'mend', label: 'Mend', hint: 'heal, 3 mana' });
     }
+    for (const f of ACTION_HOOKS) f(s, st, a); // fight moves added by pieces
     a.push({ id: 'flee', label: 'Flee', hint: '-5 stamina' });
     return a;
   }
   if (s.char.cls === 'cleric' && p.hp < p.hpMax && p.mana >= 3) a.push({ id: 'mend', label: 'Mend', hint: 'heal, 3 mana' });
+  for (const f of ACTION_HOOKS) f(s, st, a); // buttons added by pieces (people in town, ...)
   if (!indoors(s)) a.push({ id: 'survey', label: 'Survey', hint: '30 min' });
   if (st) {
-    if (st.kind === 'exit')
-      a.push({ id: 'goUp', label: areaRec(s).kind === 'town' ? 'Leave ' + s.town.name : 'Climb out', hint: 'back outside' });
+    if (st.kind === 'exit' && areaRec(s).kind !== 'town') a.push({ id: 'goUp', label: 'Climb out', hint: 'back outside' });
     if (st.kind === 'stairsUp') a.push({ id: 'goUp', label: 'Go up', hint: 'level ' + (areaRec(s).level - 1) });
     if (st.kind === 'stairsDown')
       a.push({ id: 'goDown', label: 'Go down', hint: 'level ' + (areaRec(s).level + 1) + ' of ' + areaRec(s).levels });
@@ -722,6 +723,7 @@ function actions(s) {
       a.push({ id: 'townAsk', section: 'shop', label: 'Trade with ' + s.town.merchant, hint: 'buy, sell, appraise' });
     if (
       st.kind === 'well' ||
+      st.kind === 'hamlet' ||
       (st.kind === 'ruin' && st.water > 0.05 && !st.foulWater) ||
       (st.kind === 'spring' && (!st.known || !st.foul))
     )
@@ -759,8 +761,6 @@ function actions(s) {
     if (st.kind === 'vault' && st.open)
       a.push({ id: 'enterVault', label: 'Go into the ' + s.quest.vault.name, hint: st.floors.length + ' levels, needs a light' });
   }
-  if (s.area === 'overworld' && s.town && p.x === townDoor(s).x && p.y === townDoor(s).y)
-    a.push({ id: 'enterTown', label: 'Enter ' + s.town.name, hint: 'the gate is just north' });
   const g = groundHere(s);
   if (!st && g.drink) a.push({ id: 'fill', label: 'Fill from the ' + g.name, hint: '15 min' });
   if (g.dig && !s.dug[here(s)]) a.push({ id: 'dig', label: 'Dig for water', hint: '1 h, -12 stamina' });
@@ -784,9 +784,10 @@ function forecast(s) {
 }
 function shrineBearing(s) {
   if (stat(s, 'shrineSense', 0) <= 0) return null;
-  const m = worldMap(s);
-  for (const k in m.sites) if (m.sites[k].kind === 'shrine') return dirFrom(worldPos(s), k % W, Math.floor(k / W));
-  return null;
+  const sh = findSite(s, 'shrine');
+  if (!sh) return null;
+  const p = homePos(s, sh.area, sh.x, sh.y);
+  return dirFrom(worldPos(s), p.x, p.y);
 }
 function wellfinder(s) {
   if (indoors(s) || stat(s, 'wellfinder', 0) <= 0) return null;

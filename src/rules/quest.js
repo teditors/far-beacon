@@ -2,7 +2,7 @@
 import { depotHere, restHour } from './actions.js';
 import { AXES, learn, traitText } from './civ.js';
 import { makeCreature, spOf, startCombat } from './combat.js';
-import { C, H, W, byId, clamp, clock, idx, say, srand } from './core.js';
+import { C, H, W, WALL, byId, clamp, clock, idx, say, srand } from './core.js';
 import { autoEquip, fitWater } from './equipment.js';
 import { genItem, isCursed, itemName, makeItem } from './items.js';
 import { dirFrom, dirTo, reveal, siteHere, sightRadius } from './map.js';
@@ -10,6 +10,11 @@ import {
   HOME,
   TOWN_GATE,
   townDoor,
+  townEntry,
+  townExit,
+  inTownBlock,
+  mapOf,
+  townArea,
   allMaps,
   areaRec,
   enterArea,
@@ -26,9 +31,10 @@ import { advance } from './systems.js';
 /* Quest, town and vault */
 const hasItem = (s, base) => s.player.items.some((i) => i.base === base);
 const atTown = (s) => s.area === 'town';
-// Mark a place on the overworld map, wherever the player happens to be standing.
-function mark(s, x, y) {
-  const m = worldMap(s);
+// Mark a place on the map of the region it is in (home by default), wherever the player happens to be standing.
+function mark(s, x, y, area) {
+  const m = area ? mapOf(s, area) : worldMap(s);
+  if (!m) return;
   for (let j = -1; j <= 1; j++)
     for (let i = -1; i <= 1; i++) {
       const xx = x + i,
@@ -38,11 +44,27 @@ function mark(s, x, y) {
   const st = m.sites[idx(x, y)];
   if (st) st.seen = true;
 }
-// Quest places are on the overworld, whichever area the player is in.
+// Quest places are outdoors, in the home region or another one, whichever area the player is in. Returns
+// { x, y, st, area }. The home region is searched first, then every other region that has been built.
 function findSite(s, kind) {
-  const m = worldMap(s);
-  for (const k in m.sites) if (m.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: m.sites[k] };
+  const ids = [HOME, ...Object.keys(s.areas).filter((id) => id !== HOME && s.areas[id].kind === 'region')];
+  for (const id of ids) {
+    const m = mapOf(s, id);
+    if (!m || !m.sites) continue;
+    for (const k in m.sites) if (m.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: m.sites[k], area: id };
+  }
   return null;
+}
+// Where the key lies in a ruin, and where the beast that has it is: { area, x, y } (or null).
+const keyRuin = (s) =>
+  s.quest.keyTile === null || s.quest.keyTile === undefined
+    ? null
+    : { area: s.quest.keyArea || HOME, x: s.quest.keyTile % W, y: Math.floor(s.quest.keyTile / W) };
+function beastOf(s) {
+  const area = s.quest.beastArea || HOME,
+    m = mapOf(s, area),
+    c = m && m.creatures.find((x) => x.id === s.quest.beast);
+  return c ? { area, x: c.x, y: c.y, c } : null;
 }
 function findHere(s, kind) {
   for (const k in s.sites) if (s.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: s.sites[k] };
@@ -55,6 +77,7 @@ function itemValue(it) {
   for (const id of [it.pre, it.suf]) if (id) v += byId(C.affixes, id).cursed ? -4 : 8;
   if (it.mark) v += 6;
   if (it.art && C.artifacts) v += C.artifacts.value;
+  if (it.tier > 1) v += 8 * (it.tier - 1);
   return Math.max(1, v);
 }
 // The town's prices go through the modifier stack, as stats named town.<number> (a town's culture can change them).
@@ -70,7 +93,7 @@ function makeQuest(s, r, townP, vaultP, a0, goalP) {
   const Q = C.quest,
     T = C.town,
     pick = (a) => a[Math.floor(r() * a.length)];
-  const race = pick(C.races.filter((e) => !e.exotic)),
+  const race = pick(C.races.filter((e) => !e.exotic && !e.roster)),
     q = (s.quest = {
       key: pick(Q.keys),
       vault: pick(Q.vaults),
@@ -165,7 +188,8 @@ function objective(s) {
     t = s.town,
     v = findSite(s, 'vault'),
     wp = worldPos(s),
-    toWorld = (p) => dirFrom(wp, p.x, p.y),
+    toWorld = (p) =>
+      p.area ? dirFrom(wp, homePos(s, p.area, p.x, p.y).x, homePos(s, p.area, p.x, p.y).y) : dirFrom(wp, p.x, p.y),
     toHere = (p) => dirTo(s, p.x, p.y),
     vaultName = q.vault.name,
     inVault = areaRec(s).kind === 'vault';
@@ -208,16 +232,15 @@ function objective(s) {
   if (!q.told)
     return {
       text: s.area === 'town' ? 'Talk to the elder' : 'Find the town',
-      dir: s.area === 'town' ? toHere(findHere(s, 'elder')) : toWorld(t),
+      dir: s.area === 'town' ? toHere(findHere(s, 'elder')) : toWorld({ area: townArea(s), x: t.x, y: t.y }),
     };
   if (q.key === 'beast') {
-    const c = worldMap(s).creatures.find((x) => x.id === q.beast);
-    return c
-      ? { text: 'Kill the ' + spOf(s, c).name + ', which has the key', dir: toWorld(c) }
+    const b = beastOf(s);
+    return b
+      ? { text: 'Kill the ' + spOf(s, b.c).name + ', which has the key', dir: toWorld(b) }
       : { text: 'Take the key from the lair', dir: null };
   }
-  if (q.key === 'ruin')
-    return { text: 'Search the ruin where the key lies', dir: toWorld({ x: q.keyTile % W, y: Math.floor(q.keyTile / W) }) };
+  if (q.key === 'ruin') return { text: 'Search the ruin where the key lies', dir: toWorld(keyRuin(s)) };
   return { text: 'Find the key to the ' + vaultName, dir: null };
 }
 function talkElder(s) {
@@ -228,15 +251,21 @@ function talkElder(s) {
     sp = (t.speech = []);
   if (!q.told) {
     q.told = true;
-    mark(s, v.x, v.y);
+    mark(s, v.x, v.y, v.area);
     const d = q.dest === 'beacon' ? s.goal : findSite(s, 'shrine');
-    mark(s, d.x, d.y);
-    const wm = worldMap(s);
-    for (const k in wm.sites)
-      if (wm.sites[k].sure) {
-        wm.sites[k].known = true;
-        mark(s, k % W, Math.floor(k / W));
-      }
+    mark(s, d.x, d.y, d.area);
+    // the springs their people use: the sure ones of every region the quest goes through
+    const kr = keyRuin(s),
+      bs = beastOf(s);
+    for (const id of new Set([HOME, townArea(s), v.area, d.area, kr && kr.area, bs && bs.area].filter(Boolean))) {
+      const wm = mapOf(s, id);
+      if (wm)
+        for (const k in wm.sites)
+          if (wm.sites[k].sure) {
+            wm.sites[k].known = true;
+            mark(s, k % W, Math.floor(k / W), id);
+          }
+    }
     sp.push(
       '"You came across the open ground alone? Then listen. ' +
         (q.dest === 'beacon'
@@ -261,16 +290,17 @@ function talkElder(s) {
       s.player.items.push(k);
       sp.push('"Here is the key. We have kept it three generations, and not one of us has dared use it."');
     } else if (q.key === 'beast') {
-      const c = worldMap(s).creatures.find((x) => x.id === q.beast);
+      const b = beastOf(s),
+        c = b && b.c;
       if (c) {
         c.seen = true;
-        mark(s, c.x, c.y);
+        mark(s, c.x, c.y, b.area);
         sp.push(
           '"The key is gone. The ' + spOf(s, c).name + ' took the last warden, key and all. Its lair is marked too. I am sorry."',
         );
       }
     } else {
-      mark(s, q.keyTile % W, Math.floor(q.keyTile / W));
+      mark(s, q.keyTile % W, Math.floor(q.keyTile / W), keyRuin(s).area);
       sp.push('"The key was buried with the last warden, in a ruin of theirs. I have marked that as well."');
     }
     const left = AXES.filter((a) => !s.civKnown[a]);
@@ -384,22 +414,29 @@ function unlock(s) {
   return true;
 }
 /* Going in and out of places */
-function enterTown(s) {
-  const d = townDoor(s),
-    st = s.sites[idx(s.town.x, s.town.y)];
-  if (s.over || s.area !== HOME || s.player.x !== d.x || s.player.y !== d.y) return false;
-  enterArea(s, 'town', { kind: 'town', indoor: true, name: s.town.name }, TOWN_GATE);
+// Walking into the town's block at outdoor tile (ox, oy): you arrive on the facing edge of the town, or `at` if the view
+// gives the exact tile (it must be on that edge). A wall there turns you back.
+function enterTown(s, ox, oy, at) {
+  const st = s.sites[idx(s.town.x, s.town.y)];
+  if (s.over || s.area !== townArea(s) || !inTownBlock(s, ox, oy)) return false;
+  let p = townEntry(s, s.player.x, s.player.y, ox, oy);
+  if (at && (at.x === p.x || at.y === p.y) && at.x >= 0 && at.y >= 0 && at.x < W && at.y < H) p = { x: at.x, y: at.y };
+  if (mapOf(s, 'town').terrain[idx(p.x, p.y)] === WALL) {
+    say(s, 'The wall of ' + s.town.name + '. ' + (s.town.walled ? 'Its gates are where the streets meet the wall.' : ''));
+    return false;
+  }
+  enterArea(s, 'town', { kind: 'town', indoor: true, name: s.town.name }, p);
   if (!st.entered) {
     st.entered = true;
     gainXp(s, 20);
+    say(
+      s,
+      'You walk into ' +
+        s.town.name +
+        '.' +
+        (s.quest.told ? '' : ' The elder will be at the hall on the north side of the square.'),
+    );
   }
-  say(
-    s,
-    'You pass the gate of ' +
-      s.town.name +
-      '.' +
-      (s.quest.told ? '' : ' The elder will be at the hall on the north side of the square.'),
-  );
   return true;
 }
 const vaultLevelId = (n) => 'vault' + n;
@@ -435,15 +472,15 @@ function goDown(s) {
   say(s, 'Level ' + n + ' of ' + floors.length + (n === floors.length ? '. The air is older here.' : '.'));
   return true;
 }
-// Out through the gate: always onto the tile south of it, whatever way the town was entered.
-function leaveTown(s) {
+// Off any edge of the town: onto the outdoor tile beside its block, at the matching place.
+function leaveTown(s, dx, dy) {
   if (s.over || areaRec(s).kind !== 'town') return false;
+  if (dx === undefined) dy = 1; // the old way out, from a gate site in a town made before towns were open
+  const o = townExit(s, s.player.x, s.player.y, dx || 0, dy || 0);
   leaveArea(s);
-  const d = townDoor(s);
-  s.player.x = d.x;
-  s.player.y = d.y;
-  s.lastGround = s.terrain[idx(d.x, d.y)];
-  say(s, 'You leave ' + s.town.name + ' by the south gate.');
+  s.player.x = o.x;
+  s.player.y = o.y;
+  s.lastGround = s.terrain[idx(o.x, o.y)];
   return true;
 }
 function goUp(s) {
@@ -471,6 +508,8 @@ export {
   atTown,
   mark,
   findSite,
+  keyRuin,
+  beastOf,
   itemValue,
   buyPrice,
   priceOf,
