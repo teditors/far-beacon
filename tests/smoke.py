@@ -119,7 +119,13 @@ async def main():
         assert crossed, 'could not walk into the next region'
         st = await pg.evaluate("()=>{const g=window.__g,S=g.S;return {x:S.player.x,px:g.P.x,area:S.area,biome:S.biome}}")
         assert st['x'] < 8 and st['px'] < -280, 'did not arrive on the west edge of the next region: %r' % st
-        await shot('7-next-region'); steps.append('cross a border (' + st['area'] + ', ' + st['biome'] + ')')
+        # the new land is built over the next frames, a few milliseconds each, while the old one stands in; then swapped
+        for _ in range(60):
+            if await pg.evaluate("()=>{const v=window.__g.V;return v.shift&&v.shift.x===0&&v.shift.z===0}"): break
+            await pg.wait_for_timeout(100)
+        sp = await pg.evaluate("()=>window.__g.PF.parts")
+        assert 'spread' in sp and sp['frames'] > 3 and sp['longest'] < 40, 'the new land was not built over several frames: %r' % sp
+        await shot('7-next-region'); steps.append('cross a border (' + st['area'] + ', ' + st['biome'] + ', built over %d frames, at most %d ms each)' % (sp['frames'], sp['longest']))
         # another town: walk in from the south, talk to its elder
         tid = await pg.evaluate("()=>{const g=window.__g,S=g.S,t=S.towns[0],d=Rules.townDoor(S,t);Rules.travelTo(S,t.area,d.x,d.y);S.creatures.length=0;S.combat=null;S.player.stamina=100;g.refresh();const a=g.V.townAt;g.P.x=a.x+1.9;g.P.z=a.z+80;g.P.yaw=0;g.P.pitch=0;return g.V.townId===t.id?t.id:'wrong town in view: '+g.V.townId}")
         assert tid.startswith('t_'), tid

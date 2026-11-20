@@ -16,6 +16,7 @@ crafting and trade, a little light and weather, and two small things of my own. 
 | C3.6 | Trade between towns: goods cheap where made, dear elsewhere, moved by the year | `trade` | pearl, if people trade |
 | C3.7 | Light, sky and weather: shaded sky, sun and moon, ground grain, rain and snow; eyes show temper | (view) | maybe-to-pearl |
 | C3.8 | Townsfolk tell of other towns' troubles; the dead keep their materials | `plots`, `crafting` | small |
+| C3.9 | After Andrew's phone numbers: the meter shows work per frame; crossing a border is built over many frames, no hitch | (view) | pearl |
 
 **Performance, before and after** (`tools/bench.py`, software renderer at 412 x 915, three seeds; slow in absolute
 terms, comparable across rows):
@@ -51,7 +52,7 @@ wins 10% of relic worlds as before. The bot now plays any great trouble, makes t
 2. Teach the bot side troubles and trade runs, so the playtest measures the whole game, not just the great trouble.
 3. Balance the great troubles against each other (the curse is won 37% of the time, the cult 7%), and add a few more
    (a dragon's hoard to buy back, a flood, a lost caravan), now that a plot is mostly data.
-4. Build the next region's land ahead on a quiet frame, so crossing a border never hitches even on High.
+4. Done in C3.9: crossing a border no longer hitches.
 5. Textures on walls and buildings, from the same cheap pattern as the ground's grain; people who travel the roads
    between towns (caravans you can meet).
 6. When merging to main as v0.14, a CHANGELOG row (I left CHANGELOG.md alone, as the earlier commissions did until
@@ -67,6 +68,36 @@ should; crafting before trade, so materials could be sold.
 Newest entry first. Performance numbers are from `tools/bench.py` (a real browser on a software renderer at 412 x 915,
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
+
+## C3.9: margin on the phone: the meter shows the work, and borders no longer hitch
+
+**From Andrew's phone** (Pixel 11 XL, High and Medium): 60 fps, 16.7 ms a frame, worst 19 ms, 103 / 28 draw calls,
+281k / 148k triangles, a scene build of 94 / 104 ms, a 31 KB save, 15 MB of heap. He plays on High without trouble.
+
+**What it showed.** Both settings sit exactly on the screen's 60 frames a second, so the frame time cannot show the
+margin: the phone waits for the screen either way. The one real cost is the build: crossing a border froze the game
+for about a tenth of a second (six frames).
+
+**What changed.**
+- The meter now shows **work**: the milliseconds each frame actually spends (moving, the rules, handing the scene to
+  the GPU), as a share of the frame, and the worst of the last half second. That is the margin. (The GPU's own time is
+  not visible to the page; if the work is low and the frame rate still drops, that is where the time went.) After a
+  build it also shows its parts (land, ground, trees, places), or for a build spread over frames, its total, how many
+  frames it took and the most any one frame spent on it.
+- **Crossing a border no longer hitches.** The old land is the right land for a moment: the new region lay in its
+  margin. So it stays on screen, moved one region over, while the new land is built a few milliseconds a frame (at
+  most 5 ms of work a frame, `BUILD_BUDGET` in run.js) and swapped in when done (`buildStaticSoon` / `stepBuild` in
+  scene.js; the land build is now a generator, `buildLand`, that pauses every few rows). The swap cannot be seen. On
+  the test machine a crossing used to stop one frame for 74 ms (Medium) or 141 ms (High); now it is spread over 17 or
+  30 frames, none spending more than 6 ms on it. Entering a town or the locked place, loading and changing quality
+  still build at once (they change the scene anyway).
+- The ground mesh is built directly instead of through three's PlaneGeometry, with no unused normals and nothing to
+  rotate afterwards, which also made the whole build about a quarter faster.
+
+**For Andrew to check:** with the meter on, the second line should read a few milliseconds of work (a few percent of
+the frame) while walking, and crossing a border should no longer show a long worst frame.
+
+**Commits.** "No hitch at borders, and the meter shows the work each frame". No switch: the view.
 
 ## C3.8: word of other towns' troubles, and what the dead carried
 

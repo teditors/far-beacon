@@ -78,12 +78,22 @@ function landAround(s) {
   return land;
 }
 
+// The land, built all at once.
 function makeTerrain(s) {
+  const g = makeTerrainG(s);
+  let r;
+  while (!(r = g.next()).done);
+  return r.value;
+}
+// The land, built a little at a time: it yields every few rows of its height grids, so a caller with a budget of a few
+// milliseconds a frame can spread it over several frames (see buildStaticSoon in scene.js).
+function* makeTerrainG(s) {
   setDetail();
   const land = landAround(s),
     r = mulberry(s.seed ^ 0x51f15e),
     T = new Float32Array(4096);
   for (let i = 0; i < 4096; i++) T[i] = r();
+  yield;
   // Smooth noise that repeats at the size of the world, so the ground has no seam anywhere, wrap-around included.
   // `per` is how many noise cells cross one region.
   const noise = (per, salt) => {
@@ -119,6 +129,7 @@ function makeTerrain(s) {
       (g[(iz + 1) * EW + ix] * (1 - tx) + g[(iz + 1) * EW + ix + 1] * tx) * tz
     );
   };
+  yield;
   const lv = new Float32Array(EW * EW);
   for (let y = 0; y < EW; y++)
     for (let x = 0; x < EW; x++) {
@@ -141,7 +152,9 @@ function makeTerrain(s) {
     const f = field(g, false);
     return (x, z) => clamp((f(x, z) - 0.3) / 0.4, 0, 1);
   };
+  yield;
   const masks = [mask(3), mask(4), mask(5)];
+  yield;
   const tileOf = (x) => Math.floor((x + HALF) / TS), // the tile under a point; outside 0..W-1 it is a neighbour's
     etile = (x, z) => clamp(tileOf(z) + MARGIN, 0, EW - 1) * EW + clamp(tileOf(x) + MARGIN, 0, EW - 1),
     roadAt = (x, z) => land.road[etile(x, z)];
@@ -164,6 +177,7 @@ function makeTerrain(s) {
       }
     return field(g, false);
   });
+  yield;
   const raw = (x, z) => {
     const l = level(x, z);
     return (
@@ -172,19 +186,21 @@ function makeTerrain(s) {
   };
   // two height grids: fine over the player's region, coarse over everything drawn
   // (the coarse grid skips the middle, which is never drawn or sampled from it)
-  const grid = (n, half, cell, hole) => {
+  const grid = function* (n, half, cell, hole) {
     const h = new Float32Array((n + 1) * (n + 1));
-    for (let iz = 0; iz <= n; iz++)
+    for (let iz = 0; iz <= n; iz++) {
       for (let ix = 0; ix <= n; ix++) {
         const x = -half + ix * cell,
           z = -half + iz * cell;
         if (Math.abs(x) < hole && Math.abs(z) < hole) continue;
         h[iz * (n + 1) + ix] = raw(x, z);
       }
+      if ((iz & 7) === 7) yield; // a pause every eight rows, for a build spread over frames
+    }
     return { h, n, half, cell };
   };
-  const fine = grid(N, HALF, CELL, 0),
-    coarse = grid(NC, EHALF, CC, HALF - 4 * CC);
+  const fine = yield* grid(N, HALF, CELL, 0),
+    coarse = yield* grid(NC, EHALF, CC, HALF - 4 * CC);
   // a level pad as wide as what stands there, then a slope that eases back into the land around it
   const padInto = (g, site) => {
     const cx = (site.x + 0.5) * TS - HALF,
@@ -206,6 +222,7 @@ function makeTerrain(s) {
       }
   };
   for (const site of land.sites) {
+    yield;
     padInto(fine, site);
     padInto(coarse, site);
   }
@@ -234,4 +251,4 @@ function makeTerrain(s) {
   return { land, fine, coarse, height, level, tint, masks, roadAt, share, tileRand, etile, tileOf, inside };
 }
 
-export { makeTerrain, MARGIN, EW, EHALF, CC, NC, N, CELL, SINK, PAD };
+export { makeTerrain, makeTerrainG, MARGIN, EW, EHALF, CC, NC, N, CELL, SINK, PAD };

@@ -9628,10 +9628,11 @@
     land.biomes = biomes.map((id) => R.byId(R.C.biomes, id));
     return land;
   }
-  function makeTerrain(s) {
+  function* makeTerrainG(s) {
     setDetail();
     const land = landAround(s), r = mulberry2(s.seed ^ 5370206), T2 = new Float32Array(4096);
     for (let i = 0; i < 4096; i++) T2[i] = r();
+    yield;
     const noise = (per, salt) => {
       const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T2[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
       return (x, z) => {
@@ -9644,6 +9645,7 @@
       const fx = clamp2((x + HALF) / TS - 0.5 + MARGIN, 0, EW - 1.001), fz = clamp2((z + HALF) / TS - 0.5 + MARGIN, 0, EW - 1.001), ix = Math.floor(fx), iz = Math.floor(fz), tx = ease ? smooth(fx - ix) : fx - ix, tz = ease ? smooth(fz - iz) : fz - iz;
       return (g[iz * EW + ix] * (1 - tx) + g[iz * EW + ix + 1] * tx) * (1 - tz) + (g[(iz + 1) * EW + ix] * (1 - tx) + g[(iz + 1) * EW + ix + 1] * tx) * tz;
     };
+    yield;
     const lv = new Float32Array(EW * EW);
     for (let y = 0; y < EW; y++)
       for (let x = 0; x < EW; x++) {
@@ -9664,7 +9666,9 @@
       const f = field(g, false);
       return (x, z) => clamp2((f(x, z) - 0.3) / 0.4, 0, 1);
     };
+    yield;
     const masks = [mask(3), mask(4), mask(5)];
+    yield;
     const tileOf = (x) => Math.floor((x + HALF) / TS), etile = (x, z) => clamp2(tileOf(z) + MARGIN, 0, EW - 1) * EW + clamp2(tileOf(x) + MARGIN, 0, EW - 1), roadAt = (x, z) => land.road[etile(x, z)];
     const share = land.biomes.map((_, b) => {
       const g = new Float32Array(EW * EW), t = new Float32Array(EW * EW), B = 3;
@@ -9682,21 +9686,24 @@
         }
       return field(g, false);
     });
+    yield;
     const raw = (x, z) => {
       const l = level(x, z);
       return (l <= 1 ? l * 15 : 15 + (l - 1) * 34) + 14 * nBig(x, z) + 7 * nMid(x, z) * Math.max(0.15, 0.4 + l * 0.6) + 1.6 * nFine(x, z);
     };
-    const grid = (n, half, cell, hole) => {
+    const grid = function* (n, half, cell, hole) {
       const h = new Float32Array((n + 1) * (n + 1));
-      for (let iz = 0; iz <= n; iz++)
+      for (let iz = 0; iz <= n; iz++) {
         for (let ix = 0; ix <= n; ix++) {
           const x = -half + ix * cell, z = -half + iz * cell;
           if (Math.abs(x) < hole && Math.abs(z) < hole) continue;
           h[iz * (n + 1) + ix] = raw(x, z);
         }
+        if ((iz & 7) === 7) yield;
+      }
       return { h, n, half, cell };
     };
-    const fine = grid(N2, HALF, CELL2, 0), coarse = grid(NC, EHALF, CC, HALF - 4 * CC);
+    const fine = yield* grid(N2, HALF, CELL2, 0), coarse = yield* grid(NC, EHALF, CC, HALF - 4 * CC);
     const padInto = (g, site) => {
       const cx = (site.x + 0.5) * TS - HALF, cz = (site.y + 0.5) * TS - HALF, ci = Math.round((cx + g.half) / g.cell), cj = Math.round((cz + g.half) / g.cell), flat = Math.max(PAD[site.st.kind] || 8, g.cell * 1.1), rad = flat + 13, n = Math.ceil(rad / g.cell), h0 = raw(cx, cz) - (site.st.kind === "spring" ? 1.2 : 0);
       for (let j = -n; j <= n; j++)
@@ -9708,6 +9715,7 @@
         }
     };
     for (const site of land.sites) {
+      yield;
       padInto(fine, site);
       padInto(coarse, site);
     }
@@ -9724,12 +9732,33 @@
   }
 
   // src/view/perf.js
-  var PF = { frames: 0, t0: 0, last: 0, worst: 0, sum: 0, calls: 0, tris: 0, build: 0, builds: [], save: 0, el: null };
+  var PF = {
+    work: 0,
+    workWorst: 0,
+    workN: 0,
+    parts: {},
+    frames: 0,
+    t0: 0,
+    last: 0,
+    worst: 0,
+    sum: 0,
+    calls: 0,
+    tris: 0,
+    build: 0,
+    builds: [],
+    save: 0,
+    el: null
+  };
   var fmtK = (n) => n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n);
   function perfBuild(ms) {
     PF.build = ms;
     PF.builds.push(ms);
     if (PF.builds.length > 20) PF.builds.shift();
+  }
+  function perfWork(ms) {
+    PF.work += ms;
+    PF.workN++;
+    PF.workWorst = Math.max(PF.workWorst, ms);
   }
   function perfSave(bytes) {
     PF.save = bytes;
@@ -9757,11 +9786,13 @@
     }
     PF.el.hidden = false;
     const fps = PF.frames ? 1e3 * PF.frames / PF.sum : 0, mem = performance.memory ? " | heap " + Math.round(performance.memory.usedJSHeapSize / 1048576) + " MB" : "";
-    PF.el.textContent = Math.round(fps) + " fps | " + (PF.frames ? (PF.sum / PF.frames).toFixed(1) : "-") + " ms, worst " + Math.round(PF.worst) + "\n" + PF.calls + " draws | " + fmtK(PF.tris) + " tris | build " + Math.round(PF.build) + " ms\nsave " + Math.round(PF.save / 1024) + " KB" + mem + " | " + SET.quality;
+    const avg = PF.frames ? PF.sum / PF.frames : 16.7, work = PF.workN ? PF.work / PF.workN : 0, parts2 = Object.keys(PF.parts).map((k) => k + " " + Math.round(PF.parts[k])).join(", ");
+    PF.el.textContent = Math.round(fps) + " fps | " + avg.toFixed(1) + " ms, worst " + Math.round(PF.worst) + "\nwork " + work.toFixed(1) + " ms (" + Math.round(100 * work / Math.max(avg, 16.7)) + "% of the frame), worst " + Math.round(PF.workWorst) + "\n" + PF.calls + " draws | " + fmtK(PF.tris) + " tris | build " + Math.round(PF.build) + " ms" + (parts2 ? "\n(" + parts2 + ")" : "") + "\nsave " + Math.round(PF.save / 1024) + " KB" + mem + " | " + SET.quality;
     PF.t0 = now;
     PF.frames = 0;
     PF.sum = 0;
     PF.worst = 0;
+    PF.work = PF.workN = PF.workWorst = 0;
   }
 
   // src/view/scene.js
@@ -10184,7 +10215,8 @@
     FR.y = inTown2 ? V.townAt.y : 0;
     FR.z = inTown2 ? V.townAt.z : 0;
     setGeometry(inTown2 ? "town" : "region");
-    staticGroup.position.set(-FR.x, -FR.y, -FR.z);
+    const sh = V.shift || { x: 0, z: 0 };
+    staticGroup.position.set(-FR.x - sh.x, -FR.y, -FR.z - sh.z);
     V.terrain = inTown2 ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
   }
   function buildStatic() {
@@ -10193,19 +10225,90 @@
     perfBuild(performance.now() - t0);
   }
   function buildStaticInner() {
-    dispose(staticGroup);
-    staticGroup = new THREE.Group();
-    scene.add(staticGroup);
-    V.townAt = null;
+    pending = null;
+    V.raw = null;
+    V.shift = { x: 0, z: 0 };
     if (R.areaRec(V.S).kind === "vault") {
+      dispose(staticGroup);
+      staticGroup = new THREE.Group();
+      scene.add(staticGroup);
+      V.townAt = V.townId = null;
+      V.towns = [];
       setGeometry("vault");
       FR.x = FR.y = FR.z = 0;
       V.base = V.terrain = FLAT;
       staticGroup.add(interiorGroup(V.S, R.areaRec(V.S), G2.ts));
       return;
     }
-    V.base = makeTerrain(V.S);
-    const T2 = V.base, land = T2.land, pal = land.biomes.map((b) => ({
+    const g = buildLand(V.S, true);
+    let r;
+    while (!(r = g.next()).done) ;
+    install(r.value);
+  }
+  function install(res) {
+    dispose(staticGroup);
+    staticGroup = res.group;
+    scene.add(staticGroup);
+    V.base = res.base;
+    V.towns = res.towns;
+    V.raw = null;
+    V.shift = { x: 0, z: 0 };
+    townsHere();
+    applyFrame();
+  }
+  function townsHere() {
+    const t = R.townInRegion(V.S, R.outdoorRec(V.S).id), id = t ? t.id || "town" : null, w = (V.towns || []).find((x) => x.id === id);
+    V.townAt = w ? { x: w.x - V.shift.x, y: w.y, z: w.z - V.shift.z } : null;
+    V.townId = w ? id : null;
+  }
+  var pending = null;
+  function buildStaticSoon(rx, rz) {
+    if (R.areaRec(V.S).kind === "vault" || !V.base || V.base === FLAT) return buildStatic();
+    if (!V.raw) V.raw = V.base;
+    const d = { x: V.shift.x + rx * 2 * HALF, z: V.shift.z + rz * 2 * HALF }, o = V.raw;
+    V.shift = d;
+    V.base = {
+      land: o.land,
+      height: (x, z) => o.height(x + d.x, z + d.z),
+      level: (x, z) => o.level(x + d.x, z + d.z),
+      share: o.share && o.share.map((f) => (x, z) => f(x + d.x, z + d.z))
+    };
+    townsHere();
+    applyFrame();
+    pending = { gen: buildLand(V.S, false), busy: 0 };
+  }
+  function stepBuild(budget) {
+    if (!pending) return false;
+    const t0 = performance.now();
+    let r;
+    do
+      r = pending.gen.next();
+    while (!r.done && performance.now() - t0 < budget);
+    pending.busy += performance.now() - t0;
+    pending.slices = (pending.slices || 0) + 1;
+    pending.longest = Math.max(pending.longest || 0, performance.now() - t0);
+    if (!r.done) return true;
+    const busy = pending.busy, longest = pending.longest, slices = pending.slices;
+    pending = null;
+    install(r.value);
+    perfBuild(busy);
+    PF.parts = { spread: busy, frames: slices, longest };
+    buildDynamic();
+    return true;
+  }
+  function* buildLand(S, timed) {
+    const group = new THREE.Group();
+    let tp = performance.now();
+    const part = (k) => {
+      if (!timed) return;
+      const n = performance.now();
+      PF.parts[k] = n - tp;
+      tp = n;
+    };
+    const base = yield* makeTerrainG(S);
+    part("land");
+    yield;
+    const T2 = base, land = T2.land, pal = land.biomes.map((b) => ({
       cols: b.colors.map((c2) => new THREE.Color(c2)),
       lush: new THREE.Color(b.lush !== void 0 ? b.lush : b.id === "taiga" ? 6126200 : 6261317)
     })), paved = new THREE.Color(9210502), c = new THREE.Color(), cb = new THREE.Color(), lush = new THREE.Color(), centre = (t) => (t + 0.5) * TS - HALF, springs = land.sites.filter((q2) => q2.st.kind === "spring").map((q2) => ({ x: centre(q2.x), z: centre(q2.y) }));
@@ -10249,27 +10352,47 @@
       }
       return c;
     };
-    const ground = (g, sink, hollow) => {
-      const geo = new THREE.PlaneGeometry(g.half * 2, g.half * 2, g.n, g.n);
-      geo.rotateX(-Math.PI / 2);
-      const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), keep = HALF - g.cell * 1.5;
-      for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i), z = pos.getZ(i);
-        pos.setY(i, g.h[Math.round((z + g.half) / g.cell) * (g.n + 1) + Math.round((x + g.half) / g.cell)] - sink);
-        if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue;
-        const k = colourAt(x, z);
-        col[i * 3] = k.r;
-        col[i * 3 + 1] = k.g;
-        col[i * 3 + 2] = k.b;
+    const ground = function* (g, sink, hollow) {
+      const n = g.n, N1 = n + 1, cnt = N1 * N1, P4 = new Float32Array(cnt * 3), UV = new Float32Array(cnt * 2), col = new Float32Array(cnt * 3), keep = HALF - g.cell * 1.5, inner = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+      for (let iz = 0; iz <= n; iz++) {
+        const z = -g.half + iz * g.cell;
+        for (let ix = 0; ix <= n; ix++) {
+          const x = -g.half + ix * g.cell, k = iz * N1 + ix;
+          P4[k * 3] = x;
+          P4[k * 3 + 1] = g.h[k] - sink;
+          P4[k * 3 + 2] = z;
+          UV[k * 2] = ix / n;
+          UV[k * 2 + 1] = 1 - iz / n;
+          if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue;
+          const c2 = colourAt(x, z);
+          col[k * 3] = c2.r;
+          col[k * 3 + 1] = c2.g;
+          col[k * 3 + 2] = c2.b;
+        }
+        if ((iz & 3) === 3) yield;
       }
-      if (hollow) {
-        const ix = geo.index.array, out = [], inner = (i) => Math.abs(pos.getX(i)) < keep && Math.abs(pos.getZ(i)) < keep;
-        for (let i = 0; i < ix.length; i += 3)
-          if (!(inner(ix[i]) && inner(ix[i + 1]) && inner(ix[i + 2]))) out.push(ix[i], ix[i + 1], ix[i + 2]);
-        geo.setIndex(out);
-      }
+      const idx2 = new Uint32Array(n * n * 6);
+      let m2 = 0;
+      for (let iz = 0; iz < n; iz++)
+        for (let ix = 0; ix < n; ix++) {
+          const a = iz * N1 + ix, b = a + N1, c2 = b + 1, d = a + 1, za = -g.half + iz * g.cell, xa = -g.half + ix * g.cell, zb = za + g.cell, xd = xa + g.cell;
+          if (!hollow || !(inner(xa, za) && inner(xa, zb) && inner(xd, za))) {
+            idx2[m2++] = a;
+            idx2[m2++] = b;
+            idx2[m2++] = d;
+          }
+          if (!hollow || !(inner(xa, zb) && inner(xd, zb) && inner(xd, za))) {
+            idx2[m2++] = b;
+            idx2[m2++] = c2;
+            idx2[m2++] = d;
+          }
+        }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(P4, 3));
+      geo.setAttribute("uv", new THREE.BufferAttribute(UV, 2));
+      geo.setIndex(new THREE.BufferAttribute(idx2.subarray(0, m2), 1));
+      yield;
       geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-      geo.computeVertexNormals();
       const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
       if (Q.grain) {
         const tex = GRAIN.clone();
@@ -10277,10 +10400,11 @@
         tex.repeat.set(g.half * 2 / 6, g.half * 2 / 6);
         mat.map = tex;
       }
-      staticGroup.add(new THREE.Mesh(geo, mat));
+      group.add(new THREE.Mesh(geo, mat));
     };
-    ground(T2.fine, 0, false);
-    ground(T2.coarse, SINK, true);
+    yield* ground(T2.fine, 0, false);
+    yield* ground(T2.coarse, SINK, true);
+    part("ground");
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []);
     const townHalf = R.W * TOWN_TS / 2, towns = land.sites.filter((q2) => q2.st.kind === "town").map((q2) => ({
       id: q2.st.town || "town",
@@ -10289,12 +10413,6 @@
       y: T2.height(centre(q2.x), centre(q2.y)),
       z: centre(q2.y)
     }));
-    V.townId = null;
-    for (const t of towns)
-      if (t.here) {
-        V.townAt = { x: t.x, y: t.y, z: t.z };
-        V.townId = t.id;
-      }
     const nearSite = (x, z) => {
       for (const t of towns) if (Math.abs(x - t.x) < townHalf + 4 && Math.abs(z - t.z) < townHalf + 4) return true;
       const site = land.siteAt[T2.etile(x, z)];
@@ -10308,7 +10426,8 @@
       m.compose(v, q, sc);
       for (let i = 0; i < 16; i++) list.push(m.elements[i]);
     };
-    for (let ey = 0; ey < EW; ey++)
+    for (let ey = 0; ey < EW; ey++) {
+      if ((ey & 3) === 3) yield;
       for (let ex = 0; ex < EW; ex++) {
         const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land.biome[en], bio = land.biomes[bi], r = T2.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8, rockShare = far ? Q.rocksF : Q.rocksN;
         for (let n = Math.floor((bio.rocky !== void 0 ? bio.rocky : bio.id === "salt" ? 0.62 : 0.35) + r()); n > 0; n--) {
@@ -10332,18 +10451,22 @@
           for (let i = 0; i < 16; i++) trees[bi].push(m.elements[i]);
         }
       }
+    }
+    part("trees");
     const instances = (geom, mat, list) => {
       if (!list.length) return;
       const inst = new THREE.InstancedMesh(geom, mat, list.length / 16);
       inst.instanceMatrix.array.set(list);
       inst.frustumCulled = false;
-      staticGroup.add(inst);
+      group.add(inst);
     };
+    yield;
     pal.forEach((p, bi) => {
       instances(new THREE.IcosahedronGeometry(1, 0), std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
       instances(TREE, std(land.biomes[bi].forest.tree.color), trees[bi]);
     });
     for (const site of land.sites) {
+      if (site.st.kind !== "spring") yield;
       const st = site.st, x = centre(site.x), z = centre(site.y);
       if (st.kind === "spring") {
         if (site.here) continue;
@@ -10352,24 +10475,25 @@
           new THREE.MeshBasicMaterial({ color: 4165568 })
         );
         w.position.set(x, T2.height(x, z) + 0.3, z);
-        staticGroup.add(w);
+        group.add(w);
         continue;
       }
       if (st.kind === "town") {
         const id = st.town || "town", tw = towns.find((t) => t.id === id);
-        if (!V.S.areas[id] || !R.mapOf(V.S, id) || !tw) continue;
-        const g2 = interiorGroup(R.mapOf(V.S, id), V.S.areas[id], TOWN_TS);
+        if (!S.areas[id] || !R.mapOf(S, id) || !tw) continue;
+        const g2 = interiorGroup(R.mapOf(S, id), S.areas[id], TOWN_TS);
         g2.position.set(tw.x, tw.y, tw.z);
-        staticGroup.add(g2);
+        group.add(g2);
         continue;
       }
       if (!BUILD[st.kind]) continue;
-      const g = BUILD[st.kind](V.S);
+      const g = BUILD[st.kind](S);
       g.position.set(x, T2.height(x, z), z);
       if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
-      staticGroup.add(g);
+      group.add(g);
     }
-    applyFrame();
+    part("places");
+    return { group, base, towns };
   }
   function buildDynamic() {
     dispose(dynGroup);
@@ -10809,7 +10933,7 @@
         P3.y += was.y - FR.y;
         shown.area = V.S.area;
       } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {
-        buildStatic();
+        buildStaticSoon(Math.floor(tx / R.W), Math.floor(tz / R.H));
         shown.area = V.S.area;
         shown.land = landKey();
         nx -= Math.floor(tx / R.W) * 2 * G2.half;
@@ -10889,13 +11013,17 @@
   }
   var last = performance.now();
   var frameDt = 0.016;
+  var BUILD_BUDGET = 5;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1e3);
     frameDt = dt;
     last = now;
     if (V.S) {
+      const t0 = performance.now();
       tick(dt, now);
+      stepBuild(BUILD_BUDGET);
       frame();
+      perfWork(performance.now() - t0);
     }
     requestAnimationFrame(loop);
   }

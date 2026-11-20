@@ -1,8 +1,8 @@
 /* The 3D scene: lights, models, and the static and moving parts of the world. */
 import { $, FR, G, HALF, P, R, TOWN_TS, TS, V, setGeometry } from './ctx.js';
-import { EW, MARGIN, PAD, SINK, makeTerrain } from './terrain.js';
+import { EW, MARGIN, PAD, SINK, makeTerrainG } from './terrain.js';
 import { Q } from './quality.js';
-import { perfBuild } from './perf.js';
+import { PF, perfBuild } from './perf.js';
 
 /* ---------- scene ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: Q.aa, powerPreference: 'high-performance' });
@@ -492,7 +492,8 @@ function applyFrame() {
   FR.y = inTown ? V.townAt.y : 0;
   FR.z = inTown ? V.townAt.z : 0;
   setGeometry(inTown ? 'town' : 'region');
-  staticGroup.position.set(-FR.x, -FR.y, -FR.z);
+  const sh = V.shift || { x: 0, z: 0 };
+  staticGroup.position.set(-FR.x - sh.x, -FR.y, -FR.z - sh.z);
   V.terrain = inTown ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
 }
 function buildStatic() {
@@ -501,19 +502,104 @@ function buildStatic() {
   perfBuild(performance.now() - t0);
 }
 function buildStaticInner() {
-  dispose(staticGroup);
-  staticGroup = new THREE.Group();
-  scene.add(staticGroup);
-  V.townAt = null;
+  pending = null;
+  V.raw = null;
+  V.shift = { x: 0, z: 0 };
   if (R.areaRec(V.S).kind === 'vault') {
+    dispose(staticGroup);
+    staticGroup = new THREE.Group();
+    scene.add(staticGroup);
+    V.townAt = V.townId = null;
+    V.towns = [];
     setGeometry('vault');
     FR.x = FR.y = FR.z = 0;
     V.base = V.terrain = FLAT;
     staticGroup.add(interiorGroup(V.S, R.areaRec(V.S), G.ts));
     return;
   }
-  V.base = makeTerrain(V.S);
-  const T = V.base,
+  const g = buildLand(V.S, true);
+  let r;
+  while (!(r = g.next()).done);
+  install(r.value);
+}
+// Put a finished land on screen in place of the old one.
+function install(res) {
+  dispose(staticGroup);
+  staticGroup = res.group;
+  scene.add(staticGroup);
+  V.base = res.base;
+  V.towns = res.towns;
+  V.raw = null;
+  V.shift = { x: 0, z: 0 };
+  townsHere();
+  applyFrame();
+}
+// The town of the player's region, which can be walked into, in the frame the player is in.
+function townsHere() {
+  const t = R.townInRegion(V.S, R.outdoorRec(V.S).id),
+    id = t ? t.id || 'town' : null,
+    w = (V.towns || []).find((x) => x.id === id);
+  V.townAt = w ? { x: w.x - V.shift.x, y: w.y, z: w.z - V.shift.z } : null;
+  V.townId = w ? id : null;
+}
+/* Crossing a border without a hitch. The old land is still the right land: the new region lay in its margin. So it
+   stays on screen, moved one region over, while the new land is built a few milliseconds a frame (stepBuild, called
+   from the frame loop); then the two are swapped. rx, rz: how many regions across and down the player moved. */
+let pending = null;
+function buildStaticSoon(rx, rz) {
+  if (R.areaRec(V.S).kind === 'vault' || !V.base || V.base === FLAT) return buildStatic();
+  if (!V.raw) V.raw = V.base; // the land the old group was built with, and its frame
+  const d = { x: V.shift.x + rx * 2 * HALF, z: V.shift.z + rz * 2 * HALF },
+    o = V.raw;
+  V.shift = d;
+  V.base = {
+    land: o.land,
+    height: (x, z) => o.height(x + d.x, z + d.z),
+    level: (x, z) => o.level(x + d.x, z + d.z),
+    share: o.share && o.share.map((f) => (x, z) => f(x + d.x, z + d.z)),
+  };
+  townsHere();
+  applyFrame();
+  pending = { gen: buildLand(V.S, false), busy: 0 };
+}
+// Spend up to `budget` milliseconds on the land being built; swap it in when it is done.
+function stepBuild(budget) {
+  if (!pending) return false;
+  const t0 = performance.now();
+  let r;
+  do r = pending.gen.next();
+  while (!r.done && performance.now() - t0 < budget);
+  pending.busy += performance.now() - t0;
+  pending.slices = (pending.slices || 0) + 1;
+  pending.longest = Math.max(pending.longest || 0, performance.now() - t0);
+  if (!r.done) return true;
+  const busy = pending.busy,
+    longest = pending.longest,
+    slices = pending.slices;
+  pending = null;
+  install(r.value);
+  perfBuild(busy);
+  // a build spread over frames: its total, how many frames it took, and the most any one frame spent on it
+  PF.parts = { spread: busy, frames: slices, longest };
+  buildDynamic();
+  return true;
+}
+// The land of the region the player is in (with its margin of the regions around), built into a group of its own and
+// returned with its height field and towns, touching nothing else: so it can be built all at once, or a little each
+// frame while the old land stays on screen (buildStaticSoon). It yields every so often.
+function* buildLand(S, timed) {
+  const group = new THREE.Group();
+  let tp = performance.now();
+  const part = (k) => {
+    if (!timed) return;
+    const n = performance.now();
+    PF.parts[k] = n - tp;
+    tp = n;
+  };
+  const base = yield* makeTerrainG(S);
+  part('land');
+  yield;
+  const T = base,
     land = T.land,
     pal = land.biomes.map((b) => ({
       cols: b.colors.map((c) => new THREE.Color(c)),
@@ -571,32 +657,67 @@ function buildStaticInner() {
     return c;
   };
   // One ground mesh from a height grid. The coarse one leaves out the middle, where the fine one lies.
-  const ground = (g, sink, hollow) => {
-    const geo = new THREE.PlaneGeometry(g.half * 2, g.half * 2, g.n, g.n);
-    geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position,
-      col = new Float32Array(pos.count * 3),
-      keep = HALF - g.cell * 1.5;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i),
-        z = pos.getZ(i);
-      pos.setY(i, g.h[Math.round((z + g.half) / g.cell) * (g.n + 1) + Math.round((x + g.half) / g.cell)] - sink);
-      if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue; // never drawn
-      const k = colourAt(x, z);
-      col[i * 3] = k.r;
-      col[i * 3 + 1] = k.g;
-      col[i * 3 + 2] = k.b;
+  // One ground mesh from a height grid, laid out the way three's PlaneGeometry would be (rows down the z axis), but
+  // built directly: no normals (flat shading takes each face's from the screen) and nothing to rotate afterwards. The
+  // coarse one leaves out the middle, where the fine one lies.
+  const ground = function* (g, sink, hollow) {
+    const n = g.n,
+      N1 = n + 1,
+      cnt = N1 * N1,
+      P = new Float32Array(cnt * 3),
+      UV = new Float32Array(cnt * 2),
+      col = new Float32Array(cnt * 3),
+      keep = HALF - g.cell * 1.5,
+      inner = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+    for (let iz = 0; iz <= n; iz++) {
+      const z = -g.half + iz * g.cell;
+      for (let ix = 0; ix <= n; ix++) {
+        const x = -g.half + ix * g.cell,
+          k = iz * N1 + ix;
+        P[k * 3] = x;
+        P[k * 3 + 1] = g.h[k] - sink;
+        P[k * 3 + 2] = z;
+        UV[k * 2] = ix / n;
+        UV[k * 2 + 1] = 1 - iz / n;
+        if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue; // never drawn
+        const c = colourAt(x, z);
+        col[k * 3] = c.r;
+        col[k * 3 + 1] = c.g;
+        col[k * 3 + 2] = c.b;
+      }
+      if ((iz & 3) === 3) yield;
     }
-    if (hollow) {
-      const ix = geo.index.array,
-        out = [],
-        inner = (i) => Math.abs(pos.getX(i)) < keep && Math.abs(pos.getZ(i)) < keep;
-      for (let i = 0; i < ix.length; i += 3)
-        if (!(inner(ix[i]) && inner(ix[i + 1]) && inner(ix[i + 2]))) out.push(ix[i], ix[i + 1], ix[i + 2]);
-      geo.setIndex(out);
-    }
+    const idx = new Uint32Array(n * n * 6);
+    let m = 0;
+    for (let iz = 0; iz < n; iz++)
+      for (let ix = 0; ix < n; ix++) {
+        const a = iz * N1 + ix,
+          b = a + N1,
+          c = b + 1,
+          d = a + 1,
+          za = -g.half + iz * g.cell,
+          xa = -g.half + ix * g.cell,
+          zb = za + g.cell,
+          xd = xa + g.cell;
+        // in the coarse ground, a triangle wholly under the fine ground is left out
+        if (!hollow || !(inner(xa, za) && inner(xa, zb) && inner(xd, za))) {
+          idx[m++] = a;
+          idx[m++] = b;
+          idx[m++] = d;
+        }
+        if (!hollow || !(inner(xa, zb) && inner(xd, zb) && inner(xd, za))) {
+          idx[m++] = b;
+          idx[m++] = c;
+          idx[m++] = d;
+        }
+      }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(P, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(UV, 2));
+    geo.setIndex(new THREE.BufferAttribute(idx.subarray(0, m), 1));
+    yield;
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    geo.computeVertexNormals();
+    // no vertex normals: flat shading takes each face's from the screen, so computing them would be wasted
     const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
     if (Q.grain) {
       // a fine pattern of light and dark in the ground, about every six metres, so near ground reads as ground
@@ -605,10 +726,11 @@ function buildStaticInner() {
       tex.repeat.set((g.half * 2) / 6, (g.half * 2) / 6);
       mat.map = tex;
     }
-    staticGroup.add(new THREE.Mesh(geo, mat));
+    group.add(new THREE.Mesh(geo, mat));
   };
-  ground(T.fine, 0, false);
-  ground(T.coarse, SINK, true);
+  yield* ground(T.fine, 0, false);
+  yield* ground(T.coarse, SINK, true);
+  part('ground');
   // Rocks and trees, tile by tile, from a source that depends only on where the tile is in the world.
   const m = new THREE.Matrix4(),
     q = new THREE.Quaternion(),
@@ -628,12 +750,6 @@ function buildStaticInner() {
         y: T.height(centre(q.x), centre(q.y)),
         z: centre(q.y),
       }));
-  V.townId = null;
-  for (const t of towns)
-    if (t.here) {
-      V.townAt = { x: t.x, y: t.y, z: t.z };
-      V.townId = t.id;
-    }
   const nearSite = (x, z) => {
     for (const t of towns) if (Math.abs(x - t.x) < townHalf + 4 && Math.abs(z - t.z) < townHalf + 4) return true;
     const site = land.siteAt[T.etile(x, z)];
@@ -647,7 +763,8 @@ function buildStaticInner() {
     m.compose(v, q, sc);
     for (let i = 0; i < 16; i++) list.push(m.elements[i]);
   };
-  for (let ey = 0; ey < EW; ey++)
+  for (let ey = 0; ey < EW; ey++) {
+    if ((ey & 3) === 3) yield;
     for (let ex = 0; ex < EW; ex++) {
       const x = ex - MARGIN,
         y = ey - MARGIN,
@@ -694,18 +811,22 @@ function buildStaticInner() {
         for (let i = 0; i < 16; i++) trees[bi].push(m.elements[i]);
       }
     }
+  }
+  part('trees');
   const instances = (geom, mat, list) => {
     if (!list.length) return;
     const inst = new THREE.InstancedMesh(geom, mat, list.length / 16);
     inst.instanceMatrix.array.set(list);
     inst.frustumCulled = false; // its instances are spread over the whole land
-    staticGroup.add(inst);
+    group.add(inst);
   };
+  yield;
   pal.forEach((p, bi) => {
     instances(new THREE.IcosahedronGeometry(1, 0), std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
     instances(TREE, std(land.biomes[bi].forest.tree.color), trees[bi]);
   });
   for (const site of land.sites) {
+    if (site.st.kind !== 'spring') yield;
     const st = site.st,
       x = centre(site.x),
       z = centre(site.y);
@@ -716,26 +837,27 @@ function buildStaticInner() {
         new THREE.MeshBasicMaterial({ color: 0x3f8fc0 }),
       );
       w.position.set(x, T.height(x, z) + 0.3, z);
-      staticGroup.add(w);
+      group.add(w);
       continue;
     }
     if (st.kind === 'town') {
       // the town itself, wall by wall, standing where it is
       const id = st.town || 'town',
         tw = towns.find((t) => t.id === id);
-      if (!V.S.areas[id] || !R.mapOf(V.S, id) || !tw) continue;
-      const g = interiorGroup(R.mapOf(V.S, id), V.S.areas[id], TOWN_TS);
+      if (!S.areas[id] || !R.mapOf(S, id) || !tw) continue;
+      const g = interiorGroup(R.mapOf(S, id), S.areas[id], TOWN_TS);
       g.position.set(tw.x, tw.y, tw.z);
-      staticGroup.add(g);
+      group.add(g);
       continue;
     }
     if (!BUILD[st.kind]) continue; // a kind of place with no model yet is still on the map
-    const g = BUILD[st.kind](V.S);
+    const g = BUILD[st.kind](S);
     g.position.set(x, T.height(x, z), z);
     if (st.kind !== 'beacon') g.rotation.y = (site.k % 7) * 0.9;
-    staticGroup.add(g);
+    group.add(g);
   }
-  applyFrame();
+  part('places');
+  return { group, base, towns };
 }
 // Everything that can change, for every area in view: outdoors that is the region and, if it stands here, the town.
 function buildDynamic() {
@@ -915,6 +1037,8 @@ export {
   dispose,
   BUILD,
   buildStatic,
+  buildStaticSoon,
+  stepBuild,
   buildDynamic,
   applyFrame,
   resize,

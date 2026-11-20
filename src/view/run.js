@@ -1,9 +1,21 @@
 /* Run control: saving, starting, acting, and the per-frame loop. */
 import { $, CODEX, EYE, FR, G, KEY, OLD_KEYS, P, R, TOWN_TS, TS, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
-import { applyFrame, buildDynamic, buildStatic, camera, hemi, lamp, renderer, scene, sun } from './scene.js';
+import {
+  applyFrame,
+  buildDynamic,
+  buildStatic,
+  buildStaticSoon,
+  camera,
+  hemi,
+  lamp,
+  renderer,
+  scene,
+  stepBuild,
+  sun,
+} from './scene.js';
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
 import { Q } from './quality.js';
-import { perfBuild, perfFrame, perfSave } from './perf.js';
+import { perfBuild, perfFrame, perfSave, perfWork } from './perf.js';
 import { hideSky, updateSky } from './sky.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
@@ -218,8 +230,9 @@ function tick(dt, now) {
       P.y += was.y - FR.y;
       shown.area = V.S.area;
     } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {
-      // crossed a border: same heading, same stride, on the facing edge of the next region
-      buildStatic();
+      // crossed a border: same heading, same stride, on the facing edge of the next region. The new land is built over
+      // the next few frames while the old one, moved over, stays on screen (buildStaticSoon), so there is no hitch.
+      buildStaticSoon(Math.floor(tx / R.W), Math.floor(tz / R.H));
       shown.area = V.S.area;
       shown.land = landKey();
       nx -= Math.floor(tx / R.W) * 2 * G.half;
@@ -308,13 +321,17 @@ function finishFrame() {
 }
 let last = performance.now();
 let frameDt = 0.016;
+const BUILD_BUDGET = 5; // milliseconds a frame for building the land after crossing a border
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   frameDt = dt;
   last = now;
   if (V.S) {
+    const t0 = performance.now();
     tick(dt, now);
+    stepBuild(BUILD_BUDGET);
     frame();
+    perfWork(performance.now() - t0);
   }
   requestAnimationFrame(loop);
 }
