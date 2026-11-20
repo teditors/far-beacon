@@ -563,6 +563,14 @@ section('Crafting', ['crafting'], () => {
   table(['Recipe', 'Needs', 'Minutes', 'Makes'], X.recipes.map((r) => [r.name, Object.keys(r.needs).map((k) => r.needs[k] + ' ' + (k === 'fuel' ? 'wood' : k)).join(', '), r.mins, r.text]));
 });
 
+section('Trade', ['trade'], () => {
+  const X = C.trade;
+  line('A town that makes a good sells it at ' + X.made + ' of its price and has ' + X.stock.join(' to ') + ' to sell; one that does not pays ' + X.wanted + ' times. Each town\'s prices wander ' + Math.round(X.wander * 100) + '% either way, and a town buys from you at ' + X.spread + ' of its own price. Materials from crafting sell in every town at their value.');
+  line();
+  table(['Good', 'Price', 'Weight', 'Made where'], X.goods.map((g) => [g.name, g.price, g.wt, JSON.stringify(g.made)]));
+  table(['Year', 'Prices'], Object.keys(X.year).map((y) => [y, JSON.stringify(X.year[y])]));
+});
+
 section('Plots', ['plots'], () => {
   const X = C.plots;
   line('Every world has one great trouble, told by the elder of the story\'s town; finishing it wins the world, with its own ending. When it is not the relic, the old story is still there, told on the next talk, and carrying the relic home pays ' + X.relicSide.coin + ' coin. Each other town may have a trouble of its own (' + X.side.join(' to ') + ' in a world), paying ' + X.reward.coin.join(' to ') + ' coin. A sickness and a great beast in one world: ' + Math.round(X.linkChance * 100) + '% of the time the cure is in the beast\'s hoard. Finishing a side trouble tells you of the next one ' + Math.round(X.chainChance * 100) + '% of the time. A town you crossed in a feud sells at ' + X.hostile.buy + ' times the price; one you helped at ' + X.friend.buy + '.');

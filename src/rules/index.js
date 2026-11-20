@@ -135,8 +135,14 @@ import {
   tracked,
 } from './plots.js'; // after the towns: troubles need towns
 import { craft, recipes } from './crafting.js';
+import { bestMarket, buyGood, market, sellGood, sellMat } from './trade.js';
 
 const api = {
+  bestMarket,
+  buyGood,
+  market,
+  sellGood,
+  sellMat,
   craft,
   recipes,
   choosePlot,

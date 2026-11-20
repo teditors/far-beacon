@@ -4,6 +4,32 @@ Newest entry first. Performance numbers are from `tools/bench.py` (a real browse
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
 
+## C3.6: trade between towns
+
+**What it is.** Every town's shop now has a **Market** of six trade goods: furs, salt, timber, iron tools, cloth and
+remedies. A town sells cheap (about 0.6 of the price) what its country or its people make, and pays dear (about 1.45)
+for what they do not: furs where the nights are cold, salt where there are salt pans or hot days, timber in wooded
+country or where the people burn charcoal, tools in the hills or from smiths, cloth from weavers or sheep hills,
+remedies from herbalists or flower meadows. Each town's prices wander 15% from the seed, and the year moves some (a
+hard winter makes furs 1.6 times as dear, a drought remedies 1.4). The merchant tells you where the town's own goods
+fetch the most. Goods weigh something (timber 2, furs 1, remedies 0.3), so a trade run is a choice against water.
+Materials from crafting sell in every town.
+
+**In play.** Coin now has a use besides the shop's gear, and more ways to earn it: carry five furs bought at 5 from
+a cold-country town to a warm one that pays 11, sell the hides and bone of your kills, and the side troubles' pay.
+In 15 test worlds, at least 10 have a trade worth making between their towns. Bot win rate unchanged (30, 28, 30):
+it sells spare materials and goods the town does not make, and buys a little of what it does, but it only visits the
+story's town, so it never completes a run.
+
+**Commits.** "Trade between towns". Switch: `trade` (in play).
+
+**Choices made without asking.** Prices are worked out when asked, not stored: they follow the town's culture and the
+year with nothing to migrate. Only what each town has left of its own goods is stored (`t.goods`, from the seed the
+first time you ask). A town that does not make a good never sells it, so goods move one way, from where they are
+made to where they are wanted.
+
+**Verdict: pearl, if people trade.** It needs the other towns to be worth walking to, which the side troubles give.
+
 ## C3.5: crafting
 
 **What it is.** The land now gives materials, carried in the pack: **hide** and **bone** from what you kill (a hound

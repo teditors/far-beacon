@@ -30,6 +30,7 @@ import worldSize from './worldsize.js';
 import moreTowns from './moretowns.js';
 import plots from './plots.js';
 import crafting from './crafting.js';
+import trade from './trade.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -63,4 +64,5 @@ export const CONTENT = Object.assign(
   moreTowns,
   plots,
   crafting,
+  trade,
 );

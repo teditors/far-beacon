@@ -334,6 +334,67 @@ function craftRows() {
     ),
   ];
 }
+// The market: trade goods, cheap where they are made and dear where they are not, and materials to sell.
+function marketRows(t, re) {
+  const rows = R.market(V.S);
+  if (!rows.length) return [];
+  const made = rows.filter((m) => m.made),
+    tip = made.length ? R.bestMarket(V.S, made[0].id) : null,
+    m = V.S.player.mats || {},
+    mats = (R.C.crafting ? R.C.crafting.mats : []).filter((x) => m[x.id] > 0);
+  return [
+    el('h3', { text: 'Market' }),
+    el('p', {
+      cls: 'note',
+      text:
+        (made.length
+          ? t.name + ' makes ' + made.map((x) => x.name.toLowerCase()).join(' and ') + ', and sells it cheap.'
+          : t.name + ' makes nothing to trade, and pays well for what others make.') +
+        (tip && tip.t !== t ? ' ' + t.merchant + ': "' + made[0].name + ' fetch the most in ' + tip.t.name + '."' : ''),
+    }),
+    el(
+      'ul',
+      { cls: 'items' },
+      rows.map((g) =>
+        el('li', { cls: 'item' }, [
+          el('div', null, [
+            el('strong', { text: g.name + (g.have ? ' (you have ' + g.have + ')' : '') }),
+            el('p', { text: g.text + ' ' + g.wt + ' wt each.' + (g.made ? ' Made here: ' + g.stock + ' left.' : '') }),
+          ]),
+          el('div', { cls: 'row' }, [
+            g.stock > 0
+              ? btn(
+                  'Buy ' + g.buy,
+                  re(() => R.buyGood(V.S, g.id)),
+                )
+              : null,
+            g.have > 0
+              ? btn(
+                  'Sell ' + g.sell,
+                  re(() => R.sellGood(V.S, g.id)),
+                )
+              : null,
+          ]),
+        ]),
+      ),
+    ),
+    ...(mats.length
+      ? [
+          el('h3', { text: 'Materials' }),
+          el(
+            'div',
+            { cls: 'row' },
+            mats.map((x) =>
+              btn(
+                'Sell ' + x.name.toLowerCase() + ' (' + m[x.id] + '), ' + x.value + ' each',
+                re(() => R.sellMat(V.S, x.id)),
+              ),
+            ),
+          ),
+        ]
+      : []),
+  ];
+}
 function openPack() {
   const d = R.depotHere(V.S);
   openModal('Pack', [
@@ -524,6 +585,7 @@ function openTown(section) {
       el('ul', { cls: 'items' }, stock),
       el('h3', { text: 'Your goods' }),
       mine.length ? el('ul', { cls: 'items' }, mine) : el('p', { cls: 'note', text: 'Nothing they would buy.' }),
+      ...marketRows(t, re),
     ]);
 }
 function showEnd() {

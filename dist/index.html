@@ -3463,6 +3463,66 @@
     }
   };
 
+  // src/content/trade.js
+  var trade_default = {
+    trade: {
+      goods: [
+        { id: "furs", name: "Furs", wt: 1, price: 9, made: { cold: 10 }, text: "Pelts from the cold country." },
+        {
+          id: "salt",
+          name: "Salt",
+          wt: 1,
+          price: 7,
+          made: { special: "salt", warm: 6 },
+          text: "For curing meat; the flats are white with it."
+        },
+        {
+          id: "timber",
+          name: "Timber",
+          wt: 2,
+          price: 5,
+          made: { forest: 0.25, trade: "charcoal" },
+          text: "Seasoned wood and charcoal."
+        },
+        {
+          id: "tools",
+          name: "Iron tools",
+          wt: 1.5,
+          price: 12,
+          made: { mountains: 0.1, trade: "smiths" },
+          text: "Blades, nails and pots from the hill forges."
+        },
+        { id: "cloth", name: "Cloth", wt: 0.5, price: 8, made: { hills: 0.3, trade: "weavers" }, text: "Wool, woven." },
+        {
+          id: "remedies",
+          name: "Remedies",
+          wt: 0.3,
+          price: 10,
+          made: { trade: "herbalists", special: "meadow" },
+          text: "Dried herbs, tinctures and poultices."
+        }
+      ],
+      made: 0.6,
+      // a town sells what it makes at this share of the price
+      wanted: 1.45,
+      // and buys what it does not make at this much
+      spread: 0.8,
+      // a town buys from you at this share of its own price
+      wander: 0.15,
+      // each town's prices wander this much either way
+      stock: [2, 5],
+      // how many of each good it makes a town has to sell
+      year: {
+        hardwinter: { furs: 1.6, timber: 1.3 },
+        drought: { salt: 0.8, remedies: 1.4 },
+        lean: { tools: 1.3, cloth: 1.2 },
+        plenty: { tools: 0.8, cloth: 0.8 }
+      },
+      mats: 1
+      // materials (hides, bone, salvage, herbs) sell at their value in every town
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -3495,7 +3555,8 @@
     worldsize_default,
     moretowns_default,
     plots_default,
-    crafting_default
+    crafting_default,
+    trade_default
   );
 
   // src/rules/core.js
@@ -4275,9 +4336,9 @@
   if (!C.classes.some((r) => r.exotic)) C.classes.push(...C.exoticClasses);
   on("worldBorn", (s, d) => {
     if (d.off.exotics) return;
-    const r = stream(s.seed, "exotics"), X5 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
-    if (r() < X5.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
-    if (r() < X5.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
+    const r = stream(s.seed, "exotics"), X6 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
+    if (r() < X6.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
+    if (r() < X6.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
     sworn(s);
   });
   function sworn(s) {
@@ -4421,8 +4482,8 @@
     if (!sp || s.off.specials || sp.named) return NONE;
     const key = s.seed + ":" + sp.name;
     if (!(key in cache)) {
-      const r = stream(s.seed, "special:" + sp.name), X5 = C.specials;
-      cache[key] = r() < X5.chance ? X5.list[Math.floor(r() * X5.list.length)].id : null;
+      const r = stream(s.seed, "special:" + sp.name), X6 = C.specials;
+      cache[key] = r() < X6.chance ? X6.list[Math.floor(r() * X6.list.length)].id : null;
     }
     return cache[key] ? byId(C.specials.list, cache[key]) : NONE;
   }
@@ -5127,16 +5188,16 @@
     if (s.over || !atTown(s)) return false;
     const t = curTown(s), i = t.stock.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const price2 = buyPrice(s, t.stock[i]);
-    if (s.player.coin < price2) {
+    const price3 = buyPrice(s, t.stock[i]);
+    if (s.player.coin < price3) {
       say(s, "You cannot afford that.");
       return false;
     }
-    s.player.coin -= price2;
+    s.player.coin -= price3;
     const it = t.stock.splice(i, 1)[0];
     s.player.items.push(it);
     autoEquip(s, it);
-    say(s, "You buy the " + itemName(it) + " for " + price2 + " coin.");
+    say(s, "You buy the " + itemName(it) + " for " + price3 + " coin.");
     return true;
   }
   function buyFuel(s) {
@@ -5156,8 +5217,8 @@
     if (s.over || !atTown(s)) return false;
     const i = s.player.items.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const it = s.player.items[i], price2 = sellPrice(it, s);
-    if (!price2) {
+    const it = s.player.items[i], price3 = sellPrice(it, s);
+    if (!price3) {
       say(s, "No one here will buy that.");
       return false;
     }
@@ -5165,9 +5226,9 @@
     delete it.eq;
     it.known = true;
     curTown(s).stock.push(it);
-    s.player.coin += price2;
+    s.player.coin += price3;
     fitWater(s);
-    say(s, "You sell the " + itemName(it) + " for " + price2 + " coin.");
+    say(s, "You sell the " + itemName(it) + " for " + price3 + " coin.");
     return true;
   }
   function appraise(s, id) {
@@ -6931,7 +6992,7 @@
     return (ra ? s.town.name + " is a town of " + ra.name + ". " + ra.text + " " : "") + "Its people are " + tr.name + ", and " + cu.name + ". " + tr.text + " " + cu.text;
   };
   function rollCulture(s, r) {
-    const pick = (a) => a[Math.floor(r() * a.length)], X5 = T(), rare = r() < X5.rareChance ? pick(X5.rares) : null, trade = pick(X5.trades), custom = pick(X5.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
+    const pick = (a) => a[Math.floor(r() * a.length)], X6 = T(), rare = r() < X6.rareChance ? pick(X6.rares) : null, trade = pick(X6.trades), custom = pick(X6.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
     s.townCulture = { trade: trade.id, custom: custom.id, rare: rare ? rare.id : null };
     if (trade.stock)
       for (let i = 0; i < trade.stock.n; i++) s.town.stock.push(makeItem(s, pick(trade.stock.bases), null, null, true));
@@ -7031,14 +7092,14 @@
     return false;
   }
   function tryErrand(s) {
-    const pick = (a) => a[Math.floor(srand(s) * a.length)], X5 = E(), home = s.areas[townArea(s)] || s.world.home, near = [];
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], X6 = E(), home = s.areas[townArea(s)] || s.world.home, near = [];
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
         const id = ensureRegion(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows)).id;
         if (id !== townArea(s) && mapOf2(s, id) && !near.includes(id)) near.push(id);
       }
     if (!near.length) return false;
-    const kind2 = pick(X5.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X5.liarChance, giver = pick(X5.givers) + (liar ? " " + pick(X5.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
+    const kind2 = pick(X6.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X6.liarChance, giver = pick(X6.givers) + (liar ? " " + pick(X6.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
     let fill3 = { region: byId(C.biomes, rec.biome).name, reward };
     if (kind2.id === "slay") {
       const live = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
@@ -7189,12 +7250,12 @@
       h *= 60;
     }
     h = ((h + deg) % 360 + 360) % 360;
-    const C2 = (1 - Math.abs(2 * l - 1)) * s, X5 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X5, 0] : h < 120 ? [X5, C2, 0] : h < 180 ? [0, C2, X5] : h < 240 ? [0, X5, C2] : h < 300 ? [X5, 0, C2] : [C2, 0, X5];
+    const C2 = (1 - Math.abs(2 * l - 1)) * s, X6 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X6, 0] : h < 120 ? [X6, C2, 0] : h < 180 ? [0, C2, X6] : h < 240 ? [0, X6, C2] : h < 300 ? [X6, 0, C2] : [C2, 0, X6];
     const out = Math.round((r1 + m) * 255) << 16 | Math.round((g1 + m) * 255) << 8 | Math.round((b1 + m) * 255);
     return num ? out : "#" + out.toString(16).padStart(6, "0");
   }
   function makeBiome(seed, n) {
-    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X5 = G(), cl = pick(X5.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X5.landforms), wa = pick(suits(X5.waters)), wo = pick(suits(X5.woodlands)), gr = pick(suits(X5.grounds)), rare = r() < X5.rareChance ? pick(X5.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
+    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X6 = G(), cl = pick(X6.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X6.landforms), wa = pick(suits(X6.waters)), wo = pick(suits(X6.woodlands)), gr = pick(suits(X6.grounds)), rare = r() < X6.rareChance ? pick(X6.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
     const forest = copy(wo.forest);
     if (rare && rare.treeMul) {
       forest.tree.h = forest.tree.h.map((h) => h * rare.treeMul);
@@ -7243,11 +7304,11 @@
   SKETCHERS.push((seed, world, off) => {
     if (off.biomegen) return;
     ensureBiomes(seed);
-    const r = stream(seed, "biomegen:sketch"), X5 = G();
+    const r = stream(seed, "biomegen:sketch"), X6 = G();
     for (let cy = 0; cy < world.rows; cy++)
       for (let cx = 0; cx < world.cols; cx++) {
-        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X5.perWorld);
-        if (roll2 < (home ? X5.homeChance : X5.regionChance))
+        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X6.perWorld);
+        if (roll2 < (home ? X6.homeChance : X6.regionChance))
           world.sketch[cy * world.cols + cx].biome = ofSeed(seed) + (home ? 0 : which);
       }
   });
@@ -7434,20 +7495,20 @@
   for (const sv of L2().services) SITE_NAME[sv.id] = sv.role.replace(/^the /, "") + "'s door";
   Object.assign(SITE_NAME, { folk: "townsperson", grave: "grave" });
   function rollLife(s, r) {
-    const X5 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
-    let t = X5.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X5.sizes[0];
-    for (const e of X5.sizes)
+    const X6 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
+    let t = X6.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X6.sizes[0];
+    for (const e of X6.sizes)
       if ((t -= e.w) < 0) {
         size = e;
         break;
       }
-    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X5.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
+    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X6.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
     while (want.length < size.services && rest2.length) want.push(rest2.splice(Math.floor(r() * rest2.length), 1)[0]);
-    const ls = X5.lessons.map((l) => l.id);
+    const ls = X6.lessons.map((l) => l.id);
     s.town.size = size.id;
     s.town.services = want;
     s.town.lessons = [];
-    while (s.town.lessons.length < X5.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
+    while (s.town.lessons.length < X6.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
     if (size.stock < 0) s.town.stock.splice(5, -size.stock);
     for (let i = 0; i < size.stock; i++) {
       const b = pick(["sword", "spear", "cloak", "boots", "framepack", "compass", "spyglass", "salve", "tonic", "draught"]);
@@ -7464,7 +7525,7 @@
   GENERATORS.town = (s, rec) => withTown(s, townById(s, rec.id) || s.town, () => lifeTown(s, rec));
   function lifeTown(s, rec) {
     if (s.off.townlife || !s.town.size) return oldTown(s, rec);
-    const X5 = L2(), size = byId(X5.sizes, s.town.size), r = stream(s.seed, "area:town2" + townSfx(s)), rw = stream(s.seed, "town:walls" + townSfx(s)), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring(x, y), used = new Array(W * H).fill(0);
+    const X6 = L2(), size = byId(X6.sizes, s.town.size), r = stream(s.seed, "area:town2" + townSfx(s)), rw = stream(s.seed, "town:walls" + townSfx(s)), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring(x, y), used = new Array(W * H).fill(0);
     if (walled)
       for (let i = 0; i < W; i++)
         for (const [x, y] of [
@@ -7524,7 +7585,7 @@
       { kind: "elder" },
       { kind: "inn" },
       { kind: "shop" },
-      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X5.services, id).role }))
+      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X6.services, id).role }))
     ];
     let li = 0;
     for (const q of queue) if (order[li]) build(order[li++], q);
@@ -7532,7 +7593,7 @@
       const lot = order[li++], sp = s.species.filter((x) => !x.named), fill4 = (t) => t.replace("{storm}", byId(C.biomes, s.biome).storm.name).replace("{species}", sp.length ? pick(sp).name : "wolf").replace("{dir}", pick(["north", "south", "east", "west"])).replace("{site}", pick(["spring", "ruin", "cave"])), nm = byId(C.races, s.town.race).names;
       lot.cells.forEach(([x, y], i) => {
         if ((x + y) % 2 === 0 && i % 2 === 0)
-          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill4(pick(X5.epitaphs)) };
+          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill4(pick(X6.epitaphs)) };
       });
     }
     const fill3 = { hamlet: 0.35, village: 0.55, town: 0.8, city: 1 }[size.id];
@@ -7544,7 +7605,7 @@
       let nearDoor = false;
       for (const key in sites) if (Math.abs(key % W - x) + Math.abs(Math.floor(key / W) - y) <= 1) nearDoor = true;
       if (nearDoor) continue;
-      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X5.folkRoles) };
+      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X6.folkRoles) };
       n++;
     }
     if (walled) {
@@ -8556,13 +8617,13 @@
   var carrying2 = (s, p, key) => s.player.items.find((i) => i.plot === p.id && i.role === key);
   on("worldBorn", (s, d) => {
     if (d.off.plots) return;
-    const r = stream(s.seed, "plots"), X5 = P2(), pickW = (list, w) => {
+    const r = stream(s.seed, "plots"), X6 = P2(), pickW = (list, w) => {
       let t = list.reduce((a, e) => a + (e[w] || 0), 0) * r();
       for (const e of list) if ((t -= e[w] || 0) < 0) return e;
       return list[0];
     };
     s.plots = [];
-    const main = pickW(X5.kinds, "main");
+    const main = pickW(X6.kinds, "main");
     let n = 0;
     const add = (kind2, giver, isMain, link) => {
       const p = { id: "p" + n++, kind: kind2.id, giver, main: !!isMain, known: false, step: 0 };
@@ -8571,18 +8632,18 @@
       return p;
     };
     let mp = add(main, "town", true);
-    if (!mp) mp = add(byId(X5.kinds, "relic"), "town", true);
-    if (mp.kind !== "relic") add(byId(X5.kinds, "relic"), "town", false);
-    const towns = (s.towns || []).slice(), want = Math.min(towns.length, X5.side[0] + Math.floor(r() * (X5.side[1] - X5.side[0] + 1)));
+    if (!mp) mp = add(byId(X6.kinds, "relic"), "town", true);
+    if (mp.kind !== "relic") add(byId(X6.kinds, "relic"), "town", false);
+    const towns = (s.towns || []).slice(), want = Math.min(towns.length, X6.side[0] + Math.floor(r() * (X6.side[1] - X6.side[0] + 1)));
     for (let i = 0; i < want && towns.length; i++) {
       const t = towns.splice(Math.floor(r() * towns.length), 1)[0];
       for (let tries = 0; tries < 4; tries++) {
-        const kind2 = pickW(X5.kinds, "side");
+        const kind2 = pickW(X6.kinds, "side");
         if (kind2.needs === "other" && !(s.towns || []).length) continue;
         if (s.plots.some((q) => q.kind === kind2.id)) continue;
         const beast = s.plots.find((q) => q.kind === "beast");
         let link = null;
-        if (kind2.id === "plague" && beast && r() < X5.linkChance) link = { place: "patch", item: "cure", at: beast.roles.lair };
+        if (kind2.id === "plague" && beast && r() < X6.linkChance) link = { place: "patch", item: "cure", at: beast.roles.lair };
         const p = add(kind2, townId(t), false, link);
         if (p) {
           if (link) p.linked = beast.id;
@@ -8591,7 +8652,7 @@
       }
     }
     const sides = s.plots.filter((q) => !q.main && q.kind !== "relic");
-    for (let i = 0; i + 1 < sides.length; i++) if (r() < X5.chainChance) sides[i].opens = sides[i + 1].id;
+    for (let i = 0; i + 1 < sides.length; i++) if (r() < X6.chainChance) sides[i].opens = sides[i + 1].id;
     s.track = mp.id;
     if (mp.kind === "relic") mp.known = false;
   });
@@ -8662,7 +8723,7 @@
   function finishPlot(s, p, ending) {
     if (p.done) return;
     p.done = true;
-    const k = kindOf2(p), X5 = P2();
+    const k = kindOf2(p), X6 = P2();
     say(s, fill2(s, p, ending || p.branch === "peace" && k.peaceEnd || k.end), "good");
     if (s.curses) {
       for (const a in s.curses) if (s.curses[a] === p.id) delete s.curses[a];
@@ -8674,9 +8735,9 @@
       s.over = { won: true, ending: fill2(s, p, k.end), plot: k.id };
       return;
     }
-    const coin = X5.reward.coin[0] + Math.floor(srand(s) * (X5.reward.coin[1] - X5.reward.coin[0] + 1));
+    const coin = X6.reward.coin[0] + Math.floor(srand(s) * (X6.reward.coin[1] - X6.reward.coin[0] + 1));
     s.player.coin += coin;
-    gainXp(s, X5.reward.xp);
+    gainXp(s, X6.reward.xp);
     say(s, "They give you " + coin + " coin for it.");
     emit(s, "plotDone", { id: p.id, kind: k.id });
     const next = plotById(s, p.opens);
@@ -8874,11 +8935,11 @@
   function relicSideDone(s) {
     const p = plotsOf(s).find((q) => q.kind === "relic");
     if (p) p.done = true;
-    const X5 = P2().relicSide;
+    const X6 = P2().relicSide;
     s.player.items = s.player.items.filter((i) => i.base !== "relic");
-    s.player.coin += X5.coin;
-    gainXp(s, X5.xp);
-    say(s, "The old story is ended, and this land remembers you for it: " + X5.coin + " coin, and a name in every town.", "good");
+    s.player.coin += X6.coin;
+    gainXp(s, X6.xp);
+    say(s, "The old story is ended, and this land remembers you for it: " + X6.coin + " coin, and a name in every town.", "good");
   }
   SOURCES.push({
     id: "plots",
@@ -9011,8 +9072,111 @@
     return have.length ? [{ label: "Materials", text: have.map((k) => m[k] + " " + matOf(k).name.toLowerCase()).join(", ") + "." }] : [];
   });
 
+  // src/rules/trade.js
+  var X5 = () => C.trade;
+  var goods = (s) => s.player.goods = s.player.goods || {};
+  var goodOf = (id) => byId(X5().goods, id);
+  var cultureOf2 = (s, t) => (t === s.town ? s.townCulture : t.culture) || {};
+  var biomeOfTown = (s, t) => {
+    const a = s.areas[townArea(s, t)];
+    return byId(C.biomes, a ? a.biome : s.biome);
+  };
+  function makes(s, t, g) {
+    const b = biomeOfTown(s, t), m = g.made, cu = cultureOf2(s, t);
+    if (m.trade && cu.trade === m.trade) return true;
+    if (m.cold && (b.night.cold || 0) >= m.cold) return true;
+    if (m.warm && (b.day.warm || 0) >= m.warm) return true;
+    if (m.forest && b.forest.frac >= m.forest) return true;
+    if (m.mountains && b.mountains >= m.mountains) return true;
+    if (m.hills && b.hills >= m.hills) return true;
+    if (m.special && b.special && b.special.name.includes(m.special)) return true;
+    return false;
+  }
+  function price2(s, t, id) {
+    const g = goodOf(id), r = stream(s.seed, "market:" + townId(t) + ":" + id)(), y = (X5().year[s.year] || {})[id] || 1;
+    return g.price * (makes(s, t, g) ? X5().made : X5().wanted) * (1 + (r * 2 - 1) * X5().wander) * y;
+  }
+  var buyAt = (s, t, id) => Math.max(1, Math.round(price2(s, t, id) * stat(s, "town.buy", 1)));
+  var sellAt = (s, t, id) => Math.max(1, Math.floor(price2(s, t, id) * X5().spread));
+  function stockOf(s, t, id) {
+    t.goods = t.goods || {};
+    if (t.goods[id] === void 0) {
+      const r = stream(s.seed, "marketstock:" + townId(t) + ":" + id)(), [a, b] = X5().stock;
+      t.goods[id] = makes(s, t, goodOf(id)) ? a + Math.floor(r * (b - a + 1)) : 0;
+    }
+    return t.goods[id];
+  }
+  function market(s) {
+    if (s.off.trade || areaRec(s).kind !== "town") return [];
+    const t = curTown(s);
+    return X5().goods.map((g) => ({
+      id: g.id,
+      name: g.name,
+      text: g.text,
+      wt: g.wt,
+      buy: buyAt(s, t, g.id),
+      sell: sellAt(s, t, g.id),
+      have: goods(s)[g.id] || 0,
+      stock: stockOf(s, t, g.id),
+      made: makes(s, t, g)
+    }));
+  }
+  function buyGood(s, id) {
+    const row = market(s).find((m) => m.id === id);
+    if (s.over || !row || row.stock < 1) return false;
+    if (s.player.coin < row.buy) {
+      say(s, "You cannot afford that.");
+      return false;
+    }
+    s.player.coin -= row.buy;
+    curTown(s).goods[id]--;
+    goods(s)[id] = (goods(s)[id] || 0) + 1;
+    return true;
+  }
+  function sellGood(s, id) {
+    const row = market(s).find((m) => m.id === id);
+    if (s.over || !row || row.have < 1) return false;
+    s.player.coin += row.sell;
+    goods(s)[id]--;
+    if (row.made) curTown(s).goods[id]++;
+    return true;
+  }
+  function sellMat(s, id) {
+    if (s.over || s.off.trade || areaRec(s).kind !== "town" || !C.crafting) return false;
+    const m = byId(C.crafting.mats, id), have = s.player.mats || {};
+    if (!m || !(have[id] > 0)) return false;
+    have[id]--;
+    const n = Math.max(1, Math.round(m.value * X5().mats));
+    s.player.coin += n;
+    return true;
+  }
+  function bestMarket(s, id) {
+    let best = null;
+    for (const t of [s.town].concat(s.towns || [])) {
+      const p = sellAt(s, t, id);
+      if (!best || p > best.p) best = { t, p };
+    }
+    return best;
+  }
+  WEIGHTS.push((s) => {
+    let w = 0;
+    const g = s.player.goods || {};
+    for (const k in g) w += (g[k] || 0) * ((goodOf(k) || {}).wt || 0);
+    return w;
+  });
+  SWITCHES.push(["trade", "Trade between towns"]);
+  NOTES.push((s) => {
+    const g = s.player.goods || {}, have = Object.keys(g).filter((k) => g[k] > 0);
+    return have.length ? [{ label: "Trade goods", text: have.map((k) => g[k] + " " + goodOf(k).name.toLowerCase()).join(", ") + "." }] : [];
+  });
+
   // src/rules/index.js
   var api = {
+    bestMarket,
+    buyGood,
+    market,
+    sellGood,
+    sellMat,
     craft,
     recipes,
     choosePlot,
@@ -10825,6 +10989,53 @@
       )
     ];
   }
+  function marketRows(t, re) {
+    const rows = R.market(V.S);
+    if (!rows.length) return [];
+    const made = rows.filter((m2) => m2.made), tip = made.length ? R.bestMarket(V.S, made[0].id) : null, m = V.S.player.mats || {}, mats2 = (R.C.crafting ? R.C.crafting.mats : []).filter((x) => m[x.id] > 0);
+    return [
+      el("h3", { text: "Market" }),
+      el("p", {
+        cls: "note",
+        text: (made.length ? t.name + " makes " + made.map((x) => x.name.toLowerCase()).join(" and ") + ", and sells it cheap." : t.name + " makes nothing to trade, and pays well for what others make.") + (tip && tip.t !== t ? " " + t.merchant + ': "' + made[0].name + " fetch the most in " + tip.t.name + '."' : "")
+      }),
+      el(
+        "ul",
+        { cls: "items" },
+        rows.map(
+          (g) => el("li", { cls: "item" }, [
+            el("div", null, [
+              el("strong", { text: g.name + (g.have ? " (you have " + g.have + ")" : "") }),
+              el("p", { text: g.text + " " + g.wt + " wt each." + (g.made ? " Made here: " + g.stock + " left." : "") })
+            ]),
+            el("div", { cls: "row" }, [
+              g.stock > 0 ? btn(
+                "Buy " + g.buy,
+                re(() => R.buyGood(V.S, g.id))
+              ) : null,
+              g.have > 0 ? btn(
+                "Sell " + g.sell,
+                re(() => R.sellGood(V.S, g.id))
+              ) : null
+            ])
+          ])
+        )
+      ),
+      ...mats2.length ? [
+        el("h3", { text: "Materials" }),
+        el(
+          "div",
+          { cls: "row" },
+          mats2.map(
+            (x) => btn(
+              "Sell " + x.name.toLowerCase() + " (" + m[x.id] + "), " + x.value + " each",
+              re(() => R.sellMat(V.S, x.id))
+            )
+          )
+        )
+      ] : []
+    ];
+  }
   function openPack() {
     const d = R.depotHere(V.S);
     openModal("Pack", [
@@ -10990,7 +11201,8 @@
         el("h3", { text: "For sale" }),
         el("ul", { cls: "items" }, stock),
         el("h3", { text: "Your goods" }),
-        mine.length ? el("ul", { cls: "items" }, mine) : el("p", { cls: "note", text: "Nothing they would buy." })
+        mine.length ? el("ul", { cls: "items" }, mine) : el("p", { cls: "note", text: "Nothing they would buy." }),
+        ...marketRows(t, re)
       ]);
   }
   function showEnd() {

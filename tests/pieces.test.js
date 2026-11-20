@@ -492,5 +492,34 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   o.off.crafting = true;
   need(!R.recipes(o).length, 'NO=crafting still offers recipes');
 }
+// Trade: a town sells cheap what it makes and buys dear what it does not; goods weigh; a profit is to be had.
+{
+  let profit = 0, worlds = 0;
+  for (let i = 1; i <= 15; i++) {
+    const s = R.newGame(i), prices = {};
+    for (const t of R.allTowns(s)) {
+      const d = R.townDoor(s, t);
+      R.travelTo(s, t.area || 'overworld', d.x, d.y); s.creatures = [];
+      R.move(s, 0, -1);
+      for (const g of R.market(s)) (prices[g.id] = prices[g.id] || []).push(g);
+      s.player.x = 18; s.player.y = 35; R.move(s, 0, 1);
+    }
+    let best = 0;
+    for (const id in prices) { const made = prices[id].filter((g) => g.made), want = prices[id].filter((g) => !g.made); if (made.length && want.length) best = Math.max(best, Math.max(...want.map((g) => g.sell)) - Math.min(...made.map((g) => g.buy))); }
+    if (best > 0) worlds++;
+    profit += best;
+  }
+  need(worlds >= 10, 'only ' + worlds + ' of 15 worlds have a trade worth making');
+  const s = R.newGame(2), t = s.town, d = R.townDoor(s);
+  R.travelTo(s, t.area || 'overworld', d.x, d.y); s.creatures = []; R.move(s, 0, -1);
+  const g = R.market(s).find((x) => x.made && x.stock > 0);
+  if (g) {
+    s.player.coin = 100; const w = R.weight(s);
+    need(R.buyGood(s, g.id) && s.player.coin === 100 - g.buy && R.weight(s) > w, 'could not buy ' + g.id);
+    need(R.sellGood(s, g.id) && s.player.coin === 100 - g.buy + g.sell && g.sell < g.buy, 'selling back did not pay less than buying');
+  }
+  s.player.mats = { hide: 2 };
+  need(R.sellMat(s, 'hide') && s.player.mats.hide === 1, 'could not sell a hide');
+}
 if (errs.length) { console.log('piece problems:\n  ' + errs.join('\n  ')); process.exit(1); }
-console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting');
+console.log('pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting, trade');

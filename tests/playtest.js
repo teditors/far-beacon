@@ -63,6 +63,9 @@ function maintain(s,stats){ const p=s.player,st=R.siteHere(s);
     for(const it of p.items.slice()) if(!it.eq&&R.slotOf(it)&&p.items.some(i=>i.eq===R.slotOf(it)&&i!==it)) R.sell(s,it.id);
     while(p.fuel<4&&p.coin>=2&&s.town.fuel>0)R.buyFuel(s);
     const sv=s.town.stock.find(i=>i.base==='salve'); if(sv&&p.coin>=R.itemValue(sv)+5)R.buy(s,sv.id);
+    // trade: sell spare materials and any goods this town does not make; buy a little of what it makes cheap
+    if(!NO.trade){ const m=p.mats||{}; for(const k of ['bone','salvage','herbs']) while((m[k]||0)>2&&R.sellMat(s,k)); for(const g of R.market(s)){ if(!g.made) while(g.have-->0) R.sellGood(s,g.id); }
+      const mk=R.market(s).filter(g=>g.made&&g.stock>0).sort((a,b)=>a.buy-b.buy)[0]; for(let i=0;mk&&i<2&&p.coin>=mk.buy+15&&R.weight(s)+mk.wt<R.carryCap(s)*0.6;i++) R.buyGood(s,mk.id); }
   }
   if(R.atTown(s)&&st&&st.kind==='inn'){ stats.rested=true; if(p.hp<p.hpMax*0.7&&p.coin>=5)R.inn(s); }
   if(p.stamina<25||(p.hp<p.hpMax*0.5&&R.inShelter(s))){ if(R.inShelter(s)&&R.areaRec(s).kind!=='vault') R.sleep(s); else R.rest(s); }
