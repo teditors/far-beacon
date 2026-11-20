@@ -1,14 +1,28 @@
 /* Turns the rules map into a continuous height field: the region the player is in at full detail, and a wide margin
    of the regions around it at half detail, so the land can be seen running on across every border. */
-import { CELL, HALF, N, R, TS, WORLD, clamp, lerp, mulberry, smooth } from './ctx.js';
+import { HALF, R, TS, WORLD, clamp, lerp, mulberry, smooth } from './ctx.js';
+import { Q } from './quality.js';
 
 const PAD = { town: 102, vault: 11, beacon: 9, spring: 6, hamlet: 10 }; // metres of level ground under each kind of site
-const MARGIN = 22, // tiles of the neighbouring regions that are drawn: a little further than the eye can see
-  EW = R.W + 2 * MARGIN, // the drawn land is EW x EW tiles
-  CC = CELL * 2, // the margin's ground mesh is half as fine
-  NC = Math.round((EW * TS) / CC),
-  EHALF = (EW * TS) / 2,
-  SINK = 0.15; // the coarse ground sits a hand lower, so it never shows through the fine ground where they overlap
+const SINK = 0.15; // the coarse ground sits a hand lower, so it never shows through the fine ground where they overlap
+// How much land is drawn and how finely, from the quality setting (quality.js). setDetail() is called before each build.
+let MARGIN, // tiles of the neighbouring regions that are drawn: a little further than the eye can see
+  EW, // the drawn land is EW x EW tiles
+  N, // cells of the fine ground across the player's region
+  CELL,
+  CC, // the margin's ground mesh is coarser
+  NC,
+  EHALF;
+function setDetail() {
+  MARGIN = Q.margin;
+  EW = R.W + 2 * MARGIN;
+  N = Q.fine;
+  CELL = WORLD / N;
+  CC = CELL * Q.coarse;
+  NC = Math.round((EW * TS) / CC);
+  EHALF = (EW * TS) / 2;
+}
+setDetail();
 
 /* The land around the player, cut from the nine regions into one square of tiles. Tile (x, y) is in the player's
    region when 0 <= x < W; outside that range it belongs to a neighbour (and the world wraps). */
@@ -65,6 +79,7 @@ function landAround(s) {
 }
 
 function makeTerrain(s) {
+  setDetail();
   const land = landAround(s),
     r = mulberry(s.seed ^ 0x51f15e),
     T = new Float32Array(4096);
@@ -156,14 +171,20 @@ function makeTerrain(s) {
     );
   };
   // two height grids: fine over the player's region, coarse over everything drawn
-  const grid = (n, half, cell) => {
+  // (the coarse grid skips the middle, which is never drawn or sampled from it)
+  const grid = (n, half, cell, hole) => {
     const h = new Float32Array((n + 1) * (n + 1));
     for (let iz = 0; iz <= n; iz++)
-      for (let ix = 0; ix <= n; ix++) h[iz * (n + 1) + ix] = raw(-half + ix * cell, -half + iz * cell);
+      for (let ix = 0; ix <= n; ix++) {
+        const x = -half + ix * cell,
+          z = -half + iz * cell;
+        if (Math.abs(x) < hole && Math.abs(z) < hole) continue;
+        h[iz * (n + 1) + ix] = raw(x, z);
+      }
     return { h, n, half, cell };
   };
-  const fine = grid(N, HALF, CELL),
-    coarse = grid(NC, EHALF, CC);
+  const fine = grid(N, HALF, CELL, 0),
+    coarse = grid(NC, EHALF, CC, HALF - 4 * CC);
   // a level pad as wide as what stands there, then a slope that eases back into the land around it
   const padInto = (g, site) => {
     const cx = (site.x + 0.5) * TS - HALF,
@@ -213,4 +234,4 @@ function makeTerrain(s) {
   return { land, fine, coarse, height, level, tint, masks, roadAt, share, tileRand, etile, tileOf, inside };
 }
 
-export { makeTerrain, MARGIN, EW, EHALF, CC, NC, SINK, PAD };
+export { makeTerrain, MARGIN, EW, EHALF, CC, NC, N, CELL, SINK, PAD };

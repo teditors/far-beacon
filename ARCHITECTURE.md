@@ -96,6 +96,15 @@ first time the player arrives.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
 - `inOverworld(s)` means "outdoors, in any region".
 
+## The phone budget
+
+The game must run on a phone. `src/view/quality.js` holds the graphics presets (Low / Medium / High) and the device's
+settings (`farbeacon.settings` in browser storage, not in the run). Anything visual that costs reads `Q` (the preset in
+use) rather than a constant: `terrain.js` takes the drawn margin and the ground's fineness from it (`setDetail`), the
+scene takes tree and rock density, the renderer its pixel ratio. `src/view/perf.js` is the on-screen meter. Measure a
+change with `python3 tools/bench.py low medium high` before and after. Saves write map grids as run-length text
+(`packGrid` in save.js).
+
 ## Plugging a piece in
 
 A self-contained piece (the year, for example) lives in its own module and plugs itself in without editing shared

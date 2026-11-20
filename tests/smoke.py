@@ -8,7 +8,7 @@ SHOTS = '--shots' in sys.argv
 async def main():
     os.makedirs(os.path.join(ROOT, 'build/shots'), exist_ok=True)
     async with async_playwright() as p:
-        b = await p.chromium.launch(args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
+        b = await p.chromium.launch(args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], **({'executable_path': os.environ['CHROME']} if os.environ.get('CHROME') else {}))
         pg = await b.new_page(viewport={'width': 390, 'height': 780})
         errs = []
         pg.on('pageerror', lambda e: errs.append(str(e)))
@@ -27,6 +27,16 @@ async def main():
         await shot('2-walk')
         for b_ in ['#btn-pack', '#btn-map', '#btn-menu']:
             await pg.click(b_); await pg.wait_for_timeout(150); await pg.click('#modal-close'); steps.append(b_[5:])
+        # the performance meter, turned on from Menu, and the low quality setting
+        await pg.click('#btn-menu'); await pg.wait_for_timeout(150)
+        await pg.locator('#modal-body button', has_text='Low').click(); await pg.wait_for_timeout(300)
+        await pg.check('#perf-meter'); await pg.click('#modal-close'); await pg.wait_for_timeout(1200)
+        meter = await pg.evaluate("()=>{const e=document.getElementById('perf');return e&&!e.hidden?e.textContent:''}")
+        assert 'fps' in meter and 'draws' in meter and 'low' in meter, 'performance meter not shown: %r' % meter
+        steps.append('meter: ' + meter.split('\n')[1])
+        await pg.click('#btn-menu'); await pg.wait_for_timeout(150)
+        await pg.locator('#modal-body button', has_text='Medium').click(); await pg.wait_for_timeout(300)
+        await pg.uncheck('#perf-meter'); await pg.click('#modal-close')
         # the town, walked into
         async def goto(kind, area_check=None):
             await pg.evaluate("k=>{const g=window.__g,S=g.S,f=Rules.findHere(S,k);S.player.x=f.x;S.player.y=f.y;g.refresh();}", kind)

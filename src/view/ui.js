@@ -2,6 +2,8 @@
 import { $, G, P, R, V, VIEW, clamp, el, f1 } from './ctx.js';
 import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSeed, save, start, sync } from './run.js';
 import { box, buildDynamic, buildStatic, renderer, resize, scene } from './scene.js';
+import { Q, QUALITY, SET, saveSettings, setQuality } from './quality.js';
+import { PF } from './perf.js';
 
 /* ---------- HUD and panels ---------- */
 function meter(id, v, max, txt) {
@@ -964,6 +966,40 @@ function openMenu() {
       });
       return el('div', null, [box, el('div', { cls: 'row' }, [copy, loadIt]), msg]);
     })(),
+    el('h3', { text: 'Settings' }),
+    el('p', {
+      cls: 'note',
+      text: 'Graphics quality for this device. Low draws less land and fewer trees, at a lower resolution: use it if the game stutters. Smoothing of edges changes the next time the page is loaded.',
+    }),
+    el(
+      'div',
+      { cls: 'row' },
+      Object.keys(QUALITY).map((k) =>
+        btn(
+          QUALITY[k].label + (SET.quality === k ? ' (now)' : ''),
+          () => {
+            setQuality(k);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
+            resize();
+            buildStatic();
+            buildDynamic();
+            openMenu();
+          },
+          SET.quality === k ? 'primary' : '',
+        ),
+      ),
+    ),
+    (() => {
+      const cb = el('input', { type: 'checkbox', id: 'perf-meter' });
+      cb.checked = !!SET.meter;
+      cb.addEventListener('change', () => {
+        SET.meter = cb.checked;
+        saveSettings();
+      });
+      return el('ul', { cls: 'items' }, [
+        el('li', { cls: 'item' }, [el('label', { for: 'perf-meter', text: 'Show the performance meter' }), cb]),
+      ]);
+    })(),
     el('h3', { text: 'Tinker' }),
     el('p', { cls: 'note', text: 'Switch whole systems off, or change the numbers while you play.' }),
     sw,
@@ -1120,6 +1156,16 @@ window.__g = {
   scene,
   renderer,
   buildStatic,
+  PF,
+  setQuality(name) {
+    setQuality(name);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
+    resize();
+  },
+  // a fresh world on this seed, without the character screen (for the benchmark)
+  newWorld(seed) {
+    enter(R.newGame(seed));
+  },
   // for tests and tinkering from the console: redraw everything after changing the state by hand
   refresh() {
     sync();

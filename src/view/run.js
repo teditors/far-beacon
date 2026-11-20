@@ -1,7 +1,9 @@
 /* Run control: saving, starting, acting, and the per-frame loop. */
-import { $, CODEX, EYE, FR, G, KEY, OLD_KEYS, P, R, TOWN_TS, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
+import { $, CODEX, EYE, FR, G, KEY, OLD_KEYS, P, R, TOWN_TS, TS, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
 import { applyFrame, buildDynamic, buildStatic, camera, hemi, lamp, renderer, scene, sun } from './scene.js';
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
+import { Q } from './quality.js';
+import { perfBuild, perfFrame, perfSave } from './perf.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -22,7 +24,11 @@ const codexTotal = R.AXES.reduce((n, a) => n + R.C.civ[a].length, 0);
 function save() {
   try {
     if (!V.S || (V.S.over && (V.S.over.won || R.livesLeft(V.S) <= 0))) localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, R.serialize(V.S));
+    else {
+      const text = R.serialize(V.S);
+      perfSave(text.length);
+      localStorage.setItem(KEY, text);
+    }
   } catch (e) {
     /* storage is optional */
   }
@@ -275,7 +281,7 @@ function frame() {
   scene.background.copy(skyC);
   scene.fog.color.copy(skyC);
   const sight = R.stat(V.S, 'nightSight', 0) > 0,
-    far = storm ? 85 : lerp(sight ? 260 : 110, 620, day);
+    far = Math.min(storm ? 85 : lerp(sight ? 260 : 110, 620, day), Q.margin * TS * 0.95); // never past the drawn land
   shown.far = lerp(shown.far, far, 0.05);
   scene.fog.far = shown.far;
   scene.fog.near = Math.min(40, shown.far * 0.2);
@@ -295,6 +301,7 @@ function finishFrame() {
   const deg = ((((-P.yaw * 180) / Math.PI) % 360) + 360) % 360;
   $('facing').textContent = 'Facing ' + DIRN[Math.round(deg / 45) % 8];
   renderer.render(scene, camera);
+  perfFrame(renderer);
 }
 let last = performance.now();
 function loop(now) {

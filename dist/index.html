@@ -48,6 +48,19 @@
         display: block;
         touch-action: none;
       }
+      #perf {
+        position: fixed;
+        left: 8px;
+        bottom: 8px;
+        margin: 0;
+        padding: 4px 6px;
+        background: rgba(0, 0, 0, 0.55);
+        color: #9fe39f;
+        font: 11px/1.3 var(--font-num);
+        pointer-events: none;
+        z-index: 5;
+        white-space: pre;
+      }
       #hud {
         position: fixed;
         top: 0;
@@ -3463,7 +3476,7 @@
   }
   var isCursed = (it) => itemAffixes(it).some((a) => a.cursed);
   function describeMods(mods) {
-    const N2 = {
+    const N3 = {
       studyTime: "time to understand items",
       searchTime: "search time",
       waterDrain: "water use",
@@ -3479,10 +3492,10 @@
     };
     return mods.map((m) => {
       if (m.op === "mul") {
-        if (m.value === 0) return "no " + (N2[m.stat] || m.stat);
+        if (m.value === 0) return "no " + (N3[m.stat] || m.stat);
         const p = Math.round((m.value - 1) * 100);
         if (!p) return "";
-        return (N2[m.stat] || m.stat) + " " + (p > 0 ? "+" : "") + p + "%";
+        return (N3[m.stat] || m.stat) + " " + (p > 0 ? "+" : "") + p + "%";
       }
       if (m.stat === "waterCap") return m.op === "max" ? "water limit " + m.value : "holds " + m.value + " water";
       if (m.stat === "ac") return "armor " + (m.value > 0 ? "+" : "") + m.value;
@@ -4428,12 +4441,12 @@
   };
   var buyPrice = (s, it) => Math.max(1, Math.round(itemValue(it) * stat(s, "town.buy", 1) * stat(s, "town.buy." + wareKind(it), 1)));
   function makeQuest(s, r, townP, vaultP, a0, goalP) {
-    const Q = C.quest, T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
+    const Q2 = C.quest, T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
     const race = pick(C.races.filter((e) => !e.exotic && !e.roster)), q = s.quest = {
-      key: pick(Q.keys),
-      vault: pick(Q.vaults),
-      relic: pick(Q.relics) + " of the " + s.civ.name,
-      dest: pick(Q.dests),
+      key: pick(Q2.keys),
+      vault: pick(Q2.vaults),
+      relic: pick(Q2.relics) + " of the " + s.civ.name,
+      dest: pick(Q2.dests),
       told: false,
       keyTile: null,
       beast: null
@@ -4484,7 +4497,7 @@
     if (q.key === "beast") {
       const bf = pick(C.creature.forms);
       s.species.push({
-        name: pick(Q.beastNames) + " " + pick(C.creature.prefix[s.biome]) + " " + bf.name,
+        name: pick(Q2.beastNames) + " " + pick(C.creature.prefix[s.biome]) + " " + bf.name,
         form: bf.id,
         temper: "territorial",
         rare: "elder",
@@ -5652,12 +5665,12 @@
     return { river, at, forward, road: road2, roadAt };
   }
   function crossings(seed, world, cx, cy) {
-    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S = edgeRoll(seed, "h:" + cx + ":" + cy), N2 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
+    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S = edgeRoll(seed, "h:" + cx + ":" + cy), N3 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
     return [
       { side: "east", river: E2.river, road: E2.road, inflow: !E2.forward, x: W - 1, y: E2.at, x2: W - 1, y2: E2.roadAt },
       { side: "west", river: Wst.river, road: Wst.road, inflow: Wst.forward, x: 0, y: Wst.at, x2: 0, y2: Wst.roadAt },
       { side: "south", river: S.river, road: S.road, inflow: !S.forward, x: S.at, y: H - 1, x2: S.roadAt, y2: H - 1 },
-      { side: "north", river: N2.river, road: N2.road, inflow: N2.forward, x: N2.at, y: 0, x2: N2.roadAt, y2: 0 }
+      { side: "north", river: N3.river, road: N3.road, inflow: N3.forward, x: N3.at, y: 0, x2: N3.roadAt, y2: 0 }
     ];
   }
 
@@ -6080,8 +6093,46 @@
       }
     }
   };
+  var GRIDS = ["terrain", "elev", "seen"];
+  var LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  function packGrid(a) {
+    const vals = [], at = /* @__PURE__ */ new Map();
+    for (const v of a) {
+      if (typeof v !== "number") return a;
+      if (!at.has(v)) {
+        if (vals.length === LETTERS.length) return a;
+        at.set(v, vals.length);
+        vals.push(v);
+      }
+    }
+    let out = "~" + vals.join("|") + "~";
+    for (let i = 0; i < a.length; ) {
+      let j = i;
+      while (j < a.length && a[j] === a[i]) j++;
+      out += LETTERS[at.get(a[i])] + (j - i > 1 ? j - i : "");
+      i = j;
+    }
+    return out;
+  }
+  function unpackGrid(t) {
+    if (typeof t !== "string" || t[0] !== "~") return t;
+    const end = t.indexOf("~", 1), vals = t.slice(1, end).split("|").map(Number), out = [];
+    for (let i = end + 1; i < t.length; ) {
+      const v = vals[LETTERS.indexOf(t[i++])];
+      let n = 0;
+      while (i < t.length && t.charCodeAt(i) >= 48 && t.charCodeAt(i) <= 57) n = n * 10 + t.charCodeAt(i++) - 48;
+      for (let k = Math.max(1, n); k > 0; k--) out.push(v);
+    }
+    return out;
+  }
+  var eachMap = (s, fn) => {
+    fn(s);
+    for (const id in s.areas || {}) if (s.areas[id] && s.areas[id].map) fn(s.areas[id].map);
+  };
   function serialize(s) {
-    return JSON.stringify(s);
+    return JSON.stringify(s, function(k, v) {
+      return GRIDS.includes(k) && Array.isArray(v) && v.length > 64 ? packGrid(v) : v;
+    });
   }
   function deserialize(text) {
     let s;
@@ -6090,6 +6141,10 @@
     } catch (e) {
       return { error: "That text is not a saved game." };
     }
+    if (s && typeof s === "object")
+      eachMap(s, (m) => {
+        for (const f of GRIDS) if (m[f] !== void 0) m[f] = unpackGrid(m[f]);
+      });
     if (!s || typeof s !== "object" || typeof s.v !== "number" || !s.player || !s.terrain)
       return { error: "That text is not a saved game." };
     if (s.v > VERSION) return { error: "That save comes from a newer version of the game." };
@@ -7980,14 +8035,89 @@
   var tileX = (tx) => (tx + 0.5) * G2.ts - G2.half;
   var toTile = (x) => clamp2(Math.floor((x + G2.half) / G2.ts), 0, R.W - 1);
 
+  // src/view/quality.js
+  var KEY2 = "farbeacon.settings";
+  var QUALITY = {
+    low: {
+      label: "Low",
+      ratio: 1,
+      aa: false,
+      margin: 12,
+      fine: 144,
+      coarse: 3,
+      treesN: 0.6,
+      treesF: 0.3,
+      rocksN: 0.6,
+      rocksF: 0,
+      extras: false
+    },
+    medium: {
+      label: "Medium",
+      ratio: 1.5,
+      aa: true,
+      margin: 17,
+      fine: 180,
+      coarse: 3,
+      treesN: 1,
+      treesF: 0.5,
+      rocksN: 1,
+      rocksF: 0.5,
+      extras: true
+    },
+    high: {
+      label: "High",
+      ratio: 2,
+      aa: true,
+      margin: 22,
+      fine: 216,
+      coarse: 2,
+      treesN: 1,
+      treesF: 0.5,
+      rocksN: 1,
+      rocksF: 1,
+      extras: true
+    }
+  };
+  var SET = { quality: "medium", meter: false };
+  try {
+    Object.assign(SET, JSON.parse(localStorage.getItem(KEY2) || "{}") || {});
+  } catch (e) {
+  }
+  if (!QUALITY[SET.quality]) SET.quality = "medium";
+  var Q = Object.assign({}, QUALITY[SET.quality]);
+  function saveSettings() {
+    try {
+      localStorage.setItem(KEY2, JSON.stringify(SET));
+    } catch (e) {
+    }
+  }
+  function setQuality(name) {
+    if (!QUALITY[name]) return;
+    SET.quality = name;
+    Object.assign(Q, QUALITY[name]);
+    saveSettings();
+  }
+
   // src/view/terrain.js
   var PAD = { town: 102, vault: 11, beacon: 9, spring: 6, hamlet: 10 };
-  var MARGIN = 22;
-  var EW = R.W + 2 * MARGIN;
-  var CC = CELL * 2;
-  var NC = Math.round(EW * TS / CC);
-  var EHALF = EW * TS / 2;
   var SINK = 0.15;
+  var MARGIN;
+  var EW;
+  var N2;
+  var CELL2;
+  var CC;
+  var NC;
+  var EHALF;
+  function setDetail() {
+    MARGIN = Q.margin;
+    EW = R.W + 2 * MARGIN;
+    N2 = Q.fine;
+    CELL2 = WORLD / N2;
+    CC = CELL2 * Q.coarse;
+    NC = Math.round(EW * TS / CC);
+    EHALF = EW * TS / 2;
+  }
+  setDetail();
   function landAround(s) {
     const rec = R.outdoorRec(s), w = s.world, W2 = R.W, got = {}, biomes = [], region = (dx, dy) => {
       const k = dx + "," + dy;
@@ -8029,6 +8159,7 @@
     return land;
   }
   function makeTerrain(s) {
+    setDetail();
     const land = landAround(s), r = mulberry2(s.seed ^ 5370206), T2 = new Float32Array(4096);
     for (let i = 0; i < 4096; i++) T2[i] = r();
     const noise = (per, salt) => {
@@ -8085,13 +8216,17 @@
       const l = level(x, z);
       return (l <= 1 ? l * 15 : 15 + (l - 1) * 34) + 14 * nBig(x, z) + 7 * nMid(x, z) * Math.max(0.15, 0.4 + l * 0.6) + 1.6 * nFine(x, z);
     };
-    const grid = (n, half, cell) => {
+    const grid = (n, half, cell, hole) => {
       const h = new Float32Array((n + 1) * (n + 1));
       for (let iz = 0; iz <= n; iz++)
-        for (let ix = 0; ix <= n; ix++) h[iz * (n + 1) + ix] = raw(-half + ix * cell, -half + iz * cell);
+        for (let ix = 0; ix <= n; ix++) {
+          const x = -half + ix * cell, z = -half + iz * cell;
+          if (Math.abs(x) < hole && Math.abs(z) < hole) continue;
+          h[iz * (n + 1) + ix] = raw(x, z);
+        }
       return { h, n, half, cell };
     };
-    const fine = grid(N, HALF, CELL), coarse = grid(NC, EHALF, CC);
+    const fine = grid(N2, HALF, CELL2, 0), coarse = grid(NC, EHALF, CC, HALF - 4 * CC);
     const padInto = (g, site) => {
       const cx = (site.x + 0.5) * TS - HALF, cz = (site.y + 0.5) * TS - HALF, ci = Math.round((cx + g.half) / g.cell), cj = Math.round((cz + g.half) / g.cell), flat = Math.max(PAD[site.st.kind] || 8, g.cell * 1.1), rad = flat + 13, n = Math.ceil(rad / g.cell), h0 = raw(cx, cz) - (site.st.kind === "spring" ? 1.2 : 0);
       for (let j = -n; j <= n; j++)
@@ -8118,9 +8253,50 @@
     return { land, fine, coarse, height, level, tint, masks, roadAt, share, tileRand, etile, tileOf, inside: inside2 };
   }
 
+  // src/view/perf.js
+  var PF = { frames: 0, t0: 0, last: 0, worst: 0, sum: 0, calls: 0, tris: 0, build: 0, builds: [], save: 0, el: null };
+  var fmtK = (n) => n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n);
+  function perfBuild(ms) {
+    PF.build = ms;
+    PF.builds.push(ms);
+    if (PF.builds.length > 20) PF.builds.shift();
+  }
+  function perfSave(bytes) {
+    PF.save = bytes;
+  }
+  function perfFrame(renderer2) {
+    const now = performance.now();
+    if (PF.last) {
+      const dt = now - PF.last;
+      PF.sum += dt;
+      PF.worst = Math.max(PF.worst, dt);
+      PF.frames++;
+    }
+    PF.last = now;
+    if (!SET.meter) {
+      if (PF.el) PF.el.hidden = true;
+      return;
+    }
+    PF.calls = renderer2.info.render.calls;
+    PF.tris = renderer2.info.render.triangles;
+    if (now - PF.t0 < 500) return;
+    if (!PF.el) {
+      PF.el = document.createElement("pre");
+      PF.el.id = "perf";
+      document.body.appendChild(PF.el);
+    }
+    PF.el.hidden = false;
+    const fps = PF.frames ? 1e3 * PF.frames / PF.sum : 0, mem = performance.memory ? " | heap " + Math.round(performance.memory.usedJSHeapSize / 1048576) + " MB" : "";
+    PF.el.textContent = Math.round(fps) + " fps | " + (PF.frames ? (PF.sum / PF.frames).toFixed(1) : "-") + " ms, worst " + Math.round(PF.worst) + "\n" + PF.calls + " draws | " + fmtK(PF.tris) + " tris | build " + Math.round(PF.build) + " ms\nsave " + Math.round(PF.save / 1024) + " KB" + mem + " | " + SET.quality;
+    PF.t0 = now;
+    PF.frames = 0;
+    PF.sum = 0;
+    PF.worst = 0;
+  }
+
   // src/view/scene.js
-  var renderer = new THREE.WebGLRenderer({ canvas: $("c"), antialias: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  var renderer = new THREE.WebGLRenderer({ canvas: $("c"), antialias: Q.aa, powerPreference: "high-performance" });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
   var scene = new THREE.Scene();
   var camera = new THREE.PerspectiveCamera(70, 1, 0.3, 3e3);
   camera.rotation.order = "YXZ";
@@ -8147,6 +8323,18 @@
       if (o.material) o.material.dispose();
     });
   };
+  var TREE = (() => {
+    const g = new THREE.ConeGeometry(1, 1, 6, 1, true), p = g.attributes.position, ix = g.index.array, keep = [];
+    for (let i = 0; i < ix.length; i += 3) {
+      const tip = (k) => p.getY(k) > 0.49 && Math.abs(p.getX(k)) + Math.abs(p.getZ(k)) < 1e-6;
+      if (!(tip(ix[i]) && tip(ix[i + 1])) && !(tip(ix[i + 1]) && tip(ix[i + 2])) && !(tip(ix[i]) && tip(ix[i + 2])))
+        keep.push(ix[i], ix[i + 1], ix[i + 2]);
+    }
+    g.setIndex(keep);
+    g.dispose = () => {
+    };
+    return g;
+  })();
   var BUILD = {
     well() {
       const g = new THREE.Group(), m = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 1, 10), std(6117973));
@@ -8444,6 +8632,11 @@
     V.terrain = inTown ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
   }
   function buildStatic() {
+    const t0 = performance.now();
+    buildStaticInner();
+    perfBuild(performance.now() - t0);
+  }
+  function buildStaticInner() {
     dispose(staticGroup);
     staticGroup = new THREE.Group();
     scene.add(staticGroup);
@@ -8460,6 +8653,14 @@
       cols: b.colors.map((c2) => new THREE.Color(c2)),
       lush: new THREE.Color(b.lush !== void 0 ? b.lush : b.id === "taiga" ? 6126200 : 6261317)
     })), paved = new THREE.Color(9210502), c = new THREE.Color(), cb = new THREE.Color(), lush = new THREE.Color(), centre = (t) => (t + 0.5) * TS - HALF, springs = land.sites.filter((q2) => q2.st.kind === "spring").map((q2) => ({ x: centre(q2.x), z: centre(q2.y) }));
+    const springsNear = {}, NONE2 = [];
+    for (const sp of springs)
+      for (let dz = -2; dz <= 2; dz++)
+        for (let dx = -2; dx <= 2; dx++) {
+          const k = T2.etile(sp.x + dx * TS, sp.z + dz * TS);
+          (springsNear[k] = springsNear[k] || []).push(sp);
+        }
+    for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
     const colourAt = (x, z) => {
       const l = T2.level(x, z), mv = [T2.masks[0](x, z), T2.masks[1](x, z), T2.masks[2](x, z)];
       let total = 0;
@@ -8484,7 +8685,7 @@
       lush.multiplyScalar(1 / total);
       if (T2.roadAt(x, z)) c.lerp(paved, 0.85);
       c.multiplyScalar(0.88 + 0.2 * T2.tint(x, z));
-      for (const s of springs) {
+      for (const s of springsNear[T2.etile(x, z)] || NONE2) {
         const dx = s.x - x, dz = s.z - z;
         if (dx > 34 || dx < -34 || dz > 34 || dz < -34) continue;
         const d = Math.hypot(dx, dz);
@@ -8537,10 +8738,10 @@
     };
     for (let ey = 0; ey < EW; ey++)
       for (let ex = 0; ex < EW; ex++) {
-        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land.biome[en], bio = land.biomes[bi], r = T2.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8;
+        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land.biome[en], bio = land.biomes[bi], r = T2.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8, rockShare = far ? Q.rocksF : Q.rocksN;
         for (let n = Math.floor((bio.rocky !== void 0 ? bio.rocky : bio.id === "salt" ? 0.62 : 0.35) + r()); n > 0; n--) {
           const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T2.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
-          if (!nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
+          if (r() < rockShare && !nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
         }
         if (r() < 0.0125) {
           const px = x0 + r() * TS, pz = z0 + r() * TS, s = 1.8 + r() * 1.6, sy = s * (3 + r() * 2.5);
@@ -8548,7 +8749,7 @@
         }
         if (land.terrain[en] !== 3) continue;
         const tr = bio.forest.tree;
-        for (let j = 0, n = far ? Math.ceil(tr.n / 2) : tr.n; j < n; j++) {
+        for (let j = 0, n = Math.ceil(tr.n * (far ? Q.treesF : Q.treesN)); j < n; j++) {
           const px = x0 + r() * TS, pz = z0 + r() * TS, hgt = tr.h[0] + r() * (tr.h[1] - tr.h[0]), wd = tr.w * (0.7 + r() * 0.6), ry = r() * 6.28;
           if (nearSite(px, pz)) continue;
           e.set(0, ry, 0);
@@ -8568,7 +8769,7 @@
     };
     pal.forEach((p, bi) => {
       instances(new THREE.IcosahedronGeometry(1, 0), std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
-      instances(new THREE.ConeGeometry(1, 1, 6), std(land.biomes[bi].forest.tree.color), trees[bi]);
+      instances(TREE, std(land.biomes[bi].forest.tree.color), trees[bi]);
     });
     for (const site of land.sites) {
       const st = site.st, x = centre(site.x), z = centre(site.y);
@@ -8746,7 +8947,11 @@
   function save() {
     try {
       if (!V.S || V.S.over && (V.S.over.won || R.livesLeft(V.S) <= 0)) localStorage.removeItem(KEY);
-      else localStorage.setItem(KEY, R.serialize(V.S));
+      else {
+        const text = R.serialize(V.S);
+        perfSave(text.length);
+        localStorage.setItem(KEY, text);
+      }
     } catch (e) {
     }
   }
@@ -8957,7 +9162,7 @@
     if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
     scene.background.copy(skyC);
     scene.fog.color.copy(skyC);
-    const sight = R.stat(V.S, "nightSight", 0) > 0, far = storm ? 85 : lerp(sight ? 260 : 110, 620, day);
+    const sight = R.stat(V.S, "nightSight", 0) > 0, far = Math.min(storm ? 85 : lerp(sight ? 260 : 110, 620, day), Q.margin * TS * 0.95);
     shown.far = lerp(shown.far, far, 0.05);
     scene.fog.far = shown.far;
     scene.fog.near = Math.min(40, shown.far * 0.2);
@@ -8977,6 +9182,7 @@
     const deg = (-P2.yaw * 180 / Math.PI % 360 + 360) % 360;
     $("facing").textContent = "Facing " + DIRN[Math.round(deg / 45) % 8];
     renderer.render(scene, camera);
+    perfFrame(renderer);
   }
   var last = performance.now();
   function loop(now) {
@@ -9785,6 +9991,40 @@
         });
         return el("div", null, [box2, el("div", { cls: "row" }, [copy, loadIt]), msg]);
       })(),
+      el("h3", { text: "Settings" }),
+      el("p", {
+        cls: "note",
+        text: "Graphics quality for this device. Low draws less land and fewer trees, at a lower resolution: use it if the game stutters. Smoothing of edges changes the next time the page is loaded."
+      }),
+      el(
+        "div",
+        { cls: "row" },
+        Object.keys(QUALITY).map(
+          (k) => btn(
+            QUALITY[k].label + (SET.quality === k ? " (now)" : ""),
+            () => {
+              setQuality(k);
+              renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
+              resize();
+              buildStatic();
+              buildDynamic();
+              openMenu();
+            },
+            SET.quality === k ? "primary" : ""
+          )
+        )
+      ),
+      (() => {
+        const cb = el("input", { type: "checkbox", id: "perf-meter" });
+        cb.checked = !!SET.meter;
+        cb.addEventListener("change", () => {
+          SET.meter = cb.checked;
+          saveSettings();
+        });
+        return el("ul", { cls: "items" }, [
+          el("li", { cls: "item" }, [el("label", { for: "perf-meter", text: "Show the performance meter" }), cb])
+        ]);
+      })(),
       el("h3", { text: "Tinker" }),
       el("p", { cls: "note", text: "Switch whole systems off, or change the numbers while you play." }),
       sw,
@@ -9937,6 +10177,16 @@
     scene,
     renderer,
     buildStatic,
+    PF,
+    setQuality(name) {
+      setQuality(name);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
+      resize();
+    },
+    // a fresh world on this seed, without the character screen (for the benchmark)
+    newWorld(seed) {
+      enter(R.newGame(seed));
+    },
     // for tests and tinkering from the console: redraw everything after changing the state by hand
     refresh() {
       sync();

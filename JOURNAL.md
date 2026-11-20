@@ -1,3 +1,53 @@
+# Commission 3
+
+Newest entry first. Performance numbers are from `tools/bench.py` (a real browser on a software renderer at 412 x 915,
+seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
+`node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
+
+## C3.1: a performance meter, a quality setting, and a cheaper game
+
+**What it is.** Menu now has a **Settings** section, kept per device rather than per run:
+- **Graphics quality**, Low / Medium (the default) / High. It sets the screen resolution (1x, 1.5x, 2x pixels), edge
+  smoothing (off on Low, applied on the next page load), how much of the neighbouring land is drawn (12 / 17 / 22 tiles
+  round the region), how fine the ground is, and how many trees and rocks stand in it. Fog by day never reaches past
+  the land that is drawn, so Low looks hazier rather than cut off.
+- **Show the performance meter**: a small box in the bottom-left corner with frames per second, the average and worst
+  frame time over the last half second, draw calls, triangles, how long the last scene build took (the hitch when you
+  cross a border), the save's size and, in Chrome, the memory in use. Andrew can read it off his phone and send it.
+
+**What it costs, measured** (`tools/bench.py`; the save is a fresh world plus its eight neighbours):
+
+| | build ms | draw calls | triangles | frame ms (software) | save |
+| --- | --- | --- | --- | --- | --- |
+| before | 156 | 123 | 355,691 | 180 | 107 KB |
+| after, High | 147 | 123 | 285,685 | 160 | 36 KB |
+| after, Medium | 68 | 105 | 155,935 | 106 | 36 KB |
+| after, Low | 54 | 89 | 86,934 | 76 | 36 KB |
+
+The largest save in the state test (every region of every test world) went from 266 KB to 85 KB.
+
+**Where the cost was.** Half the triangles were trees: ten thousand cones of 18 triangles each, of which only 6 can be
+seen (the base is never visible, and six more were degenerate slivers at the tip). Trees are now 6-triangle cones.
+The other half is the ground: two height grids, fine and coarse. Building the land was mostly colouring the ground,
+which checked every spring in view for every vertex; springs are now bucketed by tile. The coarse grid no longer
+computes heights under the fine one. The save was mostly three grids per region (ground, height, seen) written as
+lists of 1296 numbers; they are now written as a short run-length text (`packGrid` in save.js). Old saves load as
+they are; no version bump was needed because the state in memory is unchanged.
+
+**Commits.** "Performance meter, graphics quality, smaller saves". No switch: it is the view and the save format.
+
+**Choices made without asking.**
+- Medium is the default, not High: a Pixel 9 can likely run High, but the meter will say, and Medium is a safe
+  first impression on any phone.
+- Rocks and trees roll the same dice at every quality, so a tree that is drawn on Low stands in the same place on High.
+- The smoke test now turns the meter on, switches to Low, reads the meter, and switches back.
+- `tools/bench.py` is the measuring stick for the rest of this commission (`CHROME=` picks a browser, as in the smoke
+  test).
+
+**Verdict: pearl.** It makes the phone budget a number.
+
+---
+
 # Commission 2
 
 ## Summary

@@ -1,10 +1,12 @@
 /* The 3D scene: lights, models, and the static and moving parts of the world. */
 import { $, FR, G, HALF, P, R, TOWN_TS, TS, V, setGeometry } from './ctx.js';
 import { EW, MARGIN, PAD, SINK, makeTerrain } from './terrain.js';
+import { Q } from './quality.js';
+import { perfBuild } from './perf.js';
 
 /* ---------- scene ---------- */
-const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: Q.aa, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
 const scene = new THREE.Scene(),
   camera = new THREE.PerspectiveCamera(70, 1, 0.3, 3000);
 camera.rotation.order = 'YXZ';
@@ -33,6 +35,21 @@ const dispose = (g) => {
     if (o.material) o.material.dispose();
   });
 };
+// A tree: a six-sided cone with no base, which is never seen (6 triangles instead of 18). Shared by every build.
+const TREE = (() => {
+  const g = new THREE.ConeGeometry(1, 1, 6, 1, true),
+    p = g.attributes.position,
+    ix = g.index.array,
+    keep = [];
+  for (let i = 0; i < ix.length; i += 3) {
+    const tip = (k) => p.getY(k) > 0.49 && Math.abs(p.getX(k)) + Math.abs(p.getZ(k)) < 1e-6;
+    if (!(tip(ix[i]) && tip(ix[i + 1])) && !(tip(ix[i + 1]) && tip(ix[i + 2])) && !(tip(ix[i]) && tip(ix[i + 2])))
+      keep.push(ix[i], ix[i + 1], ix[i + 2]);
+  }
+  g.setIndex(keep);
+  g.dispose = () => {}; // shared: never thrown away with a scene
+  return g;
+})();
 const BUILD = {
   well() {
     const g = new THREE.Group(),
@@ -380,6 +397,11 @@ function applyFrame() {
   V.terrain = inTown ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
 }
 function buildStatic() {
+  const t0 = performance.now();
+  buildStaticInner();
+  perfBuild(performance.now() - t0);
+}
+function buildStaticInner() {
   dispose(staticGroup);
   staticGroup = new THREE.Group();
   scene.add(staticGroup);
@@ -404,6 +426,16 @@ function buildStatic() {
     lush = new THREE.Color(),
     centre = (t) => (t + 0.5) * TS - HALF,
     springs = land.sites.filter((q) => q.st.kind === 'spring').map((q) => ({ x: centre(q.x), z: centre(q.y) }));
+  // each spring, listed under every tile it greens, so a point looks only at the springs near it
+  const springsNear = {},
+    NONE = [];
+  for (const sp of springs)
+    for (let dz = -2; dz <= 2; dz++)
+      for (let dx = -2; dx <= 2; dx++) {
+        const k = T.etile(sp.x + dx * TS, sp.z + dz * TS);
+        (springsNear[k] = springsNear[k] || []).push(sp);
+      }
+  for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
   // The colour of the ground at a point: each biome's own palette, mixed where two biomes meet.
   const colourAt = (x, z) => {
     const l = T.level(x, z),
@@ -430,7 +462,7 @@ function buildStatic() {
     lush.multiplyScalar(1 / total);
     if (T.roadAt(x, z)) c.lerp(paved, 0.85);
     c.multiplyScalar(0.88 + 0.2 * T.tint(x, z));
-    for (const s of springs) {
+    for (const s of springsNear[T.etile(x, z)] || NONE) {
       const dx = s.x - x,
         dz = s.z - z;
       if (dx > 34 || dx < -34 || dz > 34 || dz < -34) continue;
@@ -506,7 +538,8 @@ function buildStatic() {
         r = T.tileRand(x, y, 1),
         x0 = x * TS - HALF,
         z0 = y * TS - HALF,
-        far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8;
+        far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8,
+        rockShare = far ? Q.rocksF : Q.rocksN;
       for (let n = Math.floor((bio.rocky !== undefined ? bio.rocky : bio.id === 'salt' ? 0.62 : 0.35) + r()); n > 0; n--) {
         const px = x0 + r() * TS,
           pz = z0 + r() * TS,
@@ -515,7 +548,8 @@ function buildStatic() {
           rx = r() * 3,
           ry = r() * 6.28,
           rz = r() * 3;
-        if (!nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
+        // the same dice are rolled at every quality, so a rock that is drawn is always in the same place
+        if (r() < rockShare && !nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
       }
       if (r() < 0.0125) {
         const px = x0 + r() * TS,
@@ -526,7 +560,7 @@ function buildStatic() {
       }
       if (land.terrain[en] !== 3) continue;
       const tr = bio.forest.tree;
-      for (let j = 0, n = far ? Math.ceil(tr.n / 2) : tr.n; j < n; j++) {
+      for (let j = 0, n = Math.ceil(tr.n * (far ? Q.treesF : Q.treesN)); j < n; j++) {
         const px = x0 + r() * TS,
           pz = z0 + r() * TS,
           hgt = tr.h[0] + r() * (tr.h[1] - tr.h[0]),
@@ -550,7 +584,7 @@ function buildStatic() {
   };
   pal.forEach((p, bi) => {
     instances(new THREE.IcosahedronGeometry(1, 0), std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
-    instances(new THREE.ConeGeometry(1, 1, 6), std(land.biomes[bi].forest.tree.color), trees[bi]);
+    instances(TREE, std(land.biomes[bi].forest.tree.color), trees[bi]);
   });
   for (const site of land.sites) {
     const st = site.st,
