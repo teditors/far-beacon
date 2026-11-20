@@ -39,7 +39,7 @@ function spot(m, r, hw, hd, near) {
       for (let i = -hw - 1; i <= hw + 1 && ok; i++) {
         const k = idx(x + i, y + j),
           inner = Math.abs(i) <= hw && j >= -hw && j <= hd;
-        if (m.sites[k] || (inner && (m.terrain[k] === 2 || m.terrain[k] === 4 || m.terrain[k] === 5))) ok = false;
+        if (m.sites[k] || (inner && (m.terrain[k] === 2 || m.terrain[k] >= 4))) ok = false; // nor water, nor deep water
       }
     if (ok) {
       if (!near) return { x, y };

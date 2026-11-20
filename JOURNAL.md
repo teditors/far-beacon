@@ -5,6 +5,83 @@ seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after.
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
 
+## C4.4: the sea, lakes, and under the water
+
+**What it is.** Real water, and places on it and under it (`sea` piece, `content/sea.js`, `rules/sea.js`).
+- **How seas fit the region grid**: a sea is whole regions. Before any land is made, a world that has a sea (the
+  `sea` setting, 40% by default) turns a patch of 2 to 4 neighbouring regions in the far country into the new biome
+  **Open Sea**. Because biomes already blend within six tiles of a border, the land next to a sea turns to shallows
+  and marsh at the coast on its own. When a sea region is built, everything two tiles or more from high ground becomes
+  **deep water**, so hills and mountains stand out of it as islands; the outermost ring stays shallow, so a
+  neighbour's river or road is never cut off. A sea region that would have no fresh water gets a rock with a
+  rain-pool in the middle. Small worlds (all regions next to home) have no sea, so the story's places never fall in
+  it. **Lakes** come anyway: about one region in four with sweet water has one, deep in the middle with a wadeable
+  margin of sweet water.
+- **Deep water** is a ground of its own (`DEEP`), drawn as water: no one walks on it without a **coracle** (a round
+  hide boat you carry, weight 5: the cost is hauling it over land), a way to **breathe water** (a **Diving Helm**, worn
+  as a tool, or a **Draught of Gills**, 12 hours), or wings. Walking along the bottom is twice as slow as paddling.
+  With no way to breathe, under the water or swimming in deep water, you lose 3 health an hour and can drown (a new
+  cause of death). The town nearest the sea sells a coracle and two draughts of gills; the Journal says so.
+- **Places**: on the water a **floating town** (one per sea: boats lashed together, a raft-master who sells helms,
+  gills and boats, and a bed) and the masts of **wrecks**; under it **merfolk halls** (they trade, and lend a bed),
+  **sea caves** (their mouths on the shore, two dark levels of eels, a prize at the bottom), sunken **wrecks** (the
+  captain's strongbox) and, in some lakes, a **drowned shrine**. Under-water levels have their own look (blue or green
+  water instead of a ceiling); the floating town is drawn on the sea.
+
+**In play.** Nothing sends you to sea yet (the plot will). Bot win rates: see the end of the commission (the bot
+never needs deep water, and no story place stands in a sea).
+
+**Shared bricks.** `DEEP` and `s.player.swims` (kept up to date on every action, so `passable` stays cheap); `LEVELS`
+is now keyed by the kind of level (`LEVELS.deep`, `LEVELS.sea`); SKETCHERS now get the world settings; the dungeons'
+layouts are exported and reused under the sea; the cloud city's trader code serves any trader site.
+
+**Choices made without asking.** The floating town is a level reached from the water, with a trader, not a full town
+with an elder: towns stand on a block of land, and a sea town of that kind can come later. No merfolk race yet (it
+needs a place in the roster, and is best added with a plot that wants it). Creatures never step onto deep water, so
+a boat is safe from all but what lives in the places.
+
+**Commits.** With the sky: "The sky and the sea". Switch: `sea` (at creation).
+
+## C4.3: the sky
+
+**What it is.** Flying, and places that float above the world (`sky` piece, `content/sky.js`, `rules/sky.js`).
+- **Ways to fly**, never rolled as ordinary finds: **Boots of the Updraft** (hard work), the **Cloak of the West
+  Wind** (and warmer), a **Flying Carpet** (easier, and carries more) and a **Griffin's Bridle** (a tame griffin does
+  the work: the easiest). Anything with the new stat `fly` works, so a race or a god could give it later.
+- **Flying** ("Take to the air", outdoors): every kind of ground, river, marsh or mountain, costs the same short time,
+  and nothing on the ground can reach you; you see further and survey wider. But each tile costs stamina (times the
+  item's `flyEffort`), it is 4 colder an hour and 1.2 times as thirsty up there, a storm throws you down (2 to 6
+  damage), below 8 stamina you must land, and aloft you can do nothing but look about: drinking, searching, gathering,
+  fires, sleep and towns all need the ground. Water, shelter and every place worth finding stay on the ground, so
+  flying is a fast, expensive way between them, not a way round the game. The view lifts you 28 metres while aloft.
+- **Places in the sky**, in about one world in four (the world setting), one to three of them over the far country:
+  a **drifting isle** (ruins to search, a rain-pool), a **floating castle** (three levels: the bailey, then up the
+  keep to its lord, a tier 4 elder, and its treasure, with a Griffin's Bridle), a **cloud city** (people: the
+  windwright trades and has a bed for the night) and, now and then, a **low moon** (two levels down into its craters,
+  very cold, everything weighs less, tier 4 and 5 creatures, and an artifact of its own at the bottom).
+  Each hangs high over a **shadow** on the ground "though there is no cloud to cast it", and is drawn up there, seen
+  from far off. Fly over the shadow and up. On the place, the edge of the island is open air (a new ground,
+  `VOID`, that nothing walks on and the view does not draw); its creatures start at tier 3. You leave from the landing:
+  fly down, or, if you have lost your way of flying, jump (a long fall: six tenths of your health).
+- **A world with sky places always has a way to fly within reach**: Boots of the Updraft in one town's shop (half
+  the time; the Journal says so), or with the deepest dungeon's prize. So the sky is late-game: money or a dungeon
+  first.
+
+**In play.** Nothing sends you up yet (the plot will). Bot win rate unchanged (see the numbers at the end of the
+commission). The floating places cost one draw call each outdoors, only in the regions that have them.
+
+**Shared bricks.** `COSTS` (a piece changes what a step costs: flying), `LOOKS` (a piece's levels' looks for the
+view, including a title), the terrain `VOID` (open air), `traderOf` / a `trader` site any piece's level can hold
+(the sea's will use it), and the view now draws any level with `look.void` as an island: slabs where you can stand,
+rock hanging under them, sky all round.
+
+**Choices made without asking.** No flying race yet (a race needs names, a text and its place in the roster; it can
+come with the plot that needs it). Flying is not allowed in storms, and a storm that starts while you are aloft
+throws you down, which is the main brake on it. Sky places are areas reached from a site, like dungeons, rather than
+regions of their own: a floating island is smaller than a region and needs no borders.
+
+**Commits.** With the sea: "The sky and the sea". Switch: `sky` (at creation).
+
 ## C4.2: dungeons, and the memory to hold them
 
 **What it is.** Angband-style dungeons below the world (`deeps` piece, `content/deeps.js`, `rules/deeps.js`).

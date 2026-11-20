@@ -278,7 +278,7 @@ function newGame(seed, off, set) {
     rW = rnd('weather'),
     rO = rnd('offer'),
     pickWith = (rng) => (a) => a[Math.floor(rng() * a.length)];
-  let biome = pickWith(rnd('biome'))(C.biomes.filter((b) => !b.gen)),
+  let biome = pickWith(rnd('biome'))(C.biomes.filter((b) => !b.gen && !b.sea)),
     god = pickWith(rnd('god'))(C.gods),
     civ = {};
   {
@@ -293,7 +293,7 @@ function newGame(seed, off, set) {
   for (const f of TUNERS) f(seed, tun, off, year, set); // a piece may change numbers fixed at creation (the world's size)
   const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
   if (tun.world.shape) world.shape = tun.world.shape;
-  for (const f of SKETCHERS) f(seed, world, off); // a piece may change what the regions are before land is built
+  for (const f of SKETCHERS) f(seed, world, off, set); // a piece may change what the regions are before land is built
   biome = byId(C.biomes, world.sketch[world.home.cy * world.cols + world.home.cx].biome);
   const { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
   // You start in the middle. The town, the locked place and the beacon lie in three different directions.

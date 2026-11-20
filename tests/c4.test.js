@@ -116,5 +116,99 @@ const done = [];
   need(back && R.serialize(back) === R.serialize(s), 'a world with packed maps does not save and load the same');
   done.push('far maps packed (' + cold.length + ' of ' + Object.keys(s.areas).length + ')');
 }
+// The sky: about one world in four, a way to fly within reach, flying over anything at a cost, up to a sky place by its
+// shadow, through its levels, and down again.
+{
+  let worlds = 0, kinds = new Set();
+  for (let seed = 1; seed <= 200; seed++) {
+    const s = R.newGame(seed);
+    if (!s.skies || !s.skies.length) continue;
+    worlds++;
+    s.skies.forEach((k) => kinds.add(k.kind));
+    const shop = R.allTowns(s).some((t) => t.stock.some((i) => i.base === 'wingboots')), deep = s.deeps.some((d) => (d.extra || []).some((i) => i.base === 'wingboots'));
+    need(shop || deep, 'seed ' + seed + ': a sky world has no way to fly within reach');
+  }
+  need(worlds >= 30 && worlds <= 70, worlds + ' of 200 worlds have sky places, not about 1 in 4');
+  need(kinds.size >= 3, 'only ' + [...kinds] + ' kinds of sky place');
+  need(!R.newGame(5, {}, { sky: 0 }).skies && R.newGame(5, {}, { sky: 1 }).skies.length, 'the sky setting does nothing');
+  const s = R.newGame(9, {}, { sky: 1 }), k = s.skies[0];
+  need(!R.canFly(s) && !R.takeOff(s), 'flew with nothing to fly with');
+  const boots = { id: 9900, base: 'wingboots', known: true, eq: 'boots' };
+  s.player.items.forEach((i) => { if (i.eq === 'boots') delete i.eq; });
+  s.player.items.push(boots);
+  s.weather.storm = false; s.weather.changeAt = 1e9; s.creatures = [];
+  need(R.canFly(s) && R.takeOff(s) && R.aloft(s), 'could not take off with winged boots');
+  need(R.actions(s).every((a) => ['land', 'survey', 'mend'].includes(a.id) || a.air), 'aloft, ground actions are still offered');
+  // over a mountain or river at a flat cost; the cost is stamina
+  const st0 = s.player.stamina, mc = R.moveCost(s, s.player.x + 1, s.player.y);
+  need(mc.mins < s.tun.moveMin.plain, 'flying is not quicker than walking');
+  R.move(s, 1, 0);
+  need(s.player.stamina < st0, 'flying cost no stamina');
+  // to the shadow and up
+  R.setGodMode(s, true); R.jumpTo(s, 'region:' + k.area); R.setGodMode(s, false); s.player.x = k.x; s.player.y = k.y; s.player.stamina = 100; s.player.aloft = true; s.creatures = [];
+  need(R.flyUp(s) && R.areaRec(s).kind === 'sky' && !R.aloft(s), 'could not fly up to ' + k.name);
+  need(R.levelLook(s) && R.levelLook(s).void, 'a sky place has no look');
+  need(s.terrain.some((t) => t === R.VOID) && !R.passable(s, 0, 0), 'the open air round a sky place can be walked on');
+  for (let n = 1; n < k.levels; n++) {
+    const up = R.findHere(s, 'skyway'), ups = Object.keys(s.sites).filter((q) => s.sites[q].kind === 'skyway' && !s.sites[q].back);
+    need(ups.length, k.name + ' level ' + n + ' has no way on');
+    if (!ups.length) break;
+    s.player.x = ups[0] % R.W; s.player.y = Math.floor(ups[0] / R.W); s.combat = null;
+    need(R.skyOn(s) && R.areaRec(s).level === n + 1, 'could not climb ' + k.name);
+  }
+  // and down again: back to the landing, then off the edge
+  for (let g = 0; R.areaRec(s).level > 1 && g < 9; g++) { const b = +Object.keys(s.sites).find((q) => s.sites[q].kind === 'skyway' && s.sites[q].back); s.player.x = b % R.W; s.player.y = Math.floor(b / R.W); s.combat = null; R.skyOn(s); }
+  const ld = R.findHere(s, 'landing'); s.player.x = ld.x; s.player.y = ld.y; s.combat = null;
+  need(R.flyDown(s) && R.inOverworld(s) && R.aloft(s) && s.player.x === k.x && s.player.y === k.y, 'flying down did not come back over the shadow');
+  // a storm throws you down
+  s.weather.storm = true; R.rest(s);
+  need(!R.aloft(s), 'a storm did not bring the traveller down');
+  const back = R.deserialize(R.serialize(s)).state;
+  need(back && back.skies.length === s.skies.length, 'sky places did not survive a save');
+  done.push('the sky (' + worlds + ' of 200 worlds, ' + [...kinds].join(', ') + ')');
+}
+// The sea: seas in some worlds, lakes in others, deep water closed to the unready, boats and gills, places on and
+// under the water, and drowning.
+{
+  let worlds = 0, kinds = new Set();
+  for (let seed = 1; seed <= 120; seed++) {
+    const s = R.newGame(seed);
+    if (!s.world.sea) continue;
+    worlds++;
+    need(R.allTowns(s).some((t) => t.stock.some((i) => i.base === 'coracle')), 'seed ' + seed + ': a sea world sells no boat');
+  }
+  need(worlds >= 15, 'only ' + worlds + ' of 120 worlds have a sea');
+  need(!R.newGame(4, {}, { sea: 0, size: '5x5' }).world.sea && R.newGame(4, {}, { sea: 1, size: '5x5' }).world.sea, 'the sea setting does nothing');
+  const s = R.newGame(4, {}, { sea: 1, size: '5x5' });
+  R.setGodMode(s, true);
+  for (const p of R.places(s).filter((p) => p.group === 'Water')) { R.jumpTo(s, p.id); kinds.add(R.areaRec(s).place); need(R.areaRec(s).kind === 'sea' && R.levelLook(s), 'could not reach ' + p.label); }
+  need(kinds.size >= 4, 'only ' + [...kinds] + ' kinds of place in the water');
+  const raft = s.seaPlaces.find((p) => p.kind === 'raft'), under = s.seaPlaces.find((p) => p.kind === 'wreck' || p.kind === 'merhall');
+  R.jumpTo(s, 'region:' + raft.area);
+  R.setGodMode(s, false);
+  s.creatures = []; s.weather.storm = false; s.weather.changeAt = 1e9; s.player.stamina = 100;
+  // deep water is shut without a boat, open with one
+  const deepNext = () => { for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = s.player.x + dx, y = s.player.y + dy; if (x >= 0 && y >= 0 && x < R.W && y < R.H && s.terrain[y * R.W + x] === R.DEEP) return [dx, dy]; } return null; };
+  s.player.x = raft.x; s.player.y = raft.y; delete s.player.swims;
+  need(!R.passable(s, raft.x, raft.y), 'deep water can be walked on with no boat');
+  s.player.items.push({ id: 9950, base: 'coracle', known: true });
+  R.rest(s);
+  need(R.passable(s, raft.x, raft.y) && R.hasBoat(s), 'a coracle does not carry you over deep water');
+  need(R.enterWater(s) && R.areaRec(s).place === 'raft' && R.findHere(s, 'trader'), 'could not board the floating town, or it has no trader');
+  const ex = R.findHere(s, 'exit'); s.player.x = ex.x; s.player.y = ex.y; R.goUp(s);
+  need(R.inOverworld(s) && s.player.x === raft.x, 'leaving the floating town did not put you back on the water');
+  // under the water: a way to breathe first, and drowning without it
+  R.travelTo(s, under.area, under.x, under.y); s.player.x = under.x; s.player.y = under.y; s.combat = null;
+  need(!R.enterWater(s), 'dived with no way to breathe');
+  s.player.items.push({ id: 9951, base: 'gills', known: true });
+  R.useItem(s, 9951);
+  need(R.breathes(s) && R.enterWater(s) && R.areaRec(s).kind === 'sea', 'a draught of gills did not let you dive');
+  s.creatures = []; s.breatheUntil = 0; const hp = s.player.hp = s.player.hpMax = 50;
+  R.rest(s);
+  need(s.player.hp < hp, 'no harm with no breath under the water');
+  const back = R.deserialize(R.serialize(s)).state;
+  need(back && back.area === s.area && back.seaPlaces.length === s.seaPlaces.length, 'a save under the sea did not come back');
+  done.push('the sea (' + worlds + ' of 120 worlds; ' + [...kinds].join(', ') + ')');
+}
 if (errs.length) { console.log('commission 4 problems:\n  ' + errs.join('\n  ')); process.exit(1); }
 console.log('c4 ok: ' + done.join(', '));

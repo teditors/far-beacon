@@ -508,7 +508,7 @@ function goToLevel(s, n, floors) {
 function goDown(s) {
   const st = siteHere(s),
     rec = areaRec(s);
-  if (rec.kind !== 'vault') return LEVELS.down ? LEVELS.down(s) : false; // a level some piece owns (a dungeon)
+  if (rec.kind !== 'vault') return LEVELS[rec.kind] ? LEVELS[rec.kind](s) : false; // a level some piece owns (a dungeon)
   if (s.over || !st || st.kind !== 'stairsDown') return false;
   if (stat(s, 'nightSight', 0) <= 0) {
     say(s, 'You will not find the next stair without a light.', 'bad');

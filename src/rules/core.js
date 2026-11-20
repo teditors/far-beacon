@@ -5,10 +5,12 @@ const C = CONTENT,
   H = 36,
   VERSION = 9,
   START = 6 * 60;
-const TERR = ['plain', 'hill', 'mountain', 'forest', 'river', 'special', 'wall', 'floor'];
+const TERR = ['plain', 'hill', 'mountain', 'forest', 'river', 'special', 'wall', 'floor', 'void', 'deep'];
 // Indoor ground: walls cannot be walked through; floor is the inside of towns and the locked place.
 const WALL = 6,
-  FLOOR = 7;
+  FLOOR = 7,
+  VOID = 8, // the open air round a place in the sky: nothing walks on it, and nothing is drawn there
+  DEEP = 9; // deep water, outdoors: crossed by boat, along the bottom by those who breathe water, or over it on wings
 // Look an entry up by id. Lists are indexed on first use (and again if they grow), since some lookups run very often.
 const idIndex = new WeakMap();
 const byId = (list, id) => {
@@ -116,4 +118,4 @@ export {
   godOf,
 };
 export { aOrAn, godMakers, siteHereKind, stormMakers, stormOf };
-export { WALL, FLOOR };
+export { WALL, FLOOR, VOID, DEEP };

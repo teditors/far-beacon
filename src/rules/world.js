@@ -6,7 +6,7 @@ import { wrap, wrapDelta } from './areas.js';
 // The coarse map: one entry per region. More will live here as the world grows (peoples, towns, roads).
 function makeSketch(seed, cols, rows, homeBiome) {
   const r = stream(seed, 'sketch'),
-    ids = C.biomes.filter((b) => !b.gen).map((b) => b.id), // generated biomes are given out by their own piece
+    ids = C.biomes.filter((b) => !b.gen && !b.sea).map((b) => b.id), // generated biomes and the sea are given out by their own pieces
     home = { cx: cols >> 1, cy: rows >> 1 },
     sketch = [];
   for (let cy = 0; cy < rows; cy++)

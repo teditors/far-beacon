@@ -39,7 +39,25 @@ import {
 } from './character.js';
 import { AXES, civOf, civTraits, trait, traitText } from './civ.js';
 import { attack, firebolt, flee, foe, formOf, identify, mend, power, smite, spOf } from './combat.js';
-import { C, FLOOR, H, TERR, VERSION, W, WALL, biomeOf, byId, clock, emit, godOf, on, siteHereKind, stormOf } from './core.js';
+import {
+  C,
+  DEEP,
+  FLOOR,
+  H,
+  TERR,
+  VERSION,
+  VOID,
+  W,
+  WALL,
+  biomeOf,
+  byId,
+  clock,
+  emit,
+  godOf,
+  on,
+  siteHereKind,
+  stormOf,
+} from './core.js';
 import { aOrAn } from './core.js';
 import { active, equip, slotOf, unequip } from './equipment.js';
 import { describeItem, genItem, isCursed, itemAffixes, itemName, itemWeight, weight } from './items.js';
@@ -123,6 +141,8 @@ import './worldsize.js';
 import './plot.js'; // it moves quest places that earlier pieces may have changed
 import './moretowns.js'; // after the plot: other towns go where the story's places are not
 import { deepById, deepsOf, enterDeep, levelLook, levelTitle } from './deeps.js'; // after the towns: a town may have a cellar
+import { aloft, canFly, flyDown, flyUp, land, skiesOf, skyOn, takeOff } from './sky.js'; // after the dungeons: a way to fly may lie in one
+import { breathes, enterWater, hasBoat, seaPlacesOf } from './sea.js';
 import {
   choosePlot,
   mainPlot,
@@ -142,6 +162,18 @@ import { genOf, parseSet, settings } from './worldset.js';
 
 const api = {
   setGodMode,
+  breathes,
+  enterWater,
+  hasBoat,
+  seaPlacesOf,
+  aloft,
+  canFly,
+  flyDown,
+  flyUp,
+  land,
+  skiesOf,
+  skyOn,
+  takeOff,
   deepById,
   deepsOf,
   enterDeep,
@@ -206,6 +238,8 @@ const api = {
   worldPos,
   WALL,
   FLOOR,
+  VOID,
+  DEEP,
   aOrAn,
   serialize,
   deserialize,
@@ -376,6 +410,12 @@ const ACTIONS = [
   'claimErrand',
   'useService',
   'enterDeep',
+  'takeOff',
+  'land',
+  'flyUp',
+  'skyOn',
+  'flyDown',
+  'enterWater',
 ];
 for (const k of ACTIONS) {
   const fn = api[k];

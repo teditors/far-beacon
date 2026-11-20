@@ -349,7 +349,7 @@ function stepCreatures(s) {
         dy = Math.sign(p.y - c.y),
         nx = Math.abs(p.x - c.x) >= Math.abs(p.y - c.y) ? c.x + dx : c.x,
         ny = nx === c.x ? c.y + dy : c.y;
-      if (s.terrain[idx(nx, ny)] !== 2 && passable(s, nx, ny)) {
+      if (s.terrain[idx(nx, ny)] !== 2 && s.terrain[idx(nx, ny)] !== 9 && passable(s, nx, ny)) {
         c.x = nx;
         c.y = ny;
         moved = true;
@@ -374,7 +374,7 @@ function stepCreatures(s) {
         sp.rare === 'docile' ? '' : 'bad',
       );
     }
-    if (d === 0 && !s.combat && c.cool === 0 && !s.godMode) {
+    if (d === 0 && !s.combat && c.cool === 0 && !s.godMode && !p.aloft) {
       if (sp.rare === 'docile') {
         if (!c.greeted) {
           c.greeted = true;

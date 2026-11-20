@@ -17,7 +17,7 @@ import { findSite } from './quest.js';
 import { stat, SOURCES } from './stats.js';
 import { advance } from './systems.js';
 import { gainXp } from './progress.js';
-import { ACTIONS, LEVELS, NOTES, PLACES, SWITCHES } from './hooks.js';
+import { ACTIONS, LEVELS, LOOKS, NOTES, PLACES, SWITCHES } from './hooks.js';
 import { applyQuirk, rollQuirk } from './floors.js';
 import { makeArtifact } from './artifacts.js';
 import { genOf } from './worldset.js';
@@ -348,6 +348,10 @@ GENERATORS.deep = (s, rec) => {
       prize.items.push(d.prize);
       delete d.prize;
     }
+    if (d.extra) {
+      prize.items.push(...d.extra); // what other pieces leave at the bottom (a way to fly, in a sky world)
+      delete d.extra;
+    }
     depots[far] = prize;
     const heart = put(sp[sp.length - 1], spot(2) ?? far, tierAt + 1);
     heart.warden = true;
@@ -455,7 +459,7 @@ function enterDeep(s) {
   return true;
 }
 // Down a stair inside a dungeon (the locked place keeps its own, in quest.js).
-LEVELS.down = (s) => {
+LEVELS.deep = (s) => {
   const rec = areaRec(s),
     d = deepById(s, rec.deep),
     st = siteHere(s);
@@ -519,6 +523,10 @@ on('did', (s, ev) => {
 const VAULT_STONE = { castle: 0x6a6660, barrow: 0x5d6a4a, temple: 0x4f6e6c };
 function levelLook(s) {
   const rec = areaRec(s);
+  for (const f of LOOKS) {
+    const l = f(s, rec);
+    if (l) return l;
+  }
   if (rec.kind === 'vault') return { stone: VAULT_STONE[s.quest.vault.id] || 0x6a6660, floor: 0x3e3a35, dark: true };
   if (rec.kind === 'deep') {
     const th = byId(D().themes, rec.theme);
@@ -532,6 +540,8 @@ function levelTitle(s) {
     d = rec.kind === 'deep' ? deepById(s, rec.deep) : null;
   if (rec.kind === 'vault') return 'The ' + s.quest.vault.name + ', level ' + rec.level + ' of ' + rec.levels;
   if (d) return d.name.charAt(0).toUpperCase() + d.name.slice(1) + ', level ' + rec.level + ' of ' + rec.levels;
+  const look = levelLook(s);
+  if (look && look.title) return look.title;
   return rec.name || 'Here';
 }
 // Every place below the world: each dungeon's levels, and the locked place's.

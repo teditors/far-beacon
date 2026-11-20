@@ -315,8 +315,8 @@ function frame() {
   finishFrame();
 }
 function finishFrame() {
-  const target = V.terrain.height(P.x, P.z) + EYE + (still ? 0 : Math.sin(P.walked * 1.7) * 0.05);
-  P.y = lerp(P.y, target, 0.35);
+  const target = V.terrain.height(P.x, P.z) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P.walked * 1.7) * 0.05); // flying: high above the land
+  P.y = lerp(P.y, target, Math.abs(target - P.y) > 3 ? 0.06 : 0.35); // rise and fall slowly
   camera.position.set(P.x, P.y, P.z);
   camera.rotation.set(P.pitch, P.yaw, 0);
   const deg = ((((-P.yaw * 180) / Math.PI) % 360) + 360) % 360;

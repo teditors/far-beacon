@@ -667,6 +667,11 @@ function showEnd() {
   lock(true);
 }
 const MAPC = {
+  shadow: '#1d2430',
+  landing: '#e0a84a',
+  skyway: '#e0a84a',
+  trader: '#3a6a9a',
+  seaplace: '#7fd0e0',
   spring: '#2f7fb5',
   cave: '#3b332c',
   ruin: '#7b4a8c',
@@ -692,7 +697,7 @@ const MAPC = {
   siege: '#c0612f',
   shelter: '#a07a4a',
 };
-const INDOOR_COLS = { 6: '#3a3631', 7: '#9a948a' };
+const INDOOR_COLS = { 6: '#3a3631', 7: '#9a948a', 8: '#9cc4ec' };
 // The map screen. Indoors: the town or the level you are on. Outdoors: the whole world as one continuous map, drawn from
 // every region you have seen, centred on you; it wraps around like the world. Drag to pan, + and - to zoom.
 const mapView = { zoom: 54, dx: 0, dy: 0 }; // tiles across the canvas, and how far it has been panned from you
@@ -859,7 +864,7 @@ function drawWorldMap(cv) {
       if (!m.seen[i]) continue;
       const px = (sx - x0) * ts,
         py = (sy - y0) * ts;
-      g.fillStyle = r.cols[m.terrain[i]] || '#555';
+      g.fillStyle = m.terrain[i] === R.DEEP ? '#1d4e78' : r.cols[m.terrain[i]] || '#555';
       g.fillRect(px, py, ts + 0.6, ts + 0.6);
       if (m.road[i]) {
         g.fillStyle = '#8c8a86';

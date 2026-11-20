@@ -4,7 +4,7 @@
    A piece also adds stat sources with SOURCES.push (stats.js), systems with SYSTEMS.push (systems.js), and listens for
    'worldBorn' (emitted at the end of newGame, with { rnd, off }) to roll and announce what it adds to a new world. */
 const NOTES = [];
-// SKETCHERS: functions (seed, world, off) run in newGame right after the world's sketch is made, before any land is
+// SKETCHERS: functions (seed, world, off, set) run in newGame right after the world's sketch is made, before any land is
 // built, so a piece can change what each region will be. LOADERS: functions (s) run when a save is loaded, before
 // anything else, so a piece can rebuild what it derives from the seed.
 const SKETCHERS = [];
@@ -28,11 +28,17 @@ const WEIGHTS = [];
 const RUMOURS = [];
 // PLACES: functions (s, out) that push places god mode can jump to: { id, group, label, go(s) }.
 const PLACES = [];
-// LEVELS: what the shared stair actions call for levels a piece owns: down(s) for a stair down below the first level.
+// COSTS: functions (s, x, y, mc) returning the cost of a step ({ mins, cost, base }), given the usual one (flying).
+const COSTS = [];
+// LOOKS: functions (s, rec) giving how a level a piece owns looks ({ stone, floor, bg, glow, void, title... }), or null.
+const LOOKS = [];
+// LEVELS: for levels a piece owns, by area kind: LEVELS[kind](s) takes the stair down (goDown calls it).
 const LEVELS = {};
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 export {
+  COSTS,
+  LOOKS,
   LEVELS,
   PLACES,
   NOTES,
