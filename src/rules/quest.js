@@ -449,7 +449,7 @@ function inn(s) {
 function unlock(s) {
   const st = siteHere(s);
   if (s.over || !st || st.kind !== 'vault' || st.open) return false;
-  if (!hasItem(s, 'key')) {
+  if (!hasItem(s, 'key') && !s.godMode) {
     say(s, 'The door of the ' + s.quest.vault.name + ' is locked, and will not be forced.');
     return false;
   }

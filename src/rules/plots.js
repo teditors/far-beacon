@@ -292,7 +292,8 @@ on('worldBorn', (s, d) => {
     };
   s.plots = [];
   // the great trouble, told in the story's town
-  const main = pickW(X.kinds, 'main');
+  const rolled = pickW(X.kinds, 'main'),
+    main = (d.set && d.set.trouble && byId(X.kinds, d.set.trouble)) || rolled; // the new world screen may choose
   let n = 0;
   const add = (kind, giver, isMain, link) => {
     const p = { id: 'p' + n++, kind: kind.id, giver, main: !!isMain, known: false, step: 0 };

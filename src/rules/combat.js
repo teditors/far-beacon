@@ -374,7 +374,7 @@ function stepCreatures(s) {
         sp.rare === 'docile' ? '' : 'bad',
       );
     }
-    if (d === 0 && !s.combat && c.cool === 0) {
+    if (d === 0 && !s.combat && c.cool === 0 && !s.godMode) {
       if (sp.rare === 'docile') {
         if (!c.greeted) {
           c.greeted = true;

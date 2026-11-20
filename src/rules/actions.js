@@ -65,7 +65,7 @@ function move(s, dx, dy, at) {
     was = s.lastGround,
     leftCamp = atCamp(s);
   if (out && !inOverworld(s) && areaRec(s).kind !== 'town') return false;
-  if (weight(s) > carryCap(s) + 1e-9) {
+  if (weight(s) > carryCap(s) + 1e-9 && !s.godMode) {
     say(s, 'You are carrying too much to move. Leave something here.', 'bad');
     return false;
   }

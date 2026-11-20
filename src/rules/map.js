@@ -36,7 +36,9 @@ const isShelter = (site) =>
     site.kind === 'shelter');
 const inShelter = (s) => indoors(s) || isShelter(siteHere(s));
 const atCamp = (s) => campHere(s) === here(s);
-const passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL && !inTownBlock(s, x, y);
+// In god mode nothing stops you but the edge of a level and a town's block (walking into it enters the town).
+const passable = (s, x, y) =>
+  x >= 0 && y >= 0 && x < W && y < H && (s.godMode || s.terrain[idx(x, y)] !== WALL) && !inTownBlock(s, x, y);
 
 const DIRS = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east'];
 function dirTo(s, x, y) {

@@ -3523,6 +3523,94 @@
     }
   };
 
+  // src/content/worldset.js
+  var worldset_default = {
+    worldSet: {
+      defaults: {
+        cols: 0,
+        // regions across; 0 rolls the size from the seed (with rows)
+        rows: 0,
+        races: null,
+        // ids of the races that may be offered; null for any
+        classes: null,
+        nRaces: 0,
+        // how many races and classes a world offers; 0 rolls it
+        nClasses: 0,
+        towns: -1,
+        // other towns besides the story's; -1 rolls it
+        dungeons: 1,
+        // how many dungeons, against the usual (0 for none, 2 for twice as many)
+        depth: 4,
+        // the most levels an ordinary dungeon goes down (plot dungeons may go deeper)
+        sky: 0.25,
+        // the chance that a world has places in the sky
+        sea: 0.4,
+        // the chance that a world has a sea (lakes come anyway)
+        doors: 0.08,
+        // the chance that a world has a door to another world
+        maxDoors: 3,
+        // the most doors a world can have, when it has any
+        trouble: ""
+        // the great trouble's kind; '' rolls it
+      },
+      // what the new world screen offers for each setting
+      menus: {
+        size: [
+          ["", "Rolled from the seed"],
+          ["2x3", "Small, 2 x 3"],
+          ["3x3", "Three by three"],
+          ["4x4", "Four by four"],
+          ["5x5", "Five by five"],
+          ["3x7", "Long, 3 x 7"],
+          ["7x7", "Vast, 7 x 7"]
+        ],
+        towns: [
+          [-1, "Rolled"],
+          [0, "Only the story town"],
+          [1, "One more"],
+          [2, "Two more"],
+          [3, "Three more"],
+          [5, "Five more"]
+        ],
+        dungeons: [
+          [0, "None but the locked place"],
+          [0.5, "Few"],
+          [1, "Usual"],
+          [2, "Many"]
+        ],
+        depth: [
+          [1, "One level"],
+          [2, "Two levels"],
+          [4, "Up to four (usual)"],
+          [8, "Up to eight"],
+          [16, "Up to sixteen"]
+        ],
+        sky: [
+          [0, "Never"],
+          [0.1, "Rarely"],
+          [0.25, "1 world in 4 (usual)"],
+          [0.6, "Often"],
+          [1, "Always"]
+        ],
+        sea: [
+          [0, "Never"],
+          [0.4, "Sometimes (usual)"],
+          [1, "Always"]
+        ],
+        doors: [
+          [0, "Never"],
+          [0.08, "Rarely (usual)"],
+          [0.4, "Often"],
+          [1, "Always"]
+        ],
+        maxDoors: [
+          [1, "One at most"],
+          [3, "Up to three"]
+        ]
+      }
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -3556,7 +3644,8 @@
     moretowns_default,
     plots_default,
     crafting_default,
-    trade_default
+    trade_default,
+    worldset_default
   );
 
   // src/rules/core.js
@@ -3926,6 +4015,7 @@
   var TOWN_MAKERS = [];
   var WEIGHTS = [];
   var RUMOURS = [];
+  var PLACES = [];
   var SWITCHES = [];
   var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 
@@ -4079,7 +4169,7 @@
   var isShelter = (site) => !!site && (site.kind === "cave" || site.kind === "ruin" || site.kind === "well" || site.kind === "town" || site.kind === "vault" || site.kind === "hamlet" || site.kind === "shelter");
   var inShelter = (s) => indoors(s) || isShelter(siteHere(s));
   var atCamp = (s) => campHere(s) === here(s);
-  var passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL && !inTownBlock(s, x, y);
+  var passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && (s.godMode || s.terrain[idx(x, y)] !== WALL) && !inTownBlock(s, x, y);
   var DIRS = ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"];
   function dirTo(s, x, y) {
     const dx = x - s.player.x, dy = y - s.player.y;
@@ -4796,7 +4886,7 @@
           sp.rare === "docile" ? "" : "bad"
         );
       }
-      if (d === 0 && !s.combat && c.cool === 0) {
+      if (d === 0 && !s.combat && c.cool === 0 && !s.godMode) {
         if (sp.rare === "docile") {
           if (!c.greeted) {
             c.greeted = true;
@@ -5271,7 +5361,7 @@
   function unlock(s) {
     const st = siteHere(s);
     if (s.over || !st || st.kind !== "vault" || st.open) return false;
-    if (!hasItem(s, "key")) {
+    if (!hasItem(s, "key") && !s.godMode) {
       say(s, "The door of the " + s.quest.vault.name + " is locked, and will not be forced.");
       return false;
     }
@@ -5382,7 +5472,7 @@
     let nx = s.player.x + dx, ny = s.player.y + dy;
     const out = nx < 0 || ny < 0 || nx >= W || ny >= H, was = s.lastGround, leftCamp = atCamp(s);
     if (out && !inOverworld(s) && areaRec(s).kind !== "town") return false;
-    if (weight(s) > carryCap(s) + 1e-9) {
+    if (weight(s) > carryCap(s) + 1e-9 && !s.godMode) {
       say(s, "You are carrying too much to move. Leave something here.", "bad");
       return false;
     }
@@ -6289,6 +6379,62 @@
       say(s, (isRareYear(y) ? "A rare year: " + y.name.toLowerCase() : y.name) + ". " + y.text, isRareYear(y) ? "good" : "");
   });
 
+  // src/rules/worldset.js
+  var D = () => C.worldSet.defaults;
+  var num = (v, lo, hi, dflt) => {
+    const n = typeof v === "string" ? parseFloat(v) : v;
+    return typeof n === "number" && isFinite(n) ? Math.max(lo, Math.min(hi, n)) : dflt;
+  };
+  function settings(set) {
+    const d = D(), out = Object.assign({}, d);
+    if (!set || typeof set !== "object") return out;
+    if (typeof set.size === "string" && /^\d+x\d+$/.test(set.size)) {
+      const [c, r] = set.size.split("x").map(Number);
+      set = Object.assign({}, set, { cols: c, rows: r });
+    }
+    out.cols = Math.round(num(set.cols, 0, 7, 0));
+    out.rows = Math.round(num(set.rows, 0, 7, 0));
+    if (out.cols && out.rows) {
+      out.cols = Math.max(2, out.cols);
+      out.rows = Math.max(3, out.rows);
+    }
+    if (!out.cols || !out.rows) out.cols = out.rows = 0;
+    else while (out.cols * out.rows > C.worldSize.most) out.cols > out.rows ? out.cols-- : out.rows--;
+    for (const [k, list] of [
+      ["races", C.races],
+      ["classes", C.classes]
+    ]) {
+      const ids = Array.isArray(set[k]) ? set[k] : typeof set[k] === "string" && set[k] ? set[k].split("+") : null;
+      const ok = ids && ids.filter((id) => byId(list, id));
+      out[k] = ok && ok.length ? ok : null;
+    }
+    out.nRaces = Math.round(num(set.nRaces, 0, 99, 0));
+    out.nClasses = Math.round(num(set.nClasses, 0, 99, 0));
+    out.towns = Math.round(num(set.towns, -1, 5, d.towns));
+    out.dungeons = num(set.dungeons, 0, 4, d.dungeons);
+    out.depth = Math.round(num(set.depth, 1, 64, d.depth));
+    out.sky = num(set.sky, 0, 1, d.sky);
+    out.sea = num(set.sea, 0, 1, d.sea);
+    out.doors = num(set.doors, 0, 1, d.doors);
+    out.maxDoors = Math.round(num(set.maxDoors, 1, 3, d.maxDoors));
+    out.trouble = typeof set.trouble === "string" && C.plots && (byId(C.plots.kinds, set.trouble) || {}).main ? set.trouble : "";
+    return out;
+  }
+  function keepOf(set) {
+    const d = D(), out = {};
+    for (const k in set) if (JSON.stringify(set[k]) !== JSON.stringify(d[k])) out[k] = set[k];
+    return Object.keys(out).length ? out : null;
+  }
+  var genOf = (s) => Object.assign({}, D(), s && s.gen || {});
+  function parseSet(text) {
+    const out = {};
+    for (const kv of (text || "").split(",").filter(Boolean)) {
+      const [k, v] = kv.split("=");
+      out[k] = v === void 0 ? 1 : v;
+    }
+    return out;
+  }
+
   // src/rules/worldgen.js
   var heightCache = {};
   function genTerrain(seed, world, cx, cy, biome, rT) {
@@ -6470,9 +6616,10 @@
     });
     return map;
   };
-  function newGame(seed, off) {
+  function newGame(seed, off, set) {
     seed = seed >>> 0 || 1;
     off = Object.assign({}, off);
+    set = settings(set);
     const year = rollYear(seed, off), tun = yearTuning(JSON.parse(JSON.stringify(C.tun)), year);
     const rnd = (name) => stream(seed, name), rT = rnd("terrain"), rL = rnd("layout"), rV = rnd("vault"), rS = rnd("sites"), rR = rnd("roads"), rRun = rnd("run"), rW = rnd("weather"), rO = rnd("offer"), pickWith = (rng) => (a) => a[Math.floor(rng() * a.length)];
     let biome = pickWith(rnd("biome"))(C.biomes.filter((b) => !b.gen)), god = pickWith(rnd("god"))(C.gods), civ = {};
@@ -6483,7 +6630,7 @@
       civ.name = pick(st.a) + pick(st.b) + pick(st.c);
     }
     const habit = byId(C.civ.habit, civ.habit), age = byId(C.civ.age, civ.age), doom = byId(C.civ.doom, civ.doom);
-    for (const f of TUNERS) f(seed, tun, off, year);
+    for (const f of TUNERS) f(seed, tun, off, year, set);
     const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
     if (tun.world.shape) world.shape = tun.world.shape;
     for (const f of SKETCHERS) f(seed, world, off);
@@ -6579,6 +6726,7 @@
       stats: { moves: 0, trips: 0 }
     };
     if (year) s.year = year.id;
+    if (keepOf(set)) s.gen = keepOf(set);
     s.weather.changeAt = (360 + rW() * 600) * s.tun.stormGap;
     const draw = (list, n) => {
       const a = list.map((e) => e.id);
@@ -6588,8 +6736,13 @@
       }
       return a.slice(0, n);
     };
-    const usual = (list) => list.filter((e) => !e.exotic && !e.roster);
-    s.offer = { races: draw(usual(C.races), C.offer.races), classes: draw(usual(C.classes), C.offer.classes) };
+    const usual = (list, only) => list.filter((e) => !e.exotic && !e.roster && (!only || only.includes(e.id)));
+    s.offer = {
+      races: draw(usual(C.races, set.races), set.nRaces || C.offer.races),
+      classes: draw(usual(C.classes, set.classes), set.nClasses || C.offer.classes)
+    };
+    if (!s.offer.races.length) s.offer.races = draw(usual(C.races), C.offer.races);
+    if (!s.offer.classes.length) s.offer.classes = draw(usual(C.classes), C.offer.classes);
     s.species = makeSpecies(s, rnd("species"), biome.id);
     s.speciesByBiome = { [biome.id]: s.species.map((_, i) => i) };
     s.creatures = [];
@@ -6613,7 +6766,7 @@
       "Somewhere to the " + dirTo(s, townP.x, townP.y) + " there is a town. Find it: its people know what this land is waiting for."
     );
     say(s, "Your camp has a well. A cloak, a lantern and fuel are stored here: open Pack to take them.");
-    emit(s, "worldBorn", { rnd, off });
+    emit(s, "worldBorn", { rnd, off, set });
     if (typeof INTRO_EXTRA === "string") say(s, INTRO_EXTRA);
     ensureTown(s);
     ensureAround(s);
@@ -7252,7 +7405,7 @@
   var ofSeed = (seed) => "g" + (seed >>> 0) + "_";
   var isGen = (id) => typeof id === "string" && /^g\d+_\d+$/.test(id);
   function hueShift(c, deg) {
-    const num = typeof c === "number", n = num ? c : parseInt(c.slice(1), 16);
+    const num2 = typeof c === "number", n = num2 ? c : parseInt(c.slice(1), 16);
     let r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
     const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
     let h = 0, s = 0;
@@ -7264,7 +7417,7 @@
     h = ((h + deg) % 360 + 360) % 360;
     const C2 = (1 - Math.abs(2 * l - 1)) * s, X6 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X6, 0] : h < 120 ? [X6, C2, 0] : h < 180 ? [0, C2, X6] : h < 240 ? [0, X6, C2] : h < 300 ? [X6, 0, C2] : [C2, 0, X6];
     const out = Math.round((r1 + m) * 255) << 16 | Math.round((g1 + m) * 255) << 8 | Math.round((b1 + m) * 255);
-    return num ? out : "#" + out.toString(16).padStart(6, "0");
+    return num2 ? out : "#" + out.toString(16).padStart(6, "0");
   }
   function makeBiome(seed, n) {
     const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X6 = G(), cl = pick(X6.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X6.landforms), wa = pick(suits(X6.waters)), wo = pick(suits(X6.woodlands)), gr = pick(suits(X6.grounds)), rare = r() < X6.rareChance ? pick(X6.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
@@ -7922,14 +8075,15 @@
       }
       return out;
     }, [r0, r1] = X2().offer.races, [c0, c1] = X2().offer.classes;
+    const set = d.set || {}, nr = r0 + Math.floor(r() * (r1 - r0 + 1)), nc = c0 + Math.floor(r() * (c1 - c0 + 1)), may = (e, only) => !(d.off.exotics && e.exotic) && (!only || only.includes(e.id));
     s.offer = {
       races: draw(
-        C.races.filter((e) => !(d.off.exotics && e.exotic)),
-        r0 + Math.floor(r() * (r1 - r0 + 1))
+        C.races.filter((e) => may(e, set.races)),
+        set.nRaces || nr
       ),
       classes: draw(
-        C.classes.filter((e) => !(d.off.exotics && e.exotic)),
-        c0 + Math.floor(r() * (c1 - c0 + 1))
+        C.classes.filter((e) => may(e, set.classes)),
+        set.nClasses || nc
       )
     };
     const ch = s.char;
@@ -8169,7 +8323,11 @@
     while (cols * rows > Z().most) cols > rows ? cols-- : rows--;
     return { shape: sh.id, cols, rows };
   }
-  TUNERS.push((seed, tun, off, year) => {
+  TUNERS.push((seed, tun, off, year, set) => {
+    if (set && set.cols && set.rows) {
+      tun.world = { cols: set.cols, rows: set.rows };
+      return;
+    }
     if (off.worldsize || year && year.tun && year.tun.world) return;
     const z = rollSize(seed);
     tun.world = { cols: z.cols, rows: z.rows, shape: z.shape };
@@ -8412,7 +8570,7 @@
   }
   on("worldBorn", (s, d) => {
     if (d.off.moretowns) return;
-    const r = stream(s.seed, "moretowns"), w = s.world, want = clamp(Math.round(w.cols * w.rows / M().perRegions), M().least, M().most), spots = [];
+    const r = stream(s.seed, "moretowns"), w = s.world, rolled = clamp(Math.round(w.cols * w.rows / M().perRegions), M().least, M().most), want = d.set && d.set.towns >= 0 ? d.set.towns : rolled, spots = [];
     for (let cy = 0; cy < w.rows; cy++) for (let cx = 0; cx < w.cols; cx++) spots.push({ cx, cy, k: r() });
     spots.sort((a, b) => a.k - b.k);
     let n = 0;
@@ -8636,7 +8794,7 @@
       return list[0];
     };
     s.plots = [];
-    const main = pickW(X6.kinds, "main");
+    const rolled = pickW(X6.kinds, "main"), main = d.set && d.set.trouble && byId(X6.kinds, d.set.trouble) || rolled;
     let n = 0;
     const add = (kind2, giver, isMain, link) => {
       const p = { id: "p" + n++, kind: kind2.id, giver, main: !!isMain, known: false, step: 0 };
@@ -9196,8 +9354,123 @@
     return have.length ? [{ label: "Trade goods", text: have.map((k) => g[k] + " " + goodOf(k).name.toLowerCase()).join(", ") + "." }] : [];
   });
 
+  // src/rules/godmode.js
+  var GOD_MODS = [
+    { stat: "quiet", op: "add", value: 1 },
+    { stat: "nightSight", op: "add", value: 1 },
+    { stat: "trapSafe", op: "add", value: 1 },
+    { stat: "foulSafe", op: "add", value: 1 },
+    { stat: "fly", op: "add", value: 1 },
+    { stat: "breathe", op: "add", value: 1 }
+  ];
+  SOURCES.push({
+    id: "godmode",
+    fn(s, out) {
+      if (s.godMode) for (const m of GOD_MODS) out.push(m);
+    }
+  });
+  SYSTEMS.push({
+    id: "godmode",
+    fn(s) {
+      if (!s.godMode || !s.player) return;
+      const p = s.player;
+      if (p.water < 1) p.water = 1;
+      p.warmth = 100;
+      p.stamina = 100;
+      if (p.hp !== void 0 && p.hpMax) p.hp = p.hpMax;
+      if (p.manaMax) p.mana = p.manaMax;
+      s.cause = null;
+    }
+  });
+  function setGodMode(s, on2) {
+    s.godMode = !!on2;
+    if (on2) s.cheated = true;
+    if (s.combat && on2) s.combat = null;
+    say(
+      s,
+      on2 ? "God mode: nothing can see you, hurt you or stop you." : "God mode is off. You are mortal again.",
+      on2 ? "good" : ""
+    );
+    return true;
+  }
+  function freeNear(m, x, y) {
+    for (let r = 0; r < W; r++)
+      for (let dy = -r; dy <= r; dy++)
+        for (let dx = -r; dx <= r; dx++) {
+          const xx = x + dx, yy = y + dy;
+          if (xx < 1 || yy < 1 || xx >= W - 1 || yy >= H - 1) continue;
+          const t = m.terrain[idx(xx, yy)];
+          if (t !== 2 && t < 6 && !m.sites[idx(xx, yy)]) return { x: xx, y: yy };
+        }
+    return { x, y };
+  }
+  function jumpRegion(s, cx, cy, x, y) {
+    toOverworld(s);
+    switchRegion(s, cx, cy, { x: s.player.x, y: s.player.y });
+    const p = freeNear(s, x === void 0 ? 18 : x, y === void 0 ? 18 : y);
+    s.player.x = p.x;
+    s.player.y = p.y;
+    s.combat = null;
+    return true;
+  }
+  function places(s) {
+    const out = [], w = s.world;
+    for (let cy = 0; cy < w.rows; cy++)
+      for (let cx = 0; cx < w.cols; cx++) {
+        const id = regionId(s, cx, cy), b = byId(C.biomes, sketchOf(s, cx, cy).biome);
+        out.push({
+          id: "region:" + id,
+          group: "Regions",
+          label: (id === HOME ? "Home: " : "") + (b ? b.name : id) + " (" + cx + ", " + cy + ")",
+          go: (s2) => jumpRegion(s2, cx, cy)
+        });
+      }
+    for (const t of allTowns(s)) {
+      const id = townId(t);
+      out.push({
+        id: "town:" + id,
+        group: "Towns",
+        label: t.name,
+        go: (s2) => {
+          const rec = s2.areas[townArea(s2, t)];
+          if (!rec || rec.realm !== s2.areas[outdoorRec(s2).id].realm) return false;
+          const d = townDoor(s2, t);
+          jumpRegion(s2, rec.cx, rec.cy, d.x, d.y);
+          s2.player.x = d.x;
+          s2.player.y = d.y;
+          return enterTown(s2, t.x, t.y + 2) || true;
+        }
+      });
+    }
+    for (const f of PLACES) f(s, out);
+    return out;
+  }
+  function jumpTo(s, id) {
+    if (!s.godMode || s.over) return false;
+    const p = places(s).find((q) => q.id === id);
+    if (!p) return false;
+    const ok = p.go(s);
+    if (ok !== false) say(s, "You are in " + p.label + ".", "good");
+    return ok !== false;
+  }
+  function jumpMap(s, gx, gy) {
+    if (!s.godMode || s.over) return false;
+    const w = s.world, h = w.home, tx = (Math.floor(gx) % (w.cols * W) + w.cols * W) % (w.cols * W), ty = (Math.floor(gy) % (w.rows * H) + w.rows * H) % (w.rows * H), cx = (h.cx + Math.floor(tx / W)) % w.cols, cy = (h.cy + Math.floor(ty / H)) % w.rows;
+    return jumpRegion(s, cx, cy, tx % W, ty % H);
+  }
+  NOTES.push(
+    (s) => s.cheated ? [{ label: "God mode", text: "This world has been walked in god mode" + (s.godMode ? ", and it is on now." : ".") }] : []
+  );
+
   // src/rules/index.js
   var api = {
+    setGodMode,
+    genOf,
+    parseSet,
+    settings,
+    jumpTo,
+    jumpMap,
+    places,
     bestMarket,
     buyGood,
     market,
@@ -10839,8 +11112,8 @@
     save();
   }
   var randomSeed = () => 1e4 + Math.floor(Math.random() * 9e4);
-  var start = (seed) => {
-    enter(R.newGame(seed));
+  var start = (seed, set) => {
+    enter(R.newGame(seed, {}, set));
     openCreate(false);
   };
   function sync() {
@@ -11037,7 +11310,7 @@
   function render() {
     if (!V.S) return;
     const c = R.clock(V.S), p = V.S.player, cap = R.waterCap(V.S), wt = R.weight(V.S), cc = R.carryCap(V.S), fc = R.isDark(V.S) ? "Underground" : R.indoors(V.S) ? R.forecast(V.S) + " outside the walls" : R.forecast(V.S);
-    $("when").textContent = "Day " + c.day + ", " + String(c.hour).padStart(2, "0") + ":" + String(c.min).padStart(2, "0");
+    $("when").textContent = "Day " + c.day + ", " + String(c.hour).padStart(2, "0") + ":" + String(c.min).padStart(2, "0") + (V.S.godMode ? " \xB7 God mode" : "");
     $("sky").textContent = fc;
     $("sky").className = "chip" + (R.indoors(V.S) ? "" : V.S.weather.storm ? " bad" : fc === "Storm close" ? " warn" : "");
     const ob = R.objective(V.S);
@@ -11533,7 +11806,7 @@
     const c = R.clock(V.S), won = V.S.over.won, left = R.livesLeft(V.S), who = R.charTitle(V.S.char), dist = "with this still undone: " + R.objective(V.S).text.toLowerCase();
     const world = el("p", {
       cls: "note",
-      text: "This world: " + R.biomeOf(V.S).name + ", shrine of " + R.godOf(V.S).name + ". Its people were " + R.civOf(V.S).name + ". Seed " + V.S.seed + "."
+      text: "This world: " + R.biomeOf(V.S).name + ", shrine of " + R.godOf(V.S).name + ". Its people were " + R.civOf(V.S).name + ". Seed " + V.S.seed + "." + (V.S.cheated ? " Walked in god mode: this " + (won ? "win" : "run") + " does not count." : "")
     });
     if (won && V.S.over.ending)
       openModal(R.byId(R.C.plots.kinds, V.S.over.plot).name + ": the end", [
@@ -11541,7 +11814,7 @@
         el("p", { text: who + ", on day " + c.day + ", traveller " + V.S.travellers + " of this world." }),
         world,
         el("div", { cls: "row" }, [
-          btn("New world", () => start(randomSeed()), "primary"),
+          btn("New world", () => openNewWorld(), "primary"),
           btn("Same world again", () => start(V.S.seed))
         ])
       ]);
@@ -11552,7 +11825,7 @@
         }),
         world,
         el("div", { cls: "row" }, [
-          btn("New world", () => start(randomSeed()), "primary"),
+          btn("New world", () => openNewWorld(), "primary"),
           btn("Same world again", () => start(V.S.seed))
         ])
       ]);
@@ -11574,7 +11847,7 @@
       openModal("The beacon goes dark", [
         el("p", { text: who + " died on day " + c.day + ", " + dist + ". No one is left to send, and this world is lost." }),
         world,
-        el("div", { cls: "row" }, [btn("New world", () => start(randomSeed()), "primary")])
+        el("div", { cls: "row" }, [btn("New world", () => openNewWorld(), "primary")])
       ]);
     lock(true);
   }
@@ -11684,7 +11957,7 @@
       ]),
       el("p", {
         cls: "note",
-        text: "The world as you have seen it. Drag to look around; it wraps around, like the world. White dot: you. Gold: camp and the well. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: something left lying. Red dot: a creature you can see."
+        text: (V.S.godMode ? "God mode: tap anywhere to go there. " : "") + "The world as you have seen it. Drag to look around; it wraps around, like the world. White dot: you. Gold: camp and the well. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: something left lying. Red dot: a creature you can see."
       })
     ]);
     let drag = null;
@@ -11699,7 +11972,14 @@
       mapView.dy = drag.dy - (e.clientY - drag.y) / ts;
       drawWorldMap(cv2);
     });
-    cv2.addEventListener("pointerup", () => drag = null);
+    cv2.addEventListener("pointerup", (e) => {
+      const tap = drag && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6;
+      drag = null;
+      if (!tap || !V.S.godMode || !mapView.last) return;
+      const r = cv2.getBoundingClientRect(), L3 = mapView.last;
+      act(() => R.jumpMap(V.S, L3.x0 + (e.clientX - r.left) / L3.ts, L3.y0 + (e.clientY - r.top) / L3.ts));
+      closeModal();
+    });
     drawWorldMap(cv2);
   }
   function drawWorldMap(cv2) {
@@ -11714,6 +11994,7 @@
     g.fillStyle = "#10151d";
     g.fillRect(0, 0, css, css);
     const wp = R.worldPos(S), fx = R.inOverworld(S) ? (P3.x + G2.half) / G2.ts - S.player.x : 0.5, fy = R.inOverworld(S) ? (P3.z + G2.half) / G2.ts - S.player.y : 0.5, youX = wp.x + fx, youY = wp.y + fy, x0 = youX + mapView.dx - n / 2, y0 = youY + mapView.dy - n / 2;
+    mapView.last = { x0, y0, ts };
     const regions = {};
     const regionAt = (gx, gy) => {
       const rx = Math.floor(gx / R.W), ry = Math.floor(gy / R.H), cx = wrapN(w.home.cx + rx, w.cols), cy = wrapN(w.home.cy + ry, w.rows), id = R.regionId(S, cx, cy);
@@ -11771,6 +12052,129 @@
     if (ux > n + 1) ux -= WW;
     if (uy > n + 1) uy -= HH;
     youAt(g, ux * ts, uy * ts);
+  }
+  function godPanel() {
+    const cb = el("input", { type: "checkbox", id: "god-mode" });
+    cb.checked = !!V.S.godMode;
+    cb.addEventListener("change", () => {
+      act(() => R.setGodMode(V.S, cb.checked));
+      openMenu();
+    });
+    const out = [
+      el("ul", { cls: "items" }, [
+        el("li", { cls: "item" }, [
+          el("label", {
+            for: "god-mode",
+            text: "God mode: unseen, unhurt, tireless; walk through anything, fly, breathe water, open any door"
+          }),
+          cb
+        ])
+      ])
+    ];
+    if (V.S.cheated && !V.S.godMode)
+      out.push(el("p", { cls: "note", text: "This world has used god mode, and says so at the end." }));
+    if (V.S.godMode) {
+      const list = R.places(V.S), groups = [...new Set(list.map((p) => p.group))], sel = el(
+        "select",
+        { id: "jump-to", "aria-label": "Place to jump to" },
+        groups.map(
+          (g) => el(
+            "optgroup",
+            { label: g },
+            list.filter((p) => p.group === g).map((p) => el("option", { value: p.id, text: p.label }))
+          )
+        )
+      );
+      out.push(
+        el("div", { cls: "row" }, [
+          sel,
+          btn(
+            "Go there",
+            () => {
+              act(() => R.jumpTo(V.S, sel.value));
+              closeModal();
+            },
+            "primary"
+          )
+        ]),
+        el("p", { cls: "note", text: "Or open the map and tap anywhere." })
+      );
+    }
+    return el("div", null, out);
+  }
+  var lastSet = {};
+  function openNewWorld() {
+    const M2 = R.C.worldSet.menus, D2 = R.C.worldSet.defaults, cur = (k) => lastSet[k] !== void 0 ? lastSet[k] : D2[k], seedIn = el("input", { type: "number", id: "nw-seed", value: randomSeed(), inputmode: "numeric", "aria-label": "Seed" }), fields = {};
+    const choose = (key, label, list, val) => {
+      const sel = el(
+        "select",
+        { id: "nw-" + key },
+        list.map(([v, txt]) => {
+          const o = el("option", { value: String(v), text: txt });
+          if (String(v) === String(val)) o.setAttribute("selected", "selected");
+          return o;
+        })
+      );
+      fields[key] = sel;
+      return el("li", { cls: "item" }, [el("label", { for: "nw-" + key, text: label }), sel]);
+    };
+    const many = (key, label, list) => {
+      const sel = el(
+        "select",
+        { id: "nw-" + key, multiple: "multiple", size: "5" },
+        list.map((e) => el("option", { value: e.id, text: e.name }))
+      );
+      for (const o of sel.options) if ((lastSet[key] || []).includes(o.value)) o.selected = true;
+      fields[key] = sel;
+      return el("li", { cls: "item" }, [el("label", { for: "nw-" + key, text: label }), sel]);
+    };
+    const count = (key, label) => {
+      const inp = el("input", { type: "number", id: "nw-" + key, min: "0", max: "40", value: String(cur(key) || 0) });
+      fields[key] = inp;
+      return el("li", { cls: "item" }, [el("label", { for: "nw-" + key, text: label }), inp]);
+    };
+    const troubles = [["", "Rolled"]].concat(R.C.plots.kinds.filter((k) => k.main).map((k) => [k.id, k.name]));
+    const details = el("details", { id: "nw-more" }, [
+      el("summary", { text: "World settings" }),
+      el("p", { cls: "note", text: "Leave these alone for an ordinary world. Hold Ctrl (or long-press) to pick several peoples." }),
+      el("ul", { cls: "items" }, [
+        choose("size", "Size", M2.size, lastSet.size || ""),
+        many("races", "Races that may appear (none picked: any)", R.C.races),
+        count("nRaces", "How many races (0: rolled)"),
+        many("classes", "Classes that may appear (none picked: any)", R.C.classes),
+        count("nClasses", "How many classes (0: rolled)"),
+        choose("towns", "Other towns", M2.towns, cur("towns")),
+        choose("dungeons", "Dungeons", M2.dungeons, cur("dungeons")),
+        choose("depth", "How deep they go", M2.depth, cur("depth")),
+        choose("sky", "Places in the sky", M2.sky, cur("sky")),
+        choose("sea", "A sea", M2.sea, cur("sea")),
+        choose("doors", "Doors to other worlds", M2.doors, cur("doors")),
+        choose("maxDoors", "How many doors", M2.maxDoors, cur("maxDoors")),
+        choose("trouble", "The great trouble", troubles, cur("trouble"))
+      ])
+    ]);
+    openModal("A new world", [
+      el("div", { cls: "row" }, [el("label", { for: "nw-seed", text: "Seed" }), seedIn]),
+      details,
+      el("div", { cls: "row" }, [
+        btn(
+          "Make this world",
+          () => {
+            const set = {};
+            for (const k in fields) {
+              const f = fields[k];
+              if (f.multiple) set[k] = [...f.options].filter((o) => o.selected).map((o) => o.value);
+              else if (k === "size" || k === "trouble") set[k] = f.value;
+              else set[k] = parseFloat(f.value);
+            }
+            lastSet = set;
+            start(parseInt(seedIn.value, 10) || 1, set);
+          },
+          "primary"
+        ),
+        V.S && !V.S.over ? btn("Back", () => openMenu()) : null
+      ])
+    ]);
   }
   function openMenu() {
     const sw = el(
@@ -11915,7 +12319,7 @@
         })
       ),
       el("div", { cls: "row" }, [
-        btn("New world", () => start(randomSeed()), "primary"),
+        btn("New world", () => openNewWorld(), "primary"),
         seedIn,
         btn("Play this seed", () => start(parseInt(seedIn.value, 10) || 1))
       ]),
@@ -11996,6 +12400,7 @@
       })(),
       el("h3", { text: "Tinker" }),
       el("p", { cls: "note", text: "Switch whole systems off, or change the numbers while you play." }),
+      godPanel(),
       sw,
       el("ul", { cls: "items" }, [
         tune(VIEW, "speed", "Walking speed (m/s)", 3, 16, 0.5),

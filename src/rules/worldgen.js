@@ -10,6 +10,7 @@ import { SKETCHERS, TUNERS } from './hooks.js';
 import { makeItem } from './items.js';
 import { dirTo } from './map.js';
 import { makeQuest } from './quest.js';
+import { keepOf, settings } from './worldset.js';
 
 /* Pieces shared by the home region and every other region */
 
@@ -259,9 +260,10 @@ GENERATORS.region = (s, rec) => {
 };
 
 /* World generation */
-function newGame(seed, off) {
+function newGame(seed, off, set) {
   seed = seed >>> 0 || 1;
   off = Object.assign({}, off); // switches that also apply while the world is made (see s.off)
+  set = settings(set); // the new world screen's choices (content/worldset.js); defaults for anything not given
   const year = rollYear(seed, off),
     tun = yearTuning(JSON.parse(JSON.stringify(C.tun)), year);
   // Each part of the world draws from its own named random stream, so adding a new step to one part
@@ -288,7 +290,7 @@ function newGame(seed, off) {
   const habit = byId(C.civ.habit, civ.habit),
     age = byId(C.civ.age, civ.age),
     doom = byId(C.civ.doom, civ.doom);
-  for (const f of TUNERS) f(seed, tun, off, year); // a piece may change numbers fixed at creation (the world's size)
+  for (const f of TUNERS) f(seed, tun, off, year, set); // a piece may change numbers fixed at creation (the world's size)
   const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
   if (tun.world.shape) world.shape = tun.world.shape;
   for (const f of SKETCHERS) f(seed, world, off); // a piece may change what the regions are before land is built
@@ -395,6 +397,7 @@ function newGame(seed, off) {
     stats: { moves: 0, trips: 0 },
   };
   if (year) s.year = year.id;
+  if (keepOf(set)) s.gen = keepOf(set);
   s.weather.changeAt = (360 + rW() * 600) * s.tun.stormGap;
   const draw = (list, n) => {
     const a = list.map((e) => e.id);
@@ -404,8 +407,13 @@ function newGame(seed, off) {
     }
     return a.slice(0, n);
   };
-  const usual = (list) => list.filter((e) => !e.exotic && !e.roster); // exotic races and classes are offered only now and then
-  s.offer = { races: draw(usual(C.races), C.offer.races), classes: draw(usual(C.classes), C.offer.classes) };
+  const usual = (list, only) => list.filter((e) => !e.exotic && !e.roster && (!only || only.includes(e.id))); // exotic races and classes are offered only now and then
+  s.offer = {
+    races: draw(usual(C.races, set.races), set.nRaces || C.offer.races),
+    classes: draw(usual(C.classes, set.classes), set.nClasses || C.offer.classes),
+  };
+  if (!s.offer.races.length) s.offer.races = draw(usual(C.races), C.offer.races);
+  if (!s.offer.classes.length) s.offer.classes = draw(usual(C.classes), C.offer.classes);
   s.species = makeSpecies(s, rnd('species'), biome.id);
   s.speciesByBiome = { [biome.id]: s.species.map((_, i) => i) };
   s.creatures = [];
@@ -431,7 +439,7 @@ function newGame(seed, off) {
       ' there is a town. Find it: its people know what this land is waiting for.',
   );
   say(s, 'Your camp has a well. A cloak, a lantern and fuel are stored here: open Pack to take them.');
-  emit(s, 'worldBorn', { rnd, off });
+  emit(s, 'worldBorn', { rnd, off, set });
   if (typeof INTRO_EXTRA === 'string') say(s, INTRO_EXTRA);
   ensureTown(s);
   ensureAround(s);

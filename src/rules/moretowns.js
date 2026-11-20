@@ -42,7 +42,8 @@ on('worldBorn', (s, d) => {
   if (d.off.moretowns) return;
   const r = stream(s.seed, 'moretowns'),
     w = s.world,
-    want = clamp(Math.round((w.cols * w.rows) / M().perRegions), M().least, M().most),
+    rolled = clamp(Math.round((w.cols * w.rows) / M().perRegions), M().least, M().most),
+    want = d.set && d.set.towns >= 0 ? d.set.towns : rolled,
     spots = [];
   for (let cy = 0; cy < w.rows; cy++) for (let cx = 0; cx < w.cols; cx++) spots.push({ cx, cy, k: r() });
   spots.sort((a, b) => a.k - b.k);

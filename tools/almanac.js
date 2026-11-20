@@ -593,6 +593,15 @@ section('The size of the world', ['worldSize'], () => {
   table(['Shape', 'Weight', 'Across', 'Down', 'On its side', 'Told'], X.shapes.map((e) => [e.name, e.w, e.cols.join(' to '), e.rows.join(' to '), e.swap ? 'yes' : '', e.text]));
 });
 
+section('World settings', ['worldSet'], () => {
+  const X = C.worldSet;
+  line('The choices on the new world screen (folded away: an ordinary world uses the defaults). They are plain settings passed into `newGame(seed, off, set)`, and the playtest takes them as `SET=key=value,...`.');
+  line();
+  const label = { size: 'cols, rows' };
+  table(['Setting', 'Default', 'Offered'], Object.keys(X.menus).map((k) => [label[k] || k, k === 'size' ? 'rolled' : JSON.stringify(X.defaults[k]), X.menus[k].map((o) => o[1]).join('; ')]));
+  line();
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

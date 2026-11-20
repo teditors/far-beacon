@@ -136,8 +136,17 @@ import {
 } from './plots.js'; // after the towns: troubles need towns
 import { craft, recipes } from './crafting.js';
 import { bestMarket, buyGood, market, sellGood, sellMat } from './trade.js';
+import { jumpMap, jumpTo, places, setGodMode } from './godmode.js';
+import { genOf, parseSet, settings } from './worldset.js';
 
 const api = {
+  setGodMode,
+  genOf,
+  parseSet,
+  settings,
+  jumpTo,
+  jumpMap,
+  places,
   bestMarket,
   buyGood,
   market,

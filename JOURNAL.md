@@ -1,3 +1,40 @@
+# Commission 4
+
+Newest entry first. Performance numbers are from `tools/bench.py` (a real browser on a software renderer at 412 x 915,
+seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
+`node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
+`tests/c4.test.js` (part of `node tools/check.js`).
+
+## C4.1: god mode and world settings
+
+**What it is.** The two testing tools the brief asked for first.
+- **God mode**, a checkbox at the top of the Tinker panel (Menu). The traveller is unseen by creatures (they never
+  start a fight), never thirsts, freezes, tires or bleeds, walks through walls, carries anything, sees in the dark,
+  steps over traps, opens any locked door, and counts as flying and breathing water for the pieces still to come.
+  While it is on, the Tinker panel has a **jump list** (every region by country and position, every town, and every
+  place later pieces add: dungeon levels, sky places, sea places, other worlds), and **a tap on the world map** jumps
+  to the tapped tile. The clock line says "God mode" while it is on. A world that has ever used it is marked for good
+  (`s.cheated`, saved): the end screen says the win or loss does not count, and the Journal notes it.
+- **World settings**: "New world" now opens a small screen with the seed and a folded-away "World settings" (closed by
+  default, so an ordinary new world is one more tap): size, which races and classes may appear and how many, how many
+  other towns, dungeons (none, few, usual, many) and how deep, how often sky places, a sea and doors to other worlds
+  appear (and how many doors), and which great trouble. They are plain settings, `newGame(seed, off, set)`, kept in
+  `s.gen` only where they differ from the defaults (`content/worldset.js`), so ordinary worlds store nothing and are
+  unchanged. The playtest takes them too: `SET=sky=1,doors=1,size=3x3 node tests/playtest.js 50`.
+
+**Shared bricks.** `PLACES` in hooks.js (a piece adds the places god mode can jump to); `settings`, `genOf(s)` and
+`parseSet` in `rules/worldset.js`; TUNERS and `'worldBorn'` now receive the settings. A test file of its own for this
+commission, `tests/c4.test.js`.
+
+**Choices made without asking.** God mode is a state flag, not a Tinker switch in `s.off`, because it must be marked
+on the world when used and switches are not. Settings the later pieces read (dungeons, depth, sky, sea, doors) are in
+the screen from the start; each piece honours its own as it arrives. The size setting keeps a world at least 2 x 3,
+so the story's places fit. The new world screen remembers its choices until the page is reloaded.
+
+**Commits.** "God mode and world settings: test any place, make any world". Switch: none (testing tools).
+
+---
+
 # Commission 3
 
 ## Summary

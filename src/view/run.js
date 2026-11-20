@@ -109,8 +109,8 @@ function enter(state) {
   save();
 }
 const randomSeed = () => 10000 + Math.floor(Math.random() * 90000),
-  start = (seed) => {
-    enter(R.newGame(seed));
+  start = (seed, set) => {
+    enter(R.newGame(seed, {}, set));
     openCreate(false);
   };
 // After anything that might move the player into another area, rebuild the scene for where they are now.
