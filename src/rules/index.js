@@ -122,8 +122,30 @@ import './tiers.js';
 import './worldsize.js';
 import './plot.js'; // it moves quest places that earlier pieces may have changed
 import './moretowns.js'; // after the plot: other towns go where the story's places are not
+import {
+  choosePlot,
+  mainPlot,
+  plotAct,
+  plotChoices,
+  plotGoal,
+  plotObjective,
+  plotsOf,
+  stepOf,
+  trackPlot,
+  tracked,
+} from './plots.js'; // after the towns: troubles need towns
 
 const api = {
+  choosePlot,
+  mainPlot,
+  plotAct,
+  plotChoices,
+  plotGoal,
+  plotObjective,
+  plotsOf,
+  stepOf,
+  trackPlot,
+  tracked,
   // for tests and tinkering: put the traveller on a tile of any outdoor region (from outdoors)
   travelTo(s, area, x, y) {
     const rec = s.areas[area];

@@ -8,7 +8,12 @@ const dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const loc=(s,p)=>p&&p.area?R.localPos(s,p.area,p.x,p.y):p;
 const door=(s)=>{const d=R.townDoor(s); return R.localPos(s,R.townArea(s),d.x,d.y);}; // the tile below the town's south side, where the road comes in
 let trail=[];
-function target(s){ const q=s.quest,v0=R.findSite(s,'vault'),v=Object.assign({st:v0.st},loc(s,v0));
+// The world's great trouble, when it is not the relic: where its next step is, in this region's frame.
+const plotMain=(s)=>{ const m=R.mainPlot(s); return m&&m.kind!=='relic'?m:null; };
+const townDoorOf=(s,id)=>{ const t=R.townById(s,id)||s.town,d=R.townDoor(s,t); return R.localPos(s,R.townArea(s,t),d.x,d.y); };
+function plotTarget(s,m){ if(!m.known) return Object.assign(townDoorOf(s,m.giver),{town:m.giver}); const g=R.plotGoal(s,m); if(!g) return null;
+  if(g.town) return Object.assign(townDoorOf(s,g.town),{town:g.town}); return Object.assign(loc(s,g),{id:g.cid}); }
+function target(s){ const pm=plotMain(s); if(pm){ const t=plotTarget(s,pm); if(t) return t; } const q=s.quest,v0=R.findSite(s,'vault'),v=Object.assign({st:v0.st},loc(s,v0));
   const loose=b=>{const l=R.findLoose(s,b); if(!l) return null; return s.areas[l.area].kind==='region'?loc(s,l):v;};
   if(!R.hasItem(s,'relic')){const l=loose('relic'); if(l) return l;} if(!R.hasItem(s,'key')&&!R.hasItem(s,'relic')&&!v.st.open){const l=loose('key'); if(l) return l;}
   if(R.hasItem(s,'relic')) return loc(s,q.dest==='beacon'?s.goal:R.findSite(s,'shrine'));
@@ -69,7 +74,9 @@ function bfsStep(s,tx,ty){ if(tx<0||ty<0||tx>=W||ty>=W) return step(s,{x:tx,y:ty
   while(q.length&&prev[goal]<0){ const i=q.shift(); for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const x=i%W+dx,y=Math.floor(i/W)+dy,j=y*W+x; if(R.passable(s,x,y)&&prev[j]<0){prev[j]=i;q.push(j);} } }
   if(prev[goal]<0) return false; let j=goal; while(prev[j]!==start&&j!==start) j=prev[j]; if(j===start) return true; return R.move(s,j%W-s.player.x,Math.floor(j/W)-s.player.y); }
 function interior(s,stats){ const p=s.player, rec=R.areaRec(s), at=(k)=>{const f=R.findHere(s,k); return f;}, onIt=(f)=>f&&f.x===p.x&&f.y===p.y;
-  if(rec.kind==='town'){ let t=!s.quest.told?at('elder'):!stats.shopped?at('shop'):(p.hp<p.hpMax*0.7&&p.coin>=5&&!stats.rested)?at('inn'):{x:18,y:R.H-1,st:{kind:'out'}}; // out by the south edge, where the road comes in
+  if(rec.kind==='town'){ const pm=plotMain(s), pg=pm&&(pm.known?R.plotGoal(s,pm):{town:pm.giver}), here=R.curTown(s), hid=here.id||'town';
+    if(pg&&pg.town===hid){ const e=at('elder'); if(onIt(e)){ R.talkElder(s); const ch=R.plotChoices(s); if(ch.length) R.choosePlot(s,ch[0].plot,(ch.find(c=>c.id==='peace')||ch[0]).id); if(R.plotGoal(s,pm)&&R.plotGoal(s,pm).town===hid&&!stats.talkedAgain){stats.talkedAgain=true;} else stats.talkedAgain=false; if(!stats.talkedAgain) return; } else { if(!bfsStep(s,e.x,e.y)) R.rest(s); return; } }
+    let t=(!s.quest.told&&here===s.town&&!pm)?at('elder'):!stats.shopped?at('shop'):(p.hp<p.hpMax*0.7&&p.coin>=5&&!stats.rested)?at('inn'):{x:18,y:R.H-1,st:{kind:'out'}}; // out by the south edge, where the road comes in
     if(p.water<R.waterCap(s)*0.95&&!stats.drank){ t=at('well'); if(onIt(t)){ R.fill(s); stats.drank=true; return; } }
     if(onIt(t)&&t.st.kind==='out'){ R.move(s,0,1); return; } if(!onIt(t)) { if(!bfsStep(s,t.x,t.y)) R.rest(s); } return; }
   // the locked place
@@ -85,14 +92,17 @@ const NO={}; for(const k of (process.env.NO||'').split(',').filter(Boolean)) NO[
 function play(seed){ trail=[]; const s=R.newGame(seed,NO); const stats={seed,searches:0,flees:0,fights:0,town:null,deaths:[],dungeon:null,stuck:false}; let guard=0, lastTarget=null, lastD=1e9, noProg=0;
   while(guard++<2500){
     if(s.over){ if(s.over.won) break; stats.deaths.push({cause:s.over.cause+(s.over.by?':'+s.over.by:''),day:R.clock(s).day,goal:R.objective(s).text,cls:s.char.cls,lvl:s.player.level}); if(R.livesLeft(s)<=0)break; R.nextTraveller(s,R.makeChar(Math.random,s)); continue; }
+    if(process.env.TRACE&&+process.env.TRACE===seed&&guard%10===0){ const tg=R.inOverworld(s)?target(s):null; console.log(guard,s.area,s.player.x,s.player.y,'w',s.player.water.toFixed(1),'st',s.player.stamina|0,'hp',s.player.hp,'t',tg&&JSON.stringify(tg),R.objective(s).text); }
     if(s.combat){ stats.fights++; fight(s,stats); continue; }
     maintain(s,stats); if(s.over||s.combat) continue;
     if(!R.inOverworld(s)){ interior(s,stats); continue; }
     if(s.area!==stats.lastArea){ trail=[]; stats.lastArea=s.area; }
     const p=s.player, v0=R.findSite(s,'vault'), v=Object.assign({st:v0.st},loc(s,v0)), here=R.siteHere(s);
-    { const d=door(s); if(p.x===d.x&&p.y===d.y&&(!s.quest.told||p.water<R.waterCap(s)*0.85||(!R.stat(s,'nightSight',0)&&(v.st.open||R.hasItem(s,'key'))))){ stats.shopped=false; stats.rested=false; stats.drank=false; trail=[]; R.move(s,0,-1); continue; } }
+    { const tg=target(s); if(tg&&tg.town&&p.x===tg.x&&p.y===tg.y){ stats.shopped=false; stats.rested=false; stats.drank=false; trail=[]; R.move(s,0,-1); continue; } }
+    { const d=door(s); if(p.x===d.x&&p.y===d.y&&((!s.quest.told&&!plotMain(s))||p.water<R.waterCap(s)*0.85||(!R.stat(s,'nightSight',0)&&(v.st.open||R.hasItem(s,'key'))))){ stats.shopped=false; stats.rested=false; stats.drank=false; trail=[]; R.move(s,0,-1); continue; } }
     if(v.x===p.x&&v.y===p.y&&!R.hasItem(s,'relic')){ if(!v.st.open)R.unlock(s); if(v.st.open&&p.water<R.waterCap(s)*0.7){ stats.refill=true; } else if(v.st.open){ if(!R.stat(s,'nightSight',0)){ stats.noLight=(stats.noLight||0)+1; } else { if(p.hp<p.hpMax*0.6){ R.sleep(s); } R.enterVault(s); if(!stats.dungeon)stats.dungeon=R.clock(s).day; continue; } } }
     if(R.siteHere(s)&&R.siteHere(s).kind==='shrine'&&R.hasItem(s,'relic')) R.offer(s);
+    { const pa=R.actions(s).find(a=>a.id==='plotAct'); if(pa&&R.plotAct(s,pa.arg)) continue; }
     // water safety: if water won't get us to the target, go to known water first
     let t=target(s); if(stats.refill){ const kw0=knownWater(s); if(kw0&&p.water<R.waterCap(s)*0.9) t=kw0.p; else stats.refill=false; } if(!R.stat(s,'nightSight',0)&&(v.st.open||R.hasItem(s,'key'))&&!R.hasItem(s,'relic')) t=door(s);
     const wr=R.stat(s,'waterDrain',s.tun.waterPerHour)*0.4, need=dist(p,t)*wr, kw=knownWater(s);
@@ -107,11 +117,11 @@ function play(seed){ trail=[]; const s=R.newGame(seed,NO); const stats={seed,sea
         if(dt>range){ let best=null; for(const w of allWater(s)){ const a=dist(p,w),b=dist(w,t); if(a>0&&a<=range&&b<dt-3&&(!best||b<dist(best,t))) best=w; }
           if(best){ t=best; stats.wg={x:best.x-p.x+wp.x,y:best.y-p.y+wp.y}; stats.wgAt=0; } } } }
     // near the walled town a greedy walk gets caught on the wall, so there the bot plans its way round
-    const nearTown=s.area===R.townArea(s)&&Math.max(Math.abs(p.x-s.town.x),Math.abs(p.y-s.town.y))<=5;
+    const tr=R.townInRegion(s,s.area), nearTown=!!tr&&Math.max(Math.abs(p.x-tr.x),Math.abs(p.y-tr.y))<=5;
     if(!(nearTown?bfsStep(s,t.x,t.y):step(s,t))){ R.rest(s); }
     const dd=dist(p,t); if(t===lastTarget&&dd>=lastD){ if(++noProg>40){stats.stuck=true;break;} } else noProg=0; lastTarget=t; lastD=dd;
   }
-  stats.won=!!(s.over&&s.over.won); stats.days=R.clock(s).day; stats.travellers=s.travellers; stats.shape=s.quest.key+'/'+s.quest.vault.id+'/'+s.quest.dest; stats.biome=s.biome; stats.lastGoal=R.objective(s).text; return stats; }
+  stats.won=!!(s.over&&s.over.won); stats.days=R.clock(s).day; stats.travellers=s.travellers; stats.shape=s.quest.key+'/'+s.quest.vault.id+'/'+s.quest.dest; stats.plot=(R.mainPlot(s)||{kind:'relic'}).kind; stats.biome=s.biome; stats.lastGoal=R.objective(s).text; return stats; }
 const N=+process.argv[2]||150, res=[]; for(let i=1;i<=N;i++){ const t0=Date.now(); res.push(play(i*13+(+process.env.OFF||5))); if(Date.now()-t0>3000) console.log("slow seed",i*13+5,Date.now()-t0); }
 const won=res.filter(r=>r.won); console.log('won',won.length,'/',N,' avg days',(won.reduce((a,r)=>a+r.days,0)/Math.max(1,won.length)).toFixed(1),' avg travellers used',(won.reduce((a,r)=>a+r.travellers,0)/Math.max(1,won.length)).toFixed(2));
 const deaths={},goals={},cls={}; for(const r of res) for(const d of r.deaths){ const k=d.cause.replace(/:.*(Brute|Hound|Wight|Serpent)$/,':$1'); deaths[k]=(deaths[k]||0)+1; goals[d.goal.split(',')[0].replace(/the [A-Z].*/,'')]=(goals[d.goal]||0)+1; cls[d.cls]=(cls[d.cls]||0)+1; }
@@ -119,5 +129,6 @@ console.log('deaths by cause',JSON.stringify(deaths)); console.log('deaths durin
 console.log('stuck',res.filter(r=>r.stuck).length,' lost worlds',res.filter(r=>!r.won&&!r.stuck).length, ' avg fights',(res.reduce((a,r)=>a+r.fights,0)/N).toFixed(1),' flees',(res.reduce((a,r)=>a+r.flees,0)/N).toFixed(1));
 const byBiome={}; for(const r of res){byBiome[r.biome]=byBiome[r.biome]||[0,0]; byBiome[r.biome][0]++; if(r.won)byBiome[r.biome][1]++;} console.log('wins by biome',JSON.stringify(byBiome));
 const byKey={}; for(const r of res){const k=r.shape.split('/')[0]; byKey[k]=byKey[k]||[0,0]; byKey[k][0]++; if(r.won)byKey[k][1]++;} console.log('wins by key holder',JSON.stringify(byKey));
+const byPlot={}; for(const r of res){byPlot[r.plot]=byPlot[r.plot]||[0,0]; byPlot[r.plot][0]++; if(r.won)byPlot[r.plot][1]++;} console.log('wins by great trouble',JSON.stringify(byPlot));
 console.log('stuck examples',res.filter(r=>r.stuck).slice(0,4).map(r=>r.seed+' '+r.lastGoal).join(' | '));
 console.log('noLight runs',res.filter(r=>r.noLight).length);

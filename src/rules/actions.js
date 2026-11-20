@@ -19,7 +19,7 @@ import {
   terrainInfo,
 } from './map.js';
 import { gainXp, roll, weaponOf } from './progress.js';
-import { enterTown, findSite, hasItem, leaveTown } from './quest.js';
+import { PLOT_HOOKS, enterTown, findSite, hasItem, leaveTown } from './quest.js';
 import {
   TOWN_GATE,
   curTown,
@@ -210,8 +210,9 @@ function arrive(s) {
     st.visited = true;
   }
   if (st.kind === 'beacon' && s.quest.dest === 'beacon' && hasItem(s, 'relic')) {
-    s.over = { won: true };
     say(s, 'You set the ' + s.quest.relic + ' in the beacon. The fire catches, and turns, and holds.', 'good');
+    if (PLOT_HOOKS.relicWins(s)) s.over = { won: true };
+    else PLOT_HOOKS.relicSideDone(s);
     return;
   }
   if (st.kind === 'shrine' && !s.known.god) {

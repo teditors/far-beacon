@@ -98,6 +98,64 @@ const BUILD = {
     }
     return g;
   },
+  // the places of the plots (rules/plots.js): a den, a camp, someone's lean-to, a black stone, a herb patch
+  den(s) {
+    const g = BUILD.cave(s),
+      bone = std(0xd8d2bf);
+    for (let i = 0; i < 5; i++) g.add(box(0.2, 0.2, 1.4, bone, Math.cos(i * 1.3) * 3, 0.1, 8 + Math.sin(i * 2.1) * 1.5));
+    return g;
+  },
+  camp() {
+    const g = new THREE.Group(),
+      cloth = std(0x7a5a3a),
+      fire = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.4, 6), glow(0xff8a2a, 1));
+    for (const [x, z, r] of [
+      [-4, -2, 0.4],
+      [3, -3, -0.6],
+      [0, 4, 1.8],
+    ]) {
+      const t = new THREE.Mesh(new THREE.ConeGeometry(2.2, 2.6, 4), cloth);
+      t.position.set(x, 1.3, z);
+      t.rotation.y = r;
+      g.add(t);
+    }
+    fire.position.y = 0.7;
+    g.add(fire, box(0.15, 4, 0.15, std(0x3a2a1a), 2, 2, 1), box(1.4, 0.9, 0.05, glow(0xb03a2a, 1), 2.7, 3.4, 1));
+    return g;
+  },
+  siege(s) {
+    return BUILD.camp(s);
+  },
+  lost() {
+    const g = new THREE.Group(),
+      w = std(0x6a5038),
+      lean = box(3, 0.15, 2.4, w, 0, 1.1, 0);
+    lean.rotation.x = 0.6;
+    g.add(lean, box(0.15, 1.6, 0.15, w, -1.4, 0.8, -0.8), box(0.15, 1.6, 0.15, w, 1.4, 0.8, -0.8));
+    return g;
+  },
+  stone() {
+    const g = new THREE.Group(),
+      m = box(1.6, 7, 1.1, std(0x161616), 0, 3.3, 0);
+    m.rotation.z = 0.08;
+    const ring = new THREE.Mesh(
+      new THREE.CircleGeometry(6, 16).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: 0x5c5c58 }),
+    );
+    ring.position.y = 0.06;
+    g.add(m, ring);
+    return g;
+  },
+  herbs() {
+    const g = new THREE.Group(),
+      leaf = std(0x6f9a5a);
+    for (let i = 0; i < 9; i++) {
+      const c = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.9, 5), leaf);
+      c.position.set(Math.cos(i * 2.4) * (1 + (i % 3)), 0.45, Math.sin(i * 2.4) * (1 + (i % 3)));
+      g.add(c);
+    }
+    return g;
+  },
   cache() {
     const g = new THREE.Group(),
       s = std(0x6b675f);
@@ -624,6 +682,7 @@ function buildStaticInner() {
       staticGroup.add(g);
       continue;
     }
+    if (!BUILD[st.kind]) continue; // a kind of place with no model yet is still on the map
     const g = BUILD[st.kind](V.S);
     g.position.set(x, T.height(x, z), z);
     if (st.kind !== 'beacon') g.rotation.y = (site.k % 7) * 0.9;

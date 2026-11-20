@@ -424,6 +424,14 @@ function openTown(section) {
           'small',
         ),
       ]),
+      ...R.plotChoices(V.S).map((o) =>
+        el('div', { cls: 'row' }, [
+          btn(
+            o.label,
+            re(() => R.choosePlot(V.S, o.plot, o.id)),
+          ),
+        ]),
+      ),
     ]);
   else if (section === 'inn')
     openModal('The inn', [
@@ -489,7 +497,17 @@ function showEnd() {
       V.S.seed +
       '.',
   });
-  if (won)
+  if (won && V.S.over.ending)
+    openModal(R.byId(R.C.plots.kinds, V.S.over.plot).name + ': the end', [
+      el('p', { text: V.S.over.ending }),
+      el('p', { text: who + ', on day ' + c.day + ', traveller ' + V.S.travellers + ' of this world.' }),
+      world,
+      el('div', { cls: 'row' }, [
+        btn('New world', () => start(randomSeed()), 'primary'),
+        btn('Same world again', () => start(V.S.seed)),
+      ]),
+    ]);
+  else if (won)
     openModal('The ' + V.S.quest.relic + ' is home', [
       el('p', {
         text:
@@ -548,6 +566,12 @@ const MAPC = {
   shop: '#2f7fb5',
   hamlet: '#d8c9a0',
   trap: '#e0302a',
+  den: '#5a2a22',
+  camp: '#c0612f',
+  lost: '#e8d27a',
+  stone: '#111111',
+  herbs: '#6fae4f',
+  siege: '#c0612f',
 };
 const INDOOR_COLS = { 6: '#3a3631', 7: '#9a948a' };
 // The map screen. Indoors: the town or the level you are on. Outdoors: the whole world as one continuous map, drawn from
@@ -807,6 +831,43 @@ function openMenu() {
             '.'
           : ' The town will know what this land needs.'),
     }),
+    ...(() => {
+      // the troubles you know of: the one on the top panel, and a button to follow another
+      const known = R.plotsOf(V.S).filter((p) => (p.kind === 'relic' ? V.S.quest.told && !p.main : p.known));
+      if (!known.length) return [];
+      const cur = R.tracked(V.S);
+      return [
+        el('h3', { text: 'Troubles' }),
+        el(
+          'ul',
+          { cls: 'items' },
+          known.map((p) => {
+            const k = R.byId(R.C.plots.kinds, p.kind),
+              o = p.kind === 'relic' ? { text: k.text } : R.plotObjective(V.S, p);
+            return el('li', { cls: 'item' }, [
+              el('div', null, [
+                el('strong', { text: k.name + (p.main ? ' (the great trouble)' : '') }),
+                el('p', {
+                  text: p.done
+                    ? 'Done.'
+                    : p.failed
+                      ? 'Failed.'
+                      : o.text + (o.dir && o.dir !== 'here' ? ', to the ' + o.dir : '') + '.',
+                }),
+              ]),
+              !p.done && !p.failed && cur !== p
+                ? btn('Follow', () => {
+                    R.trackPlot(V.S, p.id);
+                    render();
+                    save();
+                    openMenu();
+                  })
+                : el('span', { cls: 'wt', text: cur === p ? 'followed' : '' }),
+            ]);
+          }),
+        ),
+      ];
+    })(),
     el('h3', { text: 'Traveller' }),
     el('p', {
       text:

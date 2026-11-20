@@ -195,6 +195,8 @@ function findLoose(s, base) {
   return null;
 }
 function objective(s) {
+  const po = PLOT_HOOKS.objective && PLOT_HOOKS.objective(s);
+  if (po) return po;
   const q = s.quest,
     t = s.town,
     v = findSite(s, 'vault'),
@@ -261,6 +263,8 @@ function talkElder(s) {
     t = s.town,
     v = findSite(s, 'vault'),
     sp = (t.speech = []);
+  // the world's great trouble, when it is not the relic, is told first; the relic's story waits for the next talk
+  if (PLOT_HOOKS.storyTalk && PLOT_HOOKS.storyTalk(s, sp)) return true;
   if (!q.told) {
     q.told = true;
     mark(s, v.x, v.y, v.area);
@@ -334,6 +338,8 @@ function talkElder(s) {
 // The elder of a town that is not the story's: news of the land, pieces' talk (ELDER_TALK), and the way to the town
 // that knows what this land needs.
 const ELDER_TALK = [];
+// Filled by plots.js (which this module cannot import): the world's other troubles.
+const PLOT_HOOKS = { storyTalk: null, objective: null, relicWins: () => true, relicSideDone: null };
 function talkOtherElder(s) {
   const t = curTown(s),
     sp = (t.speech = []);
@@ -540,13 +546,15 @@ function goUp(s) {
 function offer(s) {
   const st = siteHere(s);
   if (s.over || !st || st.kind !== 'shrine' || s.quest.dest !== 'shrine' || !hasItem(s, 'relic')) return false;
-  s.over = { won: true };
   say(s, 'You set the ' + s.quest.relic + ' on the shrine. Something that was held breath for an age lets go.', 'good');
+  if (PLOT_HOOKS.relicWins(s)) s.over = { won: true };
+  else PLOT_HOOKS.relicSideDone(s);
   return true;
 }
 
 export {
   ELDER_TALK,
+  PLOT_HOOKS,
   makeTownRec,
   hasItem,
   atTown,

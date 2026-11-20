@@ -4,6 +4,67 @@ Newest entry first. Performance numbers are from `tools/bench.py` (a real browse
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
 
+## C3.4: many plots
+
+**What it is.** The story is no longer always the relic. Every world now has one **great trouble**, told by the elder
+of the story's town, and finishing it wins the world with an ending that fits it. It is one of six: the old story of
+the relic (a third of worlds), a great beast, a curse on the land, a sickness, a cult, or a siege. Each of the other
+towns may have a **trouble of its own** (one to three in a world), told by its elder when you walk in, which you can
+take up or leave and which pays in coin: someone held captive by raiders, someone lost in the wild, a feud between two
+towns, a caravan's bales to carry before a day, something stolen, and the kinds that can also be great troubles.
+
+What each asks:
+- **The great beast**: kill it in its den, bring its horn home.
+- **Held captive**: kill the raiders at their camp, free the captive, lead them home.
+- **Lost in the wild**: find them, share two measures of water, lead them home.
+- **The curse**: take the blessed salt from the elder, pour it on the black stone; while the stone stands, its whole
+  country is cursed (the cold bites harder, water runs out faster).
+- **The sickness**: gather feverwort far away, bring it to the healer's town.
+- **The feud**: hear the other town, then choose: side with one (the other will barely deal with you, and sells at
+  1.6 times the price), or find the old boundary charter in a ruin and make peace (both sell to you for less).
+- **The caravan**: carry heavy bales to another town by a set day, or they are worthless.
+- **The cult**: kill its leader at the cult's camp, bring the sigil.
+- **The siege**: kill the captain camped under the town; the warband scatters.
+- **Something stolen**: kill the thief, bring back the town's bell.
+
+**Links between plots.** When a world has a sickness and a great beast, the cure is in the beast's hoard 60% of the
+time (the elder says so). A feud sets one town against you for good. Finishing a side trouble tells you of the next
+town's trouble a third of the time. In a world whose great trouble is not the relic, the elder tells the relic's
+story on your second talk, and carrying it home pays 60 coin instead of winning.
+
+**In play.** The top panel follows the great trouble; Menu has a **Troubles** list with every trouble you know of
+and a Follow button. The new places (a den with bones at its mouth, raiders' tents with a fire, a lean-to, a black
+standing stone, a herb patch, a siege camp) are drawn and mapped, and told as you reach them. Elders mark the places
+and the sure springs on the way; the great trouble gets an old road, as the relic's story does.
+
+**Bot win rate**, sets 5 / 1000 / 2000: 26, 24, 34 (84 / 450, 19%), against 44 before. The bot plays the great
+trouble whatever it is (`plotGoal`), which the curse and sickness make easier than the relic: the curse wins 37% of
+its worlds, the relic 10%, the cult 7%. It never takes up side troubles.
+
+**Commits.** "Many plots". Switch: `plots` (at creation: the relic's story alone).
+
+**How it works.** `src/content/plots.js` describes each plot as **roles** (a place with a kind of site, a creature or
+a few, a person, an item, a town, a curse) and **steps** (`talk`, `kill`, `take`, `bring`, `free`, `lead`, `use`,
+`choose`), with branches after a choice. `src/rules/plots.js` knows how to place each kind of role and how each kind
+of step is done; a new plot that uses them is only data. Plot state is `s.plots` (each with `step`, `roles`, `known`,
+`done`), `s.track` and `s.curses`; old saves have none and play the relic as before. quest.js cannot import plots.js
+(it would be a cycle), so plots.js fills `PLOT_HOOKS` in quest.js (the story town's talk, the goal line, whether the
+relic wins). `tests/plots.test.js` plays every plot of 120 worlds to its end.
+
+**Choices made without asking.**
+- The old story stays in every world: many pieces hang off the locked place and the relic (odd levels, relic natures,
+  the vault's artifact), and it gives a world with another great trouble a second, optional journey.
+- The great trouble's places keep to the ring of regions round home, as the relic's chain does. With them up to two
+  regions out, in danger-2 country, the bot won 14 / 150; with the ring, 21. Side troubles may go further.
+- The great beast, the cult's leader and the siege's captain are tier 2 elders, not tier 3: at tier 3 the bot won 1
+  beast world in 30.
+- Water for every plot: sure springs every seven tiles from the asking town to each place, marked when the elder
+  tells you. Without them thirst killed the bot on almost every plot leg.
+- Side troubles pay 20 to 45 coin and 60 experience; coin will have more uses with the economy (next).
+
+**Verdict: pearl.** It changes what a world is about. The relic is now a third of the game, and the other troubles
+make the other towns matter.
+
 ## C3.3: more towns
 
 **What it is.** A world now has other towns besides the town of the story: one more for about every four or five

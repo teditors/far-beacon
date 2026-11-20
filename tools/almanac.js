@@ -555,6 +555,15 @@ section('Tiers by distance', ['tiers'], () => {
   line();
 });
 
+section('Plots', ['plots'], () => {
+  const X = C.plots;
+  line('Every world has one great trouble, told by the elder of the story\'s town; finishing it wins the world, with its own ending. When it is not the relic, the old story is still there, told on the next talk, and carrying the relic home pays ' + X.relicSide.coin + ' coin. Each other town may have a trouble of its own (' + X.side.join(' to ') + ' in a world), paying ' + X.reward.coin.join(' to ') + ' coin. A sickness and a great beast in one world: ' + Math.round(X.linkChance * 100) + '% of the time the cure is in the beast\'s hoard. Finishing a side trouble tells you of the next one ' + Math.round(X.chainChance * 100) + '% of the time. A town you crossed in a feud sells at ' + X.hostile.buy + ' times the price; one you helped at ' + X.friend.buy + '.');
+  line();
+  table(['Plot', 'As the great trouble', 'As a side trouble', 'Steps'], X.kinds.map((k) => [k.name, k.main || '', k.side || '', k.steps ? k.steps.map((st) => st.text).join('; ') + (k.branches ? '; then by the side chosen' : '') : k.text]));
+  line();
+  table(['Place', 'Told'], Object.keys(X.sites).map((k) => [X.sites[k].name, X.sites[k].text]));
+});
+
 section('More towns', ['moreTowns'], () => {
   const X = C.moreTowns;
   line('Besides the town of the story, one more town for about every ' + X.perRegions + ' regions (at least ' + X.least + ', at most ' + X.most + '), never at home and never two in a region. Each is made like the first: a name, an elder, a merchant, a shop, a size and services (town life), a culture (town cultures) and its own streets.');

@@ -3,7 +3,7 @@
 import { HALF, R, TS, WORLD, clamp, lerp, mulberry, smooth } from './ctx.js';
 import { Q } from './quality.js';
 
-const PAD = { town: 102, vault: 11, beacon: 9, spring: 6, hamlet: 10 }; // metres of level ground under each kind of site
+const PAD = { town: 102, vault: 11, beacon: 9, spring: 6, hamlet: 10, camp: 8, siege: 8, stone: 7, den: 9 }; // metres of level ground under each kind of site
 const SINK = 0.15; // the coarse ground sits a hand lower, so it never shows through the fine ground where they overlap
 // How much land is drawn and how finely, from the quality setting (quality.js). setDetail() is called before each build.
 let MARGIN, // tiles of the neighbouring regions that are drawn: a little further than the eye can see

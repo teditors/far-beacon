@@ -97,6 +97,11 @@ first time the player arrives.
 - Several towns: `s.town` is the story's (area `'town'`), others are in `s.towns` (`id` = area id, `area` = region).
   Use `curTown(s)` in anything that happens in a town, `allTowns(s)`, `townById`, `townInRegion`, and `withTown(s, t,
   fn)` to run one-town code for another town. `addTown(s, cx, cy, r)` (moretowns.js) makes one.
+- Plots (`plots.js`, content in `content/plots.js`): `s.plots`, each a list of steps over roles placed at creation. One is
+  `main` (the great trouble: finishing it wins, `s.over.ending`). The relic's story is the plot of kind `relic`, run by
+  quest.js as before; `PLOT_HOOKS` in quest.js lets plots.js take over the story town's talk and the goal line.
+  `plotGoal(s, p)` says where a plot wants you next (the bot uses it). A new plot is a content entry using the role
+  and step kinds listed at the top of content/plots.js.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
 - `inOverworld(s)` means "outdoors, in any region".
 

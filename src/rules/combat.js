@@ -143,7 +143,7 @@ function hurt(s, c, dmg, lead) {
   const f = formOf(s, c),
     xp = f.xp * c.tier;
   s.combat = null;
-  emit(s, 'killed', { sp: c.sp, tier: c.tier });
+  emit(s, 'killed', { sp: c.sp, tier: c.tier, c });
   s.creatures = s.creatures.filter((x) => x.id !== c.id);
   say(s, lead + ' for ' + dmg + '. The ' + sp.name + ' is dead. ' + xp + ' experience.', 'good');
   if (sp.rare === 'gilded' || srand(s) < 0.25) {
