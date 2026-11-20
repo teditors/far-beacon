@@ -93,6 +93,24 @@ seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after.
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
 
+## C4.11: no more black screens, and a fuzz that goes everywhere
+
+After Andrew's freeze at Saltholm (C4.10), two things so that a fault like it can neither hide nor strand anyone.
+- **A safety net in the view** (`src/view/oops.js`). The frame loop asks for the next frame first, and walking,
+  building and drawing each run guarded; so do actions and the panels, and errors anywhere else on the page are
+  caught too. Whatever goes wrong, the game keeps running and a note at the top says what happened, with **Copy the
+  error** (to send on) and Close. After an error (or in god mode) Menu offers **Rescue: back to the well**, which
+  brings the traveller out of wherever they are, any world, to the well at home, at no cost (`R.rescue`). Tested by
+  putting the Saltholm fault back: the note appeared, the game ran on, and the rescue brought the traveller home.
+- **An explorer fuzz** (`tests/explore.js`, in `node tools/check.js`). Twelve worlds made to have everything; in each,
+  eighteen places reached by god mode, one kind at a time (regions, towns, dungeons, the sky, the water, other
+  worlds), then 60 steps of random play there as a mortal: every button offered is pressed, every dialog opened and
+  one of its options taken, everything the screen asks for each frame is asked for, and the world is saved and
+  loaded. About 9,000 steps in 11 seconds; it finds the Saltholm fault at once when it is put back, and found nothing
+  else.
+
+**Commits.** "No more black screens: errors are shown and the game runs on; a fuzz that goes everywhere".
+
 ## C4.10: fix: talking to a floating town's trader froze the screen
 
 **From Andrew** (god mode, Saltholm): talking to the figure on the floating town froze the screen, and teleporting

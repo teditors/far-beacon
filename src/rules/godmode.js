@@ -5,7 +5,18 @@
    State: s.godMode (on now), s.cheated (ever on). Places: PLACES in hooks.js, filled by every piece that adds a kind
    of place, each { id, group, label, go(s) }. */
 import { W, H, idx, say } from './core.js';
-import { HOME, allTowns, enterRealm, inOverworld, leaveArea, switchRegion, townArea, townDoor, townId } from './areas.js';
+import {
+  HOME,
+  allTowns,
+  enterRealm,
+  inOverworld,
+  leaveArea,
+  switchRegion,
+  toOverworld,
+  townArea,
+  townDoor,
+  townId,
+} from './areas.js';
 import { PLACES, NOTES } from './hooks.js';
 import { SOURCES } from './stats.js';
 import { SYSTEMS } from './systems.js';
@@ -135,4 +146,16 @@ NOTES.push((s) =>
     : [],
 );
 
-export { setGodMode, jumpTo, jumpMap, places, jumpRegion, freeNear };
+// Out of anywhere and back to the well at home: offered only after something has gone wrong (or in god mode), so a
+// fault in the game never strands a traveller. It costs nothing; it is not a way to travel.
+function rescue(s) {
+  if (!s.player) return false;
+  s.combat = null;
+  delete s.player.aloft;
+  toOverworld(s);
+  s.player.x = s.start.x;
+  s.player.y = s.start.y;
+  say(s, 'You find yourself back at the well where you set out, with no clear memory of how.', '');
+  return true;
+}
+export { rescue, setGodMode, jumpTo, jumpMap, places, jumpRegion, freeNear };

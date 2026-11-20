@@ -1,5 +1,6 @@
 /* HUD, panels and screens, input and start-up. */
 import { $, G, P, R, V, VIEW, clamp, el, f1 } from './ctx.js';
+import { guard, showError, errors } from './oops.js';
 import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSeed, save, start, sync } from './run.js';
 import { box, buildDynamic, buildStatic, renderer, resize, scene } from './scene.js';
 import { Q, QUALITY, SET, saveSettings, setQuality } from './quality.js';
@@ -1338,6 +1339,16 @@ function openMenu() {
     el('h3', { text: 'Tinker' }),
     el('p', { cls: 'note', text: 'Switch whole systems off, or change the numbers while you play.' }),
     godPanel(),
+    errors.length || V.S.godMode
+      ? el('div', { cls: 'row' }, [
+          btn('Rescue: back to the well', () => {
+            act(() => R.rescue(V.S));
+            buildStatic();
+            placePlayer();
+            closeModal();
+          }),
+        ])
+      : null,
     sw,
     el('ul', { cls: 'items' }, [
       tune(VIEW, 'speed', 'Walking speed (m/s)', 3, 16, 0.5),
@@ -1511,6 +1522,9 @@ window.__g = {
     render();
   },
 };
+// nothing that goes wrong anywhere may leave a black screen: errors outside the frame are caught and shown too
+window.addEventListener('error', (e) => showError('the page', e.error || e.message));
+window.addEventListener('unhandledrejection', (e) => showError('the page', e.reason));
 requestAnimationFrame(loop);
 
 export {

@@ -7102,7 +7102,7 @@
       return { x: o.cx, y: o.cy };
     };
     let cid = 200 + lvl * 10;
-    const guard = (o, t) => {
+    const guard2 = (o, t) => {
       const p = spot2(o), c = makeCreature(s, cid++, s.quest.guardSp, p.x, p.y, t);
       creatures.push(c);
       return c;
@@ -7111,10 +7111,10 @@
       const relic = makeItem(s, "relic", null, null, true);
       relic.label = s.quest.relic;
       depots[idx(far.cx, far.cy)] = { water: 0, fuel: 0, items: [relic] };
-      guard(far, 2).warden = true;
+      guard2(far, 2).warden = true;
     } else sites[idx(far.cx, far.cy)] = { kind: "stairsDown" };
-    guard(pickRoom(), Math.max(1, tier - 1));
-    if (kind2 === "guard") guard(pickRoom(), tier);
+    guard2(pickRoom(), Math.max(1, tier - 1));
+    if (kind2 === "guard") guard2(pickRoom(), tier);
     if (kind2 === "loot") {
       const o = pickRoom(), p = spot2(o), it = genItem(s, { relic: true, noConsumables: true });
       depots[idx(p.x, p.y)] = { water: 0, fuel: 0, items: [it], coin: 6 + Math.floor(r() * 12), store: true };
@@ -9511,6 +9511,16 @@
   NOTES.push(
     (s) => s.cheated ? [{ label: "God mode", text: "This world has been walked in god mode" + (s.godMode ? ", and it is on now." : ".") }] : []
   );
+  function rescue(s) {
+    if (!s.player) return false;
+    s.combat = null;
+    delete s.player.aloft;
+    toOverworld(s);
+    s.player.x = s.start.x;
+    s.player.y = s.start.y;
+    say(s, "You find yourself back at the well where you set out, with no clear memory of how.", "");
+    return true;
+  }
 
   // src/rules/deeps.js
   var D2 = () => C.deeps;
@@ -10511,11 +10521,11 @@
   NOTES.push((s) => {
     const ks = skiesOf(s);
     if (!ks.length) return [];
-    const seen = ks.filter((k) => k.reached);
+    const seen2 = ks.filter((k) => k.reached);
     return [
       {
         label: "The sky",
-        text: (seen.length ? "You have walked on " + seen.map((k) => k.name).join(", ") + ". " : "") + "Something floats above this world: look for a shadow with no cloud to cast it." + (s.skyShop ? " A shop in one of the towns sells a way to fly." : "")
+        text: (seen2.length ? "You have walked on " + seen2.map((k) => k.name).join(", ") + ". " : "") + "Something floats above this world: look for a shadow with no cloud to cast it." + (s.skyShop ? " A shop in one of the towns sells a way to fly." : "")
       }
     ];
   });
@@ -11862,7 +11872,7 @@
           '"You are not the one we sent. Take these, as they did: ' + fill2(s, p, st0.gearText || "you will need them.") + '"'
         );
       }
-      for (let guard = 0; guard < 4; guard++) {
+      for (let guard2 = 0; guard2 < 4; guard2++) {
         const st = stepOf(p);
         if (!st) break;
         if (st.do === "talk" && roleTown(s, p, st.to) === id) {
@@ -12273,6 +12283,7 @@
   // src/rules/index.js
   var api = {
     setGodMode,
+    rescue,
     chainOf,
     route,
     doorsOf,
@@ -12614,6 +12625,58 @@
   var tileX = (tx) => (tx + 0.5) * G2.ts - G2.half;
   var toTile = (x) => clamp2(Math.floor((x + G2.half) / G2.ts), 0, R.W - 1);
 
+  // src/view/oops.js
+  var seen = /* @__PURE__ */ new Set();
+  var errors = [];
+  var box = null;
+  function show(where, e) {
+    const msg = e && e.message || String(e), key = where + ":" + msg;
+    console.error("[" + where + "]", e);
+    if (seen.has(key)) return;
+    seen.add(key);
+    errors.push({ where, msg, stack: (e && e.stack || "").split("\n").slice(0, 4).join(" | ") });
+    if (errors.length > 8) errors.shift();
+    if (typeof document === "undefined") return;
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "oops";
+      box.setAttribute("role", "alert");
+      box.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:50;background:#3a1414;color:#fbe9e7;border:1px solid #c0612f;border-radius:10px;padding:10px 12px;font:13px/1.4 system-ui,sans-serif;box-shadow:0 4px 16px #0008";
+      document.body.appendChild(box);
+    }
+    box.innerHTML = "";
+    const p = document.createElement("p");
+    p.style.margin = "0 0 8px";
+    p.textContent = "Something went wrong (" + where + "): " + msg + '. The game keeps going. If you are stuck, Menu has "Rescue: back to the well".';
+    const row = document.createElement("div"), copy = document.createElement("button"), close = document.createElement("button");
+    copy.textContent = "Copy the error";
+    close.textContent = "Close";
+    for (const b of [copy, close]) b.style.cssText = "margin-right:8px;padding:6px 10px;border-radius:8px;border:0;font:inherit";
+    copy.addEventListener("click", () => {
+      const txt = errors.map((x) => x.where + ": " + x.msg + " / " + x.stack).join("\n");
+      try {
+        navigator.clipboard.writeText(txt).then(
+          () => copy.textContent = "Copied",
+          () => p.textContent += " " + txt
+        );
+      } catch (err) {
+        p.textContent += " " + txt;
+      }
+    });
+    close.addEventListener("click", () => box.hidden = true);
+    row.append(copy, close);
+    box.append(p, row);
+    box.hidden = false;
+  }
+  function guard(where, fn) {
+    try {
+      return fn();
+    } catch (e) {
+      show(where, e);
+      return void 0;
+    }
+  }
+
   // src/view/quality.js
   var KEY2 = "farbeacon.settings";
   var QUALITY = {
@@ -12926,7 +12989,7 @@
   var dynGroup = null;
   var std = (color, extra) => new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
   var glow = (color, opacity) => new THREE.MeshBasicMaterial({ color, fog: false, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
-  var box = (w, h, d, mat, x, y, z) => {
+  var box2 = (w, h, d, mat, x, y, z) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
     m.position.set(x || 0, y || 0, z || 0);
     return m;
@@ -13002,11 +13065,11 @@
             [-12, 8, 18],
             [0, -12, 22]
           ])
-            up.add(box(7, h, 7, far(13815751), x, h / 2, z));
+            up.add(box2(7, h, 7, far(13815751), x, h / 2, z));
         if (kind2 === "city")
           for (let i = 0; i < 9; i++)
-            up.add(box(6, 5 + i % 3 * 3, 6, far(16053494), Math.cos(i) * 20, 4, Math.sin(i * 1.7) * 20));
-        if (kind2 === "isle") up.add(box(5, 9, 3, far(12170406), 6, 4.5, -4), box(3, 6, 6, far(12170406), -8, 3, 6));
+            up.add(box2(6, 5 + i % 3 * 3, 6, far(16053494), Math.cos(i) * 20, 4, Math.sin(i * 1.7) * 20));
+        if (kind2 === "isle") up.add(box2(5, 9, 3, far(12170406), 6, 4.5, -4), box2(3, 6, 6, far(12170406), -8, 3, 6));
         up.position.y = 130;
       }
       g.add(up);
@@ -13015,7 +13078,7 @@
     // a door of old stone, alone in the land, with another sky showing through it
     door(S2, st) {
       const g = new THREE.Group(), stone = std(7828330);
-      g.add(box(1.2, 7, 1.2, stone, -2.6, 3.5, 0), box(1.2, 7, 1.2, stone, 2.6, 3.5, 0), box(6.6, 1.2, 1.4, stone, 0, 7.4, 0));
+      g.add(box2(1.2, 7, 1.2, stone, -2.6, 3.5, 0), box2(1.2, 7, 1.2, stone, 2.6, 3.5, 0), box2(6.6, 1.2, 1.4, stone, 0, 7.4, 0));
       const sky = new THREE.Mesh(new THREE.PlaneGeometry(4, 6.8), glow(st.back ? 12572912 : 11832544, 0.85));
       sky.material.side = THREE.DoubleSide;
       sky.position.y = 3.4;
@@ -13026,16 +13089,16 @@
     // the merfolk's halls or a drowned shrine, and a dark cave mouth on the shore
     seaplace(S2, st) {
       const g = new THREE.Group(), p = (S2.seaPlaces || []).find((x) => x.id === st.place), kind2 = p ? p.kind : "wreck";
-      if (kind2 === "wreck") g.add(box(0.5, 9, 0.5, std(4864554), 0, 2.5, 0), box(4, 0.3, 0.3, std(4864554), 0, 5.5, 0));
+      if (kind2 === "wreck") g.add(box2(0.5, 9, 0.5, std(4864554), 0, 2.5, 0), box2(4, 0.3, 0.3, std(4864554), 0, 5.5, 0));
       else if (kind2 === "raft") {
-        for (let i = 0; i < 7; i++) g.add(box(3, 1.2, 7, std(6965808), Math.cos(i * 0.9) * 7, 0.2, Math.sin(i * 0.9) * 7));
-        g.add(box(0.3, 7, 0.3, std(4864554), 0, 3.5, 0), box(3, 2, 0.1, std(15261896), 1.6, 5, 0));
+        for (let i = 0; i < 7; i++) g.add(box2(3, 1.2, 7, std(6965808), Math.cos(i * 0.9) * 7, 0.2, Math.sin(i * 0.9) * 7));
+        g.add(box2(0.3, 7, 0.3, std(4864554), 0, 3.5, 0), box2(3, 2, 0.1, std(15261896), 1.6, 5, 0));
       } else if (kind2 === "seacave") {
         const m = new THREE.Mesh(new THREE.IcosahedronGeometry(6, 1), std(3815992));
         m.scale.set(1, 0.6, 1);
-        g.add(m, box(3, 2.5, 1, std(329224), 0, 1.2, 5.6));
+        g.add(m, box2(3, 2.5, 1, std(329224), 0, 1.2, 5.6));
       } else
-        for (let i = 0; i < 6; i++) g.add(box(0.8, 3, 0.8, std(8030848), Math.cos(i * 1.05) * 4, 0.5, Math.sin(i * 1.05) * 4));
+        for (let i = 0; i < 6; i++) g.add(box2(0.8, 3, 0.8, std(8030848), Math.cos(i * 1.05) * 4, 0.5, Math.sin(i * 1.05) * 4));
       return g;
     },
     well() {
@@ -13069,7 +13132,7 @@
         [-4, 5, 2]
       ]) {
         const h = new THREE.Group();
-        h.add(box(4, 2.6, 3.2, wall, 0, 1.3, 0));
+        h.add(box2(4, 2.6, 3.2, wall, 0, 1.3, 0));
         const top = new THREE.Mesh(new THREE.ConeGeometry(3.2, 2, 4), roof);
         top.position.y = 3.6;
         top.rotation.y = Math.PI / 4;
@@ -13083,7 +13146,7 @@
     // the places of the plots (rules/plots.js): a den, a camp, someone's lean-to, a black stone, a herb patch
     den(s) {
       const g = BUILD.cave(s), bone = std(14209727);
-      for (let i = 0; i < 5; i++) g.add(box(0.2, 0.2, 1.4, bone, Math.cos(i * 1.3) * 3, 0.1, 8 + Math.sin(i * 2.1) * 1.5));
+      for (let i = 0; i < 5; i++) g.add(box2(0.2, 0.2, 1.4, bone, Math.cos(i * 1.3) * 3, 0.1, 8 + Math.sin(i * 2.1) * 1.5));
       return g;
     },
     camp() {
@@ -13099,26 +13162,26 @@
         g.add(t);
       }
       fire2.position.y = 0.7;
-      g.add(fire2, box(0.15, 4, 0.15, std(3811866), 2, 2, 1), box(1.4, 0.9, 0.05, glow(11549226, 1), 2.7, 3.4, 1));
+      g.add(fire2, box2(0.15, 4, 0.15, std(3811866), 2, 2, 1), box2(1.4, 0.9, 0.05, glow(11549226, 1), 2.7, 3.4, 1));
       return g;
     },
     siege(s) {
       return BUILD.camp(s);
     },
     shelter() {
-      const g = new THREE.Group(), hide = std(9071176), pole = std(4864554), roof = box(3.4, 0.12, 3, hide, 0, 1.5, 0);
+      const g = new THREE.Group(), hide = std(9071176), pole = std(4864554), roof = box2(3.4, 0.12, 3, hide, 0, 1.5, 0);
       roof.rotation.x = 0.5;
-      g.add(roof, box(0.15, 2.4, 0.15, pole, -1.5, 1.2, -1.2), box(0.15, 2.4, 0.15, pole, 1.5, 1.2, -1.2));
+      g.add(roof, box2(0.15, 2.4, 0.15, pole, -1.5, 1.2, -1.2), box2(0.15, 2.4, 0.15, pole, 1.5, 1.2, -1.2));
       return g;
     },
     lost() {
-      const g = new THREE.Group(), w = std(6967352), lean = box(3, 0.15, 2.4, w, 0, 1.1, 0);
+      const g = new THREE.Group(), w = std(6967352), lean = box2(3, 0.15, 2.4, w, 0, 1.1, 0);
       lean.rotation.x = 0.6;
-      g.add(lean, box(0.15, 1.6, 0.15, w, -1.4, 0.8, -0.8), box(0.15, 1.6, 0.15, w, 1.4, 0.8, -0.8));
+      g.add(lean, box2(0.15, 1.6, 0.15, w, -1.4, 0.8, -0.8), box2(0.15, 1.6, 0.15, w, 1.4, 0.8, -0.8));
       return g;
     },
     stone() {
-      const g = new THREE.Group(), m = box(1.6, 7, 1.1, std(1447446), 0, 3.3, 0);
+      const g = new THREE.Group(), m = box2(1.6, 7, 1.1, std(1447446), 0, 3.3, 0);
       m.rotation.z = 0.08;
       const ring = new THREE.Mesh(
         new THREE.CircleGeometry(6, 16).rotateX(-Math.PI / 2),
@@ -13139,14 +13202,14 @@
     },
     cache() {
       const g = new THREE.Group(), s = std(7038815);
-      g.add(box(1.6, 0.8, 1.4, s, 0, 0.4, 0), box(1.1, 0.7, 1, s, 0.1, 1.15, 0), box(0.7, 0.6, 0.6, s, 0, 1.8, 0.1));
+      g.add(box2(1.6, 0.8, 1.4, s, 0, 0.4, 0), box2(1.1, 0.7, 1, s, 0.1, 1.15, 0), box2(0.7, 0.6, 0.6, s, 0, 1.8, 0.1));
       return g;
     },
     shrine(s) {
       const g = new THREE.Group(), st = std(9276036);
       for (let i = 0; i < 3; i++) {
         const a = i * 2.094;
-        g.add(box(0.7, 6, 0.7, st, Math.cos(a) * 3, 3, Math.sin(a) * 3));
+        g.add(box2(0.7, 6, 0.7, st, Math.cos(a) * 3, 3, Math.sin(a) * 3));
       }
       const o = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 8), glow(R.godOf(s).color, 1));
       o.position.y = 4.4;
@@ -13156,7 +13219,7 @@
     vault(s) {
       const g = new THREE.Group(), id = s.quest.vault.id, st = std(id === "temple" ? 6060664 : id === "barrow" ? 6122058 : 5591630), dark = new THREE.MeshBasicMaterial({ color: 526603 });
       if (id === "castle") {
-        g.add(box(16, 7, 16, st, 0, 3.5, 0));
+        g.add(box2(16, 7, 16, st, 0, 3.5, 0));
         for (const [x, z] of [
           [-8, -8],
           [8, -8],
@@ -13167,27 +13230,27 @@
           tw.position.set(x, 6.5, z);
           g.add(tw);
         }
-        g.add(box(3, 4, 0.4, dark, 0, 2, 8.05));
+        g.add(box2(3, 4, 0.4, dark, 0, 2, 8.05));
       } else if (id === "barrow") {
         const m = new THREE.Mesh(new THREE.SphereGeometry(11, 12, 8, 0, 6.283, 0, 1.571), st);
         m.scale.y = 0.55;
         g.add(
           m,
-          box(1.2, 4, 1.2, std(9276036), -2, 2, 10.6),
-          box(1.2, 4, 1.2, std(9276036), 2, 2, 10.6),
-          box(5.6, 1, 1.4, std(9276036), 0, 4.4, 10.6),
-          box(2.6, 3.4, 0.4, dark, 0, 1.7, 10.2)
+          box2(1.2, 4, 1.2, std(9276036), -2, 2, 10.6),
+          box2(1.2, 4, 1.2, std(9276036), 2, 2, 10.6),
+          box2(5.6, 1, 1.4, std(9276036), 0, 4.4, 10.6),
+          box2(2.6, 3.4, 0.4, dark, 0, 1.7, 10.2)
         );
       } else {
-        for (let i = 0; i < 3; i++) g.add(box(18 - i * 4, 1.6, 18 - i * 4, st, 0, 0.8 + i * 1.6, 0));
+        for (let i = 0; i < 3; i++) g.add(box2(18 - i * 4, 1.6, 18 - i * 4, st, 0, 0.8 + i * 1.6, 0));
         for (const [x, z] of [
           [-5, -5],
           [5, -5],
           [-5, 5],
           [5, 5]
         ])
-          g.add(box(1, 7, 1, st, x, 8.2, z));
-        g.add(box(12, 1, 12, st, 0, 12.2, 0), box(3, 3, 0.4, dark, 0, 6.2, 5.05));
+          g.add(box2(1, 7, 1, st, x, 8.2, z));
+        g.add(box2(12, 1, 12, st, 0, 12.2, 0), box2(3, 3, 0.4, dark, 0, 6.2, 5.05));
       }
       return g;
     },
@@ -13209,10 +13272,10 @@
       const st = std(col), dark = new THREE.MeshBasicMaterial({ color: 723982 });
       if (hb === "cistern") {
         body.add(
-          box(9, 2.6, 0.9, st, 0, 1.3, -4),
-          box(9, 1.8, 0.9, st, 0, 0.9, 4),
-          box(0.9, 2.2, 8, st, -4, 1.1, 0),
-          box(0.9, 3, 8, st, 4, 1.5, 0)
+          box2(9, 2.6, 0.9, st, 0, 1.3, -4),
+          box2(9, 1.8, 0.9, st, 0, 0.9, 4),
+          box2(0.9, 2.2, 8, st, -4, 1.1, 0),
+          box2(0.9, 3, 8, st, 4, 1.5, 0)
         );
         const w = new THREE.Mesh(new THREE.CircleGeometry(2.2, 12).rotateX(-Math.PI / 2), std(2898500));
         w.position.y = 0.15;
@@ -13225,24 +13288,24 @@
         body.add(tw, c);
       } else if (hb === "tomb")
         body.add(
-          box(10, 2.4, 7, st, 0, 1.2, 0),
-          box(11.5, 0.8, 8.5, st, 0, 2.7, 0),
-          box(0.9, 4.2, 0.9, st, -2.2, 2.1, 4.2),
-          box(0.9, 4.2, 0.9, st, 2.2, 2.1, 4.2),
-          box(2.4, 2.1, 0.3, dark, 0, 1.05, 3.55)
+          box2(10, 2.4, 7, st, 0, 1.2, 0),
+          box2(11.5, 0.8, 8.5, st, 0, 2.7, 0),
+          box2(0.9, 4.2, 0.9, st, -2.2, 2.1, 4.2),
+          box2(0.9, 4.2, 0.9, st, 2.2, 2.1, 4.2),
+          box2(2.4, 2.1, 0.3, dark, 0, 1.05, 3.55)
         );
       else if (hb === "granary") {
         const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 4.6, 3, 4, 1), st);
         roof.rotation.y = Math.PI / 4;
         roof.scale.set(1, 1, 2.1);
         roof.position.y = 5.5;
-        body.add(box(6, 4, 13, st, 0, 2, 0), roof, box(1.8, 2.4, 0.3, dark, 0, 1.2, 6.55));
+        body.add(box2(6, 4, 13, st, 0, 2, 0), roof, box2(1.8, 2.4, 0.3, dark, 0, 1.2, 6.55));
       } else
         body.add(
-          box(1.4, 6, 1.4, st, -3.2, 3, 0),
-          box(1.4, 6, 1.4, st, 3.2, 3, 0),
-          box(9, 1.3, 1.8, st, 0, 6.6, 0),
-          box(7, 0.3, 12, st, 0, 0.15, 0)
+          box2(1.4, 6, 1.4, st, -3.2, 3, 0),
+          box2(1.4, 6, 1.4, st, 3.2, 3, 0),
+          box2(9, 1.3, 1.8, st, 0, 6.6, 0),
+          box2(7, 0.3, 12, st, 0, 0.15, 0)
         );
       body.scale.y = R.trait(s, "age").scale;
       g.add(body);
@@ -13256,7 +13319,7 @@
       if (doom === "plague") prop(new THREE.CylinderGeometry(0.12, 0.12, 7, 5), std(15921898), 3, 8.5, 3.5);
       if (doom === "war") prop(new THREE.ConeGeometry(0.35, 2.6, 5), std(3813415), 12, 8.5, 1.3);
       if (doom === "famine") prop(new THREE.CylinderGeometry(0.5, 0.35, 1, 8), std(11035194), 4, 6.5, 0.5);
-      const pole = box(0.2, 5, 0.2, std(3813415), 6, 2.5, 6), flag = box(1.8, 1.1, 0.1, new THREE.MeshBasicMaterial({ color: R.trait(s, "affinity").color }), 6.95, 4.4, 6);
+      const pole = box2(0.2, 5, 0.2, std(3813415), 6, 2.5, 6), flag = box2(1.8, 1.1, 0.1, new THREE.MeshBasicMaterial({ color: R.trait(s, "affinity").color }), 6.95, 4.4, 6);
       g.add(pole, flag);
       return g;
     }
@@ -13363,24 +13426,24 @@
   function interiorSite(st, ts, inTown2) {
     const g = new THREE.Group();
     if (st.kind === "elder") g.add(person(9055276, 5905436));
-    else if (st.kind === "inn") g.add(person(8018478), box(1.6, 0.9, 0.8, std(5913890), 1.2, 0.45, 0));
+    else if (st.kind === "inn") g.add(person(8018478), box2(1.6, 0.9, 0.8, std(5913890), 1.2, 0.45, 0));
     else if (st.kind === "shop")
-      g.add(person(3104655), box(1.8, 0.9, 0.9, std(7031338), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(13214247), -0.4, 1.1, -1.1));
+      g.add(person(3104655), box2(1.8, 0.9, 0.9, std(7031338), 0, 0.45, -1.1), box2(0.4, 0.4, 0.4, std(13214247), -0.4, 1.1, -1.1));
     else if (st.kind === "well") g.add(BUILD.well());
     else if (st.kind === "folk") g.add(person(6974042));
-    else if (st.kind === "grave") g.add(box(0.5, 1, 0.2, std(9079430), 0, 0.5, 0), box(1.2, 0.15, 2, std(5920336), 0, 0.08, 0.9));
+    else if (st.kind === "grave") g.add(box2(0.5, 1, 0.2, std(9079430), 0, 0.5, 0), box2(1.2, 0.15, 2, std(5920336), 0, 0.08, 0.9));
     else if (R.C.townLife && R.byId(R.C.townLife.services, st.kind)) {
       const sv = R.byId(R.C.townLife.services, st.kind);
-      g.add(person(sv.color, sv.hat), box(1.4, 0.8, 0.12, std(sv.hat), 0, 3.4, -ts / 2 + 0.2));
+      g.add(person(sv.color, sv.hat), box2(1.4, 0.8, 0.12, std(sv.hat), 0, 3.4, -ts / 2 + 0.2));
     } else if ((st.kind === "exit" || st.kind === "gate") && inTown2)
       g.add(
-        box(0.6, 5, 0.6, std(7037784), -ts / 2, 2.5, 0),
-        box(0.6, 5, 0.6, std(7037784), ts / 2, 2.5, 0),
-        box(ts + 0.6, 0.6, 0.6, std(7037784), 0, 5, 0)
+        box2(0.6, 5, 0.6, std(7037784), -ts / 2, 2.5, 0),
+        box2(0.6, 5, 0.6, std(7037784), ts / 2, 2.5, 0),
+        box2(ts + 0.6, 0.6, 0.6, std(7037784), 0, 5, 0)
       );
     else if (st.kind === "exit" || st.kind === "stairsUp") {
       for (let i = 0; i < 4; i++)
-        g.add(box(ts * 0.8, 0.3 + i * 0.4, 0.6, std(7827818), 0, (0.3 + i * 0.4) / 2, -ts / 2 + 0.3 + i * 0.6));
+        g.add(box2(ts * 0.8, 0.3 + i * 0.4, 0.6, std(7827818), 0, (0.3 + i * 0.4) / 2, -ts / 2 + 0.3 + i * 0.6));
       const shaft = new THREE.Mesh(
         new THREE.CylinderGeometry(0.5, 0.9, 5, 10, 1, true),
         new THREE.MeshBasicMaterial({
@@ -13401,26 +13464,26 @@
         )
       );
       g.children[0].position.y = 0.02;
-      for (let i = 0; i < 3; i++) g.add(box(ts * 0.7, 0.12, 0.5, std(5920078), 0, 0.04 - i * 0.01, -ts * 0.3 + i * 0.6));
+      for (let i = 0; i < 3; i++) g.add(box2(ts * 0.7, 0.12, 0.5, std(5920078), 0, 0.04 - i * 0.01, -ts * 0.3 + i * 0.6));
       const marker = new THREE.Mesh(new THREE.TorusGeometry(ts * 0.42, 0.06, 6, 24).rotateX(Math.PI / 2), glow(14723146, 0.5));
       marker.position.y = 0.05;
       g.add(marker);
     } else if (st.kind === "trap" && (st.sprung || st.seen))
-      g.add(box(ts * 0.6, 0.06, ts * 0.6, std(st.sprung ? 2762018 : 10103330), 0, 0.03, 0));
+      g.add(box2(ts * 0.6, 0.06, ts * 0.6, std(st.sprung ? 2762018 : 10103330), 0, 0.03, 0));
     else if (st.kind === "landing" || st.kind === "skyway") {
       if (st.kind === "landing")
-        g.add(box(0.15, 3, 0.15, std(5916210), 0, 1.5, 0), box(1, 0.6, 0.05, glow(14723146, 0.9), 0.55, 2.7, 0));
+        g.add(box2(0.15, 3, 0.15, std(5916210), 0, 1.5, 0), box2(1, 0.6, 0.05, glow(14723146, 0.9), 0.55, 2.7, 0));
       const marker = new THREE.Mesh(new THREE.TorusGeometry(ts * 0.42, 0.06, 6, 24).rotateX(Math.PI / 2), glow(14723146, 0.6));
       marker.position.y = 0.05;
       g.add(marker);
     } else if (st.kind === "trader") g.add(person(3828378, 14212580));
     else if (st.kind === "throne")
       g.add(
-        box(1.6, 0.6, 1.4, std(5905436), 0, 0.3, 0),
-        box(1.6, 2.6, 0.3, std(5905436), 0, 1.3, -0.6),
-        box(2.2, 0.15, 2, std(9075280), 0, 0.05, 0)
+        box2(1.6, 0.6, 1.4, std(5905436), 0, 0.3, 0),
+        box2(1.6, 2.6, 0.3, std(5905436), 0, 1.3, -0.6),
+        box2(2.2, 0.15, 2, std(9075280), 0, 0.05, 0)
       );
-    else if (st.kind === "stone") g.add(box(0.9, 3.4, 0.7, std(1118481), 0, 1.7, 0));
+    else if (st.kind === "stone") g.add(box2(0.9, 3.4, 0.7, std(1118481), 0, 1.7, 0));
     else if (st.kind === "herbs")
       for (let i = 0; i < 6; i++) {
         const c = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 5), std(7319119));
@@ -13428,18 +13491,18 @@
         g.add(c);
       }
     else if (st.kind === "den")
-      for (let i = 0; i < 5; i++) g.add(box(0.7, 0.12, 0.12, std(15261904), Math.cos(i * 2) * 0.6, 0.06, Math.sin(i * 2) * 0.6));
+      for (let i = 0; i < 5; i++) g.add(box2(0.7, 0.12, 0.12, std(15261904), Math.cos(i * 2) * 0.6, 0.06, Math.sin(i * 2) * 0.6));
     else if (st.kind === "camp" || st.kind === "lost") {
       const tent = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.8, 4), std(st.kind === "camp" ? 8018490 : 9083498));
       tent.position.y = 0.9;
       g.add(tent);
     } else if (st.kind === "cellar") {
-      g.add(box(ts * 0.8, 0.04, ts * 0.8, new THREE.MeshBasicMaterial({ color: 328965 }), 0, 0.02, 0));
+      g.add(box2(ts * 0.8, 0.04, ts * 0.8, new THREE.MeshBasicMaterial({ color: 328965 }), 0, 0.02, 0));
       const marker = new THREE.Mesh(new THREE.TorusGeometry(ts * 0.42, 0.06, 6, 24).rotateX(Math.PI / 2), glow(14723146, 0.5));
       marker.position.y = 0.05;
       g.add(marker);
     } else if (st.kind === "ruin")
-      g.add(box(1.4, 2.2, 1.4, std(10788754), 0, 1.1, 0), box(2.6, 0.5, 0.6, std(10788754), 0.6, 0.25, 1));
+      g.add(box2(1.4, 2.2, 1.4, std(10788754), 0, 1.1, 0), box2(2.6, 0.5, 0.6, std(10788754), 0.6, 0.25, 1));
     else if (st.kind === "spring" || st.kind === "pool") {
       const w = new THREE.Mesh(
         new THREE.CircleGeometry(ts * 0.4, 12).rotateX(-Math.PI / 2),
@@ -13785,11 +13848,11 @@
       if (+k === camp) continue;
       const d = map.depots[k], relic = d.items.some((i) => i.base === "relic"), [x, y, z] = at(+k, 3.5 * off, 2.5 * off);
       if (relic) {
-        dynGroup.add(box(1.2, 1, 1.2, std(7827818), x, y + 0.5, z));
+        dynGroup.add(box2(1.2, 1, 1.2, std(7827818), x, y + 0.5, z));
         const r = new THREE.Mesh(new THREE.OctahedronGeometry(0.35), glow(16765562, 1));
         r.position.set(x, y + 1.45, z);
         dynGroup.add(r);
-      } else dynGroup.add(box(1.2, 1, 1.2, std(9067051), x, y + 0.5, z));
+      } else dynGroup.add(box2(1.2, 1, 1.2, std(9067051), x, y + 0.5, z));
     }
     for (const c of map.creatures) {
       const fighting = current && V.S.combat && V.S.combat.cid === c.id;
@@ -13800,37 +13863,37 @@
       });
       if (sp.form === "hound")
         g.add(
-          box(0.6, 0.7, 1.7, mat, 0, 0.8, 0),
-          box(0.5, 0.5, 0.6, mat, 0, 1.15, 1),
-          box(0.15, 0.8, 0.15, mat, -0.2, 0.4, 0.6),
-          box(0.15, 0.8, 0.15, mat, 0.2, 0.4, 0.6),
-          box(0.15, 0.8, 0.15, mat, -0.2, 0.4, -0.6),
-          box(0.15, 0.8, 0.15, mat, 0.2, 0.4, -0.6),
-          box(0.3, 0.08, 0.05, eye, 0, 1.25, 1.31)
+          box2(0.6, 0.7, 1.7, mat, 0, 0.8, 0),
+          box2(0.5, 0.5, 0.6, mat, 0, 1.15, 1),
+          box2(0.15, 0.8, 0.15, mat, -0.2, 0.4, 0.6),
+          box2(0.15, 0.8, 0.15, mat, 0.2, 0.4, 0.6),
+          box2(0.15, 0.8, 0.15, mat, -0.2, 0.4, -0.6),
+          box2(0.15, 0.8, 0.15, mat, 0.2, 0.4, -0.6),
+          box2(0.3, 0.08, 0.05, eye, 0, 1.25, 1.31)
         );
       else if (sp.form === "brute")
         g.add(
-          box(1.8, 1.9, 1.5, mat, 0, 1.8, 0),
-          box(0.9, 0.8, 0.9, mat, 0, 3, 0.3),
-          box(0.55, 1.7, 0.55, mat, -1.2, 1.5, 0.2),
-          box(0.55, 1.7, 0.55, mat, 1.2, 1.5, 0.2),
-          box(0.6, 0.9, 0.6, mat, -0.5, 0.45, 0),
-          box(0.6, 0.9, 0.6, mat, 0.5, 0.45, 0),
-          box(0.5, 0.1, 0.05, eye, 0, 3.1, 0.76)
+          box2(1.8, 1.9, 1.5, mat, 0, 1.8, 0),
+          box2(0.9, 0.8, 0.9, mat, 0, 3, 0.3),
+          box2(0.55, 1.7, 0.55, mat, -1.2, 1.5, 0.2),
+          box2(0.55, 1.7, 0.55, mat, 1.2, 1.5, 0.2),
+          box2(0.6, 0.9, 0.6, mat, -0.5, 0.45, 0),
+          box2(0.6, 0.9, 0.6, mat, 0.5, 0.45, 0),
+          box2(0.5, 0.1, 0.05, eye, 0, 3.1, 0.76)
         );
       else if (sp.form === "wight") {
         const pale = new THREE.MeshBasicMaterial({ color: 13625828, transparent: true, opacity: 0.8, fog: false });
         g.add(
-          box(0.5, 1.6, 0.3, pale, 0, 1.5, 0),
-          box(0.35, 0.4, 0.35, pale, 0, 2.55, 0),
-          box(0.14, 1.3, 0.14, pale, -0.4, 1.6, 0.1),
-          box(0.14, 1.3, 0.14, pale, 0.4, 1.6, 0.1),
-          box(0.25, 0.06, 0.05, eye, 0, 2.6, 0.19)
+          box2(0.5, 1.6, 0.3, pale, 0, 1.5, 0),
+          box2(0.35, 0.4, 0.35, pale, 0, 2.55, 0),
+          box2(0.14, 1.3, 0.14, pale, -0.4, 1.6, 0.1),
+          box2(0.14, 1.3, 0.14, pale, 0.4, 1.6, 0.1),
+          box2(0.25, 0.06, 0.05, eye, 0, 2.6, 0.19)
         );
       } else {
         for (let i = 0; i < 6; i++)
-          g.add(box(0.4 - i * 0.03, 0.3, 0.75, mat, Math.sin(i * 1.1) * 0.45, 0.2 + (i === 0 ? 0.5 : 0), 1.6 - i * 0.7));
-        g.add(box(0.25, 0.06, 0.05, eye, Math.sin(0) * 0.45, 0.75, 1.99));
+          g.add(box2(0.4 - i * 0.03, 0.3, 0.75, mat, Math.sin(i * 1.1) * 0.45, 0.2 + (i === 0 ? 0.5 : 0), 1.6 - i * 0.7));
+        g.add(box2(0.25, 0.06, 0.05, eye, Math.sin(0) * 0.45, 0.75, 1.99));
       }
       g.scale.setScalar(k * (sp.form === "wight" ? 0.85 : 1.1));
       let x, y, z;
@@ -14093,10 +14156,10 @@
   }
   function act(fn) {
     if (!V.S || V.S.over) return;
-    fn();
-    sync();
-    buildDynamic();
-    render();
+    guard("that action", fn);
+    guard("moving to the new place", () => sync());
+    guard("drawing what is here", () => buildDynamic());
+    guard("the panel", () => render());
     save();
     if (V.S.over) showEnd();
   }
@@ -14259,17 +14322,17 @@
   var frameDt = 0.016;
   var BUILD_BUDGET = 5;
   function loop(now) {
+    requestAnimationFrame(loop);
     const dt = Math.min(0.05, (now - last) / 1e3);
     frameDt = dt;
     last = now;
     if (V.S) {
       const t0 = performance.now();
-      tick(dt, now);
-      stepBuild(BUILD_BUDGET);
-      frame();
+      guard("walking", () => tick(dt, now));
+      guard("building the land", () => stepBuild(BUILD_BUDGET));
+      guard("drawing", () => frame());
       perfWork(performance.now() - t0);
     }
-    requestAnimationFrame(loop);
   }
 
   // src/view/ui.js
@@ -14313,10 +14376,10 @@
     $("fuel").textContent = "Fuel " + f1(p.fuel) + " \xB7 Armor " + R.playerAC(V.S) + " \xB7 Coin " + p.coin;
     const st = R.siteHere(V.S);
     $("place").textContent = (st ? "At " + R.aOrAn(R.siteName(V.S, st)) : ((n) => n.charAt(0).toUpperCase() + n.slice(1))(R.groundHere(V.S).name)) + (R.atCamp(V.S) ? " (camp)" : "");
-    const box2 = $("actions");
-    box2.textContent = "";
+    const box3 = $("actions");
+    box3.textContent = "";
     R.actions(V.S).forEach(
-      (a) => box2.appendChild(
+      (a) => box3.appendChild(
         el(
           "button",
           {
@@ -15317,7 +15380,7 @@
         text: "Your run saves itself in this browser. To move it to another device, copy it here and load it there."
       }),
       (() => {
-        const box2 = el("textarea", {
+        const box3 = el("textarea", {
           id: "save-text",
           rows: "3",
           placeholder: "Paste a saved game here",
@@ -15325,7 +15388,7 @@
         }), msg = el("p", { cls: "note", id: "save-msg" });
         const copy = btn("Copy this run", () => {
           const txt = R.serialize(V.S);
-          box2.value = txt;
+          box3.value = txt;
           try {
             navigator.clipboard.writeText(txt).then(
               () => msg.textContent = "Copied. Paste it into Menu on the other device.",
@@ -15336,7 +15399,7 @@
           }
         });
         const loadIt = btn("Load the pasted run", () => {
-          const res = R.deserialize(box2.value.trim());
+          const res = R.deserialize(box3.value.trim());
           if (res.error) {
             msg.textContent = res.error;
             return;
@@ -15344,7 +15407,7 @@
           enter(res.state);
           if (V.S.over) showEnd();
         });
-        return el("div", null, [box2, el("div", { cls: "row" }, [copy, loadIt]), msg]);
+        return el("div", null, [box3, el("div", { cls: "row" }, [copy, loadIt]), msg]);
       })(),
       el("h3", { text: "Settings" }),
       el("p", {
@@ -15383,6 +15446,14 @@
       el("h3", { text: "Tinker" }),
       el("p", { cls: "note", text: "Switch whole systems off, or change the numbers while you play." }),
       godPanel(),
+      errors.length || V.S.godMode ? el("div", { cls: "row" }, [
+        btn("Rescue: back to the well", () => {
+          act(() => R.rescue(V.S));
+          buildStatic();
+          placePlayer();
+          closeModal();
+        })
+      ]) : null,
       sw,
       el("ul", { cls: "items" }, [
         tune(VIEW, "speed", "Walking speed (m/s)", 3, 16, 0.5),
@@ -15552,6 +15623,8 @@
       render();
     }
   };
+  window.addEventListener("error", (e) => show("the page", e.error || e.message));
+  window.addEventListener("unhandledrejection", (e) => show("the page", e.reason));
   requestAnimationFrame(loop);
 
   // src/main.js

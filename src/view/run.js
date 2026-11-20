@@ -17,6 +17,7 @@ import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
 import { Q } from './quality.js';
 import { perfBuild, perfFrame, perfSave, perfWork } from './perf.js';
 import { hideSky, updateSky } from './sky.js';
+import { guard } from './oops.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -123,10 +124,10 @@ function sync() {
 }
 function act(fn) {
   if (!V.S || V.S.over) return;
-  fn();
-  sync();
-  buildDynamic();
-  render();
+  guard('that action', fn);
+  guard('moving to the new place', () => sync());
+  guard('drawing what is here', () => buildDynamic());
+  guard('the panel', () => render());
   save();
   if (V.S.over) showEnd();
 }
@@ -328,17 +329,17 @@ let last = performance.now();
 let frameDt = 0.016;
 const BUILD_BUDGET = 5; // milliseconds a frame for building the land after crossing a border
 function loop(now) {
+  requestAnimationFrame(loop); // first, so that nothing that goes wrong below can stop the game
   const dt = Math.min(0.05, (now - last) / 1000);
   frameDt = dt;
   last = now;
   if (V.S) {
     const t0 = performance.now();
-    tick(dt, now);
-    stepBuild(BUILD_BUDGET);
-    frame();
+    guard('walking', () => tick(dt, now));
+    guard('building the land', () => stepBuild(BUILD_BUDGET));
+    guard('drawing', () => frame());
     perfWork(performance.now() - t0);
   }
-  requestAnimationFrame(loop);
 }
 
 export {
