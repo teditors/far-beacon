@@ -2,6 +2,7 @@
    The map the player is in lives at the top of the state (s.terrain, s.sites, ...), so most rules never need to know
    which area they are in. Every other area is parked in s.areas[id] until the player goes back to it. */
 import { W, H, idx } from './core.js';
+import { freezeMap, thawMap } from './grids.js';
 
 const AREA_FIELDS = ['terrain', 'elev', 'sites', 'depots', 'creatures', 'seen', 'road', 'dug', 'lostMaps'];
 const GENERATORS = {}; // kind -> function (s, rec) returning the map fields; registered by interiors.js
@@ -43,10 +44,12 @@ function switchRegion(s, cx, cy, at) {
   s.lastGround = s.terrain[idx(at.x, at.y)];
   s.onRoad = false;
   ensureAround(s);
+  coolDown(s);
 }
 // Build an area's map before anyone has been there, so that it can be seen from outside.
 function buildArea(s, rec) {
-  if (rec.id === s.area || rec.map) return;
+  if (rec.id === s.area) return;
+  if (rec.map) return thawMap(rec.map); // built before, perhaps packed away since: warm it for whoever asked
   rec.map = GENERATORS[rec.kind](s, rec);
   for (const f of AREA_FIELDS) if (rec.map[f] === undefined) rec.map[f] = AREA_DEFAULTS[f]();
 }
@@ -132,7 +135,7 @@ function ensureTown(s) {
   }
 }
 // The map of any area: the live one if the player is in it, the parked one otherwise.
-const mapOf = (s, id) => (id === s.area ? s : s.areas[id].map);
+const mapOf = (s, id) => (id === s.area ? s : thawMap(s.areas[id].map));
 // A region's record, built now if it was not yet (for pieces that put things in regions the player has not been near).
 function ensureRegion(s, cx, cy) {
   const id = regionId(s, cx, cy);
@@ -167,6 +170,7 @@ function park(s) {
 function unpark(s, id) {
   const rec = s.areas[id];
   if (!rec.map) rec.map = GENERATORS[rec.kind](s, rec);
+  thawMap(rec.map);
   for (const f of AREA_FIELDS) s[f] = rec.map[f] !== undefined ? rec.map[f] : AREA_DEFAULTS[f]();
   delete rec.map;
   s.area = id;
@@ -183,6 +187,30 @@ const AREA_DEFAULTS = {
   lostMaps: () => ({}),
 };
 
+/* Memory: only the maps near the traveller are kept as plain lists. The rest keep their sites, creatures and what lies
+   there as they are, but pack their grids (ground, height, what has been seen) into the short text a save uses, a
+   tenth of the size; anything that asks for a map through mapOf, buildArea or ensureRegion gets it unpacked again.
+   Near means: the area you are in, the regions round the one you are in (or above), their towns, and the levels next
+   to yours. Called whenever the traveller changes area. */
+function nearIds(s) {
+  const out = new Set([s.area]),
+    here = outdoorRec(s),
+    rec = areaRec(s);
+  if (here && here.cx !== undefined)
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const id = regionId(s, wrap(here.cx + dx, s.world.cols), wrap(here.cy + dy, s.world.rows));
+        out.add(id);
+        const t = townInRegion(s, id);
+        if (t) out.add(townId(t));
+      }
+  if (rec.from) out.add(rec.from.area); // the way back up (and the rest is unpacked as you climb)
+  return out;
+}
+function coolDown(s) {
+  const near = nearIds(s);
+  for (const id in s.areas) if (!near.has(id) && s.areas[id].map) freezeMap(s.areas[id].map);
+}
 // Go into an area. `rec` describes it the first time; after that the parked map is reused.
 function enterArea(s, id, rec, at) {
   if (!s.areas[id]) s.areas[id] = Object.assign({ id }, rec);
@@ -195,6 +223,7 @@ function enterArea(s, id, rec, at) {
   s.player.y = p.y;
   s.lastGround = s.terrain[idx(p.x, p.y)];
   s.onRoad = false;
+  coolDown(s);
 }
 // Go back out to wherever this area was entered from.
 function leaveArea(s) {
@@ -205,6 +234,7 @@ function leaveArea(s) {
   s.player.x = from.x;
   s.player.y = from.y;
   s.lastGround = s.terrain[idx(from.x, from.y)];
+  coolDown(s);
   return true;
 }
 // Straight back to the overworld from any depth (used when a new traveller sets out).
@@ -238,6 +268,7 @@ function allMaps(s) {
 }
 function forgetMaps(s) {
   for (const [id, m] of allMaps(s)) {
+    thawMap(m);
     if (s.areas[id].kind === 'town') continue; // a town is easy to find your way around
     m.seen.fill(0);
     for (const k in m.sites) {
@@ -318,4 +349,5 @@ export {
   worldPos,
   allMaps,
   forgetMaps,
+  coolDown,
 };

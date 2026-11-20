@@ -28,9 +28,12 @@ const WEIGHTS = [];
 const RUMOURS = [];
 // PLACES: functions (s, out) that push places god mode can jump to: { id, group, label, go(s) }.
 const PLACES = [];
+// LEVELS: what the shared stair actions call for levels a piece owns: down(s) for a stair down below the first level.
+const LEVELS = {};
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 export {
+  LEVELS,
   PLACES,
   NOTES,
   SWITCHES,

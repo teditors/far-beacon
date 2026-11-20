@@ -5,6 +5,64 @@ seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after.
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
 
+## C4.2: dungeons, and the memory to hold them
+
+**What it is.** Angband-style dungeons below the world (`deeps` piece, `content/deeps.js`, `rules/deeps.js`).
+- A world rolls its dungeons when it is made: about one region in two has one (a few have two, the world setting
+  scales it), and about a third of towns have a **cellar stair**. Each has a **theme**, a name and a depth of 1 to 4
+  levels (the setting caps it). Six themes, each with its own layout, creatures and dangers:
+  **old mine** (long timbered drifts, brutes and hounds, traps), **crypt** (rooms and corridors, wights, many traps,
+  bone), **flooded cistern** (pillared halls in black water: slow and cold, serpents, pools to drink),
+  **fungus cavern** (open caverns that glow, so no light is needed; herbs, and water drains slower),
+  **dwarf-hold** (square halls cut true, tier 2 from the start, the most traps and coin), and **warren** (gnawed
+  caves crowded with hounds).
+- The stair is put in a cave or a ruin (or a new cave of its own) when that region is first built, or against a house
+  wall in a town. Standing on it: "Go down into the Gnawed Ways". A dark dungeon needs a light, as the locked place
+  does.
+- **Deeper is harder and richer**: creatures gain about a tier every level and a half (to tier 8 at most), each level
+  has a store-room or two whose items are finer the deeper they lie, and the bottom has the **Heart** (an elder of the
+  theme, guarding its prize) and a prize room: coin, a superb item and, in the deepest dungeon of the world, a
+  **named artifact of its own** (a fourth, made for the deep).
+- **The locked place fits in**: it keeps its own generator and story, but its levels share the rest: the jump list,
+  the odd levels, the look, the stair actions. The **odd levels** of commission 1 (flooded, ossuary, archive,
+  sleepers) now turn up on any dungeon's levels too (30% of levels above the bottom).
+- **Memory.** Levels are built the first time you reach them, from their own stream, so an unwalked dungeon costs a
+  few numbers. And maps away from the traveller are kept **packed** in memory, as saves already pack them: only the
+  map you are in, the regions round it, their towns and the level above you are kept as plain lists
+  (`coolDown` in areas.js, `rules/grids.js`); anything that asks for a far map through `mapOf`, `buildArea` or
+  `ensureRegion` gets it unpacked.
+
+**Numbers** (node, `--expose-gc`; a 7 x 7 world, every region visited and every dungeon level walked by god mode):
+
+| | areas | levels | heap, far maps packed | heap, all unpacked | save |
+| --- | --- | --- | --- | --- | --- |
+| usual dungeons | 116 | 61 | 6.5 MB | 9.4 MB | 334 KB |
+| four times as many, 16 deep | 277 | 222 | 11.3 MB | 19.7 MB | 617 KB |
+
+**How deep can a dungeon go?** One dungeon walked to the bottom: each level takes 0.4 to 2 ms to build, adds about
+2.1 KB to the save and 34 KB to the heap (packed). 200 levels: 483 KB save, 7 MB heap, 44 ms to load; 500 levels:
+1.1 MB save, 17 MB heap, 128 ms to load. The save is the limit that bites first (browser storage holds about 5 MB),
+so about 1000 walked levels in all; I keep ordinary dungeons to 1 to 4 and plot dungeons to 4 to 7, for play, not
+memory. Two scaling bugs found by measuring: creatures per level and their tier grew without end (now capped at four
+extra and tier 8), and creature ids could collide between dungeons past level 10.
+
+**In play.** Dungeons are optional: nothing sends you down yet (the plot will, in a later entry). Bot win rate with
+every piece on, sets 5 / 1000 / 2000: 30, 27, 30 (87 / 450, 19%), unchanged. **Frame cost**: none outdoors (one
+more cave in some regions); a level is drawn like the locked place, about the same draw calls.
+
+**Shared bricks.** `LEVELS` in hooks.js (the stair actions for levels a piece owns); `levelLook(s)` and `isLevel(s)`
+(the view draws any level from its look: stone, floor, glow, background); `levelTitle(s)`; `applyQuirk` and
+`rollQuirk` exported from floors.js; `makeArtifact` from artifacts.js; `freezeMap`/`thawMap`/`coolDown`; each held
+thing a plot leaves in a dungeon goes in `d.held` and is placed when its level is built (used in a later entry).
+
+**Choices made without asking.** No new creature forms (the view would need models): each theme names the four
+forms its own way (Tunnel Brute, Crypt Wight, Spore Hound), with an elder Heart at the bottom. The locked place is
+not moved into `s.deeps`: its story and its old saves depend on its ids; it is listed beside the dungeons instead.
+Levels alternate where you arrive (an end on odd levels, anywhere on even), so a level is crossed, not just entered.
+
+**Commits.** "Dungeons below the world: six kinds, deeper and richer, and far maps packed away". Switch: `deeps`
+(at creation).
+
 ## C4.1: god mode and world settings
 
 **What it is.** The two testing tools the brief asked for first.

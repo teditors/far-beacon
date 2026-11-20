@@ -3611,6 +3611,147 @@
     }
   };
 
+  // src/content/deeps.js
+  var deeps_default = {
+    deeps: {
+      perRegion: 0.45,
+      // dungeons per region, on average, at the usual setting (some regions have none, a few two)
+      townChance: 0.35,
+      // a town has a cellar going down (an old crypt, a cistern, a mine-head)
+      depth: [1, 4],
+      // levels in an ordinary dungeon (the world setting caps the most)
+      plotDepth: [4, 7],
+      // a dungeon the plot uses goes deeper
+      // creature ids for dungeon levels start here (each level has its own block of 40)
+      idBase: 2e4,
+      maxTier: 8,
+      // no creature below is stronger than this, however deep
+      quirkChance: 0.3,
+      // a level is now and then one of the odd levels (content/floors.js), as the locked place's are
+      themes: [
+        {
+          id: "mine",
+          name: "Old mine",
+          names: ["the Deep Seam", "the Black Drift", "the Lost Lode", "the Tallow Shaft"],
+          entry: ["cave", "town"],
+          layout: "tunnels",
+          dark: true,
+          forms: ["brute", "hound"],
+          creature: ["Tunnel", "Shaft", "Ore"],
+          tier: [1, 0.6],
+          per: 4,
+          traps: 2,
+          pools: 1,
+          coin: [4, 14],
+          text: "Timbered tunnels running into the rock, and the smell of old lamp-oil.",
+          prize: "A seam of something that is not ore, and what the last miners left beside it.",
+          mats: { salvage: 2 },
+          look: { stone: 5982778, floor: 3813416 }
+        },
+        {
+          id: "crypt",
+          name: "Crypt",
+          names: ["the Bone Vaults", "the Silent Crypt", "the Hollow Tombs", "the Low Catacomb"],
+          entry: ["ruin", "town"],
+          layout: "rooms",
+          dark: true,
+          forms: ["wight"],
+          creature: ["Crypt", "Grave", "Hollow"],
+          tier: [1, 0.7],
+          per: 3,
+          traps: 3,
+          pools: 0,
+          coin: [8, 22],
+          text: "Niches cut in the walls, each with its dead. The air has not moved in a long time.",
+          prize: "A lord laid out in state, with the grave-goods of a lord.",
+          mats: { bone: 3 },
+          look: { stone: 7236194, floor: 3617839 }
+        },
+        {
+          id: "cistern",
+          name: "Flooded cistern",
+          names: ["the Drowned Cistern", "the Sunken Wells", "the Echo Tanks", "the Old Waterworks"],
+          entry: ["ruin", "town"],
+          layout: "halls",
+          dark: true,
+          forms: ["serpent"],
+          creature: ["Cistern", "Pale", "Drowned"],
+          tier: [1, 0.6],
+          per: 3,
+          traps: 0,
+          pools: 4,
+          coin: [5, 15],
+          text: "Pillared halls standing in black water. Every sound comes back to you twice.",
+          prize: "The sluice-keeper's room, dry and sealed, with what they kept there.",
+          mods: [
+            { stat: "moveTime", op: "mul", value: 1.3 },
+            { stat: "cold", op: "mul", value: 1.8 }
+          ],
+          look: { stone: 4872796, floor: 2372666 }
+        },
+        {
+          id: "fungus",
+          name: "Fungus cavern",
+          names: ["the Glimmering Deep", "the Spore Gardens", "the Soft Caverns", "the Lantern Grotto"],
+          entry: ["cave"],
+          layout: "caves",
+          dark: false,
+          // the fungus glows: no light needed
+          forms: ["hound", "serpent", "brute"],
+          creature: ["Spore", "Mould", "Glimmer"],
+          tier: [1, 0.55],
+          per: 4,
+          traps: 0,
+          pools: 2,
+          coin: [3, 10],
+          text: "Caverns lit by pale fungus, soft underfoot. Things grow here that grow nowhere else.",
+          prize: "A garden of the great fungus, and the bones of those who came to pick it.",
+          mats: { herbs: 4 },
+          mods: [{ stat: "waterDrain", op: "mul", value: 0.8 }],
+          look: { stone: 5069374, floor: 3029546, glow: 10477728, bg: 793104, far: 30, light: 0.5 }
+        },
+        {
+          id: "hold",
+          name: "Dwarf-hold",
+          names: ["the Hall of Anvils", "the Sealed Hold", "the Stone Gate", "the Under-hall"],
+          entry: ["cave", "ruin"],
+          layout: "halls",
+          dark: true,
+          forms: ["brute", "wight"],
+          creature: ["Hold", "Iron", "Forge"],
+          tier: [2, 0.7],
+          per: 3,
+          traps: 4,
+          pools: 1,
+          coin: [12, 30],
+          text: "Square halls cut true, and doors that once had guards. Whoever built this meant to stay.",
+          prize: "The hold's treasury: the last thing its people kept for themselves.",
+          mats: { salvage: 3 },
+          look: { stone: 8023646, floor: 4538426 }
+        },
+        {
+          id: "warren",
+          name: "Warren",
+          names: ["the Gnawed Ways", "the Burrows", "the Under-warren", "the Den Roads"],
+          entry: ["cave"],
+          layout: "caves",
+          dark: true,
+          forms: ["hound"],
+          creature: ["Warren", "Burrow", "Blind"],
+          tier: [1, 0.5],
+          per: 6,
+          traps: 0,
+          pools: 1,
+          coin: [2, 8],
+          text: "Low, gnawed tunnels, and the sound of many small feet.",
+          prize: "The great den, and everything the warren has dragged down in a hundred years.",
+          mats: { hide: 4 },
+          look: { stone: 6180928, floor: 3879462 }
+        }
+      ]
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -3645,7 +3786,8 @@
     plots_default,
     crafting_default,
     trade_default,
-    worldset_default
+    worldset_default,
+    deeps_default
   );
 
   // src/rules/core.js
@@ -3789,6 +3931,50 @@
     emit(s, "learned", { axis, id: s.civ[axis] });
   }
 
+  // src/rules/grids.js
+  var GRIDS = ["terrain", "elev", "seen"];
+  var LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  function packGrid(a) {
+    const vals = [], at = /* @__PURE__ */ new Map();
+    for (const v of a) {
+      if (typeof v !== "number") return a;
+      if (!at.has(v)) {
+        if (vals.length === LETTERS.length) return a;
+        at.set(v, vals.length);
+        vals.push(v);
+      }
+    }
+    let out = "~" + vals.join("|") + "~";
+    for (let i = 0; i < a.length; ) {
+      let j = i;
+      while (j < a.length && a[j] === a[i]) j++;
+      out += LETTERS[at.get(a[i])] + (j - i > 1 ? j - i : "");
+      i = j;
+    }
+    return out;
+  }
+  function unpackGrid(t) {
+    if (typeof t !== "string" || t[0] !== "~") return t;
+    const end = t.indexOf("~", 1), vals = t.slice(1, end).split("|").map(Number), out = [];
+    for (let i = end + 1; i < t.length; ) {
+      const v = vals[LETTERS.indexOf(t[i++])];
+      let n = 0;
+      while (i < t.length && t.charCodeAt(i) >= 48 && t.charCodeAt(i) <= 57) n = n * 10 + t.charCodeAt(i++) - 48;
+      for (let k = Math.max(1, n); k > 0; k--) out.push(v);
+    }
+    return out;
+  }
+  function freezeMap(m) {
+    if (!m) return m;
+    for (const f of GRIDS) if (Array.isArray(m[f]) && m[f].length > 64) m[f] = packGrid(m[f]);
+    return m;
+  }
+  function thawMap(m) {
+    if (!m) return m;
+    for (const f of GRIDS) if (typeof m[f] === "string") m[f] = unpackGrid(m[f]);
+    return m;
+  }
+
   // src/rules/areas.js
   var AREA_FIELDS = ["terrain", "elev", "sites", "depots", "creatures", "seen", "road", "dug", "lostMaps"];
   var GENERATORS = {};
@@ -3824,9 +4010,11 @@
     s.lastGround = s.terrain[idx(at.x, at.y)];
     s.onRoad = false;
     ensureAround(s);
+    coolDown(s);
   }
   function buildArea(s, rec) {
-    if (rec.id === s.area || rec.map) return;
+    if (rec.id === s.area) return;
+    if (rec.map) return thawMap(rec.map);
     rec.map = GENERATORS[rec.kind](s, rec);
     for (const f of AREA_FIELDS) if (rec.map[f] === void 0) rec.map[f] = AREA_DEFAULTS[f]();
   }
@@ -3889,7 +4077,7 @@
       buildArea(s, s.areas[id]);
     }
   }
-  var mapOf = (s, id) => id === s.area ? s : s.areas[id].map;
+  var mapOf = (s, id) => id === s.area ? s : thawMap(s.areas[id].map);
   function ensureRegion(s, cx, cy) {
     const id = regionId(s, cx, cy);
     if (!s.areas[id]) s.areas[id] = { id, kind: "region", cx, cy, biome: sketchOf(s, cx, cy).biome };
@@ -3918,6 +4106,7 @@
   function unpark(s, id) {
     const rec = s.areas[id];
     if (!rec.map) rec.map = GENERATORS[rec.kind](s, rec);
+    thawMap(rec.map);
     for (const f of AREA_FIELDS) s[f] = rec.map[f] !== void 0 ? rec.map[f] : AREA_DEFAULTS[f]();
     delete rec.map;
     s.area = id;
@@ -3933,6 +4122,23 @@
     dug: () => ({}),
     lostMaps: () => ({})
   };
+  function nearIds(s) {
+    const out = /* @__PURE__ */ new Set([s.area]), here2 = outdoorRec(s), rec = areaRec(s);
+    if (here2 && here2.cx !== void 0)
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const id = regionId(s, wrap(here2.cx + dx, s.world.cols), wrap(here2.cy + dy, s.world.rows));
+          out.add(id);
+          const t = townInRegion(s, id);
+          if (t) out.add(townId(t));
+        }
+    if (rec.from) out.add(rec.from.area);
+    return out;
+  }
+  function coolDown(s) {
+    const near = nearIds(s);
+    for (const id in s.areas) if (!near.has(id) && s.areas[id].map) freezeMap(s.areas[id].map);
+  }
   function enterArea(s, id, rec, at) {
     if (!s.areas[id]) s.areas[id] = Object.assign({ id }, rec);
     const from = { area: s.area, x: s.player.x, y: s.player.y };
@@ -3944,6 +4150,7 @@
     s.player.y = p.y;
     s.lastGround = s.terrain[idx(p.x, p.y)];
     s.onRoad = false;
+    coolDown(s);
   }
   function leaveArea(s) {
     const from = areaRec(s).from;
@@ -3953,6 +4160,7 @@
     s.player.x = from.x;
     s.player.y = from.y;
     s.lastGround = s.terrain[idx(from.x, from.y)];
+    coolDown(s);
     return true;
   }
   function toOverworld(s) {
@@ -3978,6 +4186,7 @@
   }
   function forgetMaps(s) {
     for (const [id, m] of allMaps(s)) {
+      thawMap(m);
       if (s.areas[id].kind === "town") continue;
       m.seen.fill(0);
       for (const k in m.sites) {
@@ -4016,6 +4225,7 @@
   var WEIGHTS = [];
   var RUMOURS = [];
   var PLACES = [];
+  var LEVELS = {};
   var SWITCHES = [];
   var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 
@@ -5411,6 +5621,7 @@
   }
   function goDown(s) {
     const st = siteHere(s), rec = areaRec(s);
+    if (rec.kind !== "vault") return LEVELS.down ? LEVELS.down(s) : false;
     if (s.over || !st || st.kind !== "stairsDown") return false;
     if (stat(s, "nightSight", 0) <= 0) {
       say(s, "You will not find the next stair without a light.", "bad");
@@ -6218,9 +6429,9 @@
       rooms.push({ x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) });
     }
     for (const o of rooms) for (let y = o.y; y < o.y + o.h; y++) for (let x = o.x; x < o.x + o.w; x++) terrain[idx(x, y)] = FLOOR;
-    const corridor = [];
+    const corridor2 = [];
     const dig2 = (x, y) => {
-      if (terrain[idx(x, y)] === WALL) corridor.push(idx(x, y));
+      if (terrain[idx(x, y)] === WALL) corridor2.push(idx(x, y));
       terrain[idx(x, y)] = FLOOR;
     };
     rooms.sort((a, b) => a.cx - b.cx);
@@ -6283,8 +6494,8 @@
       depots[idx(p.x, p.y)] = { water: 0, fuel: 0, items: [it], coin: 6 + Math.floor(r() * 12), store: true };
     }
     if (kind2 === "trap")
-      for (let n = 0; n < 4 && corridor.length; n++) {
-        const i = corridor.splice(Math.floor(r() * corridor.length), 1)[0];
+      for (let n = 0; n < 4 && corridor2.length; n++) {
+        const i = corridor2.splice(Math.floor(r() * corridor2.length), 1)[0];
         if (!sites[i]) sites[i] = { kind: "trap", sprung: false };
       }
     return { terrain, sites, depots, creatures };
@@ -6821,38 +7032,6 @@
       }
     }
   };
-  var GRIDS = ["terrain", "elev", "seen"];
-  var LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-  function packGrid(a) {
-    const vals = [], at = /* @__PURE__ */ new Map();
-    for (const v of a) {
-      if (typeof v !== "number") return a;
-      if (!at.has(v)) {
-        if (vals.length === LETTERS.length) return a;
-        at.set(v, vals.length);
-        vals.push(v);
-      }
-    }
-    let out = "~" + vals.join("|") + "~";
-    for (let i = 0; i < a.length; ) {
-      let j = i;
-      while (j < a.length && a[j] === a[i]) j++;
-      out += LETTERS[at.get(a[i])] + (j - i > 1 ? j - i : "");
-      i = j;
-    }
-    return out;
-  }
-  function unpackGrid(t) {
-    if (typeof t !== "string" || t[0] !== "~") return t;
-    const end = t.indexOf("~", 1), vals = t.slice(1, end).split("|").map(Number), out = [];
-    for (let i = end + 1; i < t.length; ) {
-      const v = vals[LETTERS.indexOf(t[i++])];
-      let n = 0;
-      while (i < t.length && t.charCodeAt(i) >= 48 && t.charCodeAt(i) <= 57) n = n * 10 + t.charCodeAt(i++) - 48;
-      for (let k = Math.max(1, n); k > 0; k--) out.push(v);
-    }
-    return out;
-  }
   var eachMap = (s, fn) => {
     fn(s);
     for (const id in s.areas || {}) if (s.areas[id] && s.areas[id].map) fn(s.areas[id].map);
@@ -6885,6 +7064,7 @@
     }
     ensureTown(s);
     ensureAround(s);
+    coolDown(s);
     return { state: s };
   }
 
@@ -7087,17 +7267,17 @@
           st.water += 2;
         }
       }
-      const inner = (k) => k % 36 > 1 && k % 36 < 34 && k > 71 && k < 36 * 34;
+      const inner2 = (k) => k % 36 > 1 && k % 36 < 34 && k > 71 && k < 36 * 34;
       if (g.drown) {
         const rd = stream(s.seed, "drown:" + rec.id);
         for (let k = 0; k < m.terrain.length; k++)
-          if (inner(k) && m.terrain[k] === 0 && !m.sites[k] && !(m.road && m.road[k]) && rd() < g.drown) {
+          if (inner2(k) && m.terrain[k] === 0 && !m.sites[k] && !(m.road && m.road[k]) && rd() < g.drown) {
             m.terrain[k] = 5;
             m.elev[k] = -0.15;
           }
       }
       if (g.burn) {
-        for (let k = 0; k < m.terrain.length; k++) if (inner(k) && m.terrain[k] === 3) m.terrain[k] = 0;
+        for (let k = 0; k < m.terrain.length; k++) if (inner2(k) && m.terrain[k] === 3) m.terrain[k] = 0;
       }
       if (g.dry) {
         for (const k in m.sites) if (m.sites[k].kind === "spring" && !m.sites[k].sure) delete m.sites[k];
@@ -7507,41 +7687,52 @@
       }
     }
   });
+  function applyQuirk(s, rec, m, r, cid) {
+    const k = kindOf(rec.floor);
+    if (!k) return m;
+    r = r || stream(s.seed, "floor:" + rec.level);
+    cid = cid || 260 + rec.level * 10;
+    const free = [];
+    for (let i = 0; i < m.terrain.length; i++)
+      if (m.terrain[i] === 7 && !m.sites[i] && !m.depots[i] && !m.creatures.some((c) => idx(c.x, c.y) === i)) free.push(i);
+    const take = () => free.splice(Math.floor(r() * free.length), 1)[0];
+    for (let n = 0; n < (k.pools || 0) && free.length; n++) m.depots[take()] = { water: 3, fuel: 0, items: [] };
+    for (let n = 0; n < (k.items || 0) && free.length; n++) {
+      const it = genItem(s, { relic: true, noConsumables: true });
+      m.depots[take()] = { water: 0, fuel: 0, items: [it] };
+    }
+    for (let n = 0; n < (k.guards || 0) && free.length; n++) {
+      const i = take(), sp = rec.kind === "vault" ? s.quest.guardSp : m.creatures.length ? m.creatures[0].sp : s.quest.guardSp;
+      m.creatures.push(makeCreature(s, cid + 30 + n, sp, i % 36, Math.floor(i / 36), 1));
+    }
+    if (k.sleep) {
+      for (const c of m.creatures) if (!c.warden) c.cool = 1e9;
+    }
+    if (k.reveal) m.seen = m.terrain.map((t) => t === 7 ? 1 : 0);
+    return m;
+  }
+  function rollQuirk(s, name, last2) {
+    if (s.off.floors || last2) return null;
+    const r = stream(s.seed, name), roll2 = r(), pick = r();
+    if (roll2 < F().rareChance) return F().rare.id;
+    if (roll2 < (C.deeps ? C.deeps.quirkChance : F().chance)) return F().list[Math.floor(pick * F().list.length)].id;
+    return null;
+  }
   {
     const vault = GENERATORS.vault;
-    GENERATORS.vault = (s, rec) => {
-      const m = vault(s, rec), k = kindOf(rec.floor);
-      if (!k) return m;
-      const r = stream(s.seed, "floor:" + rec.level), free = [];
-      for (let i = 0; i < m.terrain.length; i++)
-        if (m.terrain[i] === 7 && !m.sites[i] && !m.depots[i] && !m.creatures.some((c) => idx(c.x, c.y) === i)) free.push(i);
-      const take = () => free.splice(Math.floor(r() * free.length), 1)[0];
-      for (let n = 0; n < (k.pools || 0) && free.length; n++) m.depots[take()] = { water: 3, fuel: 0, items: [] };
-      for (let n = 0; n < (k.items || 0) && free.length; n++) {
-        const it = genItem(s, { relic: true, noConsumables: true });
-        m.depots[take()] = { water: 0, fuel: 0, items: [it] };
-      }
-      for (let n = 0; n < (k.guards || 0) && free.length; n++) {
-        const i = take();
-        m.creatures.push(makeCreature(s, 260 + rec.level * 10 + n, s.quest.guardSp, i % 36, Math.floor(i / 36), 1));
-      }
-      if (k.sleep) {
-        for (const c of m.creatures) if (!c.warden) c.cool = 1e9;
-      }
-      if (k.reveal) m.seen = m.terrain.map((t) => t === 7 ? 1 : 0);
-      return m;
-    };
+    GENERATORS.vault = (s, rec) => applyQuirk(s, rec, vault(s, rec));
   }
+  var levelKind = (rec) => rec.kind === "vault" || rec.kind === "deep";
   SOURCES.push({
     id: "floors",
     fn(s, out) {
-      const k = areaRec(s).kind === "vault" ? kindOf(areaRec(s).floor) : null;
+      const k = levelKind(areaRec(s)) ? kindOf(areaRec(s).floor) : null;
       if (k) for (const m of k.mods || []) out.push(m);
     }
   });
   on("did", (s, d) => {
-    if (d.id !== "goDown" && d.id !== "enterVault") return;
-    const rec = areaRec(s), k = rec.kind === "vault" ? kindOf(rec.floor) : null;
+    if (d.id !== "goDown" && d.id !== "enterVault" && d.id !== "enterDeep") return;
+    const rec = areaRec(s), k = levelKind(rec) ? kindOf(rec.floor) : null;
     if (!k || rec.told) return;
     rec.told = true;
     if (k.reveal) for (const i in s.sites) s.sites[i].seen = true;
@@ -8367,8 +8558,8 @@
       let ok = true;
       for (let j = -hw - 1; j <= hd + 1 && ok; j++)
         for (let i = -hw - 1; i <= hw + 1 && ok; i++) {
-          const k = idx(x + i, y + j), inner = Math.abs(i) <= hw && j >= -hw && j <= hd;
-          if (m.sites[k] || inner && (m.terrain[k] === 2 || m.terrain[k] === 4 || m.terrain[k] === 5)) ok = false;
+          const k = idx(x + i, y + j), inner2 = Math.abs(i) <= hw && j >= -hw && j <= hd;
+          if (m.sites[k] || inner2 && (m.terrain[k] === 2 || m.terrain[k] === 4 || m.terrain[k] === 5)) ok = false;
         }
       if (ok) {
         if (!near) return { x, y };
@@ -8585,6 +8776,634 @@
       }
     ] : []
   );
+
+  // src/rules/godmode.js
+  var GOD_MODS = [
+    { stat: "quiet", op: "add", value: 1 },
+    { stat: "nightSight", op: "add", value: 1 },
+    { stat: "trapSafe", op: "add", value: 1 },
+    { stat: "foulSafe", op: "add", value: 1 },
+    { stat: "fly", op: "add", value: 1 },
+    { stat: "breathe", op: "add", value: 1 }
+  ];
+  SOURCES.push({
+    id: "godmode",
+    fn(s, out) {
+      if (s.godMode) for (const m of GOD_MODS) out.push(m);
+    }
+  });
+  SYSTEMS.push({
+    id: "godmode",
+    fn(s) {
+      if (!s.godMode || !s.player) return;
+      const p = s.player;
+      if (p.water < 1) p.water = 1;
+      p.warmth = 100;
+      p.stamina = 100;
+      if (p.hp !== void 0 && p.hpMax) p.hp = p.hpMax;
+      if (p.manaMax) p.mana = p.manaMax;
+      s.cause = null;
+    }
+  });
+  function setGodMode(s, on2) {
+    s.godMode = !!on2;
+    if (on2) s.cheated = true;
+    if (s.combat && on2) s.combat = null;
+    say(
+      s,
+      on2 ? "God mode: nothing can see you, hurt you or stop you." : "God mode is off. You are mortal again.",
+      on2 ? "good" : ""
+    );
+    return true;
+  }
+  function freeNear(m, x, y) {
+    for (let r = 0; r < W; r++)
+      for (let dy = -r; dy <= r; dy++)
+        for (let dx = -r; dx <= r; dx++) {
+          const xx = x + dx, yy = y + dy;
+          if (xx < 1 || yy < 1 || xx >= W - 1 || yy >= H - 1) continue;
+          const t = m.terrain[idx(xx, yy)];
+          if (t !== 2 && t < 6 && !m.sites[idx(xx, yy)]) return { x: xx, y: yy };
+        }
+    return { x, y };
+  }
+  function jumpRegion(s, cx, cy, x, y) {
+    toOverworld(s);
+    switchRegion(s, cx, cy, { x: s.player.x, y: s.player.y });
+    const p = freeNear(s, x === void 0 ? 18 : x, y === void 0 ? 18 : y);
+    s.player.x = p.x;
+    s.player.y = p.y;
+    s.combat = null;
+    return true;
+  }
+  function places(s) {
+    const out = [], w = s.world;
+    for (let cy = 0; cy < w.rows; cy++)
+      for (let cx = 0; cx < w.cols; cx++) {
+        const id = regionId(s, cx, cy), b = byId(C.biomes, sketchOf(s, cx, cy).biome);
+        out.push({
+          id: "region:" + id,
+          group: "Regions",
+          label: (id === HOME ? "Home: " : "") + (b ? b.name : id) + " (" + cx + ", " + cy + ")",
+          go: (s2) => jumpRegion(s2, cx, cy)
+        });
+      }
+    for (const t of allTowns(s)) {
+      const id = townId(t);
+      out.push({
+        id: "town:" + id,
+        group: "Towns",
+        label: t.name,
+        go: (s2) => {
+          const rec = s2.areas[townArea(s2, t)];
+          if (!rec || rec.realm !== s2.areas[outdoorRec(s2).id].realm) return false;
+          const d = townDoor(s2, t);
+          jumpRegion(s2, rec.cx, rec.cy, d.x, d.y);
+          s2.player.x = d.x;
+          s2.player.y = d.y;
+          return enterTown(s2, t.x, t.y + 2) || true;
+        }
+      });
+    }
+    for (const f of PLACES) f(s, out);
+    return out;
+  }
+  function jumpTo(s, id) {
+    if (!s.godMode || s.over) return false;
+    const p = places(s).find((q) => q.id === id);
+    if (!p) return false;
+    const ok = p.go(s);
+    if (ok !== false) say(s, "You are in " + p.label + ".", "good");
+    return ok !== false;
+  }
+  function jumpMap(s, gx, gy) {
+    if (!s.godMode || s.over) return false;
+    const w = s.world, h = w.home, tx = (Math.floor(gx) % (w.cols * W) + w.cols * W) % (w.cols * W), ty = (Math.floor(gy) % (w.rows * H) + w.rows * H) % (w.rows * H), cx = (h.cx + Math.floor(tx / W)) % w.cols, cy = (h.cy + Math.floor(ty / H)) % w.rows;
+    return jumpRegion(s, cx, cy, tx % W, ty % H);
+  }
+  NOTES.push(
+    (s) => s.cheated ? [{ label: "God mode", text: "This world has been walked in god mode" + (s.godMode ? ", and it is on now." : ".") }] : []
+  );
+
+  // src/rules/deeps.js
+  var D2 = () => C.deeps;
+  var themeOf = (d) => byId(D2().themes, d.theme);
+  var deepsOf = (s) => s.deeps || [];
+  var deepById = (s, id) => deepsOf(s).find((d) => d.id === id) || null;
+  var levelId = (d, n) => d.id === "vault" ? "vault" + n : d.id + "." + n;
+  SITE_NAME.cellar = "cellar stair";
+  on("worldBorn", (s, ev) => {
+    if (ev.off.deeps) return;
+    const set = ev.set || genOf(s), r = stream(s.seed, "deeps"), X6 = D2(), w = s.world, pick = (a) => a[Math.floor(r() * a.length)], most = Math.max(1, set.depth), list = [];
+    let n = 0;
+    const add = (area, at) => {
+      const themes = X6.themes.filter((t2) => t2.entry.includes(at)), t = pick(themes), [lo, hi] = X6.depth, depth = clamp(lo + Math.floor(r() * (hi - lo + 1)), 1, most), unused = t.names.filter((nm) => !list.some((o) => o.name === nm || o.name === "the Lower " + nm.slice(4))), name = unused.length ? pick(unused) : "the Lower " + pick(t.names).slice(4), d = { id: "d" + n++, theme: t.id, name, area, at, depth };
+      list.push(d);
+      return d;
+    };
+    const per = X6.perRegion * set.dungeons;
+    for (let cy = 0; cy < w.rows; cy++)
+      for (let cx = 0; cx < w.cols; cx++) {
+        let k = Math.floor(per) + (r() < per - Math.floor(per) ? 1 : 0);
+        for (; k > 0; k--) add(regionId(s, cx, cy), r() < 0.5 ? "cave" : "ruin");
+      }
+    for (const t of [s.town].concat(s.towns || [])) if (t && r() < X6.townChance * set.dungeons) add(townId(t), "town");
+    const deepest = list.slice().sort((a, b) => b.depth - a.depth)[0];
+    if (deepest && deepest.depth >= 3 && !ev.off.artifacts) deepest.prize = makeArtifact(s, stream(s.seed, "deeps:art"), []);
+    s.deeps = list;
+    for (const id in s.areas) {
+      const m = id === s.area ? s : s.areas[id].map;
+      if (m) placeStairs(s, id, m);
+    }
+  });
+  function placeStairs(s, area, m) {
+    for (const d of deepsOf(s)) {
+      if (d.area !== area || d.x !== void 0) continue;
+      const r = stream(s.seed, "deeps:at:" + d.id), kind2 = d.at === "town" ? null : d.at;
+      let k = null;
+      if (kind2) {
+        const opts = Object.keys(m.sites).filter((q) => m.sites[q].kind === kind2 && !m.sites[q].deep && !m.sites[q].plot);
+        if (opts.length) k = +opts[Math.floor(r() * opts.length)];
+      }
+      if (k === null) {
+        const town = d.at === "town", free = [];
+        for (let y = 3; y < H - 3; y++)
+          for (let x = 3; x < W - 3; x++) {
+            const i = idx(x, y), t = m.terrain[i];
+            if (m.sites[i] || (town ? t !== FLOOR : t === 2 || t >= 4)) continue;
+            if (town && ![idx(x + 1, y), idx(x - 1, y), idx(x, y + 1), idx(x, y - 1)].some((j) => m.terrain[j] === WALL)) continue;
+            if (town && Math.abs(x - 18) <= 7 && Math.abs(y - 18) <= 7) continue;
+            let near = false;
+            for (let j = -2; j <= 2 && !near; j++) for (let q = -2; q <= 2; q++) if (m.sites[idx(x + q, y + j)]) near = true;
+            if (!near) free.push(i);
+          }
+        if (!free.length) continue;
+        k = free[Math.floor(r() * free.length)];
+        m.sites[k] = town ? { kind: "cellar", seen: true } : { kind: "cave", searched: false, loot: false };
+      }
+      m.sites[k].deep = d.id;
+      d.x = k % W;
+      d.y = Math.floor(k / W);
+    }
+  }
+  {
+    const region = GENERATORS.region;
+    GENERATORS.region = (s, rec) => {
+      const m = region(s, rec);
+      placeStairs(s, rec.id, m);
+      return m;
+    };
+    const town = GENERATORS.town;
+    GENERATORS.town = (s, rec) => {
+      const m = town(s, rec);
+      placeStairs(s, townId(s.town), m);
+      return m;
+    };
+  }
+  var blank2 = (v) => new Array(W * H).fill(v);
+  var inner = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1;
+  var LAYOUTS = {
+    rooms(r) {
+      const t = blank2(WALL), rooms = [];
+      for (let tries = 0; tries < 300 && rooms.length < 10; tries++) {
+        const w = 4 + Math.floor(r() * 5), h = 4 + Math.floor(r() * 5), x = 2 + Math.floor(r() * (W - w - 4)), y = 2 + Math.floor(r() * (H - h - 4));
+        if (rooms.some((o) => x < o.x + o.w + 2 && x + w + 2 > o.x && y < o.y + o.h + 2 && y + h + 2 > o.y)) continue;
+        rooms.push({ x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) });
+      }
+      for (const o of rooms) for (let y = o.y; y < o.y + o.h; y++) for (let x = o.x; x < o.x + o.w; x++) t[idx(x, y)] = FLOOR;
+      rooms.sort((a, b) => a.cx - b.cx);
+      for (let i = 1; i < rooms.length; i++) corridor(t, rooms[i - 1], rooms[i], r() < 0.5);
+      return t;
+    },
+    halls(r) {
+      const t = blank2(WALL), cells = [];
+      for (let gy = 0; gy < 4; gy++)
+        for (let gx = 0; gx < 4; gx++) {
+          if (r() < 0.2) continue;
+          const x = 2 + gx * 8, y = 2 + gy * 8, cx = x + 3, cy = y + 3;
+          for (let j = 0; j < 7; j++) for (let i = 0; i < 7; i++) t[idx(x + i, y + j)] = FLOOR;
+          if (r() < 0.7)
+            for (const [i, j] of [
+              [2, 2],
+              [4, 2],
+              [2, 4],
+              [4, 4]
+            ])
+              t[idx(x + i, y + j)] = WALL;
+          cells.push({ gx, gy, cx, cy });
+        }
+      for (const a of cells)
+        for (const b of cells)
+          if (b.gx === a.gx + 1 && b.gy === a.gy || b.gy === a.gy + 1 && b.gx === a.gx) corridor(t, a, b, true);
+      for (let i = 1; i < cells.length; i++) corridor(t, cells[i - 1], cells[i], r() < 0.5);
+      return t;
+    },
+    caves(r) {
+      let t = blank2(WALL);
+      for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (r() < 0.55) t[idx(x, y)] = FLOOR;
+      for (let pass = 0; pass < 4; pass++) {
+        const n = t.slice();
+        for (let y = 1; y < H - 1; y++)
+          for (let x = 1; x < W - 1; x++) {
+            let walls = 0;
+            for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (t[idx(x + i, y + j)] === WALL) walls++;
+            n[idx(x, y)] = walls >= 5 ? WALL : FLOOR;
+          }
+        t = n;
+      }
+      return t;
+    },
+    tunnels(r) {
+      const t = blank2(WALL);
+      let x = 18, y = 18, dir = Math.floor(r() * 4), dug = 0;
+      const D4 = [
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+        [0, -1]
+      ];
+      for (let step = 0; step < 4e3 && dug < W * H * 0.3; step++) {
+        if (t[idx(x, y)] === WALL) dug++;
+        t[idx(x, y)] = FLOOR;
+        if (r() < 0.12) dir = (dir + (r() < 0.5 ? 1 : 3)) % 4;
+        if (r() < 0.015) {
+          for (let j = -1; j <= 1; j++)
+            for (let i = -2; i <= 2; i++)
+              if (inner(x + i, y + j)) {
+                if (t[idx(x + i, y + j)] === WALL) dug++;
+                t[idx(x + i, y + j)] = FLOOR;
+              }
+        }
+        const nx = x + D4[dir][0], ny = y + D4[dir][1];
+        if (nx < 2 || ny < 2 || nx > W - 3 || ny > H - 3) {
+          dir = (dir + 2) % 4;
+          continue;
+        }
+        x = nx;
+        y = ny;
+      }
+      return t;
+    }
+  };
+  function corridor(t, a, b, horizFirst) {
+    let x = a.cx, y = a.cy;
+    const dig2 = () => t[idx(x, y)] = FLOOR;
+    if (horizFirst) {
+      while (x !== b.cx) x += Math.sign(b.cx - x), dig2();
+      while (y !== b.cy) y += Math.sign(b.cy - y), dig2();
+    } else {
+      while (y !== b.cy) y += Math.sign(b.cy - y), dig2();
+      while (x !== b.cx) x += Math.sign(b.cx - x), dig2();
+    }
+  }
+  function distFrom(t, start2) {
+    const dist = blank2(-1), q = [start2];
+    dist[start2] = 0;
+    for (let h = 0; h < q.length; h++) {
+      const i = q[h], x = i % W, y = Math.floor(i / W);
+      for (const j of [i + 1, i - 1, i + W, i - W]) {
+        const xx = j % W, yy = Math.floor(j / W);
+        if (j < 0 || j >= W * H || Math.abs(xx - x) + Math.abs(yy - y) !== 1) continue;
+        if (t[j] === FLOOR && dist[j] < 0) {
+          dist[j] = dist[i] + 1;
+          q.push(j);
+        }
+      }
+    }
+    return dist;
+  }
+  function themeSpecies(s, th, r) {
+    const all = s.deepSpecies = s.deepSpecies || {};
+    if (!all[th.id]) {
+      all[th.id] = th.forms.map((f2) => {
+        const form = byId(C.creature.forms, f2);
+        s.species.push({
+          name: th.creature[Math.floor(r() * th.creature.length)] + " " + form.name,
+          form: f2,
+          temper: r() < 0.5 ? "hunter" : "territorial",
+          rare: null,
+          met: false,
+          deep: th.id
+        });
+        return s.species.length - 1;
+      });
+      const f = th.forms[0];
+      s.species.push({
+        name: "Heart of the " + th.name.replace(/^Old |^Flooded /, ""),
+        form: f,
+        temper: "territorial",
+        rare: "elder",
+        met: false,
+        deep: th.id,
+        named: true
+      });
+      all[th.id].push(s.species.length - 1);
+    }
+    return all[th.id];
+  }
+  GENERATORS.deep = (s, rec) => {
+    const d = deepById(s, rec.deep), th = byId(D2().themes, rec.theme), r = stream(s.seed, "area:" + rec.id), lvl = rec.level, last2 = lvl === rec.levels;
+    let terrain = LAYOUTS[th.layout](r);
+    let start2 = -1;
+    for (let rad = 0; rad < W && start2 < 0; rad++)
+      for (let j = -rad; j <= rad && start2 < 0; j++)
+        for (let i = -rad; i <= rad && start2 < 0; i++) {
+          const x = 18 + i + Math.floor((r() - 0.5) * 8 * (rad > 3 ? 0 : 1)), y = 18 + j;
+          if (inner(x, y) && terrain[idx(x, y)] === FLOOR) start2 = idx(x, y);
+        }
+    if (start2 < 0) {
+      start2 = idx(18, 18);
+      terrain[start2] = FLOOR;
+    }
+    let dist = distFrom(terrain, start2);
+    const floors = [];
+    for (let i = 0; i < W * H; i++) if (dist[i] >= 0) floors.push(i);
+    start2 = floors.reduce((a, b) => dist[b] > dist[a] ? b : a, start2);
+    if (lvl % 2 === 0) start2 = floors[Math.floor(r() * floors.length)];
+    dist = distFrom(terrain, start2);
+    for (let i = 0; i < W * H; i++) if (dist[i] < 0) terrain[i] = WALL;
+    const far = floors.filter((i) => dist[i] >= 0).reduce((a, b) => dist[b] > dist[a] ? b : a, start2), sites = {}, depots = {}, creatures = [], taken = (i) => sites[i] || depots[i] || creatures.some((c) => idx(c.x, c.y) === i) || i === start2;
+    const open = floors.filter((i) => dist[i] >= 0), spot2 = (minD) => {
+      for (let t = 0; t < 60; t++) {
+        const i = open[Math.floor(r() * open.length)];
+        if (!taken(i) && dist[i] >= minD) return i;
+      }
+      return null;
+    };
+    const up = [start2 - W, start2 + W, start2 - 1, start2 + 1].find((i) => terrain[i] === FLOOR) || start2;
+    sites[up] = { kind: lvl === 1 ? "exit" : "stairsUp" };
+    rec.entry = { x: start2 % W, y: Math.floor(start2 / W) };
+    const sp = themeSpecies(s, th, r);
+    let cid = D2().idBase + (+d.id.slice(1) || 0) * 4e4 + lvl * 40;
+    const tierAt = Math.min(D2().maxTier, Math.round(th.tier[0] + th.tier[1] * (lvl - 1))), put = (spi, i, tier) => {
+      const c = makeCreature(s, cid++, spi, i % W, Math.floor(i / W), tier);
+      creatures.push(c);
+      return c;
+    };
+    if (last2) {
+      const it = genItem(s, { relic: true, noConsumables: true });
+      it.tier = Math.min(C.tiers.max, 1 + Math.ceil(lvl / 2));
+      const prize = { water: 0, fuel: 0, items: [it], coin: th.coin[1] * 2 + lvl * 5, store: true, prize: d.id };
+      if (d.prize) {
+        prize.items.push(d.prize);
+        delete d.prize;
+      }
+      depots[far] = prize;
+      const heart = put(sp[sp.length - 1], spot2(2) ?? far, tierAt + 1);
+      heart.warden = true;
+      heart.heart = d.id;
+    } else sites[far] = { kind: "stairsDown" };
+    for (let n = 0; n < th.per + Math.min(4, Math.floor(lvl / 2)); n++) {
+      const i = spot2(6);
+      if (i !== null) put(sp[Math.floor(r() * (sp.length - 1))], i, Math.max(1, tierAt - (r() < 0.4 ? 1 : 0)));
+    }
+    for (let n = 0; n < 1 + (lvl >= 3 ? 1 : 0); n++) {
+      const i = spot2(4);
+      if (i === null) continue;
+      const it = genItem(s, lvl >= 2 ? { relic: true, noConsumables: true } : {});
+      if (it.pre || it.suf) it.tier = Math.min(C.tiers.max, 1 + Math.floor(lvl / 2));
+      depots[i] = {
+        water: 0,
+        fuel: 0,
+        items: [it],
+        coin: th.coin[0] + Math.floor(r() * (th.coin[1] - th.coin[0] + 1)),
+        store: true
+      };
+    }
+    for (let n = 0; n < th.pools; n++) {
+      const i = spot2(2);
+      if (i !== null) depots[i] = { water: 3, fuel: 0, items: [] };
+    }
+    const narrow = open.filter((i) => [i + 1, i - 1, i + W, i - W].filter((j) => terrain[j] === FLOOR).length === 2 && !taken(i));
+    for (let n = 0; n < th.traps && narrow.length; n++) {
+      const i = narrow.splice(Math.floor(r() * narrow.length), 1)[0];
+      if (dist[i] > 3) sites[i] = { kind: "trap", sprung: false };
+    }
+    const m = { terrain, sites, depots, creatures };
+    if (rec.floor) applyQuirk(s, rec, m, r, cid);
+    for (const h of d.held || []) if (h.level === lvl && !h.placed) placeHeld(s, d, h, m, r, far);
+    return m;
+  };
+  function placeHeld(s, d, h, m, r, far) {
+    let i = far;
+    if (h.where !== "bottom") {
+      for (let t = 0; t < 80; t++) {
+        const j = Math.floor(r() * W * H);
+        if (m.terrain[j] === FLOOR && !m.sites[j] && !m.depots[j]) {
+          i = j;
+          break;
+        }
+      }
+    }
+    if (h.item) {
+      const dp = m.depots[i] = m.depots[i] || { water: 0, fuel: 0, items: [] };
+      dp.items.push(h.item);
+      h.item = null;
+    }
+    if (h.creature) {
+      const c = h.creature;
+      c.x = i % W;
+      c.y = Math.floor(i / W);
+      m.creatures.push(c);
+      h.creature = null;
+    }
+    if (h.site) m.sites[i] = h.site;
+    h.placed = { x: i % W, y: Math.floor(i / W) };
+    emit(s, "heldPlaced", { deep: d.id, held: h, area: levelId(d, h.level) });
+  }
+  var needLight = (s, th) => th.dark !== false && stat(s, "nightSight", 0) <= 0;
+  function levelRec(s, d, n) {
+    const th = themeOf(d);
+    return {
+      kind: "deep",
+      indoor: true,
+      dark: th.dark !== false,
+      level: n,
+      levels: d.depth,
+      deep: d.id,
+      theme: d.theme,
+      floor: rollQuirk(s, "deep:" + d.id + ":" + n, n === d.depth)
+    };
+  }
+  function goLevel(s, d, n) {
+    enterArea(s, levelId(d, n), levelRec(s, d, n));
+    reveal(s, s.player.x, s.player.y, sightRadius(s), true);
+    emit(s, "levelEntered", { deep: d.id, level: n });
+  }
+  function enterDeep(s) {
+    const st = siteHere(s), d = st && st.deep && deepById(s, st.deep);
+    if (s.over || !d) return false;
+    const th = themeOf(d);
+    if (needLight(s, th)) {
+      say(s, "The stair goes down into the dark. You need a light: a lantern with fuel, or a torch.", "bad");
+      return false;
+    }
+    goLevel(s, d, 1);
+    if (!d.entered) {
+      d.entered = true;
+      gainXp(s, 15);
+      say(s, th.name + ": " + d.name + ". " + th.text + " (" + d.depth + (d.depth === 1 ? " level.)" : " levels.)"), "good");
+    } else say(s, "You go down into " + d.name + ".");
+    return true;
+  }
+  LEVELS.down = (s) => {
+    const rec = areaRec(s), d = deepById(s, rec.deep), st = siteHere(s);
+    if (s.over || !d || !st || st.kind !== "stairsDown") return false;
+    if (needLight(s, themeOf(d))) {
+      say(s, "You will not find the next stair without a light.", "bad");
+      return false;
+    }
+    advance(s, 10, "rest");
+    if (s.over) return true;
+    const n = rec.level + 1;
+    goLevel(s, d, n);
+    say(s, "Level " + n + " of " + d.depth + (n === d.depth ? ". Something old lives at the bottom of " + d.name + "." : "."));
+    return true;
+  };
+  on("killed", (s, ev) => {
+    const c = ev.c;
+    if (!c || !c.heart) return;
+    const d = deepById(s, c.heart);
+    if (!d) return;
+    d.cleared = true;
+    gainXp(s, 40 * d.depth);
+    say(s, "The heart of " + d.name + " is dead. " + themeOf(d).prize, "good");
+  });
+  SOURCES.push({
+    id: "deeps",
+    fn(s, out) {
+      const rec = areaRec(s);
+      if (rec.kind !== "deep") return;
+      for (const m of byId(D2().themes, rec.theme).mods || []) out.push(m);
+    }
+  });
+  ACTIONS.push((s, st, a) => {
+    if (s.combat || !st || !st.deep) return;
+    const d = deepById(s, st.deep);
+    if (!d) return;
+    a.push({
+      id: "enterDeep",
+      label: "Go down into " + d.name,
+      hint: themeOf(d).name.toLowerCase() + ", " + d.depth + (d.depth === 1 ? " level" : " levels") + (themeOf(d).dark === false ? "" : ", needs a light")
+    });
+  });
+  on("did", (s, ev) => {
+    if (ev.id !== "move") return;
+    const st = siteHere(s);
+    if (st && st.deep && !st.deepTold) {
+      st.deepTold = true;
+      const d = deepById(s, st.deep);
+      if (d) say(s, "A stair goes down here, into the dark: " + d.name + ".");
+    }
+  });
+  var VAULT_STONE = { castle: 6973024, barrow: 6122058, temple: 5205612 };
+  function levelLook(s) {
+    const rec = areaRec(s);
+    if (rec.kind === "vault") return { stone: VAULT_STONE[s.quest.vault.id] || 6973024, floor: 4078133, dark: true };
+    if (rec.kind === "deep") {
+      const th = byId(D2().themes, rec.theme);
+      return Object.assign({ dark: th.dark !== false }, th.look);
+    }
+    return null;
+  }
+  function levelTitle(s) {
+    const rec = areaRec(s), d = rec.kind === "deep" ? deepById(s, rec.deep) : null;
+    if (rec.kind === "vault") return "The " + s.quest.vault.name + ", level " + rec.level + " of " + rec.levels;
+    if (d) return d.name.charAt(0).toUpperCase() + d.name.slice(1) + ", level " + rec.level + " of " + rec.levels;
+    return rec.name || "Here";
+  }
+  PLACES.push((s, out) => {
+    const v = findSite(s, "vault");
+    if (v && v.st && v.st.floors)
+      v.st.floors.forEach(
+        (_, i) => out.push({
+          id: "vault:" + (i + 1),
+          group: "Below",
+          label: "The " + s.quest.vault.name + ", level " + (i + 1),
+          go: (s2) => jumpDown(s2, null, i + 1)
+        })
+      );
+    for (const d of deepsOf(s))
+      for (let n = 1; n <= d.depth; n++)
+        out.push({
+          id: "deep:" + d.id + ":" + n,
+          group: "Below",
+          label: d.name + " (" + themeOf(d).name.toLowerCase() + "), level " + n,
+          go: (s2) => jumpDown(s2, d, n)
+        });
+  });
+  function jumpDown(s, d, n) {
+    let door;
+    if (!d) {
+      const v = findSite(s, "vault");
+      v.st.open = true;
+      door = { area: v.area, x: v.x, y: v.y };
+    } else {
+      door = deepDoor(s, d);
+      if (!door) return false;
+    }
+    const town = townById(s, door.area);
+    if (town) {
+      const rec = s.areas[town.area || "overworld"];
+      jumpRegion(s, rec.cx, rec.cy, town.x, town.y + 3);
+      s.player.x = town.x;
+      s.player.y = town.y + 3;
+      enterArea(s, door.area, { kind: "town", indoor: true, name: town.name }, { x: door.x, y: door.y });
+    } else {
+      const rec = s.areas[door.area];
+      jumpRegion(s, rec.cx, rec.cy, door.x, door.y);
+    }
+    s.player.x = door.x;
+    s.player.y = door.y;
+    for (let k = 1; k <= n; k++) {
+      if (!d) {
+        enterArea(s, "vault" + k, {
+          kind: "vault",
+          indoor: true,
+          dark: true,
+          level: k,
+          levels: findSite(s, "vault").st.floors.length,
+          floor: findSite(s, "vault").st.floors[k - 1]
+        });
+      } else enterArea(s, levelId(d, k), levelRec(s, d, k));
+      if (k < n) {
+        const down = Object.keys(s.sites).find((q) => s.sites[q].kind === "stairsDown");
+        if (down !== void 0) {
+          s.player.x = down % W;
+          s.player.y = Math.floor(down / W);
+        }
+      }
+    }
+    reveal(s, s.player.x, s.player.y, sightRadius(s), true);
+    return true;
+  }
+  function deepDoor(s, d) {
+    if (d.x === void 0) {
+      const t = townById(s, d.area);
+      if (t) withTown(s, t, () => mapOf(s, d.area));
+      else {
+        const rec = s.areas[d.area], c = d.area.match(/^r(\d+)_(\d+)$/);
+        if (!rec && c) {
+          const cx = +c[1], cy = +c[2];
+          s.areas[d.area] = { id: d.area, kind: "region", cx, cy, biome: sketchOf(s, cx, cy).biome };
+        }
+        if (s.areas[d.area]) buildArea(s, s.areas[d.area]);
+      }
+    }
+    return d.x === void 0 ? null : { area: d.area, x: d.x, y: d.y };
+  }
+  NOTES.push((s) => {
+    const known = deepsOf(s).filter((d) => d.entered);
+    return known.length ? [
+      {
+        label: "Below",
+        text: known.map(
+          (d) => d.name + " (" + themeOf(d).name.toLowerCase() + ", " + d.depth + (d.cleared ? ", its heart dead" : "") + ")"
+        ).join("; ") + "."
+      }
+    ] : [];
+  });
+  SWITCHES.push(["deeps", "Dungeons (new worlds)"]);
 
   // src/rules/plots.js
   var P2 = () => C.plots;
@@ -9354,117 +10173,15 @@
     return have.length ? [{ label: "Trade goods", text: have.map((k) => g[k] + " " + goodOf(k).name.toLowerCase()).join(", ") + "." }] : [];
   });
 
-  // src/rules/godmode.js
-  var GOD_MODS = [
-    { stat: "quiet", op: "add", value: 1 },
-    { stat: "nightSight", op: "add", value: 1 },
-    { stat: "trapSafe", op: "add", value: 1 },
-    { stat: "foulSafe", op: "add", value: 1 },
-    { stat: "fly", op: "add", value: 1 },
-    { stat: "breathe", op: "add", value: 1 }
-  ];
-  SOURCES.push({
-    id: "godmode",
-    fn(s, out) {
-      if (s.godMode) for (const m of GOD_MODS) out.push(m);
-    }
-  });
-  SYSTEMS.push({
-    id: "godmode",
-    fn(s) {
-      if (!s.godMode || !s.player) return;
-      const p = s.player;
-      if (p.water < 1) p.water = 1;
-      p.warmth = 100;
-      p.stamina = 100;
-      if (p.hp !== void 0 && p.hpMax) p.hp = p.hpMax;
-      if (p.manaMax) p.mana = p.manaMax;
-      s.cause = null;
-    }
-  });
-  function setGodMode(s, on2) {
-    s.godMode = !!on2;
-    if (on2) s.cheated = true;
-    if (s.combat && on2) s.combat = null;
-    say(
-      s,
-      on2 ? "God mode: nothing can see you, hurt you or stop you." : "God mode is off. You are mortal again.",
-      on2 ? "good" : ""
-    );
-    return true;
-  }
-  function freeNear(m, x, y) {
-    for (let r = 0; r < W; r++)
-      for (let dy = -r; dy <= r; dy++)
-        for (let dx = -r; dx <= r; dx++) {
-          const xx = x + dx, yy = y + dy;
-          if (xx < 1 || yy < 1 || xx >= W - 1 || yy >= H - 1) continue;
-          const t = m.terrain[idx(xx, yy)];
-          if (t !== 2 && t < 6 && !m.sites[idx(xx, yy)]) return { x: xx, y: yy };
-        }
-    return { x, y };
-  }
-  function jumpRegion(s, cx, cy, x, y) {
-    toOverworld(s);
-    switchRegion(s, cx, cy, { x: s.player.x, y: s.player.y });
-    const p = freeNear(s, x === void 0 ? 18 : x, y === void 0 ? 18 : y);
-    s.player.x = p.x;
-    s.player.y = p.y;
-    s.combat = null;
-    return true;
-  }
-  function places(s) {
-    const out = [], w = s.world;
-    for (let cy = 0; cy < w.rows; cy++)
-      for (let cx = 0; cx < w.cols; cx++) {
-        const id = regionId(s, cx, cy), b = byId(C.biomes, sketchOf(s, cx, cy).biome);
-        out.push({
-          id: "region:" + id,
-          group: "Regions",
-          label: (id === HOME ? "Home: " : "") + (b ? b.name : id) + " (" + cx + ", " + cy + ")",
-          go: (s2) => jumpRegion(s2, cx, cy)
-        });
-      }
-    for (const t of allTowns(s)) {
-      const id = townId(t);
-      out.push({
-        id: "town:" + id,
-        group: "Towns",
-        label: t.name,
-        go: (s2) => {
-          const rec = s2.areas[townArea(s2, t)];
-          if (!rec || rec.realm !== s2.areas[outdoorRec(s2).id].realm) return false;
-          const d = townDoor(s2, t);
-          jumpRegion(s2, rec.cx, rec.cy, d.x, d.y);
-          s2.player.x = d.x;
-          s2.player.y = d.y;
-          return enterTown(s2, t.x, t.y + 2) || true;
-        }
-      });
-    }
-    for (const f of PLACES) f(s, out);
-    return out;
-  }
-  function jumpTo(s, id) {
-    if (!s.godMode || s.over) return false;
-    const p = places(s).find((q) => q.id === id);
-    if (!p) return false;
-    const ok = p.go(s);
-    if (ok !== false) say(s, "You are in " + p.label + ".", "good");
-    return ok !== false;
-  }
-  function jumpMap(s, gx, gy) {
-    if (!s.godMode || s.over) return false;
-    const w = s.world, h = w.home, tx = (Math.floor(gx) % (w.cols * W) + w.cols * W) % (w.cols * W), ty = (Math.floor(gy) % (w.rows * H) + w.rows * H) % (w.rows * H), cx = (h.cx + Math.floor(tx / W)) % w.cols, cy = (h.cy + Math.floor(ty / H)) % w.rows;
-    return jumpRegion(s, cx, cy, tx % W, ty % H);
-  }
-  NOTES.push(
-    (s) => s.cheated ? [{ label: "God mode", text: "This world has been walked in god mode" + (s.godMode ? ", and it is on now." : ".") }] : []
-  );
-
   // src/rules/index.js
   var api = {
     setGodMode,
+    deepById,
+    deepsOf,
+    enterDeep,
+    levelLook,
+    levelTitle,
+    isLevel: (s) => !!levelLook(s),
     genOf,
     parseSet,
     settings,
@@ -9691,7 +10408,8 @@
     "offer",
     "askErrand",
     "claimErrand",
-    "useService"
+    "useService",
+    "enterDeep"
   ];
   for (const k of ACTIONS2) {
     const fn = api[k];
@@ -10363,13 +11081,12 @@
     }
   };
   var FLAT = { height: () => 0 };
-  var VAULT_STONE = { castle: 6973024, barrow: 6122058, temple: 5205612 };
   function interiorGroup(map, rec, ts) {
     const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T2 = map.terrain, at = (t) => (t + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T2[y * R.W + x] === R.WALL;
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 9407104 : 4078133));
+    const look2 = town ? null : R.levelLook(V.S) || { stone: 6973024, floor: 4078133 }, floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 9407104 : look2.floor));
     floor.position.y = town ? 0.08 : 0;
     group.add(floor);
-    const stone = town ? 13220768 : VAULT_STONE[V.S.quest.vault.id], tiles = [];
+    const stone = town ? 13220768 : look2.stone, tiles = [];
     for (let y = 0; y < R.H; y++)
       for (let x = 0; x < R.W; x++) {
         if (!isWall(x, y)) continue;
@@ -10413,8 +11130,8 @@
         );
         group.add(sm);
       }
-    } else {
-      const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(1841688));
+    } else if (look2.ceiling !== false) {
+      const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(look2.roof || 1841688));
       ceiling.position.y = 5;
       group.add(ceiling);
     }
@@ -10483,7 +11200,7 @@
   }
   function applyFrame() {
     const kind2 = R.areaRec(V.S).kind, inTown2 = kind2 === "town" && V.townAt;
-    if (kind2 === "vault") return;
+    if (R.isLevel(V.S)) return;
     FR.x = inTown2 ? V.townAt.x : 0;
     FR.y = inTown2 ? V.townAt.y : 0;
     FR.z = inTown2 ? V.townAt.z : 0;
@@ -10501,7 +11218,7 @@
     pending = null;
     V.raw = null;
     V.shift = { x: 0, z: 0 };
-    if (R.areaRec(V.S).kind === "vault") {
+    if (R.isLevel(V.S)) {
       dispose(staticGroup);
       staticGroup = new THREE.Group();
       scene.add(staticGroup);
@@ -10536,7 +11253,7 @@
   }
   var pending = null;
   function buildStaticSoon(rx, rz) {
-    if (R.areaRec(V.S).kind === "vault" || !V.base || V.base === FLAT) return buildStatic();
+    if (R.isLevel(V.S) || !V.base || V.base === FLAT) return buildStatic();
     if (!V.raw) V.raw = V.base;
     const d = { x: V.shift.x + rx * 2 * HALF, z: V.shift.z + rz * 2 * HALF }, o = V.raw;
     V.shift = d;
@@ -10626,7 +11343,7 @@
       return c;
     };
     const ground = function* (g, sink, hollow) {
-      const n = g.n, N1 = n + 1, cnt = N1 * N1, P4 = new Float32Array(cnt * 3), UV = new Float32Array(cnt * 2), col = new Float32Array(cnt * 3), keep = HALF - g.cell * 1.5, inner = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+      const n = g.n, N1 = n + 1, cnt = N1 * N1, P4 = new Float32Array(cnt * 3), UV = new Float32Array(cnt * 2), col = new Float32Array(cnt * 3), keep = HALF - g.cell * 1.5, inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
       for (let iz = 0; iz <= n; iz++) {
         const z = -g.half + iz * g.cell;
         for (let ix = 0; ix <= n; ix++) {
@@ -10649,12 +11366,12 @@
       for (let iz = 0; iz < n; iz++)
         for (let ix = 0; ix < n; ix++) {
           const a = iz * N1 + ix, b = a + N1, c2 = b + 1, d = a + 1, za = -g.half + iz * g.cell, xa = -g.half + ix * g.cell, zb = za + g.cell, xd = xa + g.cell;
-          if (!hollow || !(inner(xa, za) && inner(xa, zb) && inner(xd, za))) {
+          if (!hollow || !(inner2(xa, za) && inner2(xa, zb) && inner2(xd, za))) {
             idx2[m2++] = a;
             idx2[m2++] = b;
             idx2[m2++] = d;
           }
-          if (!hollow || !(inner(xa, zb) && inner(xd, zb) && inner(xd, za))) {
+          if (!hollow || !(inner2(xa, zb) && inner2(xd, zb) && inner2(xd, za))) {
             idx2[m2++] = b;
             idx2[m2++] = c2;
             idx2[m2++] = d;
@@ -10772,8 +11489,7 @@
     dispose(dynGroup);
     dynGroup = new THREE.Group();
     scene.add(dynGroup);
-    const kind2 = R.areaRec(V.S).kind;
-    if (kind2 === "vault") return drawArea(V.S.area, "vault");
+    if (R.isLevel(V.S)) return drawArea(V.S.area, "vault");
     drawArea(R.outdoorRec(V.S).id, "region");
     if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, "town");
   }
@@ -11099,7 +11815,7 @@
     shown.area = V.S.area;
     shown.land = landKey();
   }
-  var landKey = () => R.areaRec(V.S).kind === "vault" ? V.S.area : R.outdoorRec(V.S).id;
+  var landKey = () => R.isLevel(V.S) ? V.S.area : R.outdoorRec(V.S).id;
   function enter(state) {
     V.S = state;
     buildStatic();
@@ -11241,17 +11957,19 @@
       });
     }
     skyC.copy(nightC).lerp(dayC, day).lerp(duskC, dusk * 0.55);
-    if (R.isDark(V.S)) {
-      const lit = R.stat(V.S, "nightSight", 0) > 0;
-      scene.background.setHex(329224);
-      scene.fog.color.setHex(329224);
-      shown.far = lerp(shown.far, lit ? 26 : 6, 0.1);
+    const look2 = R.levelLook(V.S);
+    if (R.isDark(V.S) || look2) {
+      const lit = R.stat(V.S, "nightSight", 0) > 0, bg = look2 && look2.bg !== void 0 ? look2.bg : 329224, glowing = look2 && !look2.dark;
+      scene.background.setHex(bg);
+      scene.fog.color.setHex(bg);
+      shown.far = lerp(shown.far, glowing ? look2.far || 34 : lit ? 26 : 6, 0.1);
       scene.fog.far = shown.far;
       scene.fog.near = 1;
-      hemi.intensity = 0.05;
+      hemi.intensity = glowing ? look2.light || 0.45 : 0.05;
+      hemi.color.setHex(glowing && look2.glow ? look2.glow : 14673902);
       sun.intensity = 0;
-      lamp.intensity = lit ? 1.1 : 0.25;
-      lamp.distance = lit ? 26 : 6;
+      lamp.intensity = lit || glowing ? 1.1 : 0.25;
+      lamp.distance = lit || glowing ? 26 : 6;
       lamp.position.set(P3.x, P3.y + 0.8, P3.z);
       hideSky();
       return finishFrame();
@@ -11266,6 +11984,7 @@
     scene.fog.far = shown.far;
     scene.fog.near = Math.min(40, shown.far * 0.2);
     hemi.intensity = lerp(0.22, 0.78, day);
+    hemi.color.setHex(14673902);
     sun.intensity = lerp(0.03, 0.9, day) * (storm ? 0.4 : 1);
     const sa = (h - 6) / 14 * Math.PI;
     sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
@@ -11883,7 +12602,7 @@
     const rec = R.areaRec(V.S), indoor = R.indoors(V.S);
     if (!indoor) return openWorldMap();
     const cv2 = el("canvas", { id: "mapcv", "aria-label": "Your map so far" });
-    openModal(rec.kind === "town" ? V.S.town.name : "The " + V.S.quest.vault.name + ", level " + rec.level + " of " + rec.levels, [
+    openModal(rec.kind === "town" ? R.curTown(V.S).name : R.levelTitle(V.S), [
       cv2,
       el("p", {
         cls: "note",
@@ -12104,7 +12823,7 @@
   }
   var lastSet = {};
   function openNewWorld() {
-    const M2 = R.C.worldSet.menus, D2 = R.C.worldSet.defaults, cur = (k) => lastSet[k] !== void 0 ? lastSet[k] : D2[k], seedIn = el("input", { type: "number", id: "nw-seed", value: randomSeed(), inputmode: "numeric", "aria-label": "Seed" }), fields = {};
+    const M2 = R.C.worldSet.menus, D3 = R.C.worldSet.defaults, cur = (k) => lastSet[k] !== void 0 ? lastSet[k] : D3[k], seedIn = el("input", { type: "number", id: "nw-seed", value: randomSeed(), inputmode: "numeric", "aria-label": "Seed" }), fields = {};
     const choose = (key, label, list, val) => {
       const sel = el(
         "select",
@@ -12559,8 +13278,8 @@
       resize();
     },
     // a fresh world on this seed, without the character screen (for the benchmark)
-    newWorld(seed) {
-      enter(R.newGame(seed));
+    newWorld(seed, set) {
+      enter(R.newGame(seed, {}, set));
     },
     // for tests and tinkering from the console: redraw everything after changing the state by hand
     refresh() {

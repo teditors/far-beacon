@@ -30,6 +30,7 @@ import {
 import { gainXp, roll } from './progress.js';
 import { stat } from './stats.js';
 import { advance } from './systems.js';
+import { LEVELS } from './hooks.js';
 
 /* Quest, town and vault */
 const hasItem = (s, base) => s.player.items.some((i) => i.base === base);
@@ -507,6 +508,7 @@ function goToLevel(s, n, floors) {
 function goDown(s) {
   const st = siteHere(s),
     rec = areaRec(s);
+  if (rec.kind !== 'vault') return LEVELS.down ? LEVELS.down(s) : false; // a level some piece owns (a dungeon)
   if (s.over || !st || st.kind !== 'stairsDown') return false;
   if (stat(s, 'nightSight', 0) <= 0) {
     say(s, 'You will not find the next stair without a light.', 'bad');

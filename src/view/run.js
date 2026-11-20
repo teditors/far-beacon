@@ -96,7 +96,7 @@ function placePlayer() {
   shown.land = landKey();
 }
 // What has to be built to show where the player is: a level of the locked place, or a region (with its town).
-const landKey = () => (R.areaRec(V.S).kind === 'vault' ? V.S.area : R.outdoorRec(V.S).id);
+const landKey = () => (R.isLevel(V.S) ? V.S.area : R.outdoorRec(V.S).id);
 function enter(state) {
   V.S = state;
   buildStatic();
@@ -274,18 +274,22 @@ function frame() {
     .copy(nightC)
     .lerp(dayC, day)
     .lerp(duskC, dusk * 0.55);
-  if (R.isDark(V.S)) {
-    // underground: no sky, and you see only as far as your light reaches
-    const lit = R.stat(V.S, 'nightSight', 0) > 0;
-    scene.background.setHex(0x050608);
-    scene.fog.color.setHex(0x050608);
-    shown.far = lerp(shown.far, lit ? 26 : 6, 0.1);
+  const look = R.levelLook(V.S);
+  if (R.isDark(V.S) || look) {
+    // underground: no sky, and you see only as far as your light reaches (a level with a glow of its own is lit by it)
+    const lit = R.stat(V.S, 'nightSight', 0) > 0,
+      bg = look && look.bg !== undefined ? look.bg : 0x050608,
+      glowing = look && !look.dark;
+    scene.background.setHex(bg);
+    scene.fog.color.setHex(bg);
+    shown.far = lerp(shown.far, glowing ? look.far || 34 : lit ? 26 : 6, 0.1);
     scene.fog.far = shown.far;
     scene.fog.near = 1;
-    hemi.intensity = 0.05;
+    hemi.intensity = glowing ? look.light || 0.45 : 0.05;
+    hemi.color.setHex(glowing && look.glow ? look.glow : 0xdfe7ee);
     sun.intensity = 0;
-    lamp.intensity = lit ? 1.1 : 0.25;
-    lamp.distance = lit ? 26 : 6;
+    lamp.intensity = lit || glowing ? 1.1 : 0.25;
+    lamp.distance = lit || glowing ? 26 : 6;
     lamp.position.set(P.x, P.y + 0.8, P.z);
     hideSky();
     return finishFrame();
@@ -301,6 +305,7 @@ function frame() {
   scene.fog.far = shown.far;
   scene.fog.near = Math.min(40, shown.far * 0.2);
   hemi.intensity = lerp(0.22, 0.78, day);
+  hemi.color.setHex(0xdfe7ee);
   sun.intensity = lerp(0.03, 0.9, day) * (storm ? 0.4 : 1);
   const sa = ((h - 6) / 14) * Math.PI;
   sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);

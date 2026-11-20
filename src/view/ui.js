@@ -701,7 +701,7 @@ function openMap() {
     indoor = R.indoors(V.S);
   if (!indoor) return openWorldMap();
   const cv = el('canvas', { id: 'mapcv', 'aria-label': 'Your map so far' });
-  openModal(rec.kind === 'town' ? V.S.town.name : 'The ' + V.S.quest.vault.name + ', level ' + rec.level + ' of ' + rec.levels, [
+  openModal(rec.kind === 'town' ? R.curTown(V.S).name : R.levelTitle(V.S), [
     cv,
     el('p', {
       cls: 'note',
@@ -1489,8 +1489,8 @@ window.__g = {
     resize();
   },
   // a fresh world on this seed, without the character screen (for the benchmark)
-  newWorld(seed) {
-    enter(R.newGame(seed));
+  newWorld(seed, set) {
+    enter(R.newGame(seed, {}, set));
   },
   // for tests and tinkering from the console: redraw everything after changing the state by hand
   refresh() {

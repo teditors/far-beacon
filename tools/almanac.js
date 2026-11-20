@@ -602,6 +602,14 @@ section('World settings', ['worldSet'], () => {
   line();
 });
 
+section('Dungeons', ['deeps'], () => {
+  const X = C.deeps;
+  line('Places below the world, rolled when the world is made: about ' + X.perRegion + ' a region at the usual setting, and a cellar under ' + Math.round(X.townChance * 100) + '% of towns. Each goes ' + X.depth.join(' to ') + ' levels down (the world setting caps it; a dungeon the plot uses goes ' + X.plotDepth.join(' to ') + '). A level is built the first time you reach it. ' + Math.round(X.quirkChance * 100) + '% of levels above the bottom are odd levels (see Odd levels below). The bottom holds a store-room and a Heart, an elder of the theme; the deepest dungeon of a world also holds a named artifact.');
+  line();
+  table(['Theme', 'Entered from', 'Layout', 'Dark', 'Creatures', 'Tier (level 1, per level)', 'Per level', 'Traps', 'Pools', 'Told'], X.themes.map((t) => [t.name, t.entry.join(', '), t.layout, t.dark === false ? 'no (it glows)' : 'yes', t.creature.join(' / ') + ' ' + t.forms.join(', '), t.tier.join(', '), t.per, t.traps, t.pools, t.text]));
+  line();
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

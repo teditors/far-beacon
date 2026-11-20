@@ -122,6 +122,7 @@ import './tiers.js';
 import './worldsize.js';
 import './plot.js'; // it moves quest places that earlier pieces may have changed
 import './moretowns.js'; // after the plot: other towns go where the story's places are not
+import { deepById, deepsOf, enterDeep, levelLook, levelTitle } from './deeps.js'; // after the towns: a town may have a cellar
 import {
   choosePlot,
   mainPlot,
@@ -141,6 +142,12 @@ import { genOf, parseSet, settings } from './worldset.js';
 
 const api = {
   setGodMode,
+  deepById,
+  deepsOf,
+  enterDeep,
+  levelLook,
+  levelTitle,
+  isLevel: (s) => !!levelLook(s),
   genOf,
   parseSet,
   settings,
@@ -368,6 +375,7 @@ const ACTIONS = [
   'askErrand',
   'claimErrand',
   'useService',
+  'enterDeep',
 ];
 for (const k of ACTIONS) {
   const fn = api[k];

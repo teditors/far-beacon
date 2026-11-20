@@ -336,7 +336,6 @@ const BUILD = {
   },
 };
 const FLAT = { height: () => 0 };
-const VAULT_STONE = { castle: 0x6a6660, barrow: 0x5d6a4a, temple: 0x4f6e6c };
 // The town or a level of the locked place, as a group centred on its own middle: a floor, and a block for every wall
 // tile that borders open floor. The town has no ceiling, so it can stand out of doors and be seen from far off.
 function interiorGroup(map, rec, ts) {
@@ -346,10 +345,11 @@ function interiorGroup(map, rec, ts) {
     T = map.terrain,
     at = (t) => (t + 0.5) * ts - size / 2,
     isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 0x8f8a80 : 0x3e3a35));
+  const look = town ? null : R.levelLook(V.S) || { stone: 0x6a6660, floor: 0x3e3a35 },
+    floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 0x8f8a80 : look.floor));
   floor.position.y = town ? 0.08 : 0;
   group.add(floor);
-  const stone = town ? 0xc9bba0 : VAULT_STONE[V.S.quest.vault.id],
+  const stone = town ? 0xc9bba0 : look.stone,
     tiles = [];
   for (let y = 0; y < R.H; y++)
     for (let x = 0; x < R.W; x++) {
@@ -410,8 +410,8 @@ function interiorGroup(map, rec, ts) {
       );
       group.add(sm);
     }
-  } else {
-    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(0x1c1a18));
+  } else if (look.ceiling !== false) {
+    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(look.roof || 0x1c1a18));
     ceiling.position.y = 5;
     group.add(ceiling);
   }
@@ -487,7 +487,7 @@ function interiorSite(st, ts, inTown) {
 function applyFrame() {
   const kind = R.areaRec(V.S).kind,
     inTown = kind === 'town' && V.townAt;
-  if (kind === 'vault') return;
+  if (R.isLevel(V.S)) return;
   FR.x = inTown ? V.townAt.x : 0;
   FR.y = inTown ? V.townAt.y : 0;
   FR.z = inTown ? V.townAt.z : 0;
@@ -505,7 +505,7 @@ function buildStaticInner() {
   pending = null;
   V.raw = null;
   V.shift = { x: 0, z: 0 };
-  if (R.areaRec(V.S).kind === 'vault') {
+  if (R.isLevel(V.S)) {
     dispose(staticGroup);
     staticGroup = new THREE.Group();
     scene.add(staticGroup);
@@ -547,7 +547,7 @@ function townsHere() {
    from the frame loop); then the two are swapped. rx, rz: how many regions across and down the player moved. */
 let pending = null;
 function buildStaticSoon(rx, rz) {
-  if (R.areaRec(V.S).kind === 'vault' || !V.base || V.base === FLAT) return buildStatic();
+  if (R.isLevel(V.S) || !V.base || V.base === FLAT) return buildStatic();
   if (!V.raw) V.raw = V.base; // the land the old group was built with, and its frame
   const d = { x: V.shift.x + rx * 2 * HALF, z: V.shift.z + rz * 2 * HALF },
     o = V.raw;
@@ -864,8 +864,7 @@ function buildDynamic() {
   dispose(dynGroup);
   dynGroup = new THREE.Group();
   scene.add(dynGroup);
-  const kind = R.areaRec(V.S).kind;
-  if (kind === 'vault') return drawArea(V.S.area, 'vault');
+  if (R.isLevel(V.S)) return drawArea(V.S.area, 'vault'); // any level below (or, later, above) the world
   drawArea(R.outdoorRec(V.S).id, 'region');
   if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, 'town');
 }

@@ -109,7 +109,7 @@ for (let seed = 1; seed <= 40; seed++) {
   }
   // borders: mountains nearly always agree, and rivers and roads cross at the same tiles on both sides
   need(placeCount.town === 1 && placeCount.vault === 1 && placeCount.more === (s.towns || []).length, tag + 'the town and the locked place are not each in exactly one region: ' + JSON.stringify(placeCount));
-  const mapOf = (cx, cy) => { const id = R.regionId(s, (cx + w.cols) % w.cols, (cy + w.rows) % w.rows); return id === s.area ? s : s.areas[id].map; };
+  const mapOf = (cx, cy) => { const id = R.regionId(s, (cx + w.cols) % w.cols, (cy + w.rows) % w.rows); return R.mapOf(s, id); }; // far maps are kept packed; mapOf unpacks them
   for (let cy = 0; cy < w.rows; cy++) for (let cx = 0; cx < w.cols; cx++) {
     const a = mapOf(cx, cy), e = mapOf(cx + 1, cy), so = mapOf(cx, cy + 1);
     for (let k = 0; k < R.W; k++) {

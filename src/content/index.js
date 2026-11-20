@@ -32,6 +32,7 @@ import plots from './plots.js';
 import crafting from './crafting.js';
 import trade from './trade.js';
 import worldSet from './worldset.js';
+import deeps from './deeps.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -67,4 +68,5 @@ export const CONTENT = Object.assign(
   crafting,
   trade,
   worldSet,
+  deeps,
 );
