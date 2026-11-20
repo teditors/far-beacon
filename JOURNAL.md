@@ -1,5 +1,69 @@
 # Commission 3
 
+## Summary
+
+Eight entries, in the order Andrew asked: the phone budget first, then worlds of any size, many towns and many plots,
+crafting and trade, a little light and weather, and two small things of my own. Every check passes, old saves load
+(no `VERSION` bump was needed: every new field is optional), and the bot wins more often than before.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C3.1 | Performance meter, graphics quality (Low / Medium / High), cheaper trees and ground, saves a third the size | (view, save) | pearl |
+| C3.2 | Worlds of varying size, 2 x 3 to 7 x 7, odd shapes included | `worldsize` | pearl |
+| C3.3 | More towns: one to five others, each with its own people, culture, shop and streets | `moretowns` | pearl |
+| C3.4 | Many plots: a great trouble that decides how the world is won (relic, beast, curse, sickness, cult, siege), and other towns' troubles (captive, lost, feud, caravan, theft...), linked | `plots` | pearl |
+| C3.5 | Crafting: hide, bone, salvage and herbs into waterskins, torches, bandages, a fur cloak, a shelter | `crafting` | pearl |
+| C3.6 | Trade between towns: goods cheap where made, dear elsewhere, moved by the year | `trade` | pearl, if people trade |
+| C3.7 | Light, sky and weather: shaded sky, sun and moon, ground grain, rain and snow; eyes show temper | (view) | maybe-to-pearl |
+| C3.8 | Townsfolk tell of other towns' troubles; the dead keep their materials | `plots`, `crafting` | small |
+
+**Performance, before and after** (`tools/bench.py`, software renderer at 412 x 915, three seeds; slow in absolute
+terms, comparable across rows):
+
+| | build ms (border hitch) | draw calls | triangles | frame ms | save, fresh world |
+| --- | --- | --- | --- | --- | --- |
+| before (one setting) | 156 | 123 | 355,691 | 180 | 107 KB |
+| after, High | 141 | 89 | 282,865 | 156 | 59 KB |
+| after, Medium (default) | 74 | 83 | 150,193 | 105 | 59 KB |
+| after, Low | 44 | 70 | 80,974 | 60 | 59 KB |
+
+The fresh-world save grew from 36 KB (after C3.1's packing) to 59 KB because worlds now build more regions at
+creation for their towns and plots; a fully explored 7 x 7 world saves in about 160 KB, against a few MB allowed.
+The sky, grain and weather of C3.7 cost three draw calls and nothing measurable in frame time. **Andrew: turn on
+Menu, Settings, "Show the performance meter" on the Pixel 9 and send the numbers**, on Medium and on High; that is
+the real budget, and I could not measure it.
+
+**Bot win rate** (`node tests/playtest.js 150`, every piece on), sets 5 / 1000 / 2000: 28, 27, 31 (86 / 450, 19%),
+against 53 / 450 (12%) at the start of the commission. The floor was 8%. The rise is the plots: a great trouble other
+than the relic (a curse, a sickness) is usually a shorter journey than key, locked place and beacon, and the bot
+wins 10% of relic worlds as before. The bot now plays any great trouble, makes things, and trades a little.
+
+**My three best.**
+1. **Many plots (C3.4)**: a world is about something different each time, the old story is a third of the game, and
+   the other towns have a reason to be visited. It is also built so that a new plot is mostly data.
+2. **The performance meter and quality setting (C3.1)**: it turns "runs comfortably" into numbers, made the default
+   twice as cheap, and every later piece was measured against it.
+3. **Crafting (C3.5)**: small, and it ties fights and searches to staying alive; a shelter in the right place
+   changes a long leg.
+
+**What I would do next.**
+1. Measure on the Pixel 9 and set the default quality from the numbers; if Medium is comfortable, try a longer view.
+2. Teach the bot side troubles and trade runs, so the playtest measures the whole game, not just the great trouble.
+3. Balance the great troubles against each other (the curse is won 37% of the time, the cult 7%), and add a few more
+   (a dragon's hoard to buy back, a flood, a lost caravan), now that a plot is mostly data.
+4. Build the next region's land ahead on a quiet frame, so crossing a border never hitches even on High.
+5. Textures on walls and buildings, from the same cheap pattern as the ground's grain; people who travel the roads
+   between towns (caravans you can meet).
+6. When merging to main as v0.14, a CHANGELOG row (I left CHANGELOG.md alone, as the earlier commissions did until
+   their merge): "The third commission. A performance meter and graphics quality; worlds from 2 x 3 to 7 x 7; up to
+   six towns; a great trouble per world (relic, beast, curse, sickness, cult, siege) and side troubles in other
+   towns; crafting; trade between towns; a shaded sky and weather. See `JOURNAL.md`."
+
+**Order.** As recommended. "Any number of towns" came before plots (C3.3 before C3.4), as my earlier note said it
+should; crafting before trade, so materials could be sold.
+
+---
+
 Newest entry first. Performance numbers are from `tools/bench.py` (a real browser on a software renderer at 412 x 915,
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
