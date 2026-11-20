@@ -161,6 +161,14 @@ async def main():
         await pg.mouse.click(box['x'] + box['width'] * 0.2, box['y'] + box['height'] * 0.2); await pg.wait_for_timeout(400)
         assert await pg.evaluate("()=>document.getElementById('modal').hidden && Rules.inOverworld(window.__g.S)"), 'a tap on the map did not jump'
         steps.append('map tap jump')
+        # every new kind of place, in a world that has them all, reached by god mode and drawn without an error
+        await pg.evaluate("()=>{const g=window.__g;g.newWorld(34,{sky:1,sea:1,doors:1,size:'5x5'});document.querySelectorAll('#modal-close').forEach(b=>b.click());Rules.setGodMode(g.S,true);}")
+        for group in ['Below', 'Above', 'Water', 'Other worlds']:
+            got = await pg.evaluate("(gr)=>{const g=window.__g,S=g.S,p=Rules.places(S).find(p=>p.group===gr);if(!p)return null;Rules.jumpTo(S,p.id);g.refresh();g.buildStatic();g.refresh();return p.label}", group)
+            assert got, 'no %s place in a world made to have them all' % group
+            await pg.wait_for_timeout(500); await shot('11-' + group.replace(' ', '-').lower())
+            steps.append(group.lower() + ': ' + got)
+        await pg.evaluate("()=>{const S=window.__g.S;Rules.setGodMode(S,false);}")
         # the new world screen, with its settings opened
         await pg.click('#btn-menu'); await pg.wait_for_timeout(150)
         await pg.locator('#modal-body button', has_text='New world').first.click(); await pg.wait_for_timeout(150)

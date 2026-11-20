@@ -12927,6 +12927,16 @@
       g.add(up);
       return g;
     },
+    // a door of old stone, alone in the land, with another sky showing through it
+    door(S2, st) {
+      const g = new THREE.Group(), stone = std(7828330);
+      g.add(box(1.2, 7, 1.2, stone, -2.6, 3.5, 0), box(1.2, 7, 1.2, stone, 2.6, 3.5, 0), box(6.6, 1.2, 1.4, stone, 0, 7.4, 0));
+      const sky = new THREE.Mesh(new THREE.PlaneGeometry(4, 6.8), glow(st.back ? 12572912 : 11832544, 0.85));
+      sky.material.side = THREE.DoubleSide;
+      sky.position.y = 3.4;
+      g.add(sky);
+      return g;
+    },
     // a place in the water: a mast for a wreck, a cluster of hulls for a floating town, a ring of standing stones for
     // the merfolk's halls or a drowned shrine, and a dark cave mouth on the shore
     seaplace(S2, st) {
@@ -14709,6 +14719,9 @@
     skyway: "#e0a84a",
     trader: "#3a6a9a",
     seaplace: "#7fd0e0",
+    door: "#b48ce0",
+    throne: "#c0612f",
+    cellar: "#3b332c",
     spring: "#2f7fb5",
     cave: "#3b332c",
     ruin: "#7b4a8c",
@@ -15072,6 +15085,9 @@
       }),
       el("p", {
         text: "The ground matters. Each land has its own woods, watercourses and odd terrain: some shelter you, some give water or fuel, some are fast and some are punishing. The line under the meters says what you are standing on."
+      }),
+      el("p", {
+        text: "There is more than the land. Stairs in caves, ruins and town cellars go down into dungeons, harder and richer the deeper you go; they are dark, so bring a light. Something may float in the sky over a shadow with no cloud to cast it: you need a way to fly, and flying is quick but tiring, cold and grounded by storms. Deep water needs a boat or a way to breathe it. And rarely a door of old stone leads to another world. The goal line always points the next step of the way: a stair, a shadow, a door."
       }),
       el("h3", { text: "Goal" }),
       el("p", {

@@ -672,6 +672,9 @@ const MAPC = {
   skyway: '#e0a84a',
   trader: '#3a6a9a',
   seaplace: '#7fd0e0',
+  door: '#b48ce0',
+  throne: '#c0612f',
+  cellar: '#3b332c',
   spring: '#2f7fb5',
   cave: '#3b332c',
   ruin: '#7b4a8c',
@@ -1080,6 +1083,9 @@ function openMenu() {
     }),
     el('p', {
       text: 'The ground matters. Each land has its own woods, watercourses and odd terrain: some shelter you, some give water or fuel, some are fast and some are punishing. The line under the meters says what you are standing on.',
+    }),
+    el('p', {
+      text: 'There is more than the land. Stairs in caves, ruins and town cellars go down into dungeons, harder and richer the deeper you go; they are dark, so bring a light. Something may float in the sky over a shadow with no cloud to cast it: you need a way to fly, and flying is quick but tiring, cold and grounded by storms. Deep water needs a boat or a way to breathe it. And rarely a door of old stone leads to another world. The goal line always points the next step of the way: a stair, a shadow, a door.',
     }),
     el('h3', { text: 'Goal' }),
     el('p', {

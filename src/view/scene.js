@@ -119,6 +119,17 @@ const BUILD = {
     g.add(up);
     return g;
   },
+  // a door of old stone, alone in the land, with another sky showing through it
+  door(S, st) {
+    const g = new THREE.Group(),
+      stone = std(0x77736a);
+    g.add(box(1.2, 7, 1.2, stone, -2.6, 3.5, 0), box(1.2, 7, 1.2, stone, 2.6, 3.5, 0), box(6.6, 1.2, 1.4, stone, 0, 7.4, 0));
+    const sky = new THREE.Mesh(new THREE.PlaneGeometry(4, 6.8), glow(st.back ? 0xbfd8f0 : 0xb48ce0, 0.85));
+    sky.material.side = THREE.DoubleSide;
+    sky.position.y = 3.4;
+    g.add(sky);
+    return g;
+  },
   // a place in the water: a mast for a wreck, a cluster of hulls for a floating town, a ring of standing stones for
   // the merfolk's halls or a drowned shrine, and a dark cave mouth on the shore
   seaplace(S, st) {
