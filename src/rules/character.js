@@ -110,6 +110,12 @@ function nextTraveller(s, ch) {
     d.items.push(it);
   }
   d.remains = s.char.name;
+  // materials and trade goods lie with the body too, for the next traveller to take up
+  for (const kind of ['mats', 'goods']) {
+    const have = p[kind] || {};
+    for (const k in have) if (have[k] > 0) (d[kind] = d[kind] || {})[k] = (d[kind][k] || 0) + have[k];
+    p[kind] = {};
+  }
   d.coin = (d.coin || 0) + p.coin;
   s.lostMaps[i] = s.seen.join('');
   const diedIn = areaRec(s),

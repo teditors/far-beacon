@@ -33,7 +33,7 @@ import { ELDER_TALK, PLOT_HOOKS, findHere, mark } from './quest.js';
 import { gainXp } from './progress.js';
 import { road, spot, waterAt } from './plot.js';
 import { SOURCES } from './stats.js';
-import { ACTIONS, NOTES, SWITCHES } from './hooks.js';
+import { ACTIONS, NOTES, RUMOURS, SWITCHES } from './hooks.js';
 
 const P = () => C.plots;
 const kindOf = (p) => byId(P().kinds, p.kind);
@@ -678,6 +678,28 @@ on('did', (s, d) => {
   st.told = true;
   say(s, P().sites[st.kind].text);
   if (s.curses && s.curses[s.area]) say(s, P().curse.text, 'bad');
+});
+// Townsfolk talk of other towns' troubles you have not heard yet, and point the way (the town goes on your map).
+RUMOURS.push((s, out) => {
+  if (s.off.plots) return;
+  const here = townId(curTown(s));
+  for (const p of plotsOf(s)) {
+    if (p.known || p.main || p.kind === 'relic' || p.done || p.giver === here) continue;
+    const t = townById(s, p.giver);
+    if (!t) continue;
+    out.push(() => {
+      mark(s, t.x, t.y, townArea(s, t));
+      return (
+        '"Have you been to ' +
+        t.name +
+        '? They have trouble there: ' +
+        kindOf(p).name.toLowerCase() +
+        ', they say. Their elder would pay someone to deal with it." (' +
+        t.name +
+        ' is on your map.)'
+      );
+    });
+  }
 });
 SWITCHES.push(['plots', 'Many plots (new worlds)']);
 NOTES.push((s) =>

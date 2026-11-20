@@ -3925,6 +3925,7 @@
   var TUNERS = [];
   var TOWN_MAKERS = [];
   var WEIGHTS = [];
+  var RUMOURS = [];
   var SWITCHES = [];
   var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 
@@ -4459,6 +4460,11 @@
       d.items.push(it);
     }
     d.remains = s.char.name;
+    for (const kind2 of ["mats", "goods"]) {
+      const have = p[kind2] || {};
+      for (const k in have) if (have[k] > 0) (d[kind2] = d[kind2] || {})[k] = (d[kind2][k] || 0) + have[k];
+      p[kind2] = {};
+    }
     d.coin = (d.coin || 0) + p.coin;
     s.lostMaps[i] = s.seen.join("");
     const diedIn = areaRec(s), inside2 = !inOverworld(s), where = worldPos(s);
@@ -5454,6 +5460,12 @@
         s.player.coin += d.coin;
         d.coin = 0;
       }
+      for (const kind2 of ["mats", "goods"])
+        if (d && d[kind2]) {
+          const to = s.player[kind2] = s.player[kind2] || {};
+          for (const k in d[kind2]) to[k] = (to[k] || 0) + d[kind2][k];
+          delete d[kind2];
+        }
       say(
         s,
         "Here lies " + (d && d.remains ? d.remains : "a traveller") + ". Their goods are in the Pack screen, their purse is yours, and their map adds " + n + " tiles to yours.",
@@ -7686,6 +7698,7 @@
         const sp = s.species[pick(home).sp];
         return '"Watch out for the ' + sp.name + ". " + byId(C.creature.tempers, sp.temper).text + '"';
       });
+    for (const f of RUMOURS) f(s, out);
     return out.length && srand(s) < 0.8 ? pick(out)() : pick(L2().flavour);
   }
   function serviceInfo(s) {
@@ -8975,6 +8988,19 @@
     st.told = true;
     say(s, P2().sites[st.kind].text);
     if (s.curses && s.curses[s.area]) say(s, P2().curse.text, "bad");
+  });
+  RUMOURS.push((s, out) => {
+    if (s.off.plots) return;
+    const here2 = townId(curTown(s));
+    for (const p of plotsOf(s)) {
+      if (p.known || p.main || p.kind === "relic" || p.done || p.giver === here2) continue;
+      const t = townById(s, p.giver);
+      if (!t) continue;
+      out.push(() => {
+        mark(s, t.x, t.y, townArea(s, t));
+        return '"Have you been to ' + t.name + "? They have trouble there: " + kindOf2(p).name.toLowerCase() + ', they say. Their elder would pay someone to deal with it." (' + t.name + " is on your map.)";
+      });
+    }
   });
   SWITCHES.push(["plots", "Many plots (new worlds)"]);
   NOTES.push(

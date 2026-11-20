@@ -23,6 +23,9 @@ const TUNERS = [];
 const TOWN_MAKERS = [];
 // WEIGHTS: functions (s) giving more weight the traveller carries (materials, trade goods).
 const WEIGHTS = [];
+// RUMOURS: functions (s, out) that may push rumours onto the list a townsperson picks from; each is a function () giving
+// the words (and marking the map, if the rumour points somewhere).
+const RUMOURS = [];
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
-export { NOTES, SWITCHES, SKETCHERS, LOADERS, TUNERS, TOWN_MAKERS, WEIGHTS, ACTIONS, TALK, ITEM_HOOKS, worldNotes };
+export { NOTES, SWITCHES, SKETCHERS, LOADERS, TUNERS, TOWN_MAKERS, WEIGHTS, RUMOURS, ACTIONS, TALK, ITEM_HOOKS, worldNotes };

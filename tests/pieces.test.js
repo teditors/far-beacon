@@ -488,6 +488,13 @@ const findSeed = (fn, from = 1) => { for (let i = from; i < from + 3000; i++) { 
   let k = 0; while (s.sites[k] || s.terrain[k] === 2 || s.terrain[k] >= 4) k++;
   s.player.x = k % R.W; s.player.y = Math.floor(k / R.W);
   need(!R.inShelter(s) && R.craft(s, 'shelter') && R.inShelter(s), 'a shelter is not shelter');
+  // a traveller's materials lie with the body
+  s.player.mats = { hide: 3 };
+  s.over = { won: false, cause: 'thirst' };
+  const at = s.player.y * R.W + s.player.x, area = s.area;
+  R.nextTraveller(s, R.makeChar(Math.random, s));
+  const body = R.mapOf(s, area).depots[at];
+  need(body && body.mats && body.mats.hide === 3 && !(s.player.mats || {}).hide, 'materials did not stay with the body');
   const o = R.newGame(4, { crafting: true });
   o.off.crafting = true;
   need(!R.recipes(o).length, 'NO=crafting still offers recipes');

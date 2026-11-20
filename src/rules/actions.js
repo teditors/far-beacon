@@ -158,6 +158,12 @@ function arrive(s) {
       s.player.coin += d.coin;
       d.coin = 0;
     }
+    for (const kind of ['mats', 'goods'])
+      if (d && d[kind]) {
+        const to = (s.player[kind] = s.player[kind] || {});
+        for (const k in d[kind]) to[k] = (to[k] || 0) + d[kind][k];
+        delete d[kind];
+      }
     say(
       s,
       'Here lies ' +

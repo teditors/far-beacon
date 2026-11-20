@@ -4,6 +4,14 @@ Newest entry first. Performance numbers are from `tools/bench.py` (a real browse
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
 
+## C3.8: word of other towns' troubles, and what the dead carried
+
+Two small things of my own. **Townsfolk talk of other towns' troubles** you have not heard yet ("Have you been to
+Greyby? They have trouble there: the cult, they say.") and the town goes on your map, so the side troubles of C3.4
+find you instead of waiting to be stumbled on. A new hook, `RUMOURS` in hooks.js, lets any piece add a rumour.
+**Materials and trade goods now lie with a fallen traveller's body**, with their coin and gear, and the next
+traveller takes them up when they find it (C3.5 had them lost). Bot unchanged. Switches: `plots`, `crafting`.
+
 ## C3.7: light, sky and weather
 
 **What it is.** Small visual gains, all behind the quality setting (none on Low):

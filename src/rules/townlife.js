@@ -25,7 +25,7 @@ import { findSite, mark } from './quest.js';
 import { isCursed, itemName, makeItem } from './items.js';
 import { gainXp } from './progress.js';
 import { SOURCES, stat } from './stats.js';
-import { ACTIONS, NOTES, SWITCHES, TALK, TOWN_MAKERS } from './hooks.js';
+import { ACTIONS, NOTES, RUMOURS, SWITCHES, TALK, TOWN_MAKERS } from './hooks.js';
 
 const L = () => C.townLife;
 const SERVICE_IDS = () => L().services.map((x) => x.id);
@@ -313,6 +313,7 @@ function rumour(s) {
       const sp = s.species[pick(home).sp];
       return '"Watch out for the ' + sp.name + '. ' + byId(C.creature.tempers, sp.temper).text + '"';
     });
+  for (const f of RUMOURS) f(s, out);
   return out.length && srand(s) < 0.8 ? pick(out)() : pick(L().flavour);
 }
 
