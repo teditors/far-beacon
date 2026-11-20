@@ -9487,7 +9487,9 @@
       treesF: 0.3,
       rocksN: 0.6,
       rocksF: 0,
-      extras: false
+      sky: false,
+      grain: false,
+      weather: 0
     },
     medium: {
       label: "Medium",
@@ -9500,7 +9502,9 @@
       treesF: 0.5,
       rocksN: 1,
       rocksF: 0.5,
-      extras: true
+      sky: true,
+      grain: true,
+      weather: 700
     },
     high: {
       label: "High",
@@ -9513,7 +9517,9 @@
       treesF: 0.5,
       rocksN: 1,
       rocksF: 1,
-      extras: true
+      sky: true,
+      grain: true,
+      weather: 1600
     }
   };
   var SET = { quality: "medium", meter: false };
@@ -9758,7 +9764,10 @@
     scene.remove(g);
     g.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
-      if (o.material) o.material.dispose();
+      if (o.material) {
+        if (o.material.map) o.material.map.dispose();
+        o.material.dispose();
+      }
     });
   };
   var TREE = (() => {
@@ -9772,6 +9781,32 @@
     g.dispose = () => {
     };
     return g;
+  })();
+  var GRAIN = (() => {
+    const n = 64, d = new Uint8Array(n * n * 4);
+    let a = 7;
+    const r = () => (a = a * 16807 % 2147483647) / 2147483647;
+    for (let i = 0; i < n * n; i++) {
+      const v = 214 + Math.floor(r() * 41);
+      d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v;
+      d[i * 4 + 3] = 255;
+    }
+    for (let k = 0; k < 40; k++) {
+      let x = Math.floor(r() * n), y = Math.floor(r() * n);
+      for (let j = 0; j < 4; j++) {
+        const i = ((y & n - 1) * n + (x & n - 1)) * 4;
+        d[i] = d[i + 1] = d[i + 2] = 190;
+        x += r() < 0.5 ? 1 : 0;
+        y += 1;
+      }
+    }
+    const t = new THREE.DataTexture(d, n, n, THREE.RGBAFormat);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.magFilter = THREE.LinearFilter;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.generateMipmaps = true;
+    t.needsUpdate = true;
+    return t;
   })();
   var BUILD = {
     well() {
@@ -10209,9 +10244,14 @@
       }
       geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
       geo.computeVertexNormals();
-      staticGroup.add(
-        new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 }))
-      );
+      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
+      if (Q.grain) {
+        const tex = GRAIN.clone();
+        tex.needsUpdate = true;
+        tex.repeat.set(g.half * 2 / 6, g.half * 2 / 6);
+        mat.map = tex;
+      }
+      staticGroup.add(new THREE.Mesh(geo, mat));
     };
     ground(T2.fine, 0, false);
     ground(T2.coarse, SINK, true);
@@ -10363,7 +10403,10 @@
     for (const c of map.creatures) {
       const fighting = current && V.S.combat && V.S.combat.cid === c.id;
       if (c.bound && !fighting) continue;
-      const sp = R.spOf(V.S, c), g = new THREE.Group(), col = sp.rare === "gilded" ? 14263584 : sp.rare === "docile" ? 8367738 : R.biomeOf(V.S).creatureTint, mat = std(col), k = (sp.rare === "elder" ? 1.45 : 1) * (0.9 + c.tier * 0.12), eye = new THREE.MeshBasicMaterial({ color: 16726831, fog: false });
+      const sp = R.spOf(V.S, c), g = new THREE.Group(), col = sp.rare === "gilded" ? 14263584 : sp.rare === "docile" ? 8367738 : R.biomeOf(V.S).creatureTint, mat = std(col), k = (sp.rare === "elder" ? 1.45 : 1) * (0.9 + c.tier * 0.12), eye = new THREE.MeshBasicMaterial({
+        color: sp.rare === "docile" ? 10478495 : sp.temper === "hunter" ? 16726831 : sp.temper === "skittish" ? 16769130 : 16751146,
+        fog: false
+      });
       if (sp.form === "hound")
         g.add(
           box(0.6, 0.7, 1.7, mat, 0, 0.8, 0),
@@ -10435,6 +10478,129 @@
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+  }
+
+  // src/view/sky.js
+  var SKY_R = 1800;
+  var dome = null;
+  var sunDisc = null;
+  var moonDisc = null;
+  var fall = null;
+  var fallKind = "";
+  var fallN = 0;
+  function makeDome() {
+    const g = new THREE.SphereGeometry(SKY_R, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2 + 0.15), pos = g.attributes.position, col = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+      const up = Math.max(0, pos.getY(i) / SKY_R), k = 1 - 0.38 * Math.pow(up, 0.8);
+      col[i * 3] = k * 0.92;
+      col[i * 3 + 1] = k * 0.97;
+      col[i * 3 + 2] = Math.min(1, k * 1.08);
+    }
+    g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const m = new THREE.Mesh(
+      g,
+      new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })
+    );
+    m.renderOrder = -10;
+    m.frustumCulled = false;
+    return m;
+  }
+  var disc = (r, color) => {
+    const m = new THREE.Mesh(
+      new THREE.CircleGeometry(r, 20),
+      new THREE.MeshBasicMaterial({ color, fog: false, transparent: true, depthWrite: false })
+    );
+    m.renderOrder = -9;
+    m.frustumCulled = false;
+    return m;
+  };
+  function kindOf3(name) {
+    const n = (name || "").toLowerCase();
+    if (/snow|blizzard/.test(n)) return "snow";
+    if (/hail/.test(n)) return "hail";
+    if (/dust|sand|gale|wind/.test(n)) return "dust";
+    if (/ash/.test(n)) return "ash";
+    if (/star/.test(n)) return "stars";
+    if (/fog/.test(n)) return "";
+    return "rain";
+  }
+  var FALL = {
+    rain: { color: 10466504, size: 0.12, speed: 26, drift: 1, n: 1 },
+    hail: { color: 15265522, size: 0.2, speed: 18, drift: 1, n: 0.6 },
+    snow: { color: 16777215, size: 0.22, speed: 2.2, drift: 1.6, n: 1 },
+    dust: { color: 13215610, size: 0.18, speed: 0.6, drift: 9, n: 1 },
+    ash: { color: 4867908, size: 0.2, speed: 1.5, drift: 2, n: 0.8 },
+    stars: { color: 16771496, size: 0.6, speed: 40, drift: 4, n: 0.05 }
+  };
+  var BOX = 40;
+  function makeFall(kind2) {
+    const f = FALL[kind2], n = Math.max(1, Math.round(Q.weather * f.n)), pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * BOX * 2;
+      pos[i * 3 + 1] = Math.random() * BOX;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * BOX * 2;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const m = new THREE.Points(
+      g,
+      new THREE.PointsMaterial({ color: f.color, size: f.size, transparent: true, opacity: 0.85, depthWrite: false })
+    );
+    m.frustumCulled = false;
+    fallN = n;
+    return m;
+  }
+  function updateSky(skyColor, sunPos, day, storm, dt) {
+    const on2 = Q.sky && !R.isDark(V.S);
+    if (on2 && !dome) {
+      dome = makeDome();
+      sunDisc = disc(70, 16773832);
+      moonDisc = disc(40, 14673648);
+      scene.add(dome, sunDisc, moonDisc);
+    }
+    if (dome) {
+      dome.visible = sunDisc.visible = moonDisc.visible = on2;
+      if (on2) {
+        dome.position.copy(camera.position);
+        dome.material.color.copy(skyColor);
+        const d = sunPos.clone().normalize().multiplyScalar(SKY_R * 0.95);
+        sunDisc.position.copy(camera.position).add(d);
+        sunDisc.lookAt(camera.position);
+        sunDisc.material.opacity = storm ? 0 : Math.max(0, Math.min(1, day * 1.5));
+        moonDisc.position.copy(camera.position).sub(d.setY(Math.abs(d.y)));
+        moonDisc.lookAt(camera.position);
+        moonDisc.material.opacity = storm ? 0 : Math.max(0, 0.9 - day * 1.6);
+      }
+    }
+    const kind2 = Q.weather > 0 && storm && !R.indoors(V.S) ? kindOf3(storm.name) : "";
+    if (kind2 !== fallKind || fall && fallN !== Math.max(1, Math.round(Q.weather * (FALL[kind2] || { n: 1 }).n))) {
+      if (fall) {
+        scene.remove(fall);
+        fall.geometry.dispose();
+        fall.material.dispose();
+        fall = null;
+      }
+      fallKind = kind2;
+      if (kind2) scene.add(fall = makeFall(kind2));
+    }
+    if (fall) {
+      const f = FALL[kind2], a = fall.geometry.attributes.position, p = a.array, wind = Math.sin(performance.now() / 3e3) * f.drift;
+      for (let i = 0; i < p.length; i += 3) {
+        p[i + 1] -= f.speed * dt;
+        p[i] += wind * dt;
+        p[i + 2] += f.drift * 0.3 * dt;
+        if (p[i + 1] < 0) p[i + 1] += BOX;
+        if (p[i] > BOX) p[i] -= 2 * BOX;
+        if (p[i] < -BOX) p[i] += 2 * BOX;
+        if (p[i + 2] > BOX) p[i + 2] -= 2 * BOX;
+      }
+      a.needsUpdate = true;
+      fall.position.set(P3.x, P3.y - BOX * 0.4, P3.z);
+    }
+  }
+  function hideSky() {
+    if (dome) dome.visible = sunDisc.visible = moonDisc.visible = false;
+    if (fall) fall.visible = false;
   }
 
   // src/view/run.js
@@ -10664,6 +10830,7 @@
       lamp.intensity = lit ? 1.1 : 0.25;
       lamp.distance = lit ? 26 : 6;
       lamp.position.set(P3.x, P3.y + 0.8, P3.z);
+      hideSky();
       return finishFrame();
     }
     lamp.distance = 45;
@@ -10681,6 +10848,7 @@
     sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
     lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
     lamp.position.set(P3.x, P3.y + 0.3, P3.z);
+    updateSky(skyC, sun.position, day, storm ? R.stormOfNow(V.S) : null, frameDt);
     finishFrame();
   }
   function finishFrame() {
@@ -10694,8 +10862,10 @@
     perfFrame(renderer);
   }
   var last = performance.now();
+  var frameDt = 0.016;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1e3);
+    frameDt = dt;
     last = now;
     if (V.S) {
       tick(dt, now);
@@ -11480,7 +11650,7 @@
         text: "Your goal is on the top panel, with a direction when you know one. It begins with finding the town, whose smoke you can see from far off. Phone: left thumb walks, right thumb looks. Computer: W A S D to walk, drag the view or use Q and E to turn."
       }),
       el("p", {
-        text: "Time only passes when you walk or act, so stop whenever you want to think. Creatures are rare and usually visible before they reach you; a fight is turn by turn, and fleeing is often the right call. Water drains as you travel. Cold drains warmth at night and in storms. Stamina keeps you alive when either runs out."
+        text: "Time only passes when you walk or act, so stop whenever you want to think. Creatures are rare and usually visible before they reach you; a fight is turn by turn, and fleeing is often the right call. A creature's eyes tell its temper: red hunts you, orange guards its ground, yellow keeps to itself. Water drains as you travel. Cold drains warmth at night and in storms. Stamina keeps you alive when either runs out."
       }),
       el("p", {
         text: "You cannot carry enough water to cross in one go. Look for green ground and blue pools, search ruins and caves, leave water and fuel as depots from the Pack screen, and move your camp forward to a cave or ruin."
@@ -11823,6 +11993,7 @@
     renderer,
     buildStatic,
     PF,
+    Q,
     setQuality(name) {
       setQuality(name);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));

@@ -4,6 +4,30 @@ Newest entry first. Performance numbers are from `tools/bench.py` (a real browse
 seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated.
 
+## C3.7: light, sky and weather
+
+**What it is.** Small visual gains, all behind the quality setting (none on Low):
+- **A sky** that darkens toward the top instead of one flat colour, meeting the fog exactly at the horizon, with a
+  **sun** crossing it by day and a pale **moon** by night (hidden in a storm).
+- **Grain on the ground**: a soft speckle every six metres, so near ground reads as ground and you can feel yourself
+  move over flat country.
+- **Weather you can see**: rain, snow, hail, dust, ash or falling stars while a storm blows, chosen from the storm's
+  name (a blizzard snows, a dust storm blows dust sideways), 700 on Medium and 1600 on High, falling round you.
+- **Creatures' eyes show their temper**: red hunts you, orange guards its ground, yellow keeps to itself, green will
+  not fight. Told in How to play.
+
+**Cost, measured** (`tools/bench.py medium-plain medium`, same build and worlds): 80 to 83 draw calls, 149,849 to
+150,193 triangles, frame time within the noise (120.7 ms plain, 115.8 ms with them, on the software renderer). The
+storm's points are one draw call updated in JavaScript.
+
+**Commits.** "Light, sky and weather". No switch: it is the view, under Settings.
+
+**Choices made without asking.** No real lighting changes (shadows, fog colour shifts) and no textures on walls or
+buildings yet: the grain shows how cheap a texture is, and walls could take one next. Weather particles use plain
+random numbers in the view, which is allowed there (the rules never see them).
+
+**Verdict: maybe-to-pearl.** Modest, as asked; the snow in particular changes how a blizzard feels.
+
 ## C3.6: trade between towns
 
 **What it is.** Every town's shop now has a **Market** of six trade goods: furs, salt, timber, iron tools, cloth and

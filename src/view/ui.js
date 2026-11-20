@@ -916,7 +916,7 @@ function openMenu() {
       text: 'Your goal is on the top panel, with a direction when you know one. It begins with finding the town, whose smoke you can see from far off. Phone: left thumb walks, right thumb looks. Computer: W A S D to walk, drag the view or use Q and E to turn.',
     }),
     el('p', {
-      text: 'Time only passes when you walk or act, so stop whenever you want to think. Creatures are rare and usually visible before they reach you; a fight is turn by turn, and fleeing is often the right call. Water drains as you travel. Cold drains warmth at night and in storms. Stamina keeps you alive when either runs out.',
+      text: "Time only passes when you walk or act, so stop whenever you want to think. Creatures are rare and usually visible before they reach you; a fight is turn by turn, and fleeing is often the right call. A creature's eyes tell its temper: red hunts you, orange guards its ground, yellow keeps to itself. Water drains as you travel. Cold drains warmth at night and in storms. Stamina keeps you alive when either runs out.",
     }),
     el('p', {
       text: 'You cannot carry enough water to cross in one go. Look for green ground and blue pools, search ruins and caves, leave water and fuel as depots from the Pack screen, and move your camp forward to a cave or ruin.',
@@ -1329,6 +1329,7 @@ window.__g = {
   renderer,
   buildStatic,
   PF,
+  Q,
   setQuality(name) {
     setQuality(name);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));

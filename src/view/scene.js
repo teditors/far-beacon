@@ -32,7 +32,10 @@ const dispose = (g) => {
   scene.remove(g);
   g.traverse((o) => {
     if (o.geometry) o.geometry.dispose();
-    if (o.material) o.material.dispose();
+    if (o.material) {
+      if (o.material.map) o.material.map.dispose();
+      o.material.dispose();
+    }
   });
 };
 // A tree: a six-sided cone with no base, which is never seen (6 triangles instead of 18). Shared by every build.
@@ -49,6 +52,35 @@ const TREE = (() => {
   g.setIndex(keep);
   g.dispose = () => {}; // shared: never thrown away with a scene
   return g;
+})();
+// The ground's grain: soft speckles and a few darker strokes, tiled. Made once.
+const GRAIN = (() => {
+  const n = 64,
+    d = new Uint8Array(n * n * 4);
+  let a = 7;
+  const r = () => (a = (a * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < n * n; i++) {
+    const v = 214 + Math.floor(r() * 41);
+    d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v;
+    d[i * 4 + 3] = 255;
+  }
+  for (let k = 0; k < 40; k++) {
+    let x = Math.floor(r() * n),
+      y = Math.floor(r() * n);
+    for (let j = 0; j < 4; j++) {
+      const i = ((y & (n - 1)) * n + (x & (n - 1))) * 4;
+      d[i] = d[i + 1] = d[i + 2] = 190;
+      x += r() < 0.5 ? 1 : 0;
+      y += 1;
+    }
+  }
+  const t = new THREE.DataTexture(d, n, n, THREE.RGBAFormat);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.magFilter = THREE.LinearFilter;
+  t.minFilter = THREE.LinearMipmapLinearFilter;
+  t.generateMipmaps = true;
+  t.needsUpdate = true;
+  return t;
 })();
 const BUILD = {
   well() {
@@ -565,9 +597,15 @@ function buildStaticInner() {
     }
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     geo.computeVertexNormals();
-    staticGroup.add(
-      new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 })),
-    );
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
+    if (Q.grain) {
+      // a fine pattern of light and dark in the ground, about every six metres, so near ground reads as ground
+      const tex = GRAIN.clone();
+      tex.needsUpdate = true;
+      tex.repeat.set((g.half * 2) / 6, (g.half * 2) / 6);
+      mat.map = tex;
+    }
+    staticGroup.add(new THREE.Mesh(geo, mat));
   };
   ground(T.fine, 0, false);
   ground(T.coarse, SINK, true);
@@ -780,7 +818,12 @@ function drawArea(id, kind) {
       col = sp.rare === 'gilded' ? 0xd9a520 : sp.rare === 'docile' ? 0x7fae7a : R.biomeOf(V.S).creatureTint,
       mat = std(col),
       k = (sp.rare === 'elder' ? 1.45 : 1) * (0.9 + c.tier * 0.12),
-      eye = new THREE.MeshBasicMaterial({ color: 0xff3b2f, fog: false });
+      // its eyes tell its temper at a glance: red hunts you, orange guards its ground, yellow keeps to itself
+      eye = new THREE.MeshBasicMaterial({
+        color:
+          sp.rare === 'docile' ? 0x9fe39f : sp.temper === 'hunter' ? 0xff3b2f : sp.temper === 'skittish' ? 0xffe06a : 0xff9a2a,
+        fog: false,
+      });
     if (sp.form === 'hound')
       g.add(
         box(0.6, 0.7, 1.7, mat, 0, 0.8, 0),

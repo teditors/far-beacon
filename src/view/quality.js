@@ -4,6 +4,7 @@
 const KEY = 'farbeacon.settings';
 // margin: tiles of the neighbouring regions drawn around the player's region. fine: ground cells across a region.
 // coarse: how many fine cells one cell of the far ground spans. trees, rocks: share drawn near (n) and far (f).
+// sky: a shaded sky with a sun and moon. grain: a fine pattern on the ground. weather: how many drops or flakes fall.
 // ratio: the most screen pixels per CSS pixel. fog: how far the eye sees by day, as a share of the drawn margin.
 const QUALITY = {
   low: {
@@ -17,7 +18,9 @@ const QUALITY = {
     treesF: 0.3,
     rocksN: 0.6,
     rocksF: 0,
-    extras: false,
+    sky: false,
+    grain: false,
+    weather: 0,
   },
   medium: {
     label: 'Medium',
@@ -30,7 +33,9 @@ const QUALITY = {
     treesF: 0.5,
     rocksN: 1,
     rocksF: 0.5,
-    extras: true,
+    sky: true,
+    grain: true,
+    weather: 700,
   },
   high: {
     label: 'High',
@@ -43,7 +48,9 @@ const QUALITY = {
     treesF: 0.5,
     rocksN: 1,
     rocksF: 1,
-    extras: true,
+    sky: true,
+    grain: true,
+    weather: 1600,
   },
 };
 const SET = { quality: 'medium', meter: false };

@@ -1,6 +1,7 @@
 # Measures what the phone budget cares about, in a real (software-rendered) browser: how long it takes to build the
 # land around the player, how many draw calls and triangles a frame takes, and the frame time looking across the land.
-# Usage: python3 tools/bench.py [quality ...]   e.g. python3 tools/bench.py low medium high
+# Usage: python3 tools/bench.py [quality ...]   e.g. python3 tools/bench.py low medium high medium-plain
+# (a quality ending in -plain is that quality without the sky, the ground's grain and the weather)
 # Set CHROME=/path/to/chrome to use a particular browser. Numbers on a software renderer are slow but comparable.
 import asyncio, json, os, sys
 from playwright.async_api import async_playwright
@@ -23,7 +24,8 @@ async def main():
             for seed in SEEDS:
                 r = await pg.evaluate("""async ([seed, q]) => {
                   const g = window.__g;
-                  if (q !== 'default' && g.setQuality) g.setQuality(q);
+                  if (q !== 'default' && g.setQuality) g.setQuality(q.replace('-plain', ''));
+                  if (q.endsWith('-plain')) Object.assign(g.Q, { sky: false, grain: false, weather: 0 }); // without the light and weather
                   g.newWorld(seed);
                   const S = g.S, wait = (ms) => new Promise((r) => setTimeout(r, ms));
                   document.querySelectorAll('#modal-close').forEach((b) => b.click());

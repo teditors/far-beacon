@@ -4,6 +4,7 @@ import { applyFrame, buildDynamic, buildStatic, camera, hemi, lamp, renderer, sc
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
 import { Q } from './quality.js';
 import { perfBuild, perfFrame, perfSave } from './perf.js';
+import { hideSky, updateSky } from './sky.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -273,6 +274,7 @@ function frame() {
     lamp.intensity = lit ? 1.1 : 0.25;
     lamp.distance = lit ? 26 : 6;
     lamp.position.set(P.x, P.y + 0.8, P.z);
+    hideSky();
     return finishFrame();
   }
   lamp.distance = 45;
@@ -291,6 +293,7 @@ function frame() {
   sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
   lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
   lamp.position.set(P.x, P.y + 0.3, P.z);
+  updateSky(skyC, sun.position, day, storm ? R.stormOfNow(V.S) : null, frameDt);
   finishFrame();
 }
 function finishFrame() {
@@ -304,8 +307,10 @@ function finishFrame() {
   perfFrame(renderer);
 }
 let last = performance.now();
+let frameDt = 0.016;
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
+  frameDt = dt;
   last = now;
   if (V.S) {
     tick(dt, now);
