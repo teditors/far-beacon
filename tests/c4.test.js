@@ -377,5 +377,19 @@ const done = [];
   }
   done.push('wayfarers (' + Object.keys(byKind).join(', ') + ')');
 }
+// Old worlds deepen: a save from before commission 4 gains dungeons (and sometimes sky places) once, on loading.
+{
+  const fs = require('fs'), path = require('path');
+  const text = fs.readFileSync(path.join(__dirname, 'fixtures', 'save-v9-walked.json'), 'utf8'), a = R.deserialize(text).state;
+  need(a.deeps && a.deeps.length && a.deeps.every((d) => d.x !== undefined || !a.areas[d.area]), 'an old world did not gain dungeons, or their stairs were not put down');
+  const again = R.deserialize(R.serialize(a)).state;
+  need(again.deeps.length === a.deeps.length && R.serialize(again) === R.serialize(a), 'loading an old world twice deepened it twice');
+  need(R.serialize(R.deserialize(text).state) === R.serialize(a), 'an old world deepens differently each time it loads');
+  const d = a.deeps.find((x) => x.x !== undefined && !x.area.includes(':') && a.areas[x.area].kind === 'region');
+  a.over = null; // this fixture's traveller died of thirst
+  R.setGodMode(a, true);
+  need(d && R.jumpTo(a, 'deep:' + d.id + ':1') && R.areaRec(a).kind === 'deep', 'could not go down into an old world\'s new dungeon');
+  done.push('old worlds deepen (' + a.deeps.length + ' dungeons, ' + (a.skies || []).length + ' sky places)');
+}
 if (errs.length) { console.log('commission 4 problems:\n  ' + errs.join('\n  ')); process.exit(1); }
 console.log('c4 ok: ' + done.join(', '));

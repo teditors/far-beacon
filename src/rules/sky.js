@@ -119,7 +119,8 @@ SYSTEMS.push({
 });
 
 /* ---------- sky places, rolled at world creation ---------- */
-on('worldBorn', (s, ev) => {
+// Roll a world's places in the sky: when it is made, and once for a world made before there were any (deepen.js).
+function rollSky(s, ev) {
   if (ev.off.sky) return;
   const set = ev.set || genOf(s),
     r = stream(s.seed, 'sky');
@@ -185,10 +186,11 @@ on('worldBorn', (s, ev) => {
     s.skyShop = t.id || 'town';
   } else (deepest.extra = deepest.extra || []).push(boots);
   for (const id in s.areas) {
-    const m = id === s.area ? s : s.areas[id].map;
+    const m = s.areas[id].map || id === s.area ? mapOf(s, id) : null;
     if (m && s.areas[id].kind === 'region') putShadows(s, id, m);
   }
-});
+}
+on('worldBorn', rollSky);
 // The shadow of a sky place on the ground below it: a site anyone can see, and the place to fly up from.
 function putShadows(s, area, m) {
   for (const k of skiesOf(s)) {
@@ -622,6 +624,7 @@ function addSky(s, kind, rec, r) {
   return k;
 }
 export {
+  rollSky,
   skiesOf,
   skyById,
   takeOff,

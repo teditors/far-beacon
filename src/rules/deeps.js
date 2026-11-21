@@ -44,7 +44,8 @@ const levelId = (d, n) => (d.id === 'vault' ? 'vault' + n : d.id + '.' + n);
 SITE_NAME.cellar = 'cellar stair';
 
 /* ---------- at world creation: which dungeons, where, how deep ---------- */
-on('worldBorn', (s, ev) => {
+// Roll a world's dungeons: when it is made, and once for a world made before there were any (deepen.js).
+function rollDeeps(s, ev) {
   if (ev.off.deeps) return;
   const set = ev.set || genOf(s),
     r = stream(s.seed, 'deeps'),
@@ -78,10 +79,11 @@ on('worldBorn', (s, ev) => {
   s.deeps = list;
   // maps already built (home, the regions round it, the towns) get their stairs now; the rest as they are built
   for (const id in s.areas) {
-    const m = id === s.area ? s : s.areas[id].map;
+    const m = s.areas[id].map || id === s.area ? mapOf(s, id) : null;
     if (m) placeStairs(s, id, m);
   }
-});
+}
+on('worldBorn', rollDeeps);
 
 /* ---------- the stair down, put in a map as it is built ---------- */
 function placeStairs(s, area, m) {
@@ -663,6 +665,7 @@ NOTES.push((s) => {
 SWITCHES.push(['deeps', 'Dungeons (new worlds)']);
 
 export {
+  rollDeeps,
   placeStairs,
   levelTitle,
   deepsOf,

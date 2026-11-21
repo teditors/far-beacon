@@ -4,7 +4,7 @@ import { VERSION } from './core.js';
 import { coolDown, ensureAround, ensureTown } from './areas.js';
 import { GRIDS, packGrid, unpackGrid } from './grids.js';
 import { makeSketch } from './world.js';
-import { LOADERS } from './hooks.js';
+import { AFTER_LOAD, LOADERS } from './hooks.js';
 
 const MIGRATIONS = {
   // 6 -> 7: towns and the locked place became areas you walk into.
@@ -94,6 +94,7 @@ function deserialize(text) {
     up(s);
     s.v++;
   }
+  for (const f of AFTER_LOAD) f(s);
   ensureTown(s);
   ensureAround(s);
   coolDown(s);

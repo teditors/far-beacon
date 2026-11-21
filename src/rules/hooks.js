@@ -38,11 +38,14 @@ const OBJECTIVES = [];
 // ENTRANCES: functions (s, areaId) saying how a level a piece owns is entered from the area it opens off:
 // { area, x, y, act, fly } or null (see route.js).
 const ENTRANCES = [];
+// AFTER_LOAD: functions (s) run when a save has loaded and been upgraded, before its maps are put away.
+const AFTER_LOAD = [];
 // LEVELS: for levels a piece owns, by area kind: LEVELS[kind](s) takes the stair down (goDown calls it).
 const LEVELS = {};
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 export {
+  AFTER_LOAD,
   ENTRANCES,
   OBJECTIVES,
   COSTS,

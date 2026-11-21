@@ -4886,6 +4886,7 @@
   var LOOKS = [];
   var OBJECTIVES = [];
   var ENTRANCES = [];
+  var AFTER_LOAD = [];
   var LEVELS = {};
   var SWITCHES = [];
   var worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
@@ -7739,6 +7740,7 @@
       up(s);
       s.v++;
     }
+    for (const f of AFTER_LOAD) f(s);
     ensureTown(s);
     ensureAround(s);
     coolDown(s);
@@ -9580,7 +9582,7 @@
   var deepById = (s, id) => deepsOf(s).find((d) => d.id === id) || null;
   var levelId = (d, n) => d.id === "vault" ? "vault" + n : d.id + "." + n;
   SITE_NAME.cellar = "cellar stair";
-  on("worldBorn", (s, ev) => {
+  function rollDeeps(s, ev) {
     if (ev.off.deeps) return;
     const set = ev.set || genOf(s), r = stream(s.seed, "deeps"), X8 = D2(), w = s.world, pick = (a) => a[Math.floor(r() * a.length)], most = Math.max(1, set.depth), list = [];
     let n = 0;
@@ -9600,10 +9602,11 @@
     if (deepest && deepest.depth >= 3 && !ev.off.artifacts) deepest.prize = makeArtifact(s, stream(s.seed, "deeps:art"), []);
     s.deeps = list;
     for (const id in s.areas) {
-      const m = id === s.area ? s : s.areas[id].map;
+      const m = s.areas[id].map || id === s.area ? mapOf(s, id) : null;
       if (m) placeStairs(s, id, m);
     }
-  });
+  }
+  on("worldBorn", rollDeeps);
   function placeStairs(s, area, m) {
     for (const d of deepsOf(s)) {
       if (d.area !== area || d.x !== void 0) continue;
@@ -10176,7 +10179,7 @@
       } else if (p.stamina < K().lowStamina) land(s, "Your strength gives out and you come down, gasping.");
     }
   });
-  on("worldBorn", (s, ev) => {
+  function rollSky(s, ev) {
     if (ev.off.sky) return;
     const set = ev.set || genOf(s), r = stream(s.seed, "sky");
     if (!(r() < set.sky)) return;
@@ -10227,10 +10230,11 @@
       s.skyShop = t.id || "town";
     } else (deepest.extra = deepest.extra || []).push(boots);
     for (const id in s.areas) {
-      const m = id === s.area ? s : s.areas[id].map;
+      const m = s.areas[id].map || id === s.area ? mapOf(s, id) : null;
       if (m && s.areas[id].kind === "region") putShadows(s, id, m);
     }
-  });
+  }
+  on("worldBorn", rollSky);
   function putShadows(s, area, m) {
     for (const k of skiesOf(s)) {
       if (k.area !== area) continue;
@@ -11575,6 +11579,26 @@
     );
   });
   SWITCHES.push(["wayfarers", "Wayfarers in the wilds"]);
+
+  // src/rules/deepen.js
+  on("worldBorn", (s) => {
+    s.deep = 1;
+  });
+  AFTER_LOAD.push((s) => {
+    if (s.deep || s.off && s.off.deepen || !s.world || !s.player) return;
+    s.deep = 1;
+    const ev = { off: s.off || {}, set: genOf(s) };
+    if (s.deeps === void 0) rollDeeps(s, ev);
+    if (s.skies === void 0) rollSky(s, ev);
+    const n = (s.deeps || []).length, k = (s.skies || []).length;
+    if (n || k)
+      say(
+        s,
+        "This land is deeper than you knew: " + (n ? n + (n === 1 ? " stair goes" : " stairs go") + " down into the dark somewhere in it" : "") + (n && k ? ", and " : "") + (k ? "something hangs in its sky" : "") + ".",
+        "good"
+      );
+  });
+  SWITCHES.push(["deepen", "Old worlds gain dungeons and sky places"]);
 
   // src/rules/plots.js
   var P2 = () => C.plots;

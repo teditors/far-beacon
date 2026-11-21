@@ -93,6 +93,22 @@ seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after.
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
 
+## C4.13: old worlds deepen
+
+**Why.** Andrew's game in progress was made before commission 4, so it would never have a dungeon or a sky place in it.
+
+**What it is** (`deepen` piece, `rules/deepen.js`). When a save from a world made before commission 4 loads, it rolls
+its dungeons and its places in the sky once, exactly as a new world would, from its own seed (so the same save always
+gains the same): stairs are put in caves and ruins of regions already walked as well as those to come, shadows on the
+ground, and a way to fly in a shop or the deepest dungeon. The log says "This land is deeper than you knew: 3 stairs go
+down into the dark somewhere in it, and something hangs in its sky." Seas and doors cannot be added (a sea is chosen
+before any land is made, and a door belongs to the plot) and its troubles stay as they were; wayfarers come by
+themselves in every region built from now on. Worlds made now are marked (`s.deep`), so it happens once. A new hook,
+`AFTER_LOAD` (save.js), runs after a save is loaded and upgraded. Every old fixture (v6 to v9) gains 3 to 16
+dungeons and loads twice the same.
+
+**Commits.** "Old worlds deepen: a world made before gains its dungeons and sky places once". Switch: `deepen`.
+
 ## C4.12: wayfarers
 
 **Why.** Half of all deaths are thirst on the long legs between towns, and the land between towns has no people in
