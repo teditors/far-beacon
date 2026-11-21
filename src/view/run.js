@@ -12,12 +12,22 @@ import {
   scene,
   stepBuild,
   sun,
+  treesNear,
 } from './scene.js';
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
 import { Q } from './quality.js';
 import { perfBuild, perfFrame, perfSave, perfWork } from './perf.js';
 import { hideSky, updateSky } from './sky.js';
 import { guard } from './oops.js';
+import { lightIndoors, lightOutdoors } from './light.js';
+import { WIND } from './kit.js';
+import { setNight } from './buildings.js';
+import { animateActors, forgetActors, shiftActors } from './actors.js';
+import { updateSound } from './sound.js';
+import { updateFx } from './fx.js';
+import { setWaterSky } from './water.js';
+import { warmSurfaces } from './paint.js';
+import { draw as drawFrame } from './post.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -100,6 +110,8 @@ function placePlayer() {
 const landKey = () => (R.isLevel(V.S) ? V.S.area : R.outdoorRec(V.S).id);
 function enter(state) {
   V.S = state;
+  forgetActors();
+  warmSurfaces();
   buildStatic();
   buildDynamic();
   placePlayer();
@@ -140,7 +152,8 @@ const input = { fx: 0, fy: 0, keys: {} },
   mixC = new THREE.Color(),
   duskC = new THREE.Color(0xd99a6c),
   nightC = new THREE.Color(0x121827),
-  stormC = new THREE.Color(0x8d8f8c);
+  stormC = new THREE.Color(0x8d8f8c),
+  sunDir = new THREE.Vector3();
 const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function tick(dt, now) {
   if (!V.S || V.S.over || !$('modal').hidden) return;
@@ -238,6 +251,7 @@ function tick(dt, now) {
       shown.land = landKey();
       nx -= Math.floor(tx / R.W) * 2 * G.half;
       nz -= Math.floor(tz / R.H) * 2 * G.half;
+      shiftActors(-Math.floor(tx / R.W) * 2 * G.half, -Math.floor(tz / R.H) * 2 * G.half); // the creatures walk on
     }
     sync();
     buildDynamic();
@@ -288,7 +302,8 @@ function frame() {
     scene.fog.near = 1;
     hemi.intensity = glowing ? look.light || 0.45 : 0.05;
     hemi.color.setHex(glowing && look.glow ? look.glow : 0xdfe7ee);
-    sun.intensity = 0;
+    lightIndoors();
+    setNight((nightNow = 1));
     lamp.intensity = lit || glowing ? 1.1 : 0.25;
     lamp.distance = lit || glowing ? 26 : 6;
     lamp.position.set(P.x, P.y + 0.8, P.z);
@@ -297,6 +312,8 @@ function frame() {
   }
   lamp.distance = 45;
   const storm = V.S.weather.storm;
+  WIND.time.value = still ? 0 : performance.now() / 1000;
+  WIND.strength.value = lerp(WIND.strength.value, storm ? 2.6 : 1, 0.02);
   if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
   scene.background.copy(skyC);
   scene.fog.color.copy(skyC);
@@ -305,28 +322,41 @@ function frame() {
   shown.far = lerp(shown.far, far, 0.05);
   scene.fog.far = shown.far;
   scene.fog.near = Math.min(40, shown.far * 0.2);
-  hemi.intensity = lerp(0.22, 0.78, day);
-  hemi.color.setHex(0xdfe7ee);
-  sun.intensity = lerp(0.03, 0.9, day) * (storm ? 0.4 : 1);
+  lightOutdoors(h, day, dusk, skyC, !!storm, sight);
+  // the sun shines the same way from wherever the player is, so its shadows follow them
+  sun.position.x += P.x;
+  sun.position.z += P.z;
+  sun.target.position.set(P.x, P.y - 2, P.z);
+  nightNow = clamp(1 - day * 1.3 + (storm ? 0.3 : 0), 0, 1);
+  setNight(nightNow);
   const sa = ((h - 6) / 14) * Math.PI;
-  sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
+  sunDir.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
   lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
   lamp.position.set(P.x, P.y + 0.3, P.z);
-  updateSky(skyC, sun.position, day, storm ? R.stormOfNow(V.S) : null, frameDt);
+  setWaterSky(scene.fog.color);
+  updateSky(skyC, sunDir, day, storm ? R.stormOfNow(V.S) : null, frameDt);
   finishFrame();
 }
 function finishFrame() {
-  const target = V.terrain.height(P.x, P.z) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P.walked * 1.7) * 0.05); // flying: high above the land
+  treesNear();
+  animateActors(frameDt, P.x, P.z, still);
+  guard('sound', () => updateSound(frameDt));
+  updateFx(frameDt, nightNow, still);
+  // over water you stand in it, and on deep water (a boat, swimming) you are at its surface
+  const wat = V.base && V.base.waterAt && V.terrain === V.base ? V.base.waterAt(P.x, P.z) - 0.5 : -Infinity;
+  const target =
+    Math.max(V.terrain.height(P.x, P.z), wat) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P.walked * 1.7) * 0.05); // flying: high above the land
   P.y = lerp(P.y, target, Math.abs(target - P.y) > 3 ? 0.06 : 0.35); // rise and fall slowly
   camera.position.set(P.x, P.y, P.z);
   camera.rotation.set(P.pitch, P.yaw, 0);
   const deg = ((((-P.yaw * 180) / Math.PI) % 360) + 360) % 360;
   $('facing').textContent = 'Facing ' + DIRN[Math.round(deg / 45) % 8];
-  renderer.render(scene, camera);
+  drawFrame(renderer, scene, camera); // through the finish on High (post.js)
   perfFrame(renderer);
 }
 let last = performance.now();
-let frameDt = 0.016;
+let frameDt = 0.016,
+  nightNow = 0;
 const BUILD_BUDGET = 5; // milliseconds a frame for building the land after crossing a border
 function loop(now) {
   requestAnimationFrame(loop); // first, so that nothing that goes wrong below can stop the game

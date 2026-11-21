@@ -57,5 +57,14 @@ for (const a of C.abilities) a.mods(12).forEach((m) => mods.push(['ability ' + a
 for (const k of C.sky.kinds) (k.mods || []).forEach((m) => mods.push(['sky place ' + k.id, m]));
 for (const t of C.deeps.themes) (t.mods || []).forEach((m) => mods.push(['dungeon ' + t.id, m]));
 for (const [who, m] of mods) { need(known.has(m.stat), who + ' modifies unknown stat ' + m.stat); need(['add', 'mul', 'max'].includes(m.op), who + ' has unknown op ' + m.op); }
+// how towns look (commission 5): every climate, trade and custom has a look
+{
+  const L = C.townLooks;
+  for (const cl of C.biomeGen.climates) need(L.climates[cl.id], 'no town look for climate ' + cl.id);
+  for (const b of C.biomes) need(!L.biomeClimate[b.id] || L.climates[L.biomeClimate[b.id]], 'biome ' + b.id + ' has an unknown town climate');
+  for (const x of C.townCulture.trades) need(L.trades[x.id], 'no town look for trade ' + x.id);
+  for (const x of C.townCulture.customs) need(L.customs[x.id], 'no town look for custom ' + x.id);
+  for (const x of C.townCulture.rares) need(L.rares[x.id], 'no town look for rare ' + x.id);
+}
 if (errs.length) { console.log('content problems:\n  ' + errs.join('\n  ')); process.exit(1); }
 console.log('content ok: ' + C.bases.length + ' item bases, ' + C.affixes.length + ' affixes, ' + mods.length + ' modifiers checked');

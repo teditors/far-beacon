@@ -9,7 +9,7 @@
    tier:   [at level 1, added per level] for the creatures; the deepest level has an elder of its own (the Heart)
    per:    creatures on a level; traps: pressure plates per level; pools: standing water per level
    mods:   while you are down there (stat modifiers); prize: what the bottom holds
-   look:   colours for the view (stone, floor), as numbers */
+   look:   colours for the view (stone, floor), as numbers, and kit: how its walls are built (src/view/levels.js) */
 export default {
   deeps: {
     perRegion: 0.45, // dungeons per region, on average, at the usual setting (some regions have none, a few two)
@@ -38,7 +38,7 @@ export default {
         text: 'Timbered tunnels running into the rock, and the smell of old lamp-oil.',
         prize: 'A seam of something that is not ore, and what the last miners left beside it.',
         mats: { salvage: 2 },
-        look: { stone: 0x5b4a3a, floor: 0x3a3028 },
+        look: { kit: 'mine', stone: 0x5b4a3a, floor: 0x3a3028 },
       },
       {
         id: 'crypt',
@@ -57,7 +57,7 @@ export default {
         text: 'Niches cut in the walls, each with its dead. The air has not moved in a long time.',
         prize: 'A lord laid out in state, with the grave-goods of a lord.',
         mats: { bone: 3 },
-        look: { stone: 0x6e6a62, floor: 0x37342f },
+        look: { kit: 'stone', stone: 0x6e6a62, floor: 0x37342f },
       },
       {
         id: 'cistern',
@@ -79,7 +79,7 @@ export default {
           { stat: 'moveTime', op: 'mul', value: 1.3 },
           { stat: 'cold', op: 'mul', value: 1.8 },
         ],
-        look: { stone: 0x4a5a5c, floor: 0x24343a },
+        look: { kit: 'brick', stone: 0x4a5a5c, floor: 0x24343a },
       },
       {
         id: 'fungus',
@@ -99,7 +99,7 @@ export default {
         prize: 'A garden of the great fungus, and the bones of those who came to pick it.',
         mats: { herbs: 4 },
         mods: [{ stat: 'waterDrain', op: 'mul', value: 0.8 }],
-        look: { stone: 0x4d5a3e, floor: 0x2e3a2a, glow: 0x9fe0a0, bg: 0x0c1a10, far: 30, light: 0.5 },
+        look: { kit: 'rock', stone: 0x4d5a3e, floor: 0x2e3a2a, glow: 0x9fe0a0, bg: 0x0c1a10, far: 30, light: 0.5 },
       },
       {
         id: 'hold',
@@ -118,7 +118,7 @@ export default {
         text: 'Square halls cut true, and doors that once had guards. Whoever built this meant to stay.',
         prize: "The hold's treasury: the last thing its people kept for themselves.",
         mats: { salvage: 3 },
-        look: { stone: 0x7a6e5e, floor: 0x45403a },
+        look: { kit: 'castle', stone: 0x7a6e5e, floor: 0x45403a },
       },
       {
         id: 'warren',
@@ -137,7 +137,7 @@ export default {
         text: 'Low, gnawed tunnels, and the sound of many small feet.',
         prize: 'The great den, and everything the warren has dragged down in a hundred years.',
         mats: { hide: 4 },
-        look: { stone: 0x5e5040, floor: 0x3b3226 },
+        look: { kit: 'rock', stone: 0x5e5040, floor: 0x3b3226 },
       },
     ],
   },

@@ -22,6 +22,10 @@ async def main():
         await shot('1-create')
         await pg.locator('#modal-body button', has_text='Roll again').click()
         await pg.locator('#modal-body button', has_text='Begin').click(); await pg.wait_for_timeout(300); steps.append('create')
+        # sound starts with the first tap (Begin), never before
+        snd = await pg.evaluate("()=>window.__g.sound()")
+        assert snd['running'] and snd['mood'], 'sound did not start after the first tap: %r' % snd
+        steps.append('sound (' + snd['mood'] + ')')
         await pg.evaluate("()=>{window.__g.VIEW.speed=16}")
         await pg.keyboard.down('w'); await pg.wait_for_timeout(2500); await pg.keyboard.up('w'); steps.append('walk')
         await shot('2-walk')
@@ -59,10 +63,21 @@ async def main():
             if await pg.evaluate("()=>window.__g.S.area") == 'town': break
         await pg.wait_for_timeout(1500); await pg.keyboard.up('w'); steps.append('walk into town')
         assert await pg.evaluate("()=>window.__g.S.area") == 'town', 'did not walk in through the gate'
+        for _ in range(20):  # the eye eases down to the town's ground over a few frames
+            if await pg.evaluate("()=>window.__g.P.y<4"): break
+            await pg.wait_for_timeout(200)
         st = await pg.evaluate("()=>{const g=window.__g;return {x:g.S.player.x,y:g.S.player.y,px:g.P.x,pz:g.P.z,py:g.P.y}}")
         assert st['x'] == 18 and 28 <= st['y'] <= 35 and abs(st['px'] - 1.9) < 2 and 40 < st['pz'] < 70 and st['py'] < 4, 'not standing in the gateway after walking in: %r' % st
         await shot('3-town')
         await pg.keyboard.down('w'); await pg.wait_for_timeout(1200); await pg.keyboard.up('w'); steps.append('walk in town')
+        # townsfolk walk where the rules move them: none jumps or vanishes between frames while the player walks about
+        jump = await pg.evaluate("""async()=>{const g=window.__g,S=g.S,wait=(ms)=>new Promise(r=>setTimeout(r,ms));let prev=null,worst=0,counts=new Set();
+          const look=()=>{const now={};g.scene.traverse(o=>{if(o.userData&&o.userData.actor&&o.userData.actor.kind==='person'&&o.userData.key){const w=new THREE.Vector3();o.parent.getWorldPosition(w);now[o.userData.key]=w}});return now};
+          for(let step=0;step<12;step++){Rules.move(S,step%6<3?1:-1,0);g.refresh();for(let f=0;f<3;f++){await wait(100);const now=look();counts.add(Object.keys(now).length);
+            if(prev)for(const k in now)if(prev[k]){const d=now[k].distanceTo(prev[k]);if(d>worst){worst=d;window.__jw=[k,step,f,S.area,prev[k].toArray().map(v=>+v.toFixed(1)),now[k].toArray().map(v=>+v.toFixed(1))]}}prev=now}}
+          return [worst,[...counts],window.__jw]}""")
+        assert jump[0] < 1.5 and len(jump[1]) == 1 and jump[1][0] > 0, 'townsfolk jumped or vanished: %r' % jump
+        steps.append('townsfolk walk (%d, at most %.2f m a frame)' % (jump[1][0], jump[0]))
         await goto('elder'); await press('Talk to'); await shot('4-elder'); await pg.click('#modal-close'); steps.append('elder')
         await goto('shop'); await press('Trade'); await pg.locator('#modal-body button', has_text='Buy').first.click(); await pg.click('#modal-close'); steps.append('shop')
         await goto('inn'); await press('The inn'); await pg.locator('#modal-body button', has_text='A bed').click(); await pg.wait_for_timeout(150); await pg.click('#modal-close'); steps.append('inn')
@@ -91,7 +106,7 @@ async def main():
         await goto('exit'); await press('Climb out'); steps.append('climb out')
         assert await pg.evaluate("()=>Rules.inOverworld(window.__g.S)"), 'did not climb out'
         # a fight: put a hostile creature on the next tile east and walk into it
-        await pg.evaluate("()=>{const g=window.__g,S=g.S;const c=S.creatures.find(c=>S.species[c.sp].rare!=='docile'&&!c.bound);S.player.x=Math.min(34,Math.max(1,S.player.x));c.x=S.player.x+1;c.y=S.player.y;c.cool=0;S.player.hp=S.player.hpMax=200;g.P.x=(S.player.x+0.5)*28-504;g.P.z=(S.player.y+0.5)*28-504;g.P.yaw=-Math.PI/2;}")
+        await pg.evaluate("()=>{const g=window.__g,S=g.S;const c=S.creatures.find(c=>S.species[c.sp].rare!=='docile'&&!c.bound);if(!c)return;S.player.x=Math.min(34,Math.max(1,S.player.x));c.x=S.player.x+1;c.y=S.player.y;c.cool=0;S.player.hp=S.player.hpMax=200;g.P.x=(S.player.x+0.5)*28-504;g.P.z=(S.player.y+0.5)*28-504;g.P.yaw=-Math.PI/2;}")
         await pg.keyboard.down('w')
         for _ in range(60):
             await pg.wait_for_timeout(250)
@@ -161,6 +176,15 @@ async def main():
         await pg.mouse.click(box['x'] + box['width'] * 0.2, box['y'] + box['height'] * 0.2); await pg.wait_for_timeout(400)
         assert await pg.evaluate("()=>document.getElementById('modal').hidden && Rules.inOverworld(window.__g.S)"), 'a tap on the map did not jump'
         steps.append('map tap jump')
+        # the look of commission 5, close up: a ruin, a creature, the town and a camp at night (see build/shots with --shots)
+        for name, js in [
+            ('12-ruin', "let f=null;for(const k in S.sites){if(S.sites[k].kind==='ruin'){f={x:k%36,y:Math.floor(k/36)};break}}if(!f)return;S.player.x=f.x;S.player.y=Math.min(35,f.y+1);g.refresh();const cx=(f.x+0.5)*28-504,cz=(f.y+0.5)*28-504;g.P.x=cx+8;g.P.z=cz+20;g.P.yaw=Math.atan2(-(cx-g.P.x),-(cz-g.P.z));g.P.pitch=-0.1;"),
+            ('13-creature', "const c=S.creatures.find(c=>!c.bound);if(!c)return;c.cool=999;S.player.x=c.x;S.player.y=Math.min(35,c.y+1);g.refresh();const cx=(c.x+0.5)*28-504-4,cz=(c.y+0.5)*28-504-5;g.P.x=cx+1.5;g.P.z=cz+6;g.P.yaw=Math.atan2(-(cx-g.P.x),-(cz-g.P.z));g.P.pitch=-0.2;"),
+            ('14-camp-night', "S.time+=(24-((S.time/60+6)%24)+22)*60;S.camp={area:S.area,i:S.player.y*36+S.player.x};g.refresh();g.P.z+=14;g.P.x-=2;g.P.yaw=0.3;g.P.pitch=-0.15;"),
+        ]:
+            await pg.evaluate("()=>{const g=window.__g,S=g.S;Rules.travelTo(S,'overworld',18,18);S.combat=null;S.weather.storm=false;g.refresh();" + js + "}")
+            await pg.wait_for_timeout(700); await shot(name)
+        steps.append('the new look')
         # every new kind of place, in a world that has them all, reached by god mode and drawn without an error
         await pg.evaluate("()=>{const g=window.__g;g.newWorld(34,{sky:1,sea:1,doors:1,size:'5x5'});document.querySelectorAll('#modal-close').forEach(b=>b.click());Rules.setGodMode(g.S,true);}")
         for group in ['Below', 'Above', 'Water', 'Other worlds']:
@@ -176,9 +200,9 @@ async def main():
         await shot('10-new-world')
         await pg.locator('#modal-body button', has_text='Make this world').click(); await pg.wait_for_timeout(600)
         await pg.locator('#modal-body button', has_text='Begin').click(); await pg.wait_for_timeout(300)
-        w = await pg.evaluate("()=>{const S=window.__g.S;return [S.world.cols,S.world.rows,(S.towns||[]).length,!!S.cheated]}")
+        w = await pg.evaluate("()=>{const S=window.__g.S;return [S.world.cols,S.world.rows,(S.towns||[]).filter(t=>!t.realm).length,!!S.cheated]}")
         assert w == [3, 3, 0, False], 'the new world did not follow its settings: %r' % w
-        steps.append('new world with settings')
+        steps.append('new world with settings')  # (a door's other world may hold a town of its own: not counted)
         await pg.reload(); await pg.wait_for_timeout(1200); steps.append('reload')
         await b.close()
         print('smoke steps:', ', '.join(steps))

@@ -1,8 +1,22 @@
 /* The 3D scene: lights, models, and the static and moving parts of the world. */
-import { $, FR, G, HALF, P, R, TOWN_TS, TS, V, setGeometry } from './ctx.js';
+import { $, FR, G, HALF, P, R, TOWN_TS, TS, V, clamp, setGeometry } from './ctx.js';
+const clampI = (i, n) => (i < 0 ? 0 : i > n ? n : i);
 import { EW, MARGIN, PAD, SINK, makeTerrainG } from './terrain.js';
-import { Q } from './quality.js';
+import { LOOK_SWITCHES, Q, SET, lookOn } from './quality.js';
 import { PF, perfBuild } from './perf.js';
+import { groundMaterial, paintOn, surface, surfaceOf } from './paint.js';
+import { hamletGroup, townGroup, townsOn } from './buildings.js';
+import { levelFloor, levelKit, levelMat, levelWalls } from './levels.js';
+import { ruinGroup, ruinsOn } from './ruins.js';
+import * as FX from './fx.js';
+import { landmark } from './landmarks.js';
+import { makeGrass } from './grass.js';
+import { seaSheet, waterMesh, waterOn } from './water.js';
+import { blob, fire, water } from './fx.js';
+import { actorsOn, clearActors, creatureActor, markKilled, personActor, settleActors, shiftActors, track } from './actors.js';
+R.on('killed', (s, d) => d && d.c && markKilled(d.c.id));
+import { kitMat } from './kit.js';
+import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 
 /* ---------- scene ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: Q.aa, powerPreference: 'high-performance' });
@@ -13,13 +27,57 @@ camera.rotation.order = 'YXZ';
 const hemi = new THREE.HemisphereLight(0xdfe7ee, 0x5a554c, 0.75),
   sun = new THREE.DirectionalLight(0xfff1dc, 0.9),
   lamp = new THREE.PointLight(0xffc477, 0, 45, 1.6);
-scene.add(hemi, sun, lamp);
+scene.add(hemi, sun, lamp, sun.target);
+// Real-time shadows, on High only (C5.10): the sun casts from the places and near trees onto the ground, in a box
+// that follows the player. Everything else keeps its painted shading and blob shadows.
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -110, right: 110, top: 110, bottom: -110, near: 10, far: 700 });
+sun.shadow.bias = -0.0015;
+sun.shadow.normalBias = 0.4;
+const shadowsOn = () => !!Q.shadows && lookOn('light') && lookOn('shadows');
+LOOK_SWITCHES.push(['shadows', 'Real-time shadows (High only)']);
+function setShadows() {
+  const on = shadowsOn();
+  renderer.shadowMap.enabled = on;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap; // soft edges (C5.18)
+  sun.castShadow = on;
+}
 scene.fog = new THREE.Fog(0xb9c7d1, 40, 600);
 scene.background = new THREE.Color(0xb9c7d1);
 let staticGroup = null,
   dynGroup = null;
+// A plain painted surface. With the look's light on (light.js) it is a Lambert material, lit per vertex: smooth, and
+// the cheapest light there is. Faceted shapes (roofs, rocks) get their facets from their geometry instead (facet()).
 const std = (color, extra) =>
-  new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
+  lookOn('light')
+    ? new THREE.MeshLambertMaterial(Object.assign({ color }, extra || {}))
+    : new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
+// Shapes with few sides (a four-sided roof, a six-sided tower, a rock) read as cut faces, not as a blur: each face gets
+// its own normals. Run over a finished group; shared geometry (marked kept) is left alone.
+const FACETED = {
+  ConeGeometry: 8,
+  CylinderGeometry: 8,
+  IcosahedronGeometry: 99,
+  OctahedronGeometry: 99,
+  DodecahedronGeometry: 99,
+};
+function facet(group) {
+  if (!lookOn('light')) return group;
+  group.traverse((o) => {
+    const g = o.geometry;
+    if (!o.isMesh || !g || g.faceted || g.kept) return;
+    const most = FACETED[g.type];
+    if (!most || (g.parameters && g.parameters.radialSegments > most)) return;
+    const n = g.index ? g.toNonIndexed() : g;
+    n.computeVertexNormals();
+    n.faceted = true;
+    if (n !== g) {
+      g.dispose();
+      o.geometry = n;
+    }
+  });
+  return group;
+}
 const glow = (color, opacity) =>
   new THREE.MeshBasicMaterial({ color, fog: false, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
 const box = (w, h, d, mat, x, y, z) => {
@@ -31,6 +89,7 @@ const dispose = (g) => {
   if (!g) return;
   scene.remove(g);
   g.traverse((o) => {
+    if (o.isInstancedMesh && o.dispose) o.dispose(); // its own instance buffers
     if (o.geometry) o.geometry.dispose();
     if (o.material) {
       if (o.material.map) o.material.map.dispose();
@@ -51,6 +110,7 @@ const TREE = (() => {
   }
   g.setIndex(keep);
   g.dispose = () => {}; // shared: never thrown away with a scene
+  g.kept = true;
   return g;
 })();
 // The ground's grain: soft speckles and a few darker strokes, tiled. Made once.
@@ -122,6 +182,18 @@ const BUILD = {
   // someone at a small fire in the wilds (only the ashes, once they have gone on)
   wayfarer(S, st) {
     const g = new THREE.Group();
+    if (fxOn()) {
+      // a small fire, and someone sitting by it (gone on: only the ashes)
+      if (st.gone) g.add(box(1.4, 0.15, 1.4, std(0x3a3027), 0, 0.08, 0));
+      else {
+        g.add(fire(0.9));
+        const who = person(0x6a5a40, 0x8a7a5a, st.who ? String(st.who).length : 3);
+        who.position.set(2.2, 0, 0.6);
+        who.rotation.y = -1.9;
+        g.add(who);
+      }
+      return g;
+    }
     g.add(box(1.4, 0.3, 1.4, std(0x3a3027), 0, 0.15, 0));
     if (!st.gone) {
       const f = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.4, 6), glow(0xffa040, 0.9));
@@ -167,6 +239,8 @@ const BUILD = {
     return g;
   },
   well() {
+    const lm = landmark('well');
+    if (lm) return lm;
     const g = new THREE.Group(),
       m = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 1, 10), std(0x5d5a55));
     m.position.y = 0.5;
@@ -179,6 +253,8 @@ const BUILD = {
     return g;
   },
   cave() {
+    const lm = landmark('cave');
+    if (lm) return lm;
     const g = new THREE.Group(),
       m = new THREE.Mesh(new THREE.IcosahedronGeometry(7, 1), std(0x55524c));
     m.scale.set(1.35, 0.8, 1.1);
@@ -189,8 +265,10 @@ const BUILD = {
     g.add(m, d);
     return g;
   },
-  hamlet() {
-    // a few small houses round a well
+  hamlet(S, st, at) {
+    // a few small houses round a well, in the region's own style when the towns are (buildings.js)
+    if (townsOn() && at)
+      return cachedModel('hamlet' + S.seed + ':' + at.seed, () => hamletGroup(S, at.biome, at.seed).add(BUILD.well()));
     const g = new THREE.Group(),
       wall = std(0xb8a888),
       roof = std(0x6a4a32);
@@ -235,7 +313,11 @@ const BUILD = {
       g.add(t);
     }
     fire.position.y = 0.7;
-    g.add(fire, box(0.15, 4, 0.15, std(0x3a2a1a), 2, 2, 1), box(1.4, 0.9, 0.05, glow(0xb03a2a, 1), 2.7, 3.4, 1));
+    g.add(
+      fxOn() ? FX.fire(1.3) : fire,
+      box(0.15, 4, 0.15, std(0x3a2a1a), 2, 2, 1),
+      box(1.4, 0.9, 0.05, glow(0xb03a2a, 1), 2.7, 3.4, 1),
+    );
     return g;
   },
   siege(s) {
@@ -351,7 +433,8 @@ const BUILD = {
     g.add(p, o, b);
     return g;
   },
-  ruin(s) {
+  ruin(s, site, at) {
+    if (ruinsOn() && at) return cachedModel('ruin' + s.seed + ':' + at.seed, () => ruinGroup(s, at.seed)); // laid block by block and aged (ruins.js)
     // shape = building habit, stone = style, height = age, tint and props = doom, flag = affinity
     const g = new THREE.Group(),
       body = new THREE.Group(),
@@ -418,18 +501,52 @@ const BUILD = {
     return g;
   },
 };
+/* Built models of places (towns, ruins, hamlets) kept between builds: after a border is crossed most of the same places
+   are still in view, so they are reused rather than built again. A model's geometry and materials are shared by every
+   copy and survive dispose(); the oldest are let go when there are too many. The key holds whatever the model is made
+   from (the world's seed, the site, the quality and the look's switches). */
+const MODELS = new Map();
+const noop = () => {};
+function cachedModel(key, make) {
+  key += '|' + Q.label + '|' + JSON.stringify(SET.off);
+  let m = MODELS.get(key);
+  if (!m) {
+    m = make();
+    m.traverse((o) => {
+      if (o.geometry) (o.geometry.dispose = noop), (o.geometry.kept = true);
+      if (o.material) o.material.dispose = noop;
+    });
+    MODELS.set(key, m);
+    if (MODELS.size > 48) {
+      const [k, old] = MODELS.entries().next().value;
+      MODELS.delete(k);
+      old.traverse((o) => o.geometry && THREE.BufferGeometry.prototype.dispose.call(o.geometry));
+    }
+  }
+  return m.clone();
+}
 const FLAT = { height: () => 0 };
 // The town or a level of the locked place, as a group centred on its own middle: a floor, and a block for every wall
 // tile that borders open floor. The town has no ceiling, so it can stand out of doors and be seen from far off.
-function interiorGroup(map, rec, ts) {
+function interiorGroup(map, rec, ts, id) {
   const group = new THREE.Group(),
     town = rec.kind === 'town',
     size = R.W * ts,
     T = map.terrain,
     at = (t) => (t + 0.5) * ts - size / 2,
     isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
+  if (town && townsOn()) {
+    // built in its own style (buildings.js), with the hearth smoke over it as before
+    return cachedModel('town' + V.S.seed + ':' + (id || 'town') + ':' + (V.S.realm || ''), () => {
+      const g = townGroup(V.S, id || 'town', map, ts);
+      hearthSmoke(g, map, ts, at);
+      return g;
+    });
+  }
   const look = town ? null : R.levelLook(V.S) || { stone: 0x6a6660, floor: 0x3e3a35 };
-  if (look && look.void) group.add(skyGround(map, ts, at, look));
+  const LK = town ? null : levelKit(look); // walls and floors with shape and surface (levels.js)
+  if (look && look.void) group.add(skyGround(map, ts, at, look, LK));
+  else if (LK) group.add(levelFloor(LK, size, look.floor));
   else {
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 0x8f8a80 : look.floor));
     floor.position.y = town ? 0.08 : 0;
@@ -456,6 +573,16 @@ function interiorGroup(map, rec, ts) {
   const outer = (x, y) => x === 0 || y === 0 || x === R.W - 1 || y === R.H - 1;
   const groups = town ? [tiles.filter(([x, y]) => outer(x, y)), tiles.filter(([x, y]) => !outer(x, y))] : [tiles];
   groups.forEach((list, gi) => {
+    if (LK)
+      return group.add(
+        levelWalls(
+          LK,
+          ts,
+          5,
+          stone,
+          list.map(([x, y]) => [at(x), at(y)]),
+        ),
+      );
     const h = town ? (gi === 0 ? 6 : 4.5) : 5,
       inst = new THREE.InstancedMesh(
         new THREE.BoxGeometry(ts, h + (town ? 3 : 0), ts),
@@ -483,34 +610,43 @@ function interiorGroup(map, rec, ts) {
     inst.count = caps.length;
     inst.frustumCulled = false;
     group.add(inst);
-    // hearth smoke over the hall and the inn, to find the town by from far off
-    for (const k in map.sites) {
-      const st = map.sites[k];
-      if (st.kind !== 'elder' && st.kind !== 'inn') continue;
-      const sm = new THREE.Mesh(new THREE.CylinderGeometry(1, 2.4, 170, 8, 1, true), glow(0xd9d4c4, 0.42));
-      sm.material.side = THREE.DoubleSide;
-      sm.position.set(
-        at(k % R.W) + (st.kind === 'inn' ? 3 * ts : 0),
-        90,
-        at(Math.floor(k / R.W)) - (st.kind === 'elder' ? 3 * ts : 0),
-      );
-      group.add(sm);
-    }
+    hearthSmoke(group, map, ts, at);
   } else if (look.ceiling !== false) {
-    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(look.roof || 0x1c1a18));
+    const ceiling = LK
+      ? levelFloor(LK, size, look.roof || 0x2a2622, true)
+      : new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(look.roof || 0x1c1a18));
     ceiling.position.y = 5;
     group.add(ceiling);
   }
   return group;
 }
+// hearth smoke over the hall and the inn, to find the town by from far off
+function hearthSmoke(group, map, ts, at) {
+  for (const k in map.sites) {
+    const st = map.sites[k];
+    if (st.kind !== 'elder' && st.kind !== 'inn') continue;
+    const sm = new THREE.Mesh(new THREE.CylinderGeometry(1, 2.4, 170, 8, 1, true), glow(0xd9d4c4, 0.42));
+    sm.material.side = THREE.DoubleSide;
+    sm.position.set(
+      at(k % R.W) + (st.kind === 'inn' ? 3 * ts : 0),
+      90,
+      at(Math.floor(k / R.W)) - (st.kind === 'elder' ? 3 * ts : 0),
+    );
+    group.add(sm);
+  }
+}
 // A place in the sky: a slab of ground under every tile you can stand on, and rock hanging below it, with the open air
 // all round (VOID tiles are not drawn at all).
-function skyGround(map, ts, at, look) {
+function skyGround(map, ts, at, look, LK) {
   const g = new THREE.Group(),
     T = map.terrain,
     tiles = [];
   for (let i = 0; i < T.length; i++) if (T[i] !== R.VOID) tiles.push(i);
-  const slab = new THREE.InstancedMesh(new THREE.BoxGeometry(ts, 1.2, ts), std(look.floor), Math.max(1, tiles.length)),
+  const slab = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(ts, 1.2, ts),
+      LK ? levelMat({ color: look.floor, map: surface(LK.floor) }) : std(look.floor),
+      Math.max(1, tiles.length),
+    ),
     under = new THREE.InstancedMesh(
       new THREE.ConeGeometry(ts * 0.75, ts * 3, 5).rotateX(Math.PI),
       std(look.stone),
@@ -530,7 +666,9 @@ function skyGround(map, ts, at, look) {
   g.add(slab, under);
   if (look.water) {
     // a town that floats: the sea all round, a little below the decks
-    const sea = new THREE.Mesh(new THREE.PlaneGeometry(R.W * ts * 6, R.W * ts * 6).rotateX(-Math.PI / 2), std(0x2f6f9a));
+    const sea = waterOn()
+      ? seaSheet(R.W * ts * 6, 0x2f6f9a)
+      : new THREE.Mesh(new THREE.PlaneGeometry(R.W * ts * 6, R.W * ts * 6).rotateX(-Math.PI / 2), std(0x2f6f9a));
     sea.position.y = -0.9;
     under.visible = false;
     g.add(sea);
@@ -538,7 +676,14 @@ function skyGround(map, ts, at, look) {
   return g;
 }
 // Things inside that can change: people, stairs, traps, and anything lying on the floor.
-function person(color, hat) {
+function person(color, hat, seed, outfit) {
+  if (actorsOn()) {
+    // a jointed person who breathes, looks about and walks (actors.js), each dressed and built their own way
+    const g = new THREE.Group();
+    g.add(personActor(color, hat, seed || color, outfit));
+    if (fxOn()) g.add(blob(0.5));
+    return g;
+  }
   const g = new THREE.Group(),
     body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 1.5, 8), std(color)),
     head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 10, 8), std(0xd9b896));
@@ -552,19 +697,25 @@ function person(color, hat) {
   }
   return g;
 }
-function interiorSite(st, ts, inTown) {
+const FOLK = [0x6a6a5a, 0x7a5a3a, 0x4a5a7a, 0x8a6a4a, 0x5a6a4a, 0x8a4a3a, 0x6a5a7a, 0xa08a60];
+function interiorSite(st, ts, inTown, k) {
   const g = new THREE.Group();
-  if (st.kind === 'elder') g.add(person(0x8a2c2c, 0x5a1c1c));
-  else if (st.kind === 'inn') g.add(person(0x7a5a2e), box(1.6, 0.9, 0.8, std(0x5a3d22), 1.2, 0.45, 0));
+  if (st.kind === 'elder') g.add(person(0x8a2c2c, 0x5a1c1c, k, 'robe'));
+  else if (st.kind === 'inn') g.add(person(0x7a5a2e, 0, k, 'apron'), box(1.6, 0.9, 0.8, std(0x5a3d22), 1.2, 0.45, 0));
   else if (st.kind === 'shop')
-    g.add(person(0x2f5f8f), box(1.8, 0.9, 0.9, std(0x6b4a2a), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(0xc9a227), -0.4, 1.1, -1.1));
+    g.add(
+      person(0x2f5f8f, 0, k, 'coat'),
+      box(1.8, 0.9, 0.9, std(0x6b4a2a), 0, 0.45, -1.1),
+      box(0.4, 0.4, 0.4, std(0xc9a227), -0.4, 1.1, -1.1),
+    );
   else if (st.kind === 'well') g.add(BUILD.well());
-  else if (st.kind === 'folk') g.add(person(0x6a6a5a));
+  else if (st.kind === 'folk')
+    g.add(person(actorsOn() ? FOLK[hashStr(st.name || '') % FOLK.length] : 0x6a6a5a, 0, hashStr(st.name || '')));
   else if (st.kind === 'grave') g.add(box(0.5, 1, 0.2, std(0x8a8a86), 0, 0.5, 0), box(1.2, 0.15, 2, std(0x5a5650), 0, 0.08, 0.9));
   else if (R.C.townLife && R.byId(R.C.townLife.services, st.kind)) {
     // a person at the door of their trade, and a painted sign above it
     const sv = R.byId(R.C.townLife.services, st.kind);
-    g.add(person(sv.color, sv.hat), box(1.4, 0.8, 0.12, std(sv.hat), 0, 3.4, -ts / 2 + 0.2));
+    g.add(person(sv.color, sv.hat, k), box(1.4, 0.8, 0.12, std(sv.hat), 0, 3.4, -ts / 2 + 0.2));
   } else if ((st.kind === 'exit' || st.kind === 'gate') && inTown)
     g.add(
       box(0.6, 5, 0.6, std(0x6b6358), -ts / 2, 2.5, 0),
@@ -607,7 +758,7 @@ function interiorSite(st, ts, inTown) {
     const marker = new THREE.Mesh(new THREE.TorusGeometry(ts * 0.42, 0.06, 6, 24).rotateX(Math.PI / 2), glow(0xe0a84a, 0.6));
     marker.position.y = 0.05;
     g.add(marker);
-  } else if (st.kind === 'trader') g.add(person(0x3a6a9a, 0xd8dde4));
+  } else if (st.kind === 'trader') g.add(person(0x3a6a9a, 0xd8dde4, k));
   // a plot's places, when a plot puts them down below, up above or under the water
   else if (st.kind === 'throne')
     g.add(
@@ -651,15 +802,19 @@ function applyFrame() {
   const kind = R.areaRec(V.S).kind,
     inTown = kind === 'town' && V.townAt;
   if (R.isLevel(V.S)) return;
+  const was = { x: FR.x, y: FR.y, z: FR.z };
   FR.x = inTown ? V.townAt.x : 0;
   FR.y = inTown ? V.townAt.y : 0;
   FR.z = inTown ? V.townAt.z : 0;
   setGeometry(inTown ? 'town' : 'region');
+  // everyone remembered moves with the frame, however it moved (the gate, an action, a jump): they walk on
+  if (was.x !== FR.x || was.y !== FR.y || was.z !== FR.z) shiftActors(was.x - FR.x, was.z - FR.z, was.y - FR.y);
   const sh = V.shift || { x: 0, z: 0 };
   staticGroup.position.set(-FR.x - sh.x, -FR.y, -FR.z - sh.z);
   V.terrain = inTown ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
 }
 function buildStatic() {
+  setShadows();
   const t0 = performance.now();
   buildStaticInner();
   perfBuild(performance.now() - t0);
@@ -677,7 +832,7 @@ function buildStaticInner() {
     setGeometry('vault');
     FR.x = FR.y = FR.z = 0;
     V.base = V.terrain = FLAT;
-    staticGroup.add(interiorGroup(V.S, R.areaRec(V.S), G.ts));
+    staticGroup.add(facet(interiorGroup(V.S, R.areaRec(V.S), G.ts)));
     return;
   }
   const g = buildLand(V.S, true);
@@ -720,6 +875,7 @@ function buildStaticSoon(rx, rz) {
     height: (x, z) => o.height(x + d.x, z + d.z),
     level: (x, z) => o.level(x + d.x, z + d.z),
     share: o.share && o.share.map((f) => (x, z) => f(x + d.x, z + d.z)),
+    waterAt: o.waterAt && ((x, z) => o.waterAt(x + d.x, z + d.z)),
   };
   townsHere();
   applyFrame();
@@ -784,6 +940,9 @@ function* buildLand(S, timed) {
         (springsNear[k] = springsNear[k] || []).push(sp);
       }
   for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
+  const painted = lookOn('light'),
+    bed = new THREE.Color(),
+    MUD = new THREE.Color(0x3a3226);
   // The colour of the ground at a point: each biome's own palette, mixed where two biomes meet.
   const colourAt = (x, z) => {
     const l = T.level(x, z),
@@ -797,7 +956,13 @@ function* buildLand(S, timed) {
       const cols = pal[b].cols;
       if (l <= 1) cb.copy(cols[0]).lerp(cols[1], Math.max(0, l));
       else cb.copy(cols[1]).lerp(cols[2], Math.min(1, l - 1));
-      for (let mi = 0; mi < 3; mi++) if (mv[mi] > 0) cb.lerp(cols[3 + mi], mv[mi] * (mi === 0 ? 0.7 : 1));
+      for (let mi = 0; mi < 3; mi++)
+        if (mv[mi] > 0)
+          // under real water the bed is dark mud, the water itself drawn over it (water.js)
+          cb.lerp(
+            mi === 1 && T.water ? bed.copy(cols[4]).multiplyScalar(0.3).lerp(MUD, 0.5) : cols[3 + mi],
+            mv[mi] * (mi === 0 ? 0.7 : 1),
+          );
       c.r += cb.r * w;
       c.g += cb.g * w;
       c.b += cb.b * w;
@@ -817,6 +982,12 @@ function* buildLand(S, timed) {
       const d = Math.hypot(dx, dz);
       if (d < 34) c.lerp(lush, (1 - d / 34) * 0.8);
     }
+    if (painted) {
+      // the storybook palette: the land's colours a little richer than life
+      const L = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b,
+        f = 1 + 0.35 * clamp((0.85 - L) / 0.35, 0, 1); // pale snow and salt stay pale
+      c.setRGB(L + (c.r - L) * f, L + (c.g - L) * f, L + (c.b - L) * f);
+    }
     return c;
   };
   // One ground mesh from a height grid. The coarse one leaves out the middle, where the fine one lies.
@@ -832,6 +1003,12 @@ function* buildLand(S, timed) {
       col = new Float32Array(cnt * 3),
       keep = HALF - g.cell * 1.5,
       inner = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+    const smooth = lookOn('light'),
+      painted = paintOn(),
+      NR = smooth ? new Float32Array(cnt * 3) : null,
+      SF = painted ? new Float32Array(cnt * 4) : null,
+      sw = [0, 0, 0, 0],
+      H = (ix, iz) => g.h[clampI(iz, n) * N1 + clampI(ix, n)];
     for (let iz = 0; iz <= n; iz++) {
       const z = -g.half + iz * g.cell;
       for (let ix = 0; ix <= n; ix++) {
@@ -844,9 +1021,31 @@ function* buildLand(S, timed) {
         UV[k * 2 + 1] = 1 - iz / n;
         if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue; // never drawn
         const c = colourAt(x, z);
-        col[k * 3] = c.r;
-        col[k * 3 + 1] = c.g;
-        col[k * 3 + 2] = c.b;
+        let shade = 1;
+        if (smooth) {
+          // a smooth normal from the slope across the neighbouring points, so the land shows no triangles
+          const hx = H(ix + 1, iz) - H(ix - 1, iz),
+            hz = H(ix, iz + 1) - H(ix, iz - 1),
+            d = 2 * g.cell,
+            nl = Math.hypot(hx, d, hz);
+          NR[k * 3] = -hx / nl;
+          NR[k * 3 + 1] = d / nl;
+          NR[k * 3 + 2] = -hz / nl;
+          // painted shading baked into the colour: hollows a little darker, crests a little lighter, and steep ground
+          // toward bare earth, as a painter would lay it in
+          const around = (H(ix + 2, iz) + H(ix - 2, iz) + H(ix, iz + 2) + H(ix, iz - 2)) / 4,
+            bulge = clamp((g.h[k] - around) / (g.cell * 0.9), -1, 1),
+            steep = 1 - d / nl;
+          shade = 1 + bulge * 0.16 - steep * 0.22;
+          if (painted) {
+            // what kind of ground this is, for its painted grain (paint.js)
+            surfaceOf(c, steep, sw);
+            SF.set(sw, k * 4);
+          }
+        }
+        col[k * 3] = c.r * shade;
+        col[k * 3 + 1] = c.g * shade;
+        col[k * 3 + 2] = c.b * shade;
       }
       if ((iz & 3) === 3) yield;
     }
@@ -880,19 +1079,51 @@ function* buildLand(S, timed) {
     geo.setIndex(new THREE.BufferAttribute(idx.subarray(0, m), 1));
     yield;
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    // no vertex normals: flat shading takes each face's from the screen, so computing them would be wasted
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
-    if (Q.grain) {
+    // with the old light, no vertex normals: flat shading takes each face's from the screen
+    if (smooth) geo.setAttribute('normal', new THREE.BufferAttribute(NR, 3));
+    if (painted) geo.setAttribute('surf', new THREE.BufferAttribute(SF, 4));
+    const mat = smooth
+      ? groundMaterial()
+      : new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
+    if (Q.grain && !painted) {
       // a fine pattern of light and dark in the ground, about every six metres, so near ground reads as ground
       const tex = GRAIN.clone();
       tex.needsUpdate = true;
       tex.repeat.set((g.half * 2) / 6, (g.half * 2) / 6);
       mat.map = tex;
     }
-    group.add(new THREE.Mesh(geo, mat));
+    const gm = new THREE.Mesh(geo, mat);
+    gm.userData.ground = !hollow; // only the fine ground takes shadows (they never reach the far land)
+    gm.userData.farGround = hollow;
+    group.add(gm);
   };
   yield* ground(T.fine, 0, false);
   yield* ground(T.coarse, SINK, true);
+  if (T.water) {
+    // rivers, lakes and the sea over their beds (water.js), tinted with each land's own water colour
+    const tint = (x, z, out) => {
+      out.setRGB(0, 0, 0);
+      let tot = 0;
+      for (let b = 0; b < pal.length; b++) {
+        const w = pal.length === 1 ? 1 : T.share[b](x, z);
+        if (w < 0.002) continue;
+        out.r += pal[b].cols[4].r * w;
+        out.g += pal[b].cols[4].g * w;
+        out.b += pal[b].cols[4].b * w;
+        tot += w;
+      }
+      return out.multiplyScalar(1 / (tot || 1));
+    };
+    yield;
+    for (const [g, sink, hollow] of [
+      [T.fine, 0, false],
+      [T.coarse, SINK, true],
+    ]) {
+      const w = yield* waterMesh(T, g, sink, hollow, HALF - g.cell * 1.5, tint);
+      if (w) group.add(w);
+      yield;
+    }
+  }
   part('ground');
   // Rocks and trees, tile by tile, from a source that depends only on where the tile is in the world.
   const m = new THREE.Matrix4(),
@@ -901,7 +1132,10 @@ function* buildLand(S, timed) {
     v = new THREE.Vector3(),
     sc = new THREE.Vector3(),
     rocks = pal.map(() => []),
-    trees = pal.map(() => []);
+    trees = pal.map(() => []),
+    treesNear = pal.map(() => []),
+    shaped = plantsOn(),
+    tints = pal.map(() => ({ n: [], f: [] }));
   // every town in view (a world may have several); V.townAt is the one in the player's region, which can be walked into
   const townHalf = (R.W * TOWN_TS) / 2,
     towns = land.sites
@@ -966,6 +1200,22 @@ function* buildLand(S, timed) {
           wd = tr.w * (0.7 + r() * 0.6),
           ry = r() * 6.28;
         if (nearSite(px, pz)) continue;
+        if (shaped) {
+          // a shaped tree stands from its foot, leans a little, and is a shade lighter or darker than its neighbours
+          const lean = (r() - 0.5) * 0.08,
+            band = Math.ceil(Q.treeNear / TS),
+            near = Q.treeNear > 0 && x >= -band && y >= -band && x < R.W + band && y < R.H + band, // could come near
+            shade = 0.85 + r() * 0.3;
+          e.set(lean, ry, -lean);
+          q.setFromEuler(e);
+          sc.set(wd, hgt, wd);
+          v.set(px, T.height(px, pz) - 0.3, pz);
+          m.compose(v, q, sc);
+          const list = near ? treesNear[bi] : trees[bi];
+          for (let i = 0; i < 16; i++) list.push(m.elements[i]);
+          (near ? tints[bi].n : tints[bi].f).push(shade, shade * (0.95 + r() * 0.1), shade * 0.95);
+          continue;
+        }
         e.set(0, ry, 0);
         q.setFromEuler(e);
         sc.set(wd, hgt, wd);
@@ -975,18 +1225,39 @@ function* buildLand(S, timed) {
       }
     }
   }
+  {
+    // grass and flowers round the player (grass.js), re-scattered as they walk (treesNear)
+    const gr = makeGrass(
+      group,
+      T,
+      pal.map((p) => p.lush),
+      towns,
+      townHalf,
+      S.seed,
+    );
+    if (gr) group.userData.grass = gr;
+  }
   part('trees');
-  const instances = (geom, mat, list) => {
+  const instances = (geom, mat, list, tint) => {
     if (!list.length) return;
     const inst = new THREE.InstancedMesh(geom, mat, list.length / 16);
     inst.instanceMatrix.array.set(list);
+    if (tint) inst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(tint), 3);
     inst.frustumCulled = false; // its instances are spread over the whole land
     group.add(inst);
   };
   yield;
   pal.forEach((p, bi) => {
-    instances(new THREE.IcosahedronGeometry(1, 0), std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
-    instances(TREE, std(land.biomes[bi].forest.tree.color), trees[bi]);
+    const rock = new THREE.IcosahedronGeometry(1, 0);
+    rock.computeVertexNormals(); // one normal per face: a rock with cut faces
+    rock.faceted = true;
+    instances(rock, std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
+    const forest = land.biomes[bi].forest;
+    if (shaped) {
+      instances(treeModel(forest, true), treeMat(forest), trees[bi], tints[bi].f);
+      const lod = makeLOD(group, forest, treesNear[bi], tints[bi].n);
+      if (lod) (group.userData.lods = group.userData.lods || []).push(lod);
+    } else instances(TREE, std(forest.tree.color), trees[bi]);
   });
   for (const site of land.sites) {
     if (site.st.kind !== 'spring') yield;
@@ -1008,30 +1279,85 @@ function* buildLand(S, timed) {
       const id = st.town || 'town',
         tw = towns.find((t) => t.id === id);
       if (!S.areas[id] || !R.mapOf(S, id) || !tw) continue;
-      const g = interiorGroup(R.mapOf(S, id), S.areas[id], TOWN_TS);
+      const g = interiorGroup(R.mapOf(S, id), S.areas[id], TOWN_TS, id);
       g.position.set(tw.x, tw.y, tw.z);
       group.add(g);
       continue;
     }
     if (!BUILD[st.kind]) continue; // a kind of place with no model yet is still on the map
-    const g = BUILD[st.kind](S, st);
+    const g =
+      (st.kind !== 'well' && st.kind !== 'cave' && landmark(st.kind, S, st)) ||
+      BUILD[st.kind](S, st, {
+        biome: land.biomes[land.biome[(site.y + MARGIN) * EW + site.x + MARGIN]],
+        seed: S.seed ^ Math.imul(site.k + 1, 2654435761) ^ (land.cx * 977 + land.cy * 131),
+      });
     g.position.set(x, T.height(x, z), z);
     if (st.kind !== 'beacon') g.rotation.y = (site.k % 7) * 0.9;
     group.add(g);
   }
+  facet(group);
+  if (shadowsOn())
+    group.traverse((o) => {
+      if (!o.isMesh || o.material.transparent || o.material.isMeshBasicMaterial) return;
+      if (o.userData.ground) o.receiveShadow = true;
+      else if (o.userData.farGround) return;
+      else if (!o.isInstancedMesh || o.userData.near) o.castShadow = true; // not the land's far trees and rocks
+    });
   part('places');
   return { group, base, towns };
 }
+// Trees near the player in their full shape, the rest in their far one (plants.js). Called every frame; it does work
+// only when the player has walked a little way. The land's group may be shifted (a border just crossed) or seen from
+// the town's frame, so the player is put into the land's own coordinates first.
+function treesNear(force) {
+  const lods = (staticGroup && staticGroup.userData.lods) || [];
+  if (!staticGroup) return;
+  const x = P.x - staticGroup.position.x,
+    z = P.z - staticGroup.position.z;
+  for (const rec of lods) updateLOD(rec, x, z, Q.treeNear, force);
+  if (staticGroup.userData.grass) staticGroup.userData.grass.update(x, z, force);
+}
+const fxOn = () => lookOn('fx') && lookOn('light');
+LOOK_SWITCHES.push(['fx', 'Fire, water and shadows']);
+// each townsperson's own id: the rules keep the same object for them as they move about (two may share a name)
+const FOLK_IDS = new WeakMap();
+let folkN = 0;
+const folkId = (st) => FOLK_IDS.get(st) || (FOLK_IDS.set(st, ++folkN + ':' + st.name), FOLK_IDS.get(st));
+const HP = new Map(); // creatures' health when last drawn, to see a hit land
+const hashStr = (s) => {
+  let h = 7;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+const REEDS = { name: 'reeds', tree: { color: 0x6f8f48 } }; // round a spring, drawn as a clump of grass
 // Everything that can change, for every area in view: outdoors that is the region and, if it stands here, the town.
 function buildDynamic() {
+  clearActors();
   dispose(dynGroup);
   dynGroup = new THREE.Group();
   scene.add(dynGroup);
-  if (R.isLevel(V.S)) return drawArea(V.S.area, 'vault'); // any level below (or, later, above) the world
-  drawArea(R.outdoorRec(V.S).id, 'region');
-  if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, 'town');
+  if (R.isLevel(V.S))
+    drawArea(V.S.area, 'vault'); // any level below or above the world
+  else {
+    const rec = R.outdoorRec(V.S);
+    drawArea(rec.id, 'region');
+    if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, 'town');
+    // the creatures of the regions round about, near the borders (built ahead by the rules; never built here)
+    if (actorsOn())
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          if (!dx && !dy) continue;
+          const nid = R.regionId(V.S, R.wrap(rec.cx + dx, V.S.world.cols), R.wrap(rec.cy + dy, V.S.world.rows));
+          if (nid !== rec.id && V.S.areas[nid] && V.S.areas[nid].map !== undefined && R.mapOf(V.S, nid))
+            drawArea(nid, 'region', { x: dx * 2 * HALF, z: dy * 2 * HALF });
+        }
+  }
+  facet(dynGroup);
+  settleActors(dynGroup);
 }
-function drawArea(id, kind) {
+// nb: for a neighbouring region, its offset in metres; only its creatures near the border are drawn, so that they are
+// already there, and walking, when the border is crossed.
+function drawArea(id, kind, nb) {
   const map = R.mapOf(V.S, id),
     current = id === V.S.area,
     indoor = kind !== 'region',
@@ -1040,8 +1366,8 @@ function drawArea(id, kind) {
     off = indoor ? ts / 28 : 1;
   // a tile of this area, plus an offset in metres, as a point in the frame the player is in
   const at = (k, dx, dz) => {
-    let x = ((k % R.W) + 0.5) * ts - half + (dx || 0),
-      z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0),
+    let x = ((k % R.W) + 0.5) * ts - half + (dx || 0) + (nb ? nb.x : 0),
+      z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0) + (nb ? nb.z : 0),
       y = 0;
     if (kind === 'town') {
       x += V.townAt.x;
@@ -1051,15 +1377,17 @@ function drawArea(id, kind) {
     return [x - FR.x, y - FR.y, z - FR.z];
   };
   const ground = (x, z) => V.terrain.height(x, z);
-  if (!indoor)
+  if (!indoor && !nb)
     for (const k in map.sites) {
       const st = map.sites[k];
       if (st.kind !== 'spring') continue;
       const [x, y, z] = at(+k),
-        w = new THREE.Mesh(
-          new THREE.CircleGeometry(4.6, 16).rotateX(-Math.PI / 2),
-          new THREE.MeshBasicMaterial({ color: st.known && st.foul ? 0x6f6a35 : 0x3f8fc0 }),
-        );
+        w = fxOn()
+          ? water(4.6, st.known && st.foul)
+          : new THREE.Mesh(
+              new THREE.CircleGeometry(4.6, 16).rotateX(-Math.PI / 2),
+              new THREE.MeshBasicMaterial({ color: st.known && st.foul ? 0x6f6a35 : 0x3f8fc0 }),
+            );
       w.position.set(x, y + 0.3, z);
       dynGroup.add(w);
       for (let i = 0; i < 7; i++) {
@@ -1067,8 +1395,13 @@ function drawArea(id, kind) {
           d = 5.5 + (i % 3) * 1.6,
           rx = x + Math.cos(a) * d,
           rz = z + Math.sin(a) * d,
-          c = new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.4 + (i % 3), 5), std(0x587a40));
-        c.position.set(rx, ground(rx, rz) + 1.1, rz);
+          c = plantsOn()
+            ? new THREE.Mesh(treeModel(REEDS, false), treeMat(REEDS))
+            : new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.4 + (i % 3), 5), std(0x587a40));
+        if (plantsOn()) {
+          c.scale.set(1.3, 2.2 + (i % 3) * 0.6, 1.3);
+          c.position.set(rx, ground(rx, rz) - 0.2, rz);
+        } else c.position.set(rx, ground(rx, rz) + 1.1, rz);
         dynGroup.add(c);
       }
     }
@@ -1076,13 +1409,25 @@ function drawArea(id, kind) {
     for (const k in map.sites) {
       const st = map.sites[k],
         [x, y, z] = at(+k),
-        g = interiorSite(st, ts, kind === 'town');
+        g = interiorSite(st, ts, kind === 'town', +k);
       g.position.set(x, y, z);
       if (st.kind === 'elder' || st.kind === 'inn' || st.kind === 'shop') g.rotation.y = Math.atan2(P.x - x, P.z - z);
+      else if (st.kind === 'folk') g.rotation.y = (+k * 2.4) % 6.28;
       dynGroup.add(g);
+      let who = null; // the person's figure, within the group of their place
+      if (actorsOn()) g.traverse((o) => (who = who || (o.userData.actor ? o : null)));
+      if (who)
+        track(
+          g,
+          who,
+          st.kind === 'folk'
+            ? // a townsperson is known by name, wherever the rules have them stand: they walk there
+              { key: 'folk:' + id + ':' + folkId(st), speed: 1.4, roam: ts * 0.3, rise: false }
+            : { key: 'site:' + id + ':' + k },
+        );
     }
-  const camp = V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
-  for (const k in map.depots) {
+  const camp = !nb && V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
+  for (const k in nb ? {} : map.depots) {
     if (+k === camp) continue;
     const d = map.depots[k],
       relic = d.items.some((i) => i.base === 'relic'),
@@ -1097,6 +1442,11 @@ function drawArea(id, kind) {
   for (const c of map.creatures) {
     const fighting = current && V.S.combat && V.S.combat.cid === c.id;
     if (c.bound && !fighting) continue;
+    if (nb) {
+      // a neighbour's creature: only those near enough to see
+      const [cx, , cz] = at(c.y * R.W + c.x);
+      if (Math.hypot(cx - P.x, cz - P.z) > 360) continue;
+    }
     const sp = R.spOf(V.S, c),
       g = new THREE.Group(),
       col = sp.rare === 'gilded' ? 0xd9a520 : sp.rare === 'docile' ? 0x7fae7a : R.biomeOf(V.S).creatureTint,
@@ -1108,7 +1458,10 @@ function drawArea(id, kind) {
           sp.rare === 'docile' ? 0x9fe39f : sp.temper === 'hunter' ? 0xff3b2f : sp.temper === 'skittish' ? 0xffe06a : 0xff9a2a,
         fog: false,
       });
-    if (sp.form === 'hound')
+    if (actorsOn()) {
+      g.add(creatureActor(sp.form, col, eye.color.getHex()));
+      if (fxOn()) g.add(blob({ hound: 0.9, brute: 1.4, wight: 0.7, serpent: 1.1 }[sp.form] || 1));
+    } else if (sp.form === 'hound')
       g.add(
         box(0.6, 0.7, 1.7, mat, 0, 0.8, 0),
         box(0.5, 0.5, 0.6, mat, 0, 1.15, 1),
@@ -1165,11 +1518,34 @@ function drawArea(id, kind) {
         y = Math.min(y, ground(x + ox, z + oz));
     g.position.set(x, y, z);
     dynGroup.add(g);
+    if (actorsOn()) {
+      // walks from where it was drawn; in a fight it lunges, and flinches when hurt
+      const hurt = HP.has(c.id) && c.hp < HP.get(c.id);
+      HP.set(c.id, c.hp);
+      track(g, g.children[0], {
+        key: 'c:' + c.id,
+        speed: 4.5,
+        fight: fighting,
+        hurt,
+        roam: indoor ? 0.8 : 7,
+        // outdoors its feet keep to the ground as it goes (the lowest point under its body, as when it stands)
+        ground: indoor
+          ? null
+          : (gx, gz) => Math.min(ground(gx + 1.2, gz), ground(gx - 1.2, gz), ground(gx, gz + 1.2), ground(gx, gz - 1.2)),
+      });
+    }
   }
   if (camp !== null) {
     const [x, y, z] = at(camp, 5, 3),
       t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(0xd9a24a));
     t.position.set(x, y + 1.8, z);
+    if (fxOn()) {
+      // your camp: the tent of cloth, and a fire before it that lights up the night
+      t.material = kitMat({ vertexColors: false, color: 0xd9a24a, map: surface('cloth') });
+      const f = fire(1);
+      f.position.set(x - 3.5, ground(x - 3.5, z + 3) + 0.05, z + 3);
+      dynGroup.add(f);
+    }
     const sm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.6, 150, 8, 1, true), glow(0xf2f2ee, 0.38));
     sm.material.side = THREE.DoubleSide;
     sm.position.set(x + 3, y + 76, z - 2);
@@ -1204,4 +1580,6 @@ export {
   buildDynamic,
   applyFrame,
   resize,
+  treesNear,
+  shadowsOn,
 };

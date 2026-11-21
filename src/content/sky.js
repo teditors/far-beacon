@@ -83,7 +83,7 @@ export default {
         per: 4,
         text: 'An island of grass and broken stone, turning slowly on the wind. Ruins of whoever lived here stand at its heart.',
         ruins: 3,
-        look: { stone: 0xb9b4a6, floor: 0x7d9a5c, bg: 0x9cc4ec, far: 160, light: 0.95, void: true },
+        look: { kit: 'rock', stone: 0xb9b4a6, floor: 0x7d9a5c, bg: 0x9cc4ec, far: 160, light: 0.95, void: true },
       },
       {
         id: 'castle',
@@ -98,7 +98,7 @@ export default {
         per: 4,
         text: 'A castle on a crag of rock that hangs in the sky, its gates open to the wind.',
         prize: 'The lord of the keep kept the best of everything up here, out of reach.',
-        look: { stone: 0xd2cfc7, floor: 0x8a8578, bg: 0x9cc4ec, far: 160, light: 0.9, void: true },
+        look: { kit: 'castle', stone: 0xd2cfc7, floor: 0x8a8578, bg: 0x9cc4ec, far: 160, light: 0.9, void: true },
       },
       {
         id: 'city',
@@ -123,7 +123,7 @@ export default {
           ],
           bed: 6,
         },
-        look: { stone: 0xf0f0f4, floor: 0xd8dde4, bg: 0xa8cdf0, far: 180, light: 1, void: true },
+        look: { kit: 'marble', stone: 0xf0f0f4, floor: 0xd8dde4, bg: 0xa8cdf0, far: 180, light: 1, void: true },
       },
       {
         id: 'moon',
@@ -144,7 +144,7 @@ export default {
           { stat: 'cold', op: 'add', value: 6 },
           { stat: 'staminaCost', op: 'mul', value: 0.7 },
         ],
-        look: { stone: 0x8e8e94, floor: 0xb8b8bc, bg: 0x06070d, far: 120, light: 0.75, void: true },
+        look: { kit: 'rock', stone: 0x8e8e94, floor: 0xb8b8bc, bg: 0x06070d, far: 120, light: 0.75, void: true },
       },
     ],
   },

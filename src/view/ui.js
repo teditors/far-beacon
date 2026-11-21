@@ -3,8 +3,9 @@ import { $, G, P, R, V, VIEW, clamp, el, f1 } from './ctx.js';
 import { guard, showError, errors } from './oops.js';
 import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSeed, save, start, sync } from './run.js';
 import { box, buildDynamic, buildStatic, renderer, resize, scene } from './scene.js';
-import { Q, QUALITY, SET, saveSettings, setQuality } from './quality.js';
+import { LOOK_SWITCHES, Q, QUALITY, SET, lookChanged, lookOn, saveSettings, setQuality } from './quality.js';
 import { PF } from './perf.js';
+import { setVolume, soundState } from './sound.js';
 
 /* ---------- HUD and panels ---------- */
 function meter(id, v, max, txt) {
@@ -1376,6 +1377,41 @@ function openMenu() {
         el('li', { cls: 'item' }, [el('label', { for: 'perf-meter', text: 'Show the performance meter' }), cb]),
       ]);
     })(),
+    // sound: music and effects volumes, and a mute (sound.js)
+    (() => {
+      const slider = (kind, label) => {
+        const r = el('input', { type: 'range', id: 'vol-' + kind, min: '0', max: '1', step: '0.05', value: String(SET[kind]) });
+        r.addEventListener('input', () => setVolume(kind, parseFloat(r.value)));
+        return el('li', { cls: 'item tune' }, [el('label', { for: 'vol-' + kind, text: label }), r]);
+      };
+      const mute = el('input', { type: 'checkbox', id: 'vol-mute' });
+      mute.checked = !!SET.mute;
+      mute.addEventListener('change', () => setVolume('mute', mute.checked));
+      return el('ul', { cls: 'items' }, [
+        slider('music', 'Music'),
+        slider('sfx', 'Sounds of the world'),
+        el('li', { cls: 'item' }, [el('label', { for: 'vol-mute', text: 'Mute' }), mute]),
+      ]);
+    })(),
+    // the look's pieces, each on or off for this device (quality.js), to compare
+    el(
+      'ul',
+      { cls: 'items' },
+      LOOK_SWITCHES.map(([id, label]) => {
+        const cb = el('input', { type: 'checkbox', id: 'look-' + id });
+        cb.checked = lookOn(id);
+        cb.addEventListener('change', () => {
+          SET.off[id] = !cb.checked;
+          saveSettings();
+          guard('redrawing', () => {
+            buildStatic();
+            buildDynamic();
+          });
+          lookChanged(id);
+        });
+        return el('li', { cls: 'item' }, [el('label', { for: 'look-' + id, text: label }), cb]);
+      }),
+    ),
     el('h3', { text: 'Tinker' }),
     el('p', { cls: 'note', text: 'Switch whole systems off, or change the numbers while you play.' }),
     godPanel(),
@@ -1536,6 +1572,7 @@ window.__g = {
   get S() {
     return V.S;
   },
+  sound: soundState,
   P,
   V,
   VIEW,

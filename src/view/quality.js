@@ -21,6 +21,12 @@ const QUALITY = {
     sky: false,
     grain: false,
     weather: 0,
+    grass: 0, // metres round the player where grass grows (C5.18), and the most tufts
+    grassMax: 0,
+    texPx: 64, // painted textures' size (C5.17)
+    aniso: 1,
+    lite: true, // towns without their small things (shutters, flowers, street props)
+    treeNear: 0, // metres round the player within which trees have their full shape (C5.3); 0: nowhere
   },
   medium: {
     label: 'Medium',
@@ -36,13 +42,18 @@ const QUALITY = {
     sky: true,
     grain: true,
     weather: 700,
+    treeNear: 140,
+    grass: 26,
+    grassMax: 4000,
+    texPx: 128,
+    aniso: 4,
   },
   high: {
     label: 'High',
     ratio: 2,
     aa: true,
-    margin: 22,
-    fine: 216,
+    margin: 24,
+    fine: 288,
     coarse: 2,
     treesN: 1,
     treesF: 0.5,
@@ -51,15 +62,23 @@ const QUALITY = {
     sky: true,
     grain: true,
     weather: 1600,
+    treeNear: 420,
+    grass: 45,
+    grassMax: 14000,
+    texPx: 256,
+    aniso: 8,
+    post: true, // bloom, colour grading and a vignette (C5.19)
+    shadows: true, // real-time shadows from the sun, near the player (C5.10)
   },
 };
-const SET = { quality: 'medium', meter: false };
+const SET = { quality: 'medium', meter: false, off: {} };
 try {
   Object.assign(SET, JSON.parse(localStorage.getItem(KEY) || '{}') || {});
 } catch (e) {
   /* storage is optional */
 }
 if (!QUALITY[SET.quality]) SET.quality = 'medium';
+if (!SET.off || typeof SET.off !== 'object') SET.off = {};
 const Q = Object.assign({}, QUALITY[SET.quality]);
 function saveSettings() {
   try {
@@ -73,4 +92,11 @@ function setQuality(name) {
   Object.assign(Q, QUALITY[name]);
   saveSettings();
 }
-export { QUALITY, Q, SET, setQuality, saveSettings };
+/* The look's own switches (commission 5): each visual or sound piece registers [id, label] here and asks on(id). They
+   are settings of this device, like the quality, not of the run: a piece of the look never changes the game. */
+const LOOK_SWITCHES = [];
+const lookOn = (id) => !SET.off[id];
+// functions (id) told when a look switch is changed, for pieces that keep running state (the sound)
+const LOOK_CHANGED = [];
+const lookChanged = (id) => LOOK_CHANGED.forEach((fn) => fn(id));
+export { QUALITY, Q, SET, setQuality, saveSettings, LOOK_SWITCHES, lookOn, LOOK_CHANGED, lookChanged };

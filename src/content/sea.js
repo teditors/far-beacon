@@ -94,7 +94,7 @@ export default {
           ],
           bed: 6,
         },
-        look: { stone: 0x6a4a30, floor: 0x8a6a48, bg: 0xb7cfe0, far: 160, light: 0.95, void: true, water: true },
+        look: { kit: 'planks', stone: 0x6a4a30, floor: 0x8a6a48, bg: 0xb7cfe0, far: 160, light: 0.95, void: true, water: true },
       },
       {
         id: 'merhall',
@@ -118,7 +118,7 @@ export default {
           ],
           bed: 4,
         },
-        look: { stone: 0x5a8a7a, floor: 0x9a8f6a, bg: 0x0d3a50, far: 30, light: 0.55, glow: 0x7fd0c0 },
+        look: { kit: 'coral', stone: 0x5a8a7a, floor: 0x9a8f6a, bg: 0x0d3a50, far: 30, light: 0.55, glow: 0x7fd0c0 },
       },
       {
         id: 'seacave',
@@ -136,7 +136,7 @@ export default {
         per: 4,
         text: 'A cave the sea fills. Your light makes a small green room in the black water.',
         prize: 'Something the sea brought in, long ago, and could not take back out.',
-        look: { stone: 0x2f4048, floor: 0x5a5a48, bg: 0x04121a, far: 22, light: 0.3, glow: 0x5f9ab0 },
+        look: { kit: 'rock', stone: 0x2f4048, floor: 0x5a5a48, bg: 0x04121a, far: 22, light: 0.3, glow: 0x5f9ab0 },
       },
       {
         id: 'wreck',
@@ -157,7 +157,7 @@ export default {
         per: 3,
         text: 'The ribs of a great ship, lying on its side on the sea floor. Its holds are still shut.',
         prize: "The captain's strongbox.",
-        look: { stone: 0x4a3a2a, floor: 0x6a6048, bg: 0x0b2a40, far: 26, light: 0.45, glow: 0x6fb0d0 },
+        look: { kit: 'planks', stone: 0x4a3a2a, floor: 0x6a6048, bg: 0x0b2a40, far: 26, light: 0.45, glow: 0x6fb0d0 },
       },
       {
         id: 'drowned',
@@ -173,7 +173,7 @@ export default {
         per: 2,
         text: 'A shrine the lake rose over. Its lamps are out, but its offerings are still on the altar.',
         prize: 'The offerings of a people who are gone.',
-        look: { stone: 0x5d6a5a, floor: 0x4a4a40, bg: 0x0d2a2a, far: 24, light: 0.4, glow: 0x7fb0a0 },
+        look: { kit: 'stone', stone: 0x5d6a5a, floor: 0x4a4a40, bg: 0x0d2a2a, far: 24, light: 0.4, glow: 0x7fb0a0 },
       },
     ],
   },

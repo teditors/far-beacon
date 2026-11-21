@@ -1,3 +1,675 @@
+# Commission 5
+
+## Summary
+
+Twenty entries, newest last in the table (C5.12 to C5.15 are a second pass Andrew asked for: movement, variety of
+textures, water; C5.16 to C5.20 a third: townsfolk that walk, sharper textures, and High pushed harder): light first (the brief's "matters most"), then textures, trees, towns and
+levels, ruins, people and creatures, sound, fire and water, landmarks and shadows. Every check passes; the rules are
+untouched apart from content: a `kit` name on each level's look and a new `content/townlooks.js`, both read only by
+the view. No save changes. The page went from 621 KB to 730 KB.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C5.1 | Smooth land, warm sun and cool shade, a deepening sky, blue moonlight; Lambert light everywhere | `light` | pearl |
+| C5.2 | Painted ground (grass, sand, rock, snow grains in one texture) and surface textures made in code | `paint` | pearl |
+| C5.3 | Trees with shapes per woodland, swaying, near and far by distance; the modelling kit | `plants` | pearl |
+| C5.4 | Towns built by climate, trade and custom; levels with walls of their own | `towns` | pearl |
+| C5.5 | Ruins built in their people's style, aged and marked by their doom; places kept between builds | `ruins` | pearl |
+| C5.6 | People and creatures as jointed models that walk, breathe, look, lunge and flinch | `actors` | pearl |
+| C5.7 | A generative score that follows where you are; wind, rain, water, footsteps, creatures, blows | `sound` | pearl |
+| C5.8 | Campfires that glow at night, rippling springs, blob shadows | `fx` | pearl, small |
+| C5.9 | Landmarks: a beacon tower, a stone ring, rock caves, castles, barrows, temples, wells, doors | `landmarks` | small pearl |
+| C5.10 | Real-time sun shadows, High only | `shadows` | maybe |
+| C5.11 | Lantern light on dark floors again; the browser test photographs the new look | (fix, tests) | fix |
+| C5.12 | (second pass) Nobody teleports: catch-up walking, feet on the ground, idle wandering, rising in, falling when killed, creatures across borders | `actors` | pearl |
+| C5.13 | Every house of its own stuff: three variants of each texture, rubble, logs, shingle, adobe, picked per building, weathered | `towns`, `paint` | pearl |
+| C5.14 | Real water: levelled, in carved beds, rippling, mirroring the sky, glinting, foaming; ice; dry washes stay dry | `water` | pearl |
+| C5.15 | Smoke from every chimney, worked on the graphics card | `towns` | small pearl |
+| C5.16 | (third pass) Townsfolk really walk: tracked by identity, moved with the view's frame, forgotten with their world | `actors` | fix |
+| C5.17 | Sharper textures: up to 256 px, crisp bevelled blocks, planks, logs, thatch; dirt streets, cobbled plazas; a detail layer on the land | `paint` | pearl |
+| C5.18 | High pushed harder: grass and wildflowers underfoot, clouds and the sun's glow, soft wide shadows, finer and further land | `grass`, `clouds` | pearl |
+| C5.19 | The finish on High: bloom, colour grading, a vignette | `post` | pearl |
+| C5.20 | People of their own: outfits, hair, beards, cloaks, builds | `actors` | pearl |
+
+**The style**, in short: a painted storybook of about 2005. Chunky readable shapes, smooth soft shading on land and
+living things, cut facets on stone and roofs, colours a little richer than life, warm sun and cool shade, fog in the
+sky's colour, firelight the only bright warm thing at night (in full above).
+
+**Numbers, before and after** (`python3 tools/bench.py low medium high`, software renderer at 412 x 915, seeds 11 / 222
+/ 3333; slow in absolute terms, comparable across rows; frame times swing about 8% between runs):
+
+| | build ms | draw calls | triangles | frame ms | page |
+| --- | --- | --- | --- | --- | --- |
+| before, Low | 54 | 67 | 81,780 | 89.4 | 621 KB |
+| after, Low | 73 | 65 | 105,353 | 73.3 | 730 KB |
+| before, Medium (default) | 93 | 81 | 151,882 | 144.1 | |
+| after, Medium | 105 | 82 | 197,275 | 129.7 | |
+| before, High | 176 | 91 | 283,906 | 209.9 | |
+| after, High (with shadows) | 226 | 92 | 343,102 | 231.5 | |
+
+Low and Medium are **cheaper a frame than before** and look entirely different: Lambert light (per vertex) costs less
+than the standard material did, and pays for the trees, towns and people. High costs about a tenth more, all of it
+the shadows (C5.10), which can be switched off. Builds are 10 to 20 ms dearer the first time a place is in view;
+places are then reused. Inside places, every kind is cheaper than before (C5.11's table): a floating castle 186 to 58
+ms, a dungeon level 70 to 49. The sound costs a handful of oscillators. **After the third pass** High is deliberately heavier (C5.18, C5.19): on this software renderer 312 ms a frame and
+577,198 triangles against 210 and 283,906 before the commission; Medium and Low are unchanged by it.
+**Andrew: on the Pixel, turn the meter on and
+compare High with and without "Real-time shadows", and send the numbers for a floating castle and a town at night.**
+
+**My three best.**
+1. **The modelling kit with joints in the shader (C5.3, C5.6)**: one small brick that every model is made of. A forest
+   is one draw call, a town seven, a person or a creature one however many limbs it has, and moving the limbs costs
+   the processor five numbers a frame. It is why the look got richer while the frame got cheaper.
+2. **Towns from culture (C5.4)**: a town's look is data, read from its climate, trade and custom, so a desert town of
+   traders under striped awnings and a northern town of pious log houses with a steeple are told apart at a glance,
+   and a new culture is a content entry.
+3. **Ruins aged block by block (C5.5)**: building a ruin as its people built it and letting age and doom take it apart
+   makes all five traits of the lost people readable before you search, which is gameplay the game always had and
+   never showed.
+
+**What I would do next.**
+1. Measure on the Pixel (above), and if High's shadows are dear there, default them off.
+2. Water: done in C5.14. Next would be rivers that visibly flow downstream (their direction is known from the
+   levels) and a cheaper water shader on Medium if the open sea stutters on the Pixel.
+3. More life in towns: townsfolk wander about their spot but do not yet go anywhere (that wants a little of the
+   rules: a destination); carts; washing that moves in the wind (the sway is there to use).
+4. The music: a second instrument family per biome and short themes for finding a place, a town's welcome and a win.
+5. The sky places (isles, cloud cities) seen from below are still the old shapes; give them the kit too.
+
+**CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
+
+| v0.16 | Commission 5: how the game looks and sounds. A painted storybook style: smooth land in warm sun and cool shade, a deepening sky and blue moonlight; textures made in code; trees with shapes that sway; towns built by their climate, trade and custom, glowing at night; levels with walls of their own; ruins in their people's style, aged and marked by their doom; landmarks; people and creatures that walk, breathe, look round, lunge and flinch; campfires, springs and shadows; real-time shadows on High; a generative score that follows where you are and the sounds of the world. Every piece has a switch in Menu, Settings; Low and Medium are cheaper a frame than before. |
+
+## The style
+
+**A painted storybook, about 2005.** Chunky, readable shapes with a little exaggeration (round crowns, steep roofs,
+leaning towers), smooth soft shading rather than facets on land and living things, but cut facets on stone, roofs and
+rock. Colours a little richer than life, never neon; whites stay chalky. Light is warm where the sun falls and cool in
+the shade, with an orange sun low in the sky and blue moonlight at night; the sky deepens overhead and glows round the
+sun, and fog in the sky's colour gives depth. Textures, where there are any, are soft painted blotches and strokes made
+in code, never photographs. Firelight and lanterns are the only bright warm things at night. Every visual piece is
+held to this; when in doubt, simpler and rounder.
+
+**Switches for the look** live with the graphics quality (Menu, Settings), as settings of the device rather than of
+the run, since a piece of the look never changes the game: `LOOK_SWITCHES` and `lookOn(id)` in `src/view/quality.js`.
+
+**Measuring.** `python3 tools/bench.py low medium high` (seeds 11 / 222 / 3333, software renderer at 412 x 915). This
+machine is slower than the one commission 4 measured on, so the "before" row below is re-measured here, at the start:
+
+| before (v0.15) | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Low | 54 | 67 | 81,780 | 89.4 |
+| Medium | 93 | 81 | 151,882 | 144.1 |
+| High | 176 | 91 | 283,906 | 209.9 |
+
+The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
+
+## C5.20: people of their own
+
+**What it is.** Every person used to be the same figure in another colour. Now each is dressed and built their own
+way (`personModel` and `personActor` in actors.js), from their seed:
+- **Outfits**: a belted tunic with a buckle; a long robe to the ankles with a rope belt (the elder always); a tunic
+  under an apron with sleeves rolled to bare forearms (the innkeeper always); a coat over trousers of a second colour,
+  with a collar (the shopkeeper always). Townsfolk and trades are any of them.
+- **Hair**: cropped, long to the shoulders, a bun, a braid, or bald with a fringe; a beard on some; a hat for those
+  whose trade wears one.
+- **A cloak** down the back of some, in a second colour from a list of earthy dyes.
+- **Build**: a little taller or shorter, broader or slighter.
+- **The figure itself** is better made: thighs and shins, rounded shoulders, upper arms and forearms, hands, a nose.
+
+Still one draw call each, jointed as before (the legs and arms swing as one piece from hip and shoulder).
+
+Also: the plaza's cobbles have softer joints, so they read as stones rather than dark lines.
+
+**Switch.** Part of `actors`.
+
+**Numbers.** A person is about 900 to 1,100 triangles (measured): a street of fifteen is some 15,000, small beside the land. Page 774 KB.
+
+**Verdict.** Pearl: a street of townsfolk reads as people, not as copies.
+
+## C5.19: the finish (High)
+
+**What it is.** On High the scene is drawn into a picture of its own (multisampled, so edges stay as smooth as
+before), then finished on the way to the screen (`post.js`), like a painting varnished:
+- **bloom**: what is brightest (the sun and its glow, fires, lamps, lit windows, glints on water) bleeds a soft light
+  round itself, from a quarter-size copy of the brightest parts blurred across and down;
+- **grading**: a touch more colour and contrast, the light warmed and the shadows cooled, the storybook palette;
+- **a vignette**: the corners a little darker, to hold the eye.
+
+The three.js of this game (r128) has no ready post-processing in its core, so this is four small hand-written passes
+(bright parts, blur, blur, finish), about 60 lines. The meter and the benchmark still report the scene's own draw calls
+and triangles (plus the four passes).
+
+**Switch.** `post` ("Bloom and colour grading (High)"); only on High (`Q.post`).
+
+**Numbers.** High 288 ms build, 119 calls, 577,198 triangles, 312.0 ms a frame (300.2 without): 4%.
+
+**Verdict.** Pearl: a lit window at night and a low sun now glow the way the style always meant them to.
+
+## C5.18: High pushed harder
+
+**Asked by Andrew**: High runs without trouble on the Pixel, so loosen the reins and make High very good; players on
+lesser devices can choose Medium or Low.
+
+**What it is.**
+- **Grass and wildflowers underfoot** (`grass.js`): tufts of seven fine blades, knee-high, and here and there a flower
+  (yellow, red, white, violet, orange), scattered from where each patch lies in the world within 45 m of the traveller on
+  High (up to 14,000 tufts) and 26 m on Medium (4,000), re-scattered every few metres walked, thinning toward the edge of
+  the ring so it fades rather than stops, swaying in the wind. How much grows is the land's: lush in temperate and wet
+  lands, thicker in woods and flower meadows (where the flowers are), sparse and straw-coloured in hot lands, almost none
+  in the cold; none on water, roads, mountains, high ground or in towns. Two draw calls in all.
+- **Clouds** (`sky.js`): soft heaps of white drawn in code, a ring of them high round the traveller (24 on High, 12 on
+  Medium) drifting slowly, gold and rose at dawn and dusk, grey under a storm, faint at night; and a glow round the sun.
+- **Shadows on High** are soft-edged now (PCF soft), from a map twice as fine each way (2048), reaching 110 m instead
+  of 70.
+- **The land on High** is finer (a vertex every 3.5 m instead of 4.7: rounder hills, smoother light) and drawn further
+  (24 tiles of neighbouring land instead of 22); trees keep their full shape out to 420 m instead of 260.
+- Tall grass and fern woodlands are lit as if their blades faced the sky, so they no longer go black edge-on to the sun.
+
+**Switches.** `grass` ("Grass and flowers underfoot"), `clouds` ("Clouds and the sun's glow"); the rest is the High
+preset in quality.js.
+
+**Numbers** (software renderer):
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Low | 75 | 73 | 106,484 | 68.6 |
+| Medium | 97 | 97 | 199,798 | 135.0 |
+| High, before (C5.17) | 186 | 103 | 349,705 | 208.1 |
+| High, now | 285 | 111 | 571,206 | 300.2 |
+
+High is 45% dearer here, on purpose: most of it is the grass and the finer land, triangles a phone's graphics chip
+draws easily but this software renderer does not. Medium and Low are as they were. **Andrew: please run High with the
+meter on in a grassy land and in a town.** If it is too much, the levers are in quality.js's `high`: `grassMax` and
+`grass` (the grass), `fine` (the land), `treeNear` (full trees).
+
+**Verdict.** Pearl: walking through a meadow of swaying grass with flowers under drifting clouds is the most alive the
+land has looked.
+
+## C5.17: sharper textures
+
+**Asked by Andrew**: some town textures, especially, were muddy: big softened brown pixels.
+
+**Why they were.** Every texture was 64 x 64 pixels stretched over three to five metres of wall or street, and built
+mostly from soft low-frequency noise: up close each pixel was several centimetres of blur.
+
+**What it is now** (`paint.js`):
+- **Size by quality**: 64 pixels on Low, 128 on Medium, 256 on High, covering the same metres, so High is four times
+  finer each way. Sharper filtering at a slant too (anisotropic: 4 on Medium, 8 on High).
+- **Crisp shapes, not blotches**: blocks of stone, brick, shingle and tile have a bevel (light along the top edge,
+  shade below, a dark joint), each its own tone; planks have grain, knots and dark gaps; logs are rounded with dark
+  seams; thatch is crowded straws in layers whose lips shade the layer below; plaster is smooth with hairline cracks;
+  all over noise at every scale from coarse to the pixel (fBm) and a fine grit, so they read at any distance.
+- **Streets**: packed dirt with grit and a scatter of pebbles; the plaza is **cobbles** (rounded stones set close).
+- **The land's grain** is 256 pixels on High, and close up a second, finer pass of it is laid over (a detail texture),
+  so the ground at your feet stays crisp.
+- **Made ahead**: rubble and cobbles first took 170 to 200 ms each at High's size; finding the nearest stone on a
+  jittered grid brought every texture under 45 ms, and they are now made one at a time in idle moments after a world
+  starts, so the first town seen does not wait for them.
+
+**Numbers.** Low 67 ms build, 73 calls, 106,484 triangles, 68.5 ms a frame; Medium 105 / 94 / 199,376 / 132.7; High 186
+/ 103 / 349,705 / 208.1: no measurable cost a frame. Textures in memory on High: at most 39 of 256 x 256 (about 10 MB
+with their mipmaps). Page 757 KB.
+
+**Verdict.** Pearl.
+
+## C5.16: townsfolk really walk (fix)
+
+**Asked by Andrew**: the townsfolk disappeared and reappeared in another place every so often.
+
+**What was wrong.** Two faults of mine, the first since C5.6. (1) The people of a town were never tracked at all: their
+figure sits one level deeper in the scene than the lookup searched, so every townsperson, and the elder, innkeeper and
+shopkeeper too, was redrawn from scratch at each step: a tile's jump each time the rules moved them. C5.12's walking
+only ever reached creatures. (2) Townsfolk had no lasting identity in the tracking, only "the nearest remembered
+spot", and stale memories of others' old spots could be matched, while one left unmatched vanished.
+
+**The fix.** The figure is found wherever it is in its place's group; each townsperson is known by the record the rules keep
+for them as they move (not by name: two may share one), so they walk from where they were to where they now are, at a walk,
+and wander about their spot between steps; nobody vanishes unless they really leave.
+
+**Tested.** The browser test now walks the traveller up and down a town street twelve steps and checks that no
+townsperson moves more than 1.5 m between frames and none disappears (measured: at most 0.57 m a frame, 9 people
+throughout). The fault had slipped through because nothing measured it; now something does.
+
+Two more found while testing it across eight worlds: when the scene's frame moved between the land and a town by any
+way but walking through the gate (an action, a jump, a load), what was remembered of everyone was not moved with it,
+so they lurched (sideways, and up or down by the town's height); the shift now lives in the one function that moves the frame (`applyFrame`). And memories outlived
+their world: a new world's elder "walked" in from where the last world's elder had stood; entering a world now
+forgets them (`forgetActors`).
+
+Also fixed: building the water (C5.14) ran in one slice of the land's spread-out build, so crossing a border could
+take a 50 ms hitch on this machine (the browser test caught it); it now pauses every sixteen rows like the rest.
+
+**Verdict.** Fix.
+
+## C5.15: smoke from the chimneys
+
+**What it is.** Every chimney in a town smokes: a few soft puffs over it that rise, swell, drift downwind with a little
+wander and fade, over and over. All of it is worked out on the graphics card from the shared clock (a few lines in the
+points shader), so a whole town's smoke is one draw call and costs the processor nothing; on Low there is none. The
+smiths' and charcoal-burners' smoke is darker (their `smoke` colour in townlooks.js). The tall hearth columns over the
+hall and the inn stay, to find a town by from far off.
+
+Also: the streets' packed earth uses the smoothest plaster variant, without the dark crack marks that read as smudges.
+
+**Switch.** Part of `towns`.
+
+**Numbers.** One draw call and a few dozen points a town. Page 751 KB.
+
+**Verdict.** Small pearl: a town looks lived in from outside its walls.
+
+## C5.14: real water
+
+**Asked by Andrew**: realistic water, not blue land.
+
+**What it is.** Rivers, lakes and the sea are now water lying in a bed (`terrain.js`, `water.js`):
+
+- **Levels and beds.** Every river, lake and sea tile gets a water level: the ground's height at its middle, evened
+  out with the water round it (many times over for deep water, so lakes and seas lie flat; never raised, so water
+  settles rather than climbs), then spread a little under the banks. The ground beneath is carved: about a metre under
+  a river, a few under the sea, sloping up to the banks, and painted as dark mud. Walking into a river you wade (the
+  eye stays above the surface); on deep water, by boat or swimming, you are at its surface.
+- **The surface** is a mesh of its own over the same grid as the ground, only where there is water, and its shader
+  does the rest per pixel: crossing waves stir the normal so the light breaks on it; at a low angle it mirrors the
+  sky's colour (the fog's, so it matches the horizon), looking down you see into it; the sun leaves a glint; light
+  dapples it; it fades clear at the banks with a soft moving line of foam; shallow water is clear and tinted with each
+  land's own water colour, deep water darker and nearly opaque; deep water swells in long slow waves.
+- **Ice and dry beds.** A frozen river is pale, still and opaque; a dry wash stays dry ground, as its name says.
+- **Springs** and the open sea round a floating town use the same water.
+
+**Efficiency.** On Low the water is a plain see-through surface lit per vertex (no ripples, Fresnel or glints); the far
+water is always plain (ripples cannot be seen there). Building it is a few smoothing passes over the tile grid and one
+mesh over the grid cells that touch water.
+
+**Switch.** `water` ("Real water"); off, the land goes back to blue ground.
+
+**Numbers** (Medium; this machine swings about 10% between runs): on land 149 ms build, 93 calls, 205,399 triangles,
+140.7 ms a frame (water out of sight costs nothing a frame; building it adds about 15 ms). The open sea, where water
+fills the screen: 51 calls, 199,901 triangles, about 160 ms a frame against about 127 before, the dearest view in the
+game now. **Andrew: look at a lake or the sea on Medium and High with the meter on**; if it stutters, the plain water
+could be used on Medium too (one line in water.js, `rich`).
+
+**Verdict.** Pearl: rivers run in their valleys and catch the sky.
+
+## C5.13: every house of its own stuff
+
+**Asked by Andrew**: variety in textures; not every building in a town sharing one.
+
+**What it is.** Every painted surface now comes in three variants (other sizes of block, brick, plank, tile or shingle,
+another seed), and there are four new ones: **rubble** (rough stones of every size in mortar), **logs** (rounded logs
+laid one on another), **shingle** (short boards in staggered rows) and **adobe** (smoothed mud over big bricks, flecked
+with straw). Each climate in `content/townlooks.js` now lists the walls and roofs a house may be built of
+(`wallMix`, `roofMix`, also in the Almanac), and every building picks one of each, in one of the variants, along with
+its own colour:
+
+| Climate | Walls | Roofs |
+| --- | --- | --- |
+| hot | plaster, adobe, brick | flat plaster or adobe |
+| temperate | plaster (timber-framed), brick, stone | thatch, tiles |
+| wet | dressed stone, rubble | thatch, shingle |
+| cold | logs, planks | shingle, tiles |
+| ashen | stone, rubble, brick | tiles, shingle |
+| steppe | felt | felt |
+
+Walls are grimier toward the foot, by a different amount on each house. A walled town's mud wall is adobe. Each ruin's
+stone is a variant of its people's, so two ruins of one people are kin but not twins.
+
+**How, cheaply.** A town keeps one kit per texture and variant it uses (`switchKit` in buildings.js routes a house's
+parts to its choice), so a town is a few more draw calls (about 8 more with two towns in view), and no more textures
+are made than are used: each is 64 x 64, made the first time it is asked for.
+
+**Numbers.** Medium 110 ms build, 91 calls (83 before), 203,151 triangles, 130.8 ms a frame. Page 739 KB.
+
+**Verdict.** Pearl: a street of log houses and plank houses under shingles and tiles reads as built over time by
+different hands.
+
+## C5.12: nobody teleports
+
+**Asked by Andrew** after the first pass: natural movement for townsfolk and monsters, never a jump.
+
+**What it is.** The tracking of people and creatures (`actors.js`, C5.6) now covers every way someone could pop:
+
+- **Far moves.** Someone moved several tiles by the rules (while you rested, say) used to snap if more than 120 m
+  away. Now they always walk from where they were drawn, faster the further they have to go (there in about three
+  seconds), leaning into the hurry, their stride quickening.
+- **The ground.** Outdoors their feet follow the ground on the way, over hills rather than through them.
+- **Between your actions** everyone used to stand frozen until you did something. Now creatures amble about their
+  spot (up to 7 m outdoors, under a metre indoors) and townsfolk shuffle about theirs, pausing a few seconds, turning to
+  watch you when you come near. This is the view only: the rules' positions do not change.
+- **Comings and goings.** Someone new rises into view instead of appearing; a creature that leaves sinks away; a
+  creature you kill topples over and sinks (the rules' 'killed' event).
+- **Borders and gates.** Creatures in the eight regions round about are drawn now too, within 360 m of you, so they
+  are there before you cross; and when the scene's frame moves (a border crossed, a town gate passed), what is
+  remembered of everyone moves with it, so they walk on across it instead of jumping.
+
+**Switch.** Part of `actors`.
+
+**Numbers.** Medium 126 ms build, 83 calls, 203,217 triangles, 137.9 ms a frame (this machine's runs swing about 8%;
+the same page measured 130 to 146 today). A few more creatures in view; nothing else.
+
+**Verdict.** Pearl: the land is never still and nobody blinks from place to place.
+
+## C5.11: the new look in the browser test's pictures, and a fix for dark floors
+
+**What it is.** `python3 tests/smoke.py --shots` now also photographs the new look close up (`build/shots/`): a ruin
+(12), a creature (13) and your camp at night (14), beside its old pictures of the town, the levels and the places in
+the sky and water. Those pictures caught a bug of my own: in dark levels the floor was black. Light worked out per
+vertex (Lambert, from C5.1) only lights a level's floor at its corners, and the floor was one big square, so the
+traveller's lantern never reached it. Floors and ceilings of levels now have a vertex every two metres, and the
+lantern's pool shows again. (Lighting levels per pixel instead fixed it too, but doubled their frame time.)
+
+Two flaky steps of the browser test (older than this commission, but met more often on this slower machine) are
+steadier: the fight is skipped if the random world has no hostile creature in reach, and the test waits for the eye
+to settle in the town's gateway before measuring it.
+
+**Numbers, inside places on Medium** (`bench.py places`, v0.15 in brackets): dungeon level 8 calls, 35,356 triangles,
+48.7 ms (70.2); sky castle 8 / 18,437 / 57.7 (185.6); open sea 49 / 186,181 / 126.8 (144.9); under the sea 2 / 14,256 /
+26.4 (43.3); another world 31 / 176,794 / 101.1 (104.5).
+
+**Verdict.** Fix.
+
+## C5.10: real-time shadows, on High only
+
+**What it is.** On High the sun casts real shadows (three's shadow map, 1024 square, in a 140 m box that follows the
+player): houses, ruins, landmarks and the near trees throw them onto the near ground and onto each other. Everything
+else keeps its baked shading and blob shadows. The sun's light now shines from the same direction wherever the player
+is (it moves with them), which is what lets its shadow box follow.
+
+**Cost, and the choices that cut it.** The first try (everything casting, soft filtering, all the ground receiving)
+cost High 65% a frame (187 to 309 ms). Now only places and near trees cast (not the land's far trees and rocks), only
+the fine ground receives, and the filtering is the plain one: High costs 19% more (187 to 219 ms), a little more than
+High cost before this commission (210). Low and Medium are untouched: no shadow map at all.
+
+**Switch.** `shadows` ("Real-time shadows (High only)").
+
+**Numbers.** Low 73 ms build, 65 calls, 105,353 triangles, 66.5 ms a frame; Medium 107 / 82 / 197,275 / 123.9; High 198
+/ 92 / 343,102 / 219.4. Page 730 KB.
+
+**Verdict.** Maybe: it works and is honest about the sun, but on the software renderer it is the dearest thing in the
+commission for a modest gain. **Andrew: try High on the Pixel with the meter on, with and without this switch.** If it
+costs much there, turn its default off (one line in quality.js).
+
+## C5.9: landmarks in the style
+
+**What it is.** The places you steer by are rebuilt with the kit (`src/view/landmarks.js`), so they belong to the same
+painted world as the towns and ruins:
+
+- **The beacon** is a great tower of stone courses tapering upward, battlements round a brazier at the top, its fire
+  (the same flickering fire as a camp, three times the size) and glowing orb under the beam, and a door at its foot.
+- **The god's shrine** is a ring of five standing stones joined by lintels round an altar, the god's light hanging
+  over it in its own colour with a soft halo.
+- **Caves** are heaps of faceted rock round a dark arched mouth with a lintel stone (dens keep their bones).
+- **The locked place**: a castle is curtain walls with battlements, four round towers with conical roofs and a keep;
+  a barrow is a turf mound ringed by standing stones with a stone doorway; a temple is a stepped pyramid with a stair
+  up its face and a pillared house on top.
+- **Wells** (in towns, hamlets and at home) have a ring of stones, two posts, a windlass, a little roof and a bucket.
+- **Doors to other worlds** stand between two pillars of courses under a capped lintel.
+
+**Switch.** `landmarks` ("Landmarks in the style").
+
+**Numbers.** Unchanged within the noise (a landmark is two or three draw calls). Page 729 KB.
+
+**Verdict.** Small pearl: the goal on the skyline is now a tower worth walking toward.
+
+## C5.8: fire, water and shadows
+
+**What it is.** The small living things of the look (`src/view/fx.js`):
+
+- **Fire**: your camp has a cloth tent with a fire before it, and every wayfarer sits by one: a ring of stones,
+  crossed logs, three flames that flicker, and a warm halo that grows at night and pulses with the flames. The plots'
+  camps burn the same way. With the towns' lamps and windows, it is the warm light at night the brief asked for, done
+  with glowing shapes and halos rather than real lights, which would cost every vertex on screen.
+- **Water**: springs are pools with a muddy rim and ripples that drift slowly across them; foul ones, once known, are
+  murky green. The reeds round them are the grass tufts of C5.3.
+- **Shadows**: everyone stands in a soft round shadow, sized to their form, so people and creatures sit on the ground
+  rather than float over it. A blob shadow is one small quad each: real shadows are left for later (see the summary).
+
+**Switch.** `fx` ("Fire, water and shadows"). With reduced motion asked for, the flames and ripples hold still.
+
+**Numbers.** Graphics unchanged away from camps (a fire is four or five draw calls). Page 720 KB.
+
+**Verdict.** Pearl, small: a camp at night is now the warmest thing in the land, which is what a camp should be.
+
+## C5.7: sound and a generative score
+
+**What it is.** The game has sound (`src/view/sound.js`), all made in the browser with the Web Audio API: no files.
+
+- **The score** is generative: a slow random walk over a mode, mostly by step with the odd leap and many rests, over
+  a drone and a soft pad that moves through a few chords a phrase. It never repeats and is original by construction.
+  Where you are sets its mood (`MOODS`): open land by day is a bell over a pentatonic; night a sparser, lower aeolian;
+  a town a brighter major with a plucked string and a gentle pulse; below ground a deep phrygian drone with rare bells;
+  the sky a high lydian; the sea a swelling mixolydian; a storm a dark drone; a fight a quick phrygian pluck over drums.
+  Each land has its own key, so crossing into another shifts the music a little. Moods crossfade over a few seconds.
+  Everything sits in a small hall of reverb made from decaying noise.
+- **The world**: wind that gusts, stronger high up and in storms and almost gone below ground; rain on the land in a
+  wet storm (softer inside a town); running water near a river, spring or well; the murmur of a town with a hammer or a
+  snatch of a tune now and then; a fire crackling at your camp; footsteps a stride apart that sound like the ground
+  (grass, sand, snow, stone, wooden decks, splashing water); creatures' voices when near (a hound's howl, a brute's
+  grunt, a wight's moan, a serpent's hiss), and a cry when a fight starts; the swish of a blow, a thud when it lands, a
+  grunt when you are hurt, three bells for a kill; a soft click on every button.
+
+**For the phone.** Sound starts only after the first tap or key, as phones require, and stops while the page is
+hidden. Menu, Settings has Music and Sounds volumes and a Mute; they are settings of the device. The score schedules a
+bar at a time and the world is looked at ten times a second, so at any moment there are a handful of oscillators and
+four looping filtered noises: a small fraction of a phone's processor.
+
+**Switch.** `sound` ("Sound and music"); also Mute. The browser test checks that sound starts after the first tap.
+
+**Choices.** No tunes from anywhere: the music is only modes, a random walk and phrase lengths. The footsteps read the
+ground from the climate (snow in the cold, sand in hot, ashen and steppe lands) and the tile (water, mountain stone);
+inside a level from its kit (wooden decks, stone).
+
+**Numbers.** Graphics unchanged. Page 713 KB.
+
+**Verdict.** Pearl: the land is no longer silent, and a town is heard before it is seen.
+
+## C5.6: people and creatures that move
+
+**What it is.** Everyone you meet is a jointed model now (`src/view/actors.js`), and moves:
+
+- **People** (the elder, the innkeeper, the shopkeeper, the trades of town life, traders, townsfolk) are about 1.8 m
+  tall: legs and boots, a tunic flaring to the knee with a belt, arms with hands, a neck, a head with eyes, and a hat
+  in their trade's colour or hair. Skin and hair vary person to person; townsfolk wear one of eight colours.
+- **Creatures**: the hound is a rounded body on four legs with a muzzle, pricked ears and a tail; the brute a hulking
+  biped with a hump of shoulders, long arms with heavy fists and bared teeth; the wight a hooded robe tapering to
+  nothing, long thin arms, faintly see-through, floating and bobbing; the serpent eight segments that ripple as it goes,
+  its head raised. Their eyes still carry their temper's colour and still glow in the dark and through fog.
+- **Walking**: when the rules move someone between two builds of the scene (a creature hunting you, townsfolk
+  wandering), they walk from where they were drawn to where they now are, turned the way they go, legs swinging in a
+  diagonal gait for four-legged things and the body bobbing in the stride. Townsfolk, who have no lasting id, take the
+  nearest place one of them was last seen.
+- **Idle**: a slow breath, a glance about now and then, and the head turning to watch the traveller when near.
+- **Fighting**: the creature you fight crouches with its arms half raised, lunges at you every couple of seconds, and
+  flinches back when your blow lands (its health dropped since the last build).
+
+**How.** Each model is merged with the kit, every part tagged with the joint it hangs from and where that joint is.
+A few lines added to the vertex shader turn legs and arms about the hip and shoulder, the head and tail about the
+neck, and ripple a serpent, from five numbers per actor. So an actor is one draw call however many limbs it has
+(the old models were six or seven), and moving them costs the processor only those five numbers a frame. With reduced
+motion asked for by the device, nothing swings or walks.
+
+**Switch.** `actors` ("People and creatures that move").
+
+**Numbers.** Low 57 ms build, 58 calls, 104,805 triangles, 66.9 ms a frame; Medium 97 / 75 / 196,617 / 125.5; High 168
+/ 83 / 342,018 / 188.1. No change away from people; in a town fewer draw calls than before (one per person instead of
+two or three). Page 696 KB.
+
+**Verdict.** Pearl: a hound trotting toward you over the dunes reads as a threat in a way a sliding box never did.
+
+## C5.5: ruins with character, and places kept between builds
+
+**What it is.** A ruin is now built the way its people built and then aged and marked by how they ended
+(`src/view/ruins.js`), so all five traits of the lost people can be read from a distance:
+
+- **Style** is what they built with: river-valley builders lay big mud bricks and add a stepped stair; steppe riders
+  pile rough boulders low; highland monastics taper pale walls and string prayer flags over them; sea traders raise
+  columns of stone drums under lintels (fallen drums lie beside the short ones); forest clans set dark stone with timber
+  beams, and moss comes thick.
+- **Habit** is the plan: a walled cistern of dark still water with steps down; a round tower; a low tomb with a slab
+  roof and pillars at the door; a long granary (with its roof when recent, bare beams when not); a road's gateway with
+  paving running through.
+- **Age** is how much stands: recent ruins keep their full height and roofs; long-fallen ones stand to the eaves with
+  ragged tops; ancient ones are stumps a course or two high. Walls are laid as courses of blocks, so age takes blocks
+  away (what stood on a lost block mostly comes down with it) and the fallen ones lie about the foot. Moss grows with
+  age, heaviest near the ground.
+- **Doom**: plague leaves pale poles with rags round the ruin (and paler stone); fire blackens it, soot heaviest at
+  the top; famine leaves clay jars at the doors, some tipped over; war a ring of sharpened stakes leaning outward; a
+  quiet end leaves the door standing open. These follow the signs the game's text already gives for each doom.
+- **Affinity**: their sign is carved on a stele by the door, in their colour.
+
+**Places kept between builds.** Towns, ruins and hamlets are now made once and reused (`cachedModel` in scene.js):
+after crossing a border most of the same places are still in view, so the new land's build reuses them (places part
+of the build: 70 to 95 ms the first time, 4 to 6 ms after). The key holds the world's seed, the site, the quality and
+the look's switches, so nothing stale is shown; the oldest of 48 models are let go.
+
+**Kit.** Parts used again and again (a block, a drum) are prepared once (`PREP` in kit.js).
+
+**Switch.** `ruins` ("Ruins with character").
+
+**Numbers.** Low 58 ms build, 59 calls, 104,747 triangles, 63.2 ms a frame; Medium 93 / 77 / 196,559 / 122.3; High 179
+/ 85 / 341,960 / 186.9. Draw calls are down about ten (the old ruins were a dozen separate meshes each; a new one is
+four). Page 682 KB.
+
+**Verdict.** Pearl: a burnt tower of mud brick and a mossy ring of boulders with stakes round it tell two different
+stories before you search them.
+
+## C5.4: towns with culture, and levels with their own walls
+
+**What it is.** Every block of wall in a town's grid is now a building (`src/view/buildings.js`), built of what its
+land's climate offers and dressed by its people, from data in the new `src/content/townlooks.js` (for the view only;
+the rules never read it; an Almanac section lists it):
+
+- **Climate** decides what a town is built of: hot lands have ochre plaster houses with flat roofs, parapets and cloth
+  shades and banked mud walls; temperate lands timber-framed plaster under thatch with shutters and a log palisade;
+  wet lands grey stone under steep thatch; cold lands log houses with steep shingle roofs carrying snow; ashen lands
+  dark stone under low hipped roofs; the steppe round felt tents with domed tops, a coloured band and a smoke ring.
+- **Trade** puts things in the streets: anvils with glowing forges and woodpiles for smiths, planters for herbalists,
+  clothes lines of dyed cloth for weavers, charcoal kilns for burners, striped market stalls, crates and carts for
+  traders; and how many houses have chimneys, and the shop's awning.
+- **Custom** colours it: banners (the god's own colour for the pious), how many street lamps, window boxes of flowers
+  for the hospitable, fenced yards and a watchtower on the hall for the suspicious, a steeple with a gilded ball for
+  the pious, standing stones round the plaza for keepers of lore.
+- **Rare** towns: the people who never fell build in the lost people's own stone under their sign; pilgrims' towns
+  are whitewashed, with prayer flags across the streets.
+- The **elder's hall** has two storeys and banners by its door, the **inn** a hanging sign and two lanterns, the
+  **shop** an awning; doors face the plaza. A walled town's wall follows its climate (battlemented stone, a log
+  palisade or mud), with a tower by every gate. The streets are packed earth and the plaza is paved.
+- **At night** every window glows warm and every lamp, forge and kiln has a soft halo (one shared material whose
+  brightness follows the hour, and a single point sprite per town for the halos).
+
+Each town is merged into seven meshes (ground, walls, roofs, woodwork, stone, cloth, lights) plus its halos: about
+eight draw calls a town, a few thousand triangles. Hamlets use the same kit in their region's style.
+
+**Levels.** Each level's look in content now names a `kit` (`src/view/levels.js`): dressed stone (crypts, drowned
+shrines), battlements (floating castles, old holds), brick (cisterns), rough faceted rock (isles, the moon, sea caves,
+fungus caverns, warrens), propped rock (mines), white walls under gilded domes (cloud cities), boarded walls on posts
+(floating towns, wrecks), and rounded coral pillars capped with shell (merfolk halls). Each is still one instanced
+draw call for all the walls; floors and ceilings take the kit's surface.
+
+**Choices.** Town looks are content rather than code so they can be tinkered with like any menu. A town reads its
+climate from its region's biome (`parts.climate` for generated biomes, `biomeClimate` for the hand-made ones). On Low
+(`Q.lite`) towns leave out shutters, flowers and street props.
+
+**Switch.** `towns` ("Towns built in their own style"), which also covers the level kits.
+
+**Numbers** (land, away from a town: unchanged in frame time): Low 72 ms build, 68 calls, 102,779 triangles, 63.0 ms a
+frame; Medium 124 / 87 / 199,441 / 122.6; High 228 / 96 / 344,460 / 189.5. In sight of a town add about 8 draw calls
+and 3 to 8 thousand triangles. Builds are 10 to 30 ms dearer for the towns in view. Inside places on Medium
+(`bench.py places`), before (v0.15) and after:
+
+| place | calls before / after | triangles before / after | frame ms before / after |
+| --- | --- | --- | --- |
+| dungeon level | 18 / 18 | 3,312 / 13,712 | 70.2 / 36.7 |
+| sky castle | 11 / 11 | 16,581 / 18,261 | 185.6 / 51.1 |
+| open sea | 50 / 51 | 142,265 / 183,383 | 144.9 / 116.3 |
+| under the sea | 2 / 2 | 3,890 / 3,890 | 43.3 / 19.8 |
+| other world | 24 / 29 | 139,352 / 176,130 | 104.5 / 102.2 |
+
+Lambert light more than pays for the extra shape. Page 670 KB.
+
+**Verdict.** Pearl: a desert town, a northern log town and a steppe camp no longer look like the same kit of boxes.
+
+## C5.3: trees with shapes, near and far
+
+**What it is.** Every kind of woodland has a shape of its own (`src/view/plants.js`): pines are three tiers of cone on
+a short trunk; birches pale trunks under four soft clumps; thorn scrub a low faceted bush with twigs; dead wood a
+bare trunk with crooked branches; fern brakes a ring of arching fronds; tall grass a tuft of blades; anything else a
+round-crowned broadleaf. Crowns are darker underneath, each tree is a shade lighter or darker than its neighbours and
+leans a little, and the tops sway in the wind, harder in a storm (a few lines added to the vertex shader, one shared
+clock). The reeds round a spring are tufts of the same grass.
+
+Models are built with a new **kit** (`src/view/kit.js`): a model is put together from simple parts (box, cone, ball,
+blob), each with its own colour and place, merged into one geometry with the colours in its vertices, so one model
+is one draw call and a forest of them, instanced, is one too. Buildings, people and creatures will use the same kit.
+
+The shape comes from a woodland's name (`tree.shape` in content wins if given), so the generated biomes, which reuse
+the named woodlands, needed nothing new.
+
+**Near and far.** Full shapes everywhere tripled the triangles (Medium 152k to 400k, frame 119 to 173 ms). So each
+shape has a far version (a single cone or blob, close to the old cost), and only trees within `Q.treeNear` metres of
+the player (140 on Medium, 260 on High, none on Low) take the full one. The trees that could come that near are kept
+in a list and re-sorted into a near and a far instanced mesh every 25 m walked (under a millisecond); the rest of the
+land's trees are one static far mesh.
+
+**Switch.** `plants` ("Trees with shapes").
+
+**Numbers.** Low 89 ms build (noise: 64 to 89 between runs), 67 calls, 101,360 triangles, 65.3 ms a frame; Medium 94 /
+85 / 194,167 / 127.7; High 196 / 96 / 342,154 / 193.8. Against C5.1, Medium costs 7% more a frame, still well under
+the 144 ms it cost before this commission. Page 631 KB.
+
+**Verdict.** Pearl: the land stops looking like a field of traffic cones, and the near/far trick keeps it cheap.
+
+## C5.2: painted ground, and textures made in code
+
+**What it is.** `src/view/paint.js` makes every texture when the page starts, from seeded noise and brush strokes: no
+image files. The ground has one 128 x 128 texture whose four channels are four kinds of grain: grass (short upright
+blades over a mottle), grains for sand, salt, mud and ash (speckle and wind ripples), rock (broad facets and cracks)
+and snow or still water (soft drifts and glitter). Each point of the land carries four weights, read from its colour
+and slope (`surfaceOf`), and the ground's shader mixes the four by them: every kind of ground gets its own grain for
+one texture fetch. The grain fades with distance, where it would only shimmer. The same file makes 64 x 64 grey
+textures for built and worn things (stone in courses, brick, planks, thatch, roof tiles, cloth, plaster), multiplied
+into a surface's own colour, so a culture keeps its colours; they are used from C5.4 on.
+
+Reading the kind of ground from its colour rather than from the biome means generated biomes and rare strange-hued
+lands get the right grain with no content change.
+
+**Switch.** `paint` ("Painted textures"); on Low there is no grain at all, as before (`Q.grain`).
+
+**Numbers.** Low 64 ms build, 67 calls, 81,780 triangles, 61.6 ms a frame; Medium 92 / 81 / 152,038 / 119.1; High
+203 / 91 / 284,062 / 180.5. No measurable cost against C5.1. Page 618 KB.
+
+**Verdict.** Pearl: near ground now reads as grass, sand or snow at a glance, for nothing.
+
+## C5.1: light, and land without triangles
+
+**What it is.** The land is smooth: each point of the ground has a normal from the slope around it, so light rolls over
+hills instead of picking out triangles. All surfaces use Lambert materials (light worked out per vertex), the cheapest
+light three.js has, in place of the standard material with flat shading. A new `light.js` sets the sun, sky light and
+moon: the hemisphere light is sky blue from above and warm brown from below; the sun is orange when low and nearly
+white when high; at night the same light becomes a pale blue moon opposite the sun. The sky dome now deepens to blue
+overhead and glows round the sun (orange at dawn and dusk), its few vertices recoloured each frame. Painted shading is
+baked into the ground's colours as it is built: hollows a touch darker, crests lighter, steep slopes toward bare earth;
+and the land's colours are made a little richer (pale snow and salt left pale). Roofs, towers and rocks with few sides
+keep cut faces (`facet()` in scene.js gives them per-face normals).
+
+**In play.** The shape of the land reads at a glance: which way a slope faces, where the hollows are. Dawn and dusk
+are warm, night is blue rather than black.
+
+**Switch.** `light` (Menu, Settings: "Warm sun and cool shade"), which brings back the old light and flat ground.
+
+**Numbers** (after; before is at the top):
+
+| after C5.1 | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Low | 60 | 67 | 81,780 | 67.0 |
+| Medium | 85 | 81 | 152,038 | 119.8 |
+| High | 196 | 91 | 284,062 | 180.6 |
+
+Frames are cheaper on every setting (Lambert is cheaper than the standard material); builds are a few ms dearer for
+the normals and baked shading, within the noise. Page 613 KB.
+
+**Verdict.** Pearl: the biggest visible gain for the least cost, and it pays for itself in frame time.
+
 # Commission 4
 
 ## Summary
