@@ -26,6 +26,7 @@ import { animateActors, forgetActors, shiftActors } from './actors.js';
 import { updateSound } from './sound.js';
 import { updateFx } from './fx.js';
 import { setWaterSky } from './water.js';
+import { warmSurfaces } from './paint.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -109,6 +110,7 @@ const landKey = () => (R.isLevel(V.S) ? V.S.area : R.outdoorRec(V.S).id);
 function enter(state) {
   V.S = state;
   forgetActors();
+  warmSurfaces();
   buildStatic();
   buildDynamic();
   placePlayer();

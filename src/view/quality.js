@@ -21,6 +21,8 @@ const QUALITY = {
     sky: false,
     grain: false,
     weather: 0,
+    texPx: 64, // painted textures' size (C5.17)
+    aniso: 1,
     lite: true, // towns without their small things (shutters, flowers, street props)
     treeNear: 0, // metres round the player within which trees have their full shape (C5.3); 0: nowhere
   },
@@ -39,6 +41,8 @@ const QUALITY = {
     grain: true,
     weather: 700,
     treeNear: 140,
+    texPx: 128,
+    aniso: 4,
   },
   high: {
     label: 'High',
@@ -55,6 +59,8 @@ const QUALITY = {
     grain: true,
     weather: 1600,
     treeNear: 260,
+    texPx: 256,
+    aniso: 8,
     shadows: true, // real-time shadows from the sun, near the player (C5.10)
   },
 };

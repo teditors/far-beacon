@@ -97,6 +97,33 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.17: sharper textures
+
+**Asked by Andrew**: some town textures, especially, were muddy: big softened brown pixels.
+
+**Why they were.** Every texture was 64 x 64 pixels stretched over three to five metres of wall or street, and built
+mostly from soft low-frequency noise: up close each pixel was several centimetres of blur.
+
+**What it is now** (`paint.js`):
+- **Size by quality**: 64 pixels on Low, 128 on Medium, 256 on High, covering the same metres, so High is four times
+  finer each way. Sharper filtering at a slant too (anisotropic: 4 on Medium, 8 on High).
+- **Crisp shapes, not blotches**: blocks of stone, brick, shingle and tile have a bevel (light along the top edge,
+  shade below, a dark joint), each its own tone; planks have grain, knots and dark gaps; logs are rounded with dark
+  seams; thatch is crowded straws in layers whose lips shade the layer below; plaster is smooth with hairline cracks;
+  all over noise at every scale from coarse to the pixel (fBm) and a fine grit, so they read at any distance.
+- **Streets**: packed dirt with grit and a scatter of pebbles; the plaza is **cobbles** (rounded stones set close).
+- **The land's grain** is 256 pixels on High, and close up a second, finer pass of it is laid over (a detail texture),
+  so the ground at your feet stays crisp.
+- **Made ahead**: rubble and cobbles first took 170 to 200 ms each at High's size; finding the nearest stone on a
+  jittered grid brought every texture under 45 ms, and they are now made one at a time in idle moments after a world
+  starts, so the first town seen does not wait for them.
+
+**Numbers.** Low 67 ms build, 73 calls, 106,484 triangles, 68.5 ms a frame; Medium 105 / 94 / 199,376 / 132.7; High 186
+/ 103 / 349,705 / 208.1: no measurable cost a frame. Textures in memory on High: at most 39 of 256 x 256 (about 10 MB
+with their mipmaps). Page 757 KB.
+
+**Verdict.** Pearl.
+
 ## C5.16: townsfolk really walk (fix)
 
 **Asked by Andrew**: the townsfolk disappeared and reappeared in another place every so often.

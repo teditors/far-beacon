@@ -191,6 +191,7 @@ function kits(st) {
     roofs = {};
   return {
     ground: kit(),
+    cobble: kit(),
     walls,
     roofs,
     wall: switchKit(walls, st.walls + ':0'),
@@ -215,7 +216,8 @@ function finish(K, st, group) {
   const add = (k, mat) => {
     if (!k.empty) group.add(new THREE.Mesh(k.build(), mat));
   };
-  add(K.ground, kitMat({ map: surface('plaster', 2) }));
+  add(K.ground, kitMat({ map: surface('dirt', 0) }));
+  add(K.cobble, kitMat({ map: surface('cobble', 0) }));
   for (const key in K.walls) add(K.walls[key], kitMat({ map: surface(key.split(':')[0], +key.split(':')[1]) }));
   for (const key in K.roofs) add(K.roofs[key], kitMat({ map: surface(key.split(':')[0], +key.split(':')[1]) }));
   add(K.wood, kitMat({ map: surface('wood') }));
@@ -678,8 +680,8 @@ function townGroup(S, townId, map, ts) {
     walled = !!(S.areas[townId] && S.areas[townId].walled),
     c = 18;
   // the ground: streets of packed earth, the plaza paved
-  K.ground.add(P.box(size, 0.1, size), st.ground, { y: 0.03 }, { uv: 5, jitter: 0.04 });
-  K.stone.add(P.box(13 * ts, 0.1, 13 * ts), st.plinth, { y: 0.06 }, { uv: 1.1, jitter: 0.03 });
+  K.ground.add(P.box(size, 0.1, size), st.ground, { y: 0.03 }, { uv: 2.5, jitter: 0.04 });
+  K.cobble.add(P.box(13 * ts, 0.1, 13 * ts), st.plinth, { y: 0.06 }, { uv: 3, jitter: 0.03 });
   // buildings
   const kindAt = {};
   for (const k in map.sites) {
