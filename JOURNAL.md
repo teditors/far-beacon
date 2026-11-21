@@ -2,8 +2,8 @@
 
 ## Summary
 
-Fifteen entries, newest last in the table (C5.12 to C5.15 are a second pass Andrew asked for: movement, variety of
-textures, water): light first (the brief's "matters most"), then textures, trees, towns and
+Twenty entries, newest last in the table (C5.12 to C5.15 are a second pass Andrew asked for: movement, variety of
+textures, water; C5.16 to C5.20 a third: townsfolk that walk, sharper textures, and High pushed harder): light first (the brief's "matters most"), then textures, trees, towns and
 levels, ruins, people and creatures, sound, fire and water, landmarks and shadows. Every check passes; the rules are
 untouched apart from content: a `kit` name on each level's look and a new `content/townlooks.js`, both read only by
 the view. No save changes. The page went from 621 KB to 730 KB.
@@ -25,6 +25,11 @@ the view. No save changes. The page went from 621 KB to 730 KB.
 | C5.13 | Every house of its own stuff: three variants of each texture, rubble, logs, shingle, adobe, picked per building, weathered | `towns`, `paint` | pearl |
 | C5.14 | Real water: levelled, in carved beds, rippling, mirroring the sky, glinting, foaming; ice; dry washes stay dry | `water` | pearl |
 | C5.15 | Smoke from every chimney, worked on the graphics card | `towns` | small pearl |
+| C5.16 | (third pass) Townsfolk really walk: tracked by identity, moved with the view's frame, forgotten with their world | `actors` | fix |
+| C5.17 | Sharper textures: up to 256 px, crisp bevelled blocks, planks, logs, thatch; dirt streets, cobbled plazas; a detail layer on the land | `paint` | pearl |
+| C5.18 | High pushed harder: grass and wildflowers underfoot, clouds and the sun's glow, soft wide shadows, finer and further land | `grass`, `clouds` | pearl |
+| C5.19 | The finish on High: bloom, colour grading, a vignette | `post` | pearl |
+| C5.20 | People of their own: outfits, hair, beards, cloaks, builds | `actors` | pearl |
 
 **The style**, in short: a painted storybook of about 2005. Chunky readable shapes, smooth soft shading on land and
 living things, cut facets on stone and roofs, colours a little richer than life, warm sun and cool shade, fog in the
@@ -46,7 +51,9 @@ Low and Medium are **cheaper a frame than before** and look entirely different: 
 than the standard material did, and pays for the trees, towns and people. High costs about a tenth more, all of it
 the shadows (C5.10), which can be switched off. Builds are 10 to 20 ms dearer the first time a place is in view;
 places are then reused. Inside places, every kind is cheaper than before (C5.11's table): a floating castle 186 to 58
-ms, a dungeon level 70 to 49. The sound costs a handful of oscillators. **Andrew: on the Pixel, turn the meter on and
+ms, a dungeon level 70 to 49. The sound costs a handful of oscillators. **After the third pass** High is deliberately heavier (C5.18, C5.19): on this software renderer 312 ms a frame and
+577,198 triangles against 210 and 283,906 before the commission; Medium and Low are unchanged by it.
+**Andrew: on the Pixel, turn the meter on and
 compare High with and without "Real-time shadows", and send the numbers for a floating castle and a town at night.**
 
 **My three best.**
