@@ -24,6 +24,39 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.6: people and creatures that move
+
+**What it is.** Everyone you meet is a jointed model now (`src/view/actors.js`), and moves:
+
+- **People** (the elder, the innkeeper, the shopkeeper, the trades of town life, traders, townsfolk) are about 1.8 m
+  tall: legs and boots, a tunic flaring to the knee with a belt, arms with hands, a neck, a head with eyes, and a hat
+  in their trade's colour or hair. Skin and hair vary person to person; townsfolk wear one of eight colours.
+- **Creatures**: the hound is a rounded body on four legs with a muzzle, pricked ears and a tail; the brute a hulking
+  biped with a hump of shoulders, long arms with heavy fists and bared teeth; the wight a hooded robe tapering to
+  nothing, long thin arms, faintly see-through, floating and bobbing; the serpent eight segments that ripple as it goes,
+  its head raised. Their eyes still carry their temper's colour and still glow in the dark and through fog.
+- **Walking**: when the rules move someone between two builds of the scene (a creature hunting you, townsfolk
+  wandering), they walk from where they were drawn to where they now are, turned the way they go, legs swinging in a
+  diagonal gait for four-legged things and the body bobbing in the stride. Townsfolk, who have no lasting id, take the
+  nearest place one of them was last seen.
+- **Idle**: a slow breath, a glance about now and then, and the head turning to watch the traveller when near.
+- **Fighting**: the creature you fight crouches with its arms half raised, lunges at you every couple of seconds, and
+  flinches back when your blow lands (its health dropped since the last build).
+
+**How.** Each model is merged with the kit, every part tagged with the joint it hangs from and where that joint is.
+A few lines added to the vertex shader turn legs and arms about the hip and shoulder, the head and tail about the
+neck, and ripple a serpent, from five numbers per actor. So an actor is one draw call however many limbs it has
+(the old models were six or seven), and moving them costs the processor only those five numbers a frame. With reduced
+motion asked for by the device, nothing swings or walks.
+
+**Switch.** `actors` ("People and creatures that move").
+
+**Numbers.** Low 57 ms build, 58 calls, 104,805 triangles, 66.9 ms a frame; Medium 97 / 75 / 196,617 / 125.5; High 168
+/ 83 / 342,018 / 188.1. No change away from people; in a town fewer draw calls than before (one per person instead of
+two or three). Page 696 KB.
+
+**Verdict.** Pearl: a hound trotting toward you over the dunes reads as a threat in a way a sliding box never did.
+
 ## C5.5: ruins with character, and places kept between builds
 
 **What it is.** A ruin is now built the way its people built and then aged and marked by how they ended

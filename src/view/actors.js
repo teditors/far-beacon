@@ -1,0 +1,320 @@
+/* People and creatures that move (commission 5). Each is one merged model (kit.js) whose parts hang from joints: legs
+   and arms swing from hip and shoulder, the head turns, a tail wags, a serpent's body ripples. The joints are worked in
+   the vertex shader from a few numbers per actor (its stride's phase, how far the limbs swing, where the head looks),
+   so an actor is one draw call however many limbs it has, and moving them costs the processor nothing.
+   - Walking: when the rules move someone between two builds of the scene, they walk from where they were drawn to
+     where they are, legs swinging, body bobbing, turned the way they go (track / animateActors).
+   - Idle: a slow breath, a glance about, and the head turning to watch the traveller when near.
+   - Fighting: the creature you fight crouches, lunges at you now and then, and flinches when hurt.
+   Joints (bone numbers): 0 body, 1 and 2 the two halves of a gait (left leg and right foreleg, and so on), 3 and 4
+   the arms, 5 the head, 6 a tail, 7 a serpent's body, 8 the eyes (on the head, and always bright). */
+import { P as PT, kit } from './kit.js';
+import { LOOK_SWITCHES, lookOn } from './quality.js';
+
+LOOK_SWITCHES.push(['actors', 'People and creatures that move']);
+const actorsOn = () => lookOn('actors') && lookOn('light');
+
+/* ---------- the shader ---------- */
+const COMMON = `
+attribute float bone;
+attribute vec3 pivot;
+uniform float aPhase;
+uniform float aSwing;
+uniform float aHead;
+uniform float aArm;
+uniform float aTail;
+varying float vGlow;
+vec3 joint(vec3 p, float b) {
+  float ang = 0.0;
+  if (b > 0.5 && b < 1.5) ang = sin(aPhase) * aSwing;
+  else if (b > 1.5 && b < 2.5) ang = -sin(aPhase) * aSwing;
+  else if (b > 2.5 && b < 3.5) ang = -sin(aPhase) * aSwing * 0.8 - aArm;
+  else if (b > 3.5 && b < 4.5) ang = sin(aPhase) * aSwing * 0.8 - aArm;
+  if (ang != 0.0) { float c = cos(ang), s = sin(ang); p = vec3(p.x, c * p.y - s * p.z, s * p.y + c * p.z); }
+  float yaw = 0.0;
+  if ((b > 4.5 && b < 5.5) || b > 7.5) yaw = aHead;
+  else if (b > 5.5 && b < 6.5) yaw = aTail;
+  if (yaw != 0.0) { float c = cos(yaw), s = sin(yaw); p = vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z); }
+  return p;
+}
+`;
+function actorMat(opts) {
+  const m = new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, opts || {})),
+    u = { aPhase: { value: 0 }, aSwing: { value: 0 }, aHead: { value: 0 }, aArm: { value: 0 }, aTail: { value: 0 } };
+  m.userData.u = u;
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\n' + COMMON)
+      .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nobjectNormal = joint(objectNormal, bone);')
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+vec3 q = transformed - pivot;
+if (bone > 6.5 && bone < 7.5) q.x += sin(aPhase * 0.8 + pivot.z * 1.3) * (0.15 + aSwing * 0.5);
+transformed = joint(q, bone) + pivot;
+vGlow = bone > 7.5 ? 1.0 : 0.0;`,
+      );
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vGlow;')
+      .replace('#include <fog_fragment>', '#include <fog_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, vColor, vGlow);');
+  };
+  m.customProgramCacheKey = () => 'actor' + (opts && opts.transparent ? 't' : '');
+  return m;
+}
+
+/* ---------- models ---------- */
+const MODELS = {};
+const kept = (g) => ((g.dispose = () => {}), (g.kept = true), g);
+// A person about 1.8 m tall, facing +z: clothes, skin, and a hat or hair. Cached by their colours.
+function personModel(cloth, skin, hat, hair) {
+  const key = ['p', cloth, skin, hat, hair].join();
+  if (MODELS[key]) return MODELS[key];
+  const k = kit(),
+    dark = new THREE.Color(cloth).multiplyScalar(0.6).getHex(),
+    boot = 0x3a2a1e;
+  for (const [sx, b] of [
+    [-0.13, 1],
+    [0.13, 2],
+  ]) {
+    k.add(PT.box(0.17, 0.75, 0.2), dark, { x: sx, y: 0.5 }, { bone: b, pivot: [sx, 0.88, 0] });
+    k.add(PT.box(0.19, 0.14, 0.3), boot, { x: sx, y: 0.07, z: 0.04 }, { bone: b, pivot: [sx, 0.88, 0] });
+  }
+  // a tunic flaring a little to the knee
+  k.add(PT.cyl(0.24, 0.32, 0.8, 8), cloth, { y: 1.15 }, { bone: 0 });
+  k.add(PT.cyl(0.32, 0.36, 0.35, 8), cloth, { y: 0.72 }, { bone: 0 });
+  k.add(PT.box(0.5, 0.08, 0.3), dark, { y: 0.9 }, { bone: 0 });
+  for (const [sx, b] of [
+    [-0.33, 3],
+    [0.33, 4],
+  ]) {
+    k.add(PT.cyl(0.07, 0.08, 0.62, 6), cloth, { x: sx, y: 1.22 }, { bone: b, pivot: [sx, 1.5, 0] });
+    k.add(PT.ball(0.075, 6, 4), skin, { x: sx, y: 0.88 }, { bone: b, pivot: [sx, 1.5, 0] });
+  }
+  k.add(PT.cyl(0.08, 0.09, 0.14, 6), skin, { y: 1.6 }, { bone: 0 });
+  k.add(PT.ball(0.17, 10, 8), skin, { y: 1.8, sy: 1.1 }, { bone: 5, pivot: [0, 1.62, 0] });
+  k.add(PT.ball(0.03, 4, 3), 0x1a1410, { x: -0.06, y: 1.82, z: 0.15 }, { bone: 5, pivot: [0, 1.62, 0] });
+  k.add(PT.ball(0.03, 4, 3), 0x1a1410, { x: 0.06, y: 1.82, z: 0.15 }, { bone: 5, pivot: [0, 1.62, 0] });
+  if (hat) {
+    k.add(PT.cyl(0.26, 0.26, 0.04, 10), hat, { y: 1.93 }, { bone: 5, pivot: [0, 1.62, 0] });
+    k.add(PT.cone(0.17, 0.34, 8), hat, { y: 2.1 }, { bone: 5, pivot: [0, 1.62, 0] });
+  } else
+    k.add(
+      new THREE.SphereGeometry(0.18, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.55),
+      hair,
+      { y: 1.83, z: -0.02, sy: 1.1 },
+      { bone: 5, pivot: [0, 1.62, 0] },
+    );
+  return (MODELS[key] = kept(k.build()));
+}
+// The creatures, one model for each form, white where the creature's own tint goes and coloured where it should not
+// change (eyes, teeth, claws). The eyes carry the temper's colour, so they are made per colour.
+function creatureModel(form, eye) {
+  const key = ['c', form, eye].join();
+  if (MODELS[key]) return MODELS[key];
+  const k = kit(),
+    W = 0xffffff,
+    D = 0xb8b8b8,
+    H = [0, 0, 0];
+  if (form === 'hound') {
+    k.add(PT.blob(0.5, 1), W, { y: 0.85, sx: 0.62, sy: 0.6, sz: 1.5 }, { bone: 0 });
+    k.add(PT.blob(0.36, 1), W, { y: 0.95, z: 0.55, sx: 1.05, sy: 1.05 }, { bone: 0 });
+    const hp = [0, 1.05, 0.75];
+    k.add(PT.box(0.36, 0.34, 0.42), W, { y: 1.2, z: 0.98 }, { bone: 5, pivot: hp });
+    k.add(PT.box(0.24, 0.2, 0.32), D, { y: 1.1, z: 1.3 }, { bone: 5, pivot: hp });
+    k.add(PT.cone(0.08, 0.22, 4), D, { x: -0.13, y: 1.45, z: 0.9 }, { bone: 5, pivot: hp, flat: true });
+    k.add(PT.cone(0.08, 0.22, 4), D, { x: 0.13, y: 1.45, z: 0.9 }, { bone: 5, pivot: hp, flat: true });
+    k.add(PT.box(0.08, 0.06, 0.03), eye, { x: -0.1, y: 1.28, z: 1.2 }, { bone: 8, pivot: hp });
+    k.add(PT.box(0.08, 0.06, 0.03), eye, { x: 0.1, y: 1.28, z: 1.2 }, { bone: 8, pivot: hp });
+    for (const [x, z, b] of [
+      [-0.2, 0.55, 1],
+      [0.2, 0.55, 2],
+      [-0.2, -0.55, 2],
+      [0.2, -0.55, 1],
+    ])
+      k.add(PT.cyl(0.07, 0.09, 0.75, 5), W, { x, y: 0.4, z }, { bone: b, pivot: [x, 0.8, z] });
+    k.add(PT.cyl(0.03, 0.07, 0.7, 5), W, { y: 1.05, z: -0.95, rx: -0.9 }, { bone: 6, pivot: [0, 1, -0.75] });
+  } else if (form === 'brute') {
+    for (const [x, b] of [
+      [-0.45, 1],
+      [0.45, 2],
+    ])
+      k.add(PT.cyl(0.24, 0.3, 1, 6), W, { x, y: 0.5 }, { bone: b, pivot: [x, 1, 0] });
+    k.add(PT.blob(0.9, 1), W, { y: 1.9, z: 0.1, sx: 1.05, sy: 0.9, sz: 0.75, rx: 0.25 }, { bone: 0 });
+    k.add(PT.blob(0.5, 0), D, { y: 2.55, z: -0.3, sx: 1.3 }, { bone: 0, flat: true }); // a hump of shoulders
+    const hp = [0, 2.5, 0.4];
+    k.add(PT.blob(0.36, 1), W, { y: 2.7, z: 0.62 }, { bone: 5, pivot: hp });
+    k.add(PT.box(0.4, 0.12, 0.2), 0xe8e0c8, { y: 2.55, z: 0.9 }, { bone: 5, pivot: hp }); // teeth
+    k.add(PT.box(0.11, 0.07, 0.03), eye, { x: -0.13, y: 2.8, z: 0.95 }, { bone: 8, pivot: hp });
+    k.add(PT.box(0.11, 0.07, 0.03), eye, { x: 0.13, y: 2.8, z: 0.95 }, { bone: 8, pivot: hp });
+    for (const [x, b] of [
+      [-1.05, 3],
+      [1.05, 4],
+    ]) {
+      k.add(PT.cyl(0.2, 0.26, 1.6, 6), W, { x, y: 1.65, z: 0.2 }, { bone: b, pivot: [x, 2.4, 0.2] });
+      k.add(PT.blob(0.3, 0), D, { x, y: 0.85, z: 0.2 }, { bone: b, pivot: [x, 2.4, 0.2], flat: true });
+    }
+  } else if (form === 'wight') {
+    // a hooded robe that tapers to rags and never touches the ground
+    k.add(PT.cone(0.55, 2.1, 9), W, { y: 1.35, rx: Math.PI }, { bone: 0 });
+    k.add(PT.cyl(0.3, 0.55, 0.6, 9), W, { y: 2.3 }, { bone: 0 });
+    const hp = [0, 2.5, 0];
+    k.add(PT.cone(0.33, 0.75, 9), W, { y: 2.85 }, { bone: 5, pivot: hp });
+    k.add(PT.ball(0.24, 8, 6), 0x101418, { y: 2.68, z: 0.12 }, { bone: 5, pivot: hp });
+    k.add(PT.box(0.08, 0.04, 0.02), eye, { x: -0.08, y: 2.72, z: 0.35 }, { bone: 8, pivot: hp });
+    k.add(PT.box(0.08, 0.04, 0.02), eye, { x: 0.08, y: 2.72, z: 0.35 }, { bone: 8, pivot: hp });
+    for (const [x, b] of [
+      [-0.5, 3],
+      [0.5, 4],
+    ])
+      k.add(PT.cyl(0.05, 0.1, 1.4, 5), W, { x, y: 1.7, z: 0.15 }, { bone: b, pivot: [x, 2.35, 0.1] });
+  } else {
+    // a serpent: a ripple of segments, head raised
+    for (let i = 0; i < 8; i++) {
+      const z = 1.1 - i * 0.5,
+        r = 0.32 - i * 0.025;
+      k.add(PT.blob(r, 1), i % 2 ? D : W, { y: r * 0.9, z, sz: 1.5 }, { bone: 7, pivot: [0, 0, i] });
+    }
+    const hp = [0, 0.7, 1.2];
+    k.add(PT.blob(0.3, 1), W, { y: 0.75, z: 1.5, sx: 1.1, sy: 0.75, sz: 1.4 }, { bone: 5, pivot: hp });
+    k.add(PT.box(0.07, 0.05, 0.03), eye, { x: -0.13, y: 0.85, z: 1.8 }, { bone: 8, pivot: hp });
+    k.add(PT.box(0.07, 0.05, 0.03), eye, { x: 0.13, y: 0.85, z: 1.8 }, { bone: 8, pivot: hp });
+  }
+  return (MODELS[key] = kept(k.build()));
+}
+
+/* ---------- actors in the scene ---------- */
+const SKIN = [0xe8c4a0, 0xd9b08c, 0xc08a64, 0x9a6a48, 0x6e4a32],
+  HAIR = [0x2a1e16, 0x4a3020, 0x7a5a30, 0xb08a50, 0x8a8478];
+// a person, for the view: the colour of their clothes and hat; seed picks their skin and hair
+function personActor(cloth, hat, seed) {
+  const s = Math.abs(seed | 0),
+    mesh = new THREE.Mesh(personModel(cloth, SKIN[s % 5], hat || 0, HAIR[(s >> 3) % 5]), actorMat());
+  mesh.userData.actor = { kind: 'person', seed: s };
+  return mesh;
+}
+function creatureActor(form, color, eye) {
+  const ghost = form === 'wight',
+    mesh = new THREE.Mesh(
+      creatureModel(form, eye),
+      actorMat(ghost ? { color, transparent: true, opacity: 0.8, depthWrite: false } : { color }),
+    );
+  mesh.userData.actor = { kind: form };
+  return mesh;
+}
+
+/* Where each tracked actor was last drawn, so a rebuild of the scene can walk it on from there. key: a creature's id,
+   or for townsfolk (who have no lasting id) 'folk:<area>' with the nearest one taken. */
+const LAST = new Map(),
+  live = [];
+let clock = 0;
+function clearActors() {
+  live.length = 0;
+}
+// Track g (the group standing at the actor's place) with its animated mesh. o: { key, near, speed, fight, hurt }.
+function track(g, mesh, o) {
+  const to = g.position.clone();
+  let from = null;
+  if (o.key && LAST.has(o.key)) {
+    const l = LAST.get(o.key);
+    if (l.pos.distanceTo(to) < (o.near || 40)) from = l;
+  } else if (o.pool) {
+    // the nearest of the pool's last places not yet claimed
+    let best = null,
+      bd = o.near || 10;
+    for (const [k, l] of LAST)
+      if (k.startsWith(o.pool + '#') && !l.claimed) {
+        const d = l.pos.distanceTo(to);
+        if (d < bd) (bd = d), (best = l);
+      }
+    if (best) (best.claimed = true), (from = best);
+  }
+  const a = {
+    g,
+    mesh,
+    u: mesh.material.userData.u,
+    key: o.key || (o.pool ? o.pool + '#' + live.length : null),
+    to,
+    speed: o.speed || 3,
+    fight: !!o.fight,
+    hurt: o.hurt ? 1 : 0,
+    phase: (from && from.phase) || Math.random() * 6,
+    swing: 0,
+    yaw: from ? from.yaw : g.rotation.y,
+    face: g.rotation.y,
+    seed: Math.random() * 100,
+    lunge: 0,
+  };
+  if (from && from.pos.distanceTo(to) > 0.05) g.position.copy(from.pos);
+  g.rotation.y = a.yaw;
+  live.push(a);
+  return a;
+}
+const angDiff = (a, b) => {
+  let d = (b - a) % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return d;
+};
+// Every frame: walk each actor toward where it stands now, swing its limbs, turn its head; px, pz: the traveller.
+function animateActors(dt, px, pz, still) {
+  clock += dt;
+  if (!live.length) return;
+  for (const [, l] of LAST) l.claimed = false;
+  const keep = new Map();
+  for (const a of live) {
+    const g = a.g,
+      dx = a.to.x - g.position.x,
+      dz = a.to.z - g.position.z,
+      d = Math.hypot(dx, dz);
+    let moving = false;
+    if (d > 0.08 && !still) {
+      const step = Math.min(d, a.speed * dt);
+      g.position.x += (dx / d) * step;
+      g.position.z += (dz / d) * step;
+      g.position.y += (a.to.y - g.position.y) * Math.min(1, (step / d) * 1.5);
+      moving = true;
+      a.yaw += angDiff(a.yaw, Math.atan2(dx, dz)) * Math.min(1, dt * 8);
+    } else {
+      g.position.copy(a.to);
+      a.yaw += angDiff(a.yaw, a.face) * Math.min(1, dt * 3);
+    }
+    g.rotation.y = a.yaw;
+    a.swing += ((moving ? 0.65 : a.fight ? 0.18 : 0) - a.swing) * Math.min(1, dt * 6);
+    a.phase += dt * (moving ? a.speed * 2.4 : a.fight ? 5 : 1.2);
+    const u = a.u,
+      t = clock + a.seed;
+    u.aPhase.value = a.phase;
+    u.aSwing.value = still ? 0 : a.swing;
+    // the head: watching the traveller when near, else glancing about now and then
+    const tx = px - g.position.x,
+      tz = pz - g.position.z,
+      near = Math.hypot(tx, tz) < 18,
+      look = near ? Math.max(-1, Math.min(1, angDiff(a.yaw, Math.atan2(tx, tz)))) : Math.sin(t * 0.37) * Math.sin(t * 0.21) * 0.8;
+    u.aHead.value += (look - u.aHead.value) * Math.min(1, dt * 4);
+    u.aTail.value = Math.sin(t * (a.fight ? 9 : 4)) * 0.35;
+    // breath when standing; a bob in the stride when walking; a crouch and lunge in a fight; a flinch when hurt
+    let bob = moving ? Math.abs(Math.sin(a.phase)) * 0.07 : Math.sin(t * 1.8) * 0.012;
+    if (a.mesh.userData.actor.kind === 'wight') bob += 0.25 + Math.sin(t * 1.3) * 0.12;
+    let fwd = 0,
+      lean = 0;
+    if (a.fight && !still) {
+      const cyc = (t * 0.55) % 1,
+        l = cyc > 0.8 ? Math.sin(((cyc - 0.8) / 0.2) * Math.PI) : 0;
+      fwd = l * 1.2;
+      lean = l * 0.25;
+      u.aArm.value = 0.6 + l * 1.2;
+    } else u.aArm.value += (0 - u.aArm.value) * Math.min(1, dt * 4);
+    if (a.hurt > 0) {
+      a.hurt = Math.max(0, a.hurt - dt * 2.5);
+      lean -= a.hurt * 0.35;
+      fwd -= a.hurt * 0.5;
+    }
+    a.mesh.position.set(0, bob, fwd);
+    a.mesh.rotation.x = lean;
+    if (a.key) keep.set(a.key, { pos: g.position.clone(), yaw: a.yaw, phase: a.phase });
+  }
+  for (const [k, v] of keep) LAST.set(k, v);
+  if (LAST.size > 200) for (const k of [...LAST.keys()].slice(0, LAST.size - 200)) LAST.delete(k);
+}
+export { actorsOn, personActor, creatureActor, track, animateActors, clearActors, personModel, creatureModel };

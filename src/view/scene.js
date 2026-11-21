@@ -8,6 +8,7 @@ import { groundMaterial, paintOn, surface, surfaceOf } from './paint.js';
 import { hamletGroup, townGroup, townsOn } from './buildings.js';
 import { levelFloor, levelKit, levelWalls } from './levels.js';
 import { ruinGroup, ruinsOn } from './ruins.js';
+import { actorsOn, clearActors, creatureActor, personActor, track } from './actors.js';
 import { kitMat } from './kit.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 
@@ -633,7 +634,13 @@ function skyGround(map, ts, at, look, LK) {
   return g;
 }
 // Things inside that can change: people, stairs, traps, and anything lying on the floor.
-function person(color, hat) {
+function person(color, hat, seed) {
+  if (actorsOn()) {
+    // a jointed person who breathes, looks about and walks (actors.js)
+    const g = new THREE.Group();
+    g.add(personActor(color, hat, seed || color));
+    return g;
+  }
   const g = new THREE.Group(),
     body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 1.5, 8), std(color)),
     head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 10, 8), std(0xd9b896));
@@ -647,19 +654,25 @@ function person(color, hat) {
   }
   return g;
 }
-function interiorSite(st, ts, inTown) {
+const FOLK = [0x6a6a5a, 0x7a5a3a, 0x4a5a7a, 0x8a6a4a, 0x5a6a4a, 0x8a4a3a, 0x6a5a7a, 0xa08a60];
+function interiorSite(st, ts, inTown, k) {
   const g = new THREE.Group();
-  if (st.kind === 'elder') g.add(person(0x8a2c2c, 0x5a1c1c));
-  else if (st.kind === 'inn') g.add(person(0x7a5a2e), box(1.6, 0.9, 0.8, std(0x5a3d22), 1.2, 0.45, 0));
+  if (st.kind === 'elder') g.add(person(0x8a2c2c, 0x5a1c1c, k));
+  else if (st.kind === 'inn') g.add(person(0x7a5a2e, 0, k), box(1.6, 0.9, 0.8, std(0x5a3d22), 1.2, 0.45, 0));
   else if (st.kind === 'shop')
-    g.add(person(0x2f5f8f), box(1.8, 0.9, 0.9, std(0x6b4a2a), 0, 0.45, -1.1), box(0.4, 0.4, 0.4, std(0xc9a227), -0.4, 1.1, -1.1));
+    g.add(
+      person(0x2f5f8f, 0, k),
+      box(1.8, 0.9, 0.9, std(0x6b4a2a), 0, 0.45, -1.1),
+      box(0.4, 0.4, 0.4, std(0xc9a227), -0.4, 1.1, -1.1),
+    );
   else if (st.kind === 'well') g.add(BUILD.well());
-  else if (st.kind === 'folk') g.add(person(0x6a6a5a));
+  else if (st.kind === 'folk')
+    g.add(person(actorsOn() ? FOLK[hashStr(st.name || '') % FOLK.length] : 0x6a6a5a, 0, hashStr(st.name || '')));
   else if (st.kind === 'grave') g.add(box(0.5, 1, 0.2, std(0x8a8a86), 0, 0.5, 0), box(1.2, 0.15, 2, std(0x5a5650), 0, 0.08, 0.9));
   else if (R.C.townLife && R.byId(R.C.townLife.services, st.kind)) {
     // a person at the door of their trade, and a painted sign above it
     const sv = R.byId(R.C.townLife.services, st.kind);
-    g.add(person(sv.color, sv.hat), box(1.4, 0.8, 0.12, std(sv.hat), 0, 3.4, -ts / 2 + 0.2));
+    g.add(person(sv.color, sv.hat, k), box(1.4, 0.8, 0.12, std(sv.hat), 0, 3.4, -ts / 2 + 0.2));
   } else if ((st.kind === 'exit' || st.kind === 'gate') && inTown)
     g.add(
       box(0.6, 5, 0.6, std(0x6b6358), -ts / 2, 2.5, 0),
@@ -702,7 +715,7 @@ function interiorSite(st, ts, inTown) {
     const marker = new THREE.Mesh(new THREE.TorusGeometry(ts * 0.42, 0.06, 6, 24).rotateX(Math.PI / 2), glow(0xe0a84a, 0.6));
     marker.position.y = 0.05;
     g.add(marker);
-  } else if (st.kind === 'trader') g.add(person(0x3a6a9a, 0xd8dde4));
+  } else if (st.kind === 'trader') g.add(person(0x3a6a9a, 0xd8dde4, k));
   // a plot's places, when a plot puts them down below, up above or under the water
   else if (st.kind === 'throne')
     g.add(
@@ -1198,9 +1211,16 @@ function treesNear(force) {
     z = P.z - staticGroup.position.z;
   for (const rec of lods) updateLOD(rec, x, z, Q.treeNear, force);
 }
+const HP = new Map(); // creatures' health when last drawn, to see a hit land
+const hashStr = (s) => {
+  let h = 7;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
 const REEDS = { name: 'reeds', tree: { color: 0x6f8f48 } }; // round a spring, drawn as a clump of grass
 // Everything that can change, for every area in view: outdoors that is the region and, if it stands here, the town.
 function buildDynamic() {
+  clearActors();
   dispose(dynGroup);
   dynGroup = new THREE.Group();
   scene.add(dynGroup);
@@ -1262,10 +1282,14 @@ function drawArea(id, kind) {
     for (const k in map.sites) {
       const st = map.sites[k],
         [x, y, z] = at(+k),
-        g = interiorSite(st, ts, kind === 'town');
+        g = interiorSite(st, ts, kind === 'town', +k);
       g.position.set(x, y, z);
       if (st.kind === 'elder' || st.kind === 'inn' || st.kind === 'shop') g.rotation.y = Math.atan2(P.x - x, P.z - z);
+      else if (st.kind === 'folk') g.rotation.y = (+k * 2.4) % 6.28;
       dynGroup.add(g);
+      const who = actorsOn() && g.children.find((o) => o.userData.actor);
+      if (who)
+        track(g, who, st.kind === 'folk' ? { pool: 'folk:' + id, near: ts * 3, speed: 1.4 } : { key: 'site:' + id + ':' + k });
     }
   const camp = V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
   for (const k in map.depots) {
@@ -1294,7 +1318,8 @@ function drawArea(id, kind) {
           sp.rare === 'docile' ? 0x9fe39f : sp.temper === 'hunter' ? 0xff3b2f : sp.temper === 'skittish' ? 0xffe06a : 0xff9a2a,
         fog: false,
       });
-    if (sp.form === 'hound')
+    if (actorsOn()) g.add(creatureActor(sp.form, col, eye.color.getHex()));
+    else if (sp.form === 'hound')
       g.add(
         box(0.6, 0.7, 1.7, mat, 0, 0.8, 0),
         box(0.5, 0.5, 0.6, mat, 0, 1.15, 1),
@@ -1351,6 +1376,12 @@ function drawArea(id, kind) {
         y = Math.min(y, ground(x + ox, z + oz));
     g.position.set(x, y, z);
     dynGroup.add(g);
+    if (actorsOn()) {
+      // walks from where it was drawn; in a fight it lunges, and flinches when hurt
+      const hurt = HP.has(c.id) && c.hp < HP.get(c.id);
+      HP.set(c.id, c.hp);
+      track(g, g.children[0], { key: 'c:' + c.id, speed: 4.5, fight: fighting, hurt, near: indoor ? 30 : 120 });
+    }
   }
   if (camp !== null) {
     const [x, y, z] = at(camp, 5, 3),

@@ -27,6 +27,7 @@ function placeMatrix(p) {
    vertex. build() gives one non-indexed BufferGeometry with position, normal and colour. */
 function kit() {
   const parts = [];
+  let anyBone = false;
   const self = {
     add(geo, color, place, opts) {
       opts = opts || {};
@@ -87,6 +88,13 @@ function kit() {
         uv[i * 2 + 1] = (ay > ax && ay > az ? p.getZ(i) : p.getY(i)) / rep;
       }
       g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      // a moving part (actors.js): which joint it hangs from, and where that joint is
+      if (opts.bone !== undefined) {
+        const pv = opts.pivot || [0, 0, 0];
+        g.userData.bone = opts.bone;
+        g.userData.pivot = pv;
+        anyBone = true;
+      }
       for (const k of Object.keys(g.attributes))
         if (k !== 'position' && k !== 'normal' && k !== 'color' && k !== 'uv') g.deleteAttribute(k);
       parts.push(g);
@@ -116,6 +124,24 @@ function kit() {
       out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
       out.setAttribute('color', new THREE.BufferAttribute(col, 3));
       out.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      if (anyBone) {
+        const bone = new Float32Array(n),
+          piv = new Float32Array(n * 3);
+        let q = 0;
+        for (const g of parts) {
+          const c = g.attributes.position.count,
+            b = g.userData.bone || 0,
+            pv = g.userData.pivot || [0, 0, 0];
+          for (let i = 0; i < c; i++, q++) {
+            bone[q] = b;
+            piv[q * 3] = pv[0];
+            piv[q * 3 + 1] = pv[1];
+            piv[q * 3 + 2] = pv[2];
+          }
+        }
+        out.setAttribute('bone', new THREE.BufferAttribute(bone, 1));
+        out.setAttribute('pivot', new THREE.BufferAttribute(piv, 3));
+      }
       out.computeBoundingSphere();
       return out;
     },
