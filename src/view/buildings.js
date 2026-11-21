@@ -5,7 +5,7 @@
    marks. All of a town is merged into six meshes (walls, roofs, woodwork, stone, cloth, lights): six draw calls a town.
    At night its windows and lamps glow (setNight, called each frame). */
 import { R } from './ctx.js';
-import { P, kit, kitMat } from './kit.js';
+import { P, WIND, kit, kitMat } from './kit.js';
 import { surface } from './paint.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 
@@ -110,6 +110,65 @@ function setNight(night) {
   }
 }
 
+/* Smoke from the chimneys: a few soft puffs over each, rising, growing, drifting with the wind and fading, all of it
+   worked out on the graphics card from the time, so a whole town's smoke is one draw call and costs the processor
+   nothing. */
+let PUFF = null;
+function smokeOf(at, color) {
+  const n = 7,
+    pos = new Float32Array((at.length / 3) * n * 3),
+    seed = new Float32Array((at.length / 3) * n);
+  for (let c = 0, q = 0; c < at.length; c += 3)
+    for (let i = 0; i < n; i++, q++) {
+      pos.set([at[c], at[c + 1], at[c + 2]], q * 3);
+      seed[q] = i / n + (c % 7) * 0.13;
+    }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('seed', new THREE.BufferAttribute(seed, 1));
+  if (!PUFF) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const x = c.getContext('2d'),
+      grad = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+    grad.addColorStop(0, 'rgba(255,255,255,0.8)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = grad;
+    x.fillRect(0, 0, 32, 32);
+    PUFF = new THREE.CanvasTexture(c);
+  }
+  const m = new THREE.PointsMaterial({
+    map: PUFF,
+    color: color || 0xcfcac2,
+    size: 4,
+    transparent: true,
+    depthWrite: false,
+    opacity: 0.65,
+  });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.sTime = WIND.time;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute float seed;\nuniform float sTime;\nvarying float vFade;')
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+float ph = fract(sTime * 0.08 + seed);
+transformed.y += ph * 13.0;
+transformed.x += ph * ph * 6.0 + sin(sTime * 0.7 + seed * 9.0) * 0.6;
+transformed.z += ph * ph * 2.0;
+vFade = sin(ph * 3.14159);`,
+      )
+      .replace('gl_PointSize = size;', 'gl_PointSize = size * (0.5 + ph * 2.0);');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vFade;')
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.a *= vFade;');
+  };
+  m.customProgramCacheKey = () => 'smoke';
+  const p = new THREE.Points(g, m);
+  p.frustumCulled = false;
+  return p;
+}
+
 /* ---------- one town ---------- */
 const FH = 3.1; // metres a storey
 // a point turned by ry about the y axis, as three turns things
@@ -141,6 +200,7 @@ function kits(st) {
     cloth: kit(),
     glow: kit(),
     lamps: [],
+    smoke: [],
   };
 }
 // what this building is made of: one of its climate's wall and roof textures, in one of three variants
@@ -155,13 +215,14 @@ function finish(K, st, group) {
   const add = (k, mat) => {
     if (!k.empty) group.add(new THREE.Mesh(k.build(), mat));
   };
-  add(K.ground, kitMat({ map: surface('plaster', 1) }));
+  add(K.ground, kitMat({ map: surface('plaster', 2) }));
   for (const key in K.walls) add(K.walls[key], kitMat({ map: surface(key.split(':')[0], +key.split(':')[1]) }));
   for (const key in K.roofs) add(K.roofs[key], kitMat({ map: surface(key.split(':')[0], +key.split(':')[1]) }));
   add(K.wood, kitMat({ map: surface('wood') }));
   add(K.stone, kitMat({ map: surface('stone') }));
   add(K.cloth, kitMat({ map: surface('cloth'), side: THREE.DoubleSide }));
   add(K.glow, GLOW);
+  if (K.smoke.length && !Q.lite) group.add(smokeOf(K.smoke, st.smoke));
   if (K.lamps.length) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(K.lamps, 3));
@@ -277,6 +338,7 @@ function building(K, st, r, b) {
       { x: cx + w * 0.25, y: wallH + (h - wallH) / 2, z: cz - d * 0.15 },
       { uv: 2 },
     );
+    K.smoke.push(cx + w * 0.25, h + 0.4, cz - d * 0.15);
   }
   if (kind) dress(K, st, r, b, wallH);
   if (st.fences && !kind) {

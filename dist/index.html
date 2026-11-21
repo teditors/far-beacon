@@ -14005,6 +14005,53 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
       HALO.visible = night > 0.05;
     }
   }
+  var PUFF = null;
+  function smokeOf(at, color) {
+    const n = 7, pos = new Float32Array(at.length / 3 * n * 3), seed = new Float32Array(at.length / 3 * n);
+    for (let c = 0, q = 0; c < at.length; c += 3)
+      for (let i = 0; i < n; i++, q++) {
+        pos.set([at[c], at[c + 1], at[c + 2]], q * 3);
+        seed[q] = i / n + c % 7 * 0.13;
+      }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    g.setAttribute("seed", new THREE.BufferAttribute(seed, 1));
+    if (!PUFF) {
+      const c = document.createElement("canvas");
+      c.width = c.height = 32;
+      const x = c.getContext("2d"), grad = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+      grad.addColorStop(0, "rgba(255,255,255,0.8)");
+      grad.addColorStop(1, "rgba(255,255,255,0)");
+      x.fillStyle = grad;
+      x.fillRect(0, 0, 32, 32);
+      PUFF = new THREE.CanvasTexture(c);
+    }
+    const m = new THREE.PointsMaterial({
+      map: PUFF,
+      color: color || 13617858,
+      size: 4,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.65
+    });
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.sTime = WIND.time;
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float seed;\nuniform float sTime;\nvarying float vFade;").replace(
+        "#include <begin_vertex>",
+        `#include <begin_vertex>
+float ph = fract(sTime * 0.08 + seed);
+transformed.y += ph * 13.0;
+transformed.x += ph * ph * 6.0 + sin(sTime * 0.7 + seed * 9.0) * 0.6;
+transformed.z += ph * ph * 2.0;
+vFade = sin(ph * 3.14159);`
+      ).replace("gl_PointSize = size;", "gl_PointSize = size * (0.5 + ph * 2.0);");
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vFade;").replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.a *= vFade;");
+    };
+    m.customProgramCacheKey = () => "smoke";
+    const p = new THREE.Points(g, m);
+    p.frustumCulled = false;
+    return p;
+  }
   var FH = 3.1;
   var turn2 = (lx2, lz, ry) => [lx2 * Math.cos(ry) + lz * Math.sin(ry), -lx2 * Math.sin(ry) + lz * Math.cos(ry)];
   function switchKit(table, cur) {
@@ -14029,7 +14076,8 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
       stone: kit(),
       cloth: kit(),
       glow: kit(),
-      lamps: []
+      lamps: [],
+      smoke: []
     };
   }
   function choose(K2, st, r) {
@@ -14041,13 +14089,14 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     const add = (k, mat) => {
       if (!k.empty) group.add(new THREE.Mesh(k.build(), mat));
     };
-    add(K2.ground, kitMat({ map: surface("plaster", 1) }));
+    add(K2.ground, kitMat({ map: surface("plaster", 2) }));
     for (const key in K2.walls) add(K2.walls[key], kitMat({ map: surface(key.split(":")[0], +key.split(":")[1]) }));
     for (const key in K2.roofs) add(K2.roofs[key], kitMat({ map: surface(key.split(":")[0], +key.split(":")[1]) }));
     add(K2.wood, kitMat({ map: surface("wood") }));
     add(K2.stone, kitMat({ map: surface("stone") }));
     add(K2.cloth, kitMat({ map: surface("cloth"), side: THREE.DoubleSide }));
     add(K2.glow, GLOW);
+    if (K2.smoke.length && !Q.lite) group.add(smokeOf(K2.smoke, st.smoke));
     if (K2.lamps.length) {
       const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.Float32BufferAttribute(K2.lamps, 3));
@@ -14150,6 +14199,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
         { x: cx + w * 0.25, y: wallH + (h - wallH) / 2, z: cz - d * 0.15 },
         { uv: 2 }
       );
+      K2.smoke.push(cx + w * 0.25, h + 0.4, cz - d * 0.15);
     }
     if (kind2) dress(K2, st, r, b, wallH);
     if (st.fences && !kind2) {

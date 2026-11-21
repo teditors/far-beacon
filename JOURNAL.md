@@ -92,6 +92,22 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.15: smoke from the chimneys
+
+**What it is.** Every chimney in a town smokes: a few soft puffs over it that rise, swell, drift downwind with a little
+wander and fade, over and over. All of it is worked out on the graphics card from the shared clock (a few lines in the
+points shader), so a whole town's smoke is one draw call and costs the processor nothing; on Low there is none. The
+smiths' and charcoal-burners' smoke is darker (their `smoke` colour in townlooks.js). The tall hearth columns over the
+hall and the inn stay, to find a town by from far off.
+
+Also: the streets' packed earth uses the smoothest plaster variant, without the dark crack marks that read as smudges.
+
+**Switch.** Part of `towns`.
+
+**Numbers.** One draw call and a few dozen points a town. Page 751 KB.
+
+**Verdict.** Small pearl: a town looks lived in from outside its walls.
+
 ## C5.14: real water
 
 **Asked by Andrew**: realistic water, not blue land.
