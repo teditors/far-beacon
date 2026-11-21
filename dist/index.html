@@ -13189,6 +13189,7 @@
   var lookChanged = (id) => LOOK_CHANGED.forEach((fn) => fn(id));
 
   // src/view/terrain.js
+  var waterOn = () => lookOn("water") && lookOn("light");
   var PAD = { town: 102, vault: 11, beacon: 9, spring: 6, hamlet: 10, camp: 8, siege: 8, stone: 7, den: 9 };
   var SINK = 0.15;
   var MARGIN;
@@ -13311,13 +13312,72 @@
       const l = level2(x, z);
       return (l <= 1 ? l * 15 : 15 + (l - 1) * 34) + 14 * nBig(x, z) + 7 * nMid(x, z) * Math.max(0.15, 0.4 + l * 0.6) + 1.6 * nFine(x, z);
     };
+    const wet = waterOn(), wk = new Uint8Array(EW * EW), deepT = new Float32Array(EW * EW), wl = new Float32Array(EW * EW);
+    if (wet) {
+      for (let e = 0; e < EW * EW; e++) {
+        const ter = land2.terrain[e];
+        if (ter !== 4 && ter !== R.DEEP) continue;
+        const rn = ((land2.biomes[land2.biome[e]].river || {}).name || "").toLowerCase();
+        if (ter === 4 && /dry|wash|dust/.test(rn)) continue;
+        wk[e] = ter === 4 && /frozen|ice/.test(rn) ? 2 : 1;
+        deepT[e] = ter === R.DEEP ? 1 : 0;
+        const ex = e % EW, ey = Math.floor(e / EW);
+        wl[e] = raw((ex - MARGIN + 0.5) * TS - HALF, (ey - MARGIN + 0.5) * TS - HALF) - 0.3;
+      }
+      const nbr = [1, -1, EW, -EW];
+      for (let pass = 0; pass < 14; pass++) {
+        if (pass % 7 === 6) yield;
+        for (let e = 0; e < EW * EW; e++) {
+          if (!wk[e] || pass > 4 && !deepT[e]) continue;
+          let a = wl[e], n = 1;
+          for (const d of nbr) {
+            const q = e + d;
+            if (q >= 0 && q < EW * EW && wk[q]) a += wl[q], n++;
+          }
+          wl[e] = Math.min(wl[e], a / n + (deepT[e] ? 0 : 0.05));
+        }
+      }
+      const has2 = new Uint8Array(EW * EW);
+      for (let e = 0; e < EW * EW; e++) has2[e] = wk[e] ? 1 : 0;
+      for (let pass = 0; pass < 2; pass++) {
+        const next = has2.slice();
+        for (let e = 0; e < EW * EW; e++) {
+          if (has2[e]) continue;
+          let a = 0, n = 0;
+          for (const d of nbr) {
+            const q = e + d;
+            if (q >= 0 && q < EW * EW && has2[q]) a += wl[q], n++;
+          }
+          if (n) wl[e] = a / n, next[e] = 1;
+        }
+        has2.set(next);
+      }
+    }
+    const soft = (g) => {
+      const f = field(g, false);
+      return (x, z) => clamp2((f(x, z) - 0.2) / 0.5, 0, 1);
+    }, wmaskG = new Float32Array(EW * EW);
+    for (let e = 0; e < EW * EW; e++) wmaskG[e] = wk[e] ? 1 : 0;
+    const water2 = wet ? {
+      level: field(wl, true),
+      mask: soft(wmaskG),
+      deep: soft(deepT),
+      ice: soft(Float32Array.from(wk, (k) => k === 2 ? 1 : 0))
+    } : null;
+    const carve = (x, z, h) => {
+      const m = water2.mask(x, z);
+      if (m <= 0) return h;
+      const depth = 1.1 + 2.6 * water2.deep(x, z);
+      return Math.min(h, water2.level(x, z) + 0.5 - (depth + 0.5) * m);
+    };
+    yield;
     const grid = function* (n, half, cell, hole) {
       const h = new Float32Array((n + 1) * (n + 1));
       for (let iz = 0; iz <= n; iz++) {
         for (let ix = 0; ix <= n; ix++) {
           const x = -half + ix * cell, z = -half + iz * cell;
           if (Math.abs(x) < hole && Math.abs(z) < hole) continue;
-          h[iz * (n + 1) + ix] = raw(x, z);
+          h[iz * (n + 1) + ix] = water2 ? carve(x, z, raw(x, z)) : raw(x, z);
         }
         if ((iz & 7) === 7) yield;
       }
@@ -13348,7 +13408,8 @@
       const gx = R.wrap(land2.cx * R.W + x, s.world.cols * R.W), gy = R.wrap(land2.cy * R.H + y, s.world.rows * R.H);
       return mulberry2(s.seed ^ Math.imul(gx + 1, 374761393) ^ Math.imul(gy + 1, 668265263) ^ Math.imul(salt, 2246822519) | 0);
     };
-    return { land: land2, fine, coarse, height, level: level2, tint, masks, roadAt, share, tileRand, etile, tileOf, inside: inside2 };
+    const waterAt2 = water2 ? (x, z) => water2.mask(x, z) > 0.35 ? water2.level(x, z) : -Infinity : () => -Infinity;
+    return { land: land2, fine, coarse, height, level: level2, tint, masks, roadAt, share, tileRand, etile, tileOf, inside: inside2, water: water2, waterAt: waterAt2 };
   }
 
   // src/view/perf.js
@@ -14817,6 +14878,128 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     return g;
   }
 
+  // src/view/water.js
+  LOOK_SWITCHES.push(["water", "Real water"]);
+  var waterOn2 = () => lookOn("water") && lookOn("light");
+  var SKY = { value: new THREE.Color(11060444) };
+  var MATS = {};
+  function waterMat(far) {
+    const rich = !Q.lite && !far, key = rich ? "rich" : "plain";
+    if (MATS[key]) return MATS[key];
+    const m = rich ? new THREE.MeshPhongMaterial({ vertexColors: true, transparent: true, shininess: 90, specular: 10132112, depthWrite: false }) : new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false });
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.wTime = WIND.time;
+      sh.uniforms.wSky = SKY;
+      sh.vertexShader = sh.vertexShader.replace(
+        "#include <common>",
+        "#include <common>\nattribute vec3 wa;\nvarying vec3 vWa;\nvarying vec2 vWp;\nuniform float wTime;"
+      ).replace(
+        "#include <begin_vertex>",
+        `#include <begin_vertex>
+vWa = wa;
+vWp = position.xz;
+${rich ? "transformed.y += (sin(position.x * 0.045 + wTime * 0.7) + sin(position.z * 0.06 - wTime * 0.55)) * 0.22 * wa.y * (1.0 - wa.z);" : ""}`
+      );
+      sh.fragmentShader = sh.fragmentShader.replace(
+        "#include <common>",
+        "#include <common>\nvarying vec3 vWa;\nvarying vec2 vWp;\nuniform float wTime;\nuniform vec3 wSky;"
+      ).replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+diffuseColor.a = vWa.x * mix(mix(0.62, 0.92, vWa.y), 1.0, vWa.z);
+${rich ? `{
+  // light dappling the water, and a soft line of foam where it meets the bank
+  float calm0 = 1.0 - vWa.z;
+  float dap = sin(vWp.x * 1.3 + wTime * 1.2 + sin(vWp.y * 0.9 + wTime)) * sin(vWp.y * 1.1 - wTime * 0.9 + sin(vWp.x * 0.7));
+  diffuseColor.rgb *= 1.0 + 0.12 * dap * calm0;
+  float foam = smoothstep(0.8, 0.3, vWa.x) * calm0 * (0.6 + 0.4 * sin(vWp.x * 2.7 + vWp.y * 1.9 + wTime * 1.6));
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.9, 0.93, 0.95), foam * 0.55);
+  diffuseColor.a = max(diffuseColor.a, foam * 0.7);
+}` : ""}`
+      );
+      if (rich)
+        sh.fragmentShader = sh.fragmentShader.replace(
+          "#include <normal_fragment_maps>",
+          `#include <normal_fragment_maps>
+{
+  vec2 p = vWp;
+  float t = wTime;
+  float calm = 1.0 - vWa.z;
+  vec2 g = vec2(
+    sin(p.x * 0.9 + t * 1.7) + sin(p.x * 0.37 + p.y * 0.6 - t * 1.1) + 0.5 * sin((p.x + p.y) * 2.3 + t * 2.9),
+    cos(p.y * 0.8 - t * 1.5) + cos(p.y * 0.41 - p.x * 0.5 + t * 1.3) + 0.5 * cos((p.x - p.y) * 2.1 - t * 2.6));
+  normal = normalize(normal + (viewMatrix * vec4(g.x * 0.13 * calm, 0.0, g.y * 0.13 * calm, 0.0)).xyz);
+}`
+        ).replace(
+          "#include <fog_fragment>",
+          `{
+  float fres = pow(1.0 - abs(dot(normalize(vViewPosition), normal)), 3.0);
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, wSky, fres * 0.6 * (1.0 - vWa.z * 0.6));
+  gl_FragColor.a = mix(gl_FragColor.a, vWa.x, fres);
+}
+#include <fog_fragment>`
+        );
+    };
+    m.customProgramCacheKey = () => "water-" + key;
+    m.dispose = () => {
+    };
+    return MATS[key] = m;
+  }
+  function setWaterSky(c) {
+    SKY.value.copy(c);
+  }
+  function waterMesh(T2, g, sink, hollow, keep, colourAt) {
+    const W2 = T2.water, n = g.n, N1 = n + 1, idx2 = new Int32Array(N1 * N1).fill(-1), m = new Float32Array(N1 * N1), pos = [], wa = [], col = [], tri = [], c = new THREE.Color(), inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+    for (let iz = 0; iz <= n; iz++)
+      for (let ix = 0; ix <= n; ix++) m[iz * N1 + ix] = W2.mask(-g.half + ix * g.cell, -g.half + iz * g.cell);
+    const vert = (ix, iz) => {
+      const k = iz * N1 + ix;
+      if (idx2[k] >= 0) return idx2[k];
+      const x = -g.half + ix * g.cell, z = -g.half + iz * g.cell, deep = W2.deep(x, z), ice = W2.ice(x, z);
+      idx2[k] = pos.length / 3;
+      pos.push(x, W2.level(x, z) - sink, z);
+      wa.push(Math.min(1, m[k] * 1.6), deep, ice);
+      colourAt(x, z, c);
+      if (ice > 0) c.lerp(new THREE.Color(15003380), ice);
+      else c.multiplyScalar(1 - 0.45 * deep);
+      col.push(c.r, c.g, c.b);
+      return idx2[k];
+    };
+    for (let iz = 0; iz < n; iz++)
+      for (let ix = 0; ix < n; ix++) {
+        const a = iz * N1 + ix;
+        if (m[a] <= 0.01 && m[a + 1] <= 0.01 && m[a + N1] <= 0.01 && m[a + N1 + 1] <= 0.01) continue;
+        const x = -g.half + ix * g.cell, z = -g.half + iz * g.cell;
+        if (hollow && inner2(x, z) && inner2(x + g.cell, z + g.cell)) continue;
+        const v00 = vert(ix, iz), v10 = vert(ix + 1, iz), v01 = vert(ix, iz + 1), v11 = vert(ix + 1, iz + 1);
+        tri.push(v00, v01, v10, v01, v11, v10);
+      }
+    if (!tri.length) return null;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute("wa", new THREE.Float32BufferAttribute(wa, 3));
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+    const nrm = new Float32Array(pos.length);
+    for (let i = 1; i < nrm.length; i += 3) nrm[i] = 1;
+    geo.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
+    geo.setIndex(tri);
+    geo.computeBoundingSphere();
+    const mesh2 = new THREE.Mesh(geo, waterMat(hollow));
+    mesh2.renderOrder = 2;
+    mesh2.frustumCulled = false;
+    return mesh2;
+  }
+  function seaSheet(size, color) {
+    const seg = 48, geo = new THREE.PlaneGeometry(size, size, seg, seg).rotateX(-Math.PI / 2), n = geo.attributes.position.count, wa = new Float32Array(n * 3), col = new Float32Array(n * 3), c = new THREE.Color(color).multiplyScalar(0.7);
+    for (let i = 0; i < n; i++) {
+      wa.set([1, 1, 0], i * 3);
+      col.set([c.r, c.g, c.b], i * 3);
+    }
+    geo.setAttribute("wa", new THREE.BufferAttribute(wa, 3));
+    geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    return new THREE.Mesh(geo, waterMat());
+  }
+
   // src/view/fx.js
   var live = [];
   var NIGHT = { value: 0 };
@@ -14912,6 +15095,24 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     return g;
   }
   function water(r, foul) {
+    if (waterOn2()) {
+      const geo = new THREE.CircleGeometry(r, 20, 0, Math.PI * 2).rotateX(-Math.PI / 2), n = geo.attributes.position.count, wa = new Float32Array(n * 3), col = new Float32Array(n * 3), c = new THREE.Color(foul ? 6249002 : 3835576);
+      for (let i = 0; i < n; i++) {
+        const d = Math.hypot(geo.attributes.position.getX(i), geo.attributes.position.getZ(i)) / r;
+        wa.set([d > 0.99 ? 0.5 : 1, foul ? 0.6 : 0.3, 0], i * 3);
+        col.set([c.r, c.g, c.b], i * 3);
+      }
+      geo.setAttribute("wa", new THREE.BufferAttribute(wa, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      const g2 = new THREE.Group(), rim2 = new THREE.Mesh(
+        new THREE.RingGeometry(r * 0.96, r * 1.12, 20).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: foul ? 4867624 : 6978138, transparent: true, opacity: 0.7, depthWrite: false })
+      ), m2 = new THREE.Mesh(geo, waterMat());
+      rim2.position.y = -0.02;
+      m2.renderOrder = 2;
+      g2.add(m2, rim2);
+      return g2;
+    }
     const m = new THREE.Mesh(
       new THREE.CircleGeometry(r, 20).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: foul ? 7301685 : 4889288, map: rippleTex() })
@@ -15642,14 +15843,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     g.kept = true;
     return CACHE[key] = g;
   }
-  var MATS = {};
+  var MATS2 = {};
   function treeMat(forest) {
     const shape = shapeOf2(forest), amt = { conifer: 0.025, birch: 0.04, broad: 0.03, dead: 0.015, thorn: 0.02, fern: 0.06, grass: 0.12 }[shape] || 0.03;
-    if (MATS[shape]) return MATS[shape];
+    if (MATS2[shape]) return MATS2[shape];
     const m = swaying(kitMat(), amt);
     m.dispose = () => {
     };
-    return MATS[shape] = m;
+    return MATS2[shape] = m;
   }
   var plantsOn = () => lookOn("plants") && lookOn("light");
   function makeLOD(group, forest, list, tint) {
@@ -16254,7 +16455,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     slab.frustumCulled = under2.frustumCulled = false;
     g.add(slab, under2);
     if (look2.water) {
-      const sea = new THREE.Mesh(new THREE.PlaneGeometry(R.W * ts * 6, R.W * ts * 6).rotateX(-Math.PI / 2), std(3108762));
+      const sea = waterOn2() ? seaSheet(R.W * ts * 6, 3108762) : new THREE.Mesh(new THREE.PlaneGeometry(R.W * ts * 6, R.W * ts * 6).rotateX(-Math.PI / 2), std(3108762));
       sea.position.y = -0.9;
       under2.visible = false;
       g.add(sea);
@@ -16439,7 +16640,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       land: o.land,
       height: (x, z) => o.height(x + d.x, z + d.z),
       level: (x, z) => o.level(x + d.x, z + d.z),
-      share: o.share && o.share.map((f) => (x, z) => f(x + d.x, z + d.z))
+      share: o.share && o.share.map((f) => (x, z) => f(x + d.x, z + d.z)),
+      waterAt: o.waterAt && ((x, z) => o.waterAt(x + d.x, z + d.z))
     };
     townsHere();
     applyFrame();
@@ -16488,7 +16690,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           (springsNear[k] = springsNear[k] || []).push(sp);
         }
     for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
-    const painted = lookOn("light");
+    const painted = lookOn("light"), bed = new THREE.Color(), MUD = new THREE.Color(3813926);
     const colourAt = (x, z) => {
       const l = T2.level(x, z), mv = [T2.masks[0](x, z), T2.masks[1](x, z), T2.masks[2](x, z)];
       let total = 0;
@@ -16500,7 +16702,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         const cols = pal[b].cols;
         if (l <= 1) cb.copy(cols[0]).lerp(cols[1], Math.max(0, l));
         else cb.copy(cols[1]).lerp(cols[2], Math.min(1, l - 1));
-        for (let mi = 0; mi < 3; mi++) if (mv[mi] > 0) cb.lerp(cols[3 + mi], mv[mi] * (mi === 0 ? 0.7 : 1));
+        for (let mi = 0; mi < 3; mi++)
+          if (mv[mi] > 0)
+            cb.lerp(
+              mi === 1 && T2.water ? bed.copy(cols[4]).multiplyScalar(0.3).lerp(MUD, 0.5) : cols[3 + mi],
+              mv[mi] * (mi === 0 ? 0.7 : 1)
+            );
         c.r += cb.r * w;
         c.g += cb.g * w;
         c.b += cb.b * w;
@@ -16596,6 +16803,30 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     };
     yield* ground(T2.fine, 0, false);
     yield* ground(T2.coarse, SINK, true);
+    if (T2.water) {
+      const tint = (x, z, out) => {
+        out.setRGB(0, 0, 0);
+        let tot = 0;
+        for (let b = 0; b < pal.length; b++) {
+          const w = pal.length === 1 ? 1 : T2.share[b](x, z);
+          if (w < 2e-3) continue;
+          out.r += pal[b].cols[4].r * w;
+          out.g += pal[b].cols[4].g * w;
+          out.b += pal[b].cols[4].b * w;
+          tot += w;
+        }
+        return out.multiplyScalar(1 / (tot || 1));
+      };
+      yield;
+      for (const [g, sink, hollow] of [
+        [T2.fine, 0, false],
+        [T2.coarse, SINK, true]
+      ]) {
+        const w = waterMesh(T2, g, sink, hollow, HALF - g.cell * 1.5, tint);
+        if (w) group.add(w);
+        yield;
+      }
+    }
     part("ground");
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []), treesNear2 = pal.map(() => []), shaped = plantsOn(), tints = pal.map(() => ({ n: [], f: [] }));
     const townHalf = R.W * TOWN_TS / 2, towns = land2.sites.filter((q2) => q2.st.kind === "town").map((q2) => ({
@@ -17743,6 +17974,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     sunDir.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
     lamp2.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
     lamp2.position.set(P3.x, P3.y + 0.3, P3.z);
+    setWaterSky(scene.fog.color);
     updateSky(skyC, sunDir, day, storm ? R.stormOfNow(V.S) : null, frameDt);
     finishFrame();
   }
@@ -17751,7 +17983,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     animateActors(frameDt, P3.x, P3.z, still);
     guard("sound", () => updateSound(frameDt));
     updateFx(frameDt, nightNow, still);
-    const target = V.terrain.height(P3.x, P3.z) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P3.walked * 1.7) * 0.05);
+    const wat = V.base && V.base.waterAt && V.terrain === V.base ? V.base.waterAt(P3.x, P3.z) - 0.5 : -Infinity;
+    const target = Math.max(V.terrain.height(P3.x, P3.z), wat) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P3.walked * 1.7) * 0.05);
     P3.y = lerp(P3.y, target, Math.abs(target - P3.y) > 3 ? 0.06 : 0.35);
     camera.position.set(P3.x, P3.y, P3.z);
     camera.rotation.set(P3.pitch, P3.yaw, 0);

@@ -1,7 +1,8 @@
 /* Turns the rules map into a continuous height field: the region the player is in at full detail, and a wide margin
    of the regions around it at half detail, so the land can be seen running on across every border. */
 import { HALF, R, TS, WORLD, clamp, lerp, mulberry, smooth } from './ctx.js';
-import { Q } from './quality.js';
+import { Q, lookOn } from './quality.js';
+const waterOn = () => lookOn('water') && lookOn('light');
 
 const PAD = { town: 102, vault: 11, beacon: 9, spring: 6, hamlet: 10, camp: 8, siege: 8, stone: 7, den: 9 }; // metres of level ground under each kind of site
 const SINK = 0.15; // the coarse ground sits a hand lower, so it never shows through the fine ground where they overlap
@@ -184,6 +185,80 @@ function* makeTerrainG(s) {
       (l <= 1 ? l * 15 : 15 + (l - 1) * 34) + 14 * nBig(x, z) + 7 * nMid(x, z) * Math.max(0.15, 0.4 + l * 0.6) + 1.6 * nFine(x, z)
     );
   };
+  // Water (C5.14): each river, lake and sea tile gets a level, the ground's height at its middle, evened out with the
+  // water tiles round it (many times over for deep water, so seas and lakes lie flat), then spread a little onto the
+  // land beside it so the surface runs on under the banks. The ground beneath is carved into a bed: a metre or so under
+  // a river, a few under the sea. A dry wash stays dry; a frozen river is ice (drawn by water.js).
+  const wet = waterOn(),
+    wk = new Uint8Array(EW * EW), // 0 dry, 1 water, 2 ice
+    deepT = new Float32Array(EW * EW),
+    wl = new Float32Array(EW * EW);
+  if (wet) {
+    for (let e = 0; e < EW * EW; e++) {
+      const ter = land.terrain[e];
+      if (ter !== 4 && ter !== R.DEEP) continue;
+      const rn = ((land.biomes[land.biome[e]].river || {}).name || '').toLowerCase();
+      if (ter === 4 && /dry|wash|dust/.test(rn)) continue;
+      wk[e] = ter === 4 && /frozen|ice/.test(rn) ? 2 : 1;
+      deepT[e] = ter === R.DEEP ? 1 : 0;
+      const ex = e % EW,
+        ey = Math.floor(e / EW);
+      wl[e] = raw((ex - MARGIN + 0.5) * TS - HALF, (ey - MARGIN + 0.5) * TS - HALF) - 0.3;
+    }
+    const nbr = [1, -1, EW, -EW];
+    for (let pass = 0; pass < 14; pass++) {
+      if (pass % 7 === 6) yield;
+      for (let e = 0; e < EW * EW; e++) {
+        if (!wk[e] || (pass > 4 && !deepT[e])) continue;
+        let a = wl[e],
+          n = 1;
+        for (const d of nbr) {
+          const q = e + d;
+          if (q >= 0 && q < EW * EW && wk[q]) (a += wl[q]), n++;
+        }
+        // never above where it was: water settles, it does not climb
+        wl[e] = Math.min(wl[e], a / n + (deepT[e] ? 0 : 0.05));
+      }
+    }
+    // onto the land beside, from the water next to it
+    const has = new Uint8Array(EW * EW);
+    for (let e = 0; e < EW * EW; e++) has[e] = wk[e] ? 1 : 0;
+    for (let pass = 0; pass < 2; pass++) {
+      const next = has.slice();
+      for (let e = 0; e < EW * EW; e++) {
+        if (has[e]) continue;
+        let a = 0,
+          n = 0;
+        for (const d of nbr) {
+          const q = e + d;
+          if (q >= 0 && q < EW * EW && has[q]) (a += wl[q]), n++;
+        }
+        if (n) (wl[e] = a / n), (next[e] = 1);
+      }
+      has.set(next);
+    }
+  }
+  const soft = (g) => {
+      const f = field(g, false);
+      return (x, z) => clamp((f(x, z) - 0.2) / 0.5, 0, 1);
+    },
+    wmaskG = new Float32Array(EW * EW);
+  for (let e = 0; e < EW * EW; e++) wmaskG[e] = wk[e] ? 1 : 0;
+  const water = wet
+    ? {
+        level: field(wl, true),
+        mask: soft(wmaskG),
+        deep: soft(deepT),
+        ice: soft(Float32Array.from(wk, (k) => (k === 2 ? 1 : 0))),
+      }
+    : null;
+  const carve = (x, z, h) => {
+    const m = water.mask(x, z);
+    if (m <= 0) return h;
+    const depth = 1.1 + 2.6 * water.deep(x, z);
+    return Math.min(h, water.level(x, z) + 0.5 - (depth + 0.5) * m);
+  };
+  yield;
   // two height grids: fine over the player's region, coarse over everything drawn
   // (the coarse grid skips the middle, which is never drawn or sampled from it)
   const grid = function* (n, half, cell, hole) {
@@ -193,7 +268,7 @@ function* makeTerrainG(s) {
         const x = -half + ix * cell,
           z = -half + iz * cell;
         if (Math.abs(x) < hole && Math.abs(z) < hole) continue;
-        h[iz * (n + 1) + ix] = raw(x, z);
+        h[iz * (n + 1) + ix] = water ? carve(x, z, raw(x, z)) : raw(x, z);
       }
       if ((iz & 7) === 7) yield; // a pause every eight rows, for a build spread over frames
     }
@@ -248,7 +323,9 @@ function* makeTerrainG(s) {
       gy = R.wrap(land.cy * R.H + y, s.world.rows * R.H);
     return mulberry((s.seed ^ Math.imul(gx + 1, 374761393) ^ Math.imul(gy + 1, 668265263) ^ Math.imul(salt, 2246822519)) | 0);
   };
-  return { land, fine, coarse, height, level, tint, masks, roadAt, share, tileRand, etile, tileOf, inside };
+  // the water's surface at a point, where there is water to stand in (else -Infinity)
+  const waterAt = water ? (x, z) => (water.mask(x, z) > 0.35 ? water.level(x, z) : -Infinity) : () => -Infinity;
+  return { land, fine, coarse, height, level, tint, masks, roadAt, share, tileRand, etile, tileOf, inside, water, waterAt };
 }
 
 export { makeTerrain, makeTerrainG, MARGIN, EW, EHALF, CC, NC, N, CELL, SINK, PAD };

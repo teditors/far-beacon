@@ -92,6 +92,39 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.14: real water
+
+**Asked by Andrew**: realistic water, not blue land.
+
+**What it is.** Rivers, lakes and the sea are now water lying in a bed (`terrain.js`, `water.js`):
+
+- **Levels and beds.** Every river, lake and sea tile gets a water level: the ground's height at its middle, evened
+  out with the water round it (many times over for deep water, so lakes and seas lie flat; never raised, so water
+  settles rather than climbs), then spread a little under the banks. The ground beneath is carved: about a metre under
+  a river, a few under the sea, sloping up to the banks, and painted as dark mud. Walking into a river you wade (the
+  eye stays above the surface); on deep water, by boat or swimming, you are at its surface.
+- **The surface** is a mesh of its own over the same grid as the ground, only where there is water, and its shader
+  does the rest per pixel: crossing waves stir the normal so the light breaks on it; at a low angle it mirrors the
+  sky's colour (the fog's, so it matches the horizon), looking down you see into it; the sun leaves a glint; light
+  dapples it; it fades clear at the banks with a soft moving line of foam; shallow water is clear and tinted with each
+  land's own water colour, deep water darker and nearly opaque; deep water swells in long slow waves.
+- **Ice and dry beds.** A frozen river is pale, still and opaque; a dry wash stays dry ground, as its name says.
+- **Springs** and the open sea round a floating town use the same water.
+
+**Efficiency.** On Low the water is a plain see-through surface lit per vertex (no ripples, Fresnel or glints); the far
+water is always plain (ripples cannot be seen there). Building it is a few smoothing passes over the tile grid and one
+mesh over the grid cells that touch water.
+
+**Switch.** `water` ("Real water"); off, the land goes back to blue ground.
+
+**Numbers** (Medium; this machine swings about 10% between runs): on land 149 ms build, 93 calls, 205,399 triangles,
+140.7 ms a frame (water out of sight costs nothing a frame; building it adds about 15 ms). The open sea, where water
+fills the screen: 51 calls, 199,901 triangles, about 160 ms a frame against about 127 before, the dearest view in the
+game now. **Andrew: look at a lake or the sea on Medium and High with the meter on**; if it stutters, the plain water
+could be used on Medium too (one line in water.js, `rich`).
+
+**Verdict.** Pearl: rivers run in their valleys and catch the sky.
+
 ## C5.13: every house of its own stuff
 
 **Asked by Andrew**: variety in textures; not every building in a town sharing one.

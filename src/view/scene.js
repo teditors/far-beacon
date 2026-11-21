@@ -10,6 +10,7 @@ import { levelFloor, levelKit, levelMat, levelWalls } from './levels.js';
 import { ruinGroup, ruinsOn } from './ruins.js';
 import * as FX from './fx.js';
 import { landmark } from './landmarks.js';
+import { seaSheet, waterMesh, waterOn } from './water.js';
 import { blob, fire, water } from './fx.js';
 import { actorsOn, clearActors, creatureActor, markKilled, personActor, settleActors, track } from './actors.js';
 R.on('killed', (s, d) => d && d.c && markKilled(d.c.id));
@@ -664,7 +665,9 @@ function skyGround(map, ts, at, look, LK) {
   g.add(slab, under);
   if (look.water) {
     // a town that floats: the sea all round, a little below the decks
-    const sea = new THREE.Mesh(new THREE.PlaneGeometry(R.W * ts * 6, R.W * ts * 6).rotateX(-Math.PI / 2), std(0x2f6f9a));
+    const sea = waterOn()
+      ? seaSheet(R.W * ts * 6, 0x2f6f9a)
+      : new THREE.Mesh(new THREE.PlaneGeometry(R.W * ts * 6, R.W * ts * 6).rotateX(-Math.PI / 2), std(0x2f6f9a));
     sea.position.y = -0.9;
     under.visible = false;
     g.add(sea);
@@ -868,6 +871,7 @@ function buildStaticSoon(rx, rz) {
     height: (x, z) => o.height(x + d.x, z + d.z),
     level: (x, z) => o.level(x + d.x, z + d.z),
     share: o.share && o.share.map((f) => (x, z) => f(x + d.x, z + d.z)),
+    waterAt: o.waterAt && ((x, z) => o.waterAt(x + d.x, z + d.z)),
   };
   townsHere();
   applyFrame();
@@ -932,7 +936,9 @@ function* buildLand(S, timed) {
         (springsNear[k] = springsNear[k] || []).push(sp);
       }
   for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
-  const painted = lookOn('light');
+  const painted = lookOn('light'),
+    bed = new THREE.Color(),
+    MUD = new THREE.Color(0x3a3226);
   // The colour of the ground at a point: each biome's own palette, mixed where two biomes meet.
   const colourAt = (x, z) => {
     const l = T.level(x, z),
@@ -946,7 +952,13 @@ function* buildLand(S, timed) {
       const cols = pal[b].cols;
       if (l <= 1) cb.copy(cols[0]).lerp(cols[1], Math.max(0, l));
       else cb.copy(cols[1]).lerp(cols[2], Math.min(1, l - 1));
-      for (let mi = 0; mi < 3; mi++) if (mv[mi] > 0) cb.lerp(cols[3 + mi], mv[mi] * (mi === 0 ? 0.7 : 1));
+      for (let mi = 0; mi < 3; mi++)
+        if (mv[mi] > 0)
+          // under real water the bed is dark mud, the water itself drawn over it (water.js)
+          cb.lerp(
+            mi === 1 && T.water ? bed.copy(cols[4]).multiplyScalar(0.3).lerp(MUD, 0.5) : cols[3 + mi],
+            mv[mi] * (mi === 0 ? 0.7 : 1),
+          );
       c.r += cb.r * w;
       c.g += cb.g * w;
       c.b += cb.b * w;
@@ -1083,6 +1095,31 @@ function* buildLand(S, timed) {
   };
   yield* ground(T.fine, 0, false);
   yield* ground(T.coarse, SINK, true);
+  if (T.water) {
+    // rivers, lakes and the sea over their beds (water.js), tinted with each land's own water colour
+    const tint = (x, z, out) => {
+      out.setRGB(0, 0, 0);
+      let tot = 0;
+      for (let b = 0; b < pal.length; b++) {
+        const w = pal.length === 1 ? 1 : T.share[b](x, z);
+        if (w < 0.002) continue;
+        out.r += pal[b].cols[4].r * w;
+        out.g += pal[b].cols[4].g * w;
+        out.b += pal[b].cols[4].b * w;
+        tot += w;
+      }
+      return out.multiplyScalar(1 / (tot || 1));
+    };
+    yield;
+    for (const [g, sink, hollow] of [
+      [T.fine, 0, false],
+      [T.coarse, SINK, true],
+    ]) {
+      const w = waterMesh(T, g, sink, hollow, HALF - g.cell * 1.5, tint);
+      if (w) group.add(w);
+      yield;
+    }
+  }
   part('ground');
   // Rocks and trees, tile by tile, from a source that depends only on where the tile is in the world.
   const m = new THREE.Matrix4(),

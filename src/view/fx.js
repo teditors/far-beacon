@@ -6,6 +6,7 @@
    updateFx() moves the flames and the ripples each frame; things removed from the scene are forgotten. */
 import { P as PT, kit, kitMat } from './kit.js';
 import { surface } from './paint.js';
+import { waterMat, waterOn } from './water.js';
 
 const live = [];
 const NIGHT = { value: 0 };
@@ -108,6 +109,31 @@ function fire(scale) {
 }
 // A pool of water, r metres across, murky if foul.
 function water(r, foul) {
+  if (waterOn()) {
+    // the same water as rivers and the sea (water.js): rippling, mirroring the sky, clear at the rim
+    const geo = new THREE.CircleGeometry(r, 20, 0, Math.PI * 2).rotateX(-Math.PI / 2),
+      n = geo.attributes.position.count,
+      wa = new Float32Array(n * 3),
+      col = new Float32Array(n * 3),
+      c = new THREE.Color(foul ? 0x5f5a2a : 0x3a86b8);
+    for (let i = 0; i < n; i++) {
+      const d = Math.hypot(geo.attributes.position.getX(i), geo.attributes.position.getZ(i)) / r;
+      wa.set([d > 0.99 ? 0.5 : 1, foul ? 0.6 : 0.3, 0], i * 3);
+      col.set([c.r, c.g, c.b], i * 3);
+    }
+    geo.setAttribute('wa', new THREE.BufferAttribute(wa, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const g = new THREE.Group(),
+      rim = new THREE.Mesh(
+        new THREE.RingGeometry(r * 0.96, r * 1.12, 20).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: foul ? 0x4a4628 : 0x6a7a5a, transparent: true, opacity: 0.7, depthWrite: false }),
+      ),
+      m = new THREE.Mesh(geo, waterMat());
+    rim.position.y = -0.02;
+    m.renderOrder = 2;
+    g.add(m, rim);
+    return g;
+  }
   const m = new THREE.Mesh(
     new THREE.CircleGeometry(r, 20).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ color: foul ? 0x6f6a35 : 0x4a9ac8, map: rippleTex() }),

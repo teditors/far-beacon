@@ -25,6 +25,7 @@ import { setNight } from './buildings.js';
 import { animateActors, shiftActors } from './actors.js';
 import { updateSound } from './sound.js';
 import { updateFx } from './fx.js';
+import { setWaterSky } from './water.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -329,6 +330,7 @@ function frame() {
   sunDir.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
   lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
   lamp.position.set(P.x, P.y + 0.3, P.z);
+  setWaterSky(scene.fog.color);
   updateSky(skyC, sunDir, day, storm ? R.stormOfNow(V.S) : null, frameDt);
   finishFrame();
 }
@@ -337,7 +339,10 @@ function finishFrame() {
   animateActors(frameDt, P.x, P.z, still);
   guard('sound', () => updateSound(frameDt));
   updateFx(frameDt, nightNow, still);
-  const target = V.terrain.height(P.x, P.z) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P.walked * 1.7) * 0.05); // flying: high above the land
+  // over water you stand in it, and on deep water (a boat, swimming) you are at its surface
+  const wat = V.base && V.base.waterAt && V.terrain === V.base ? V.base.waterAt(P.x, P.z) - 0.5 : -Infinity;
+  const target =
+    Math.max(V.terrain.height(P.x, P.z), wat) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P.walked * 1.7) * 0.05); // flying: high above the land
   P.y = lerp(P.y, target, Math.abs(target - P.y) > 3 ? 0.06 : 0.35); // rise and fall slowly
   camera.position.set(P.x, P.y, P.z);
   camera.rotation.set(P.pitch, P.yaw, 0);
