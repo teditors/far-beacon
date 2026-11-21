@@ -317,6 +317,10 @@ function frame() {
   scene.fog.far = shown.far;
   scene.fog.near = Math.min(40, shown.far * 0.2);
   lightOutdoors(h, day, dusk, skyC, !!storm, sight);
+  // the sun shines the same way from wherever the player is, so its shadows follow them
+  sun.position.x += P.x;
+  sun.position.z += P.z;
+  sun.target.position.set(P.x, P.y - 2, P.z);
   nightNow = clamp(1 - day * 1.3 + (storm ? 0.3 : 0), 0, 1);
   setNight(nightNow);
   const sa = ((h - 6) / 14) * Math.PI;

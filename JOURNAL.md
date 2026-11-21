@@ -24,6 +24,27 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.10: real-time shadows, on High only
+
+**What it is.** On High the sun casts real shadows (three's shadow map, 1024 square, in a 140 m box that follows the
+player): houses, ruins, landmarks and the near trees throw them onto the near ground and onto each other. Everything
+else keeps its baked shading and blob shadows. The sun's light now shines from the same direction wherever the player
+is (it moves with them), which is what lets its shadow box follow.
+
+**Cost, and the choices that cut it.** The first try (everything casting, soft filtering, all the ground receiving)
+cost High 65% a frame (187 to 309 ms). Now only places and near trees cast (not the land's far trees and rocks), only
+the fine ground receives, and the filtering is the plain one: High costs 19% more (187 to 219 ms), a little more than
+High cost before this commission (210). Low and Medium are untouched: no shadow map at all.
+
+**Switch.** `shadows` ("Real-time shadows (High only)").
+
+**Numbers.** Low 73 ms build, 65 calls, 105,353 triangles, 66.5 ms a frame; Medium 107 / 82 / 197,275 / 123.9; High 198
+/ 92 / 343,102 / 219.4. Page 730 KB.
+
+**Verdict.** Maybe: it works and is honest about the sun, but on the software renderer it is the dearest thing in the
+commission for a modest gain. **Andrew: try High on the Pixel with the meter on, with and without this switch.** If it
+costs much there, turn its default off (one line in quality.js).
+
 ## C5.9: landmarks in the style
 
 **What it is.** The places you steer by are rebuilt with the kit (`src/view/landmarks.js`), so they belong to the same

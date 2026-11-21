@@ -13146,7 +13146,9 @@
       sky: true,
       grain: true,
       weather: 1600,
-      treeNear: 260
+      treeNear: 260,
+      shadows: true
+      // real-time shadows from the sun, near the player (C5.10)
     }
   };
   var SET = { quality: "medium", meter: false, off: {} };
@@ -15490,11 +15492,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       group.add(m);
       return m;
     };
+    const near = mk(treeModel(forest, false));
+    near.userData.near = true;
     return {
       list: new Float32Array(list),
       tint: new Float32Array(tint),
       n,
-      near: mk(treeModel(forest, false)),
+      near,
       far: mk(treeModel(forest, true)),
       at: null
     };
@@ -15532,7 +15536,19 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var hemi = new THREE.HemisphereLight(14673902, 5920076, 0.75);
   var sun = new THREE.DirectionalLight(16773596, 0.9);
   var lamp2 = new THREE.PointLight(16761975, 0, 45, 1.6);
-  scene.add(hemi, sun, lamp2);
+  scene.add(hemi, sun, lamp2, sun.target);
+  sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 700 });
+  sun.shadow.bias = -15e-4;
+  sun.shadow.normalBias = 0.4;
+  var shadowsOn = () => !!Q.shadows && lookOn("light") && lookOn("shadows");
+  LOOK_SWITCHES.push(["shadows", "Real-time shadows (High only)"]);
+  function setShadows() {
+    const on3 = shadowsOn();
+    renderer.shadowMap.enabled = on3;
+    renderer.shadowMap.type = THREE.BasicShadowMap;
+    sun.castShadow = on3;
+  }
   scene.fog = new THREE.Fog(12175313, 40, 600);
   scene.background = new THREE.Color(12175313);
   var staticGroup = null;
@@ -16198,6 +16214,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     V.terrain = inTown2 ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
   }
   function buildStatic() {
+    setShadows();
     const t0 = performance.now();
     buildStaticInner();
     perfBuild(performance.now() - t0);
@@ -16399,7 +16416,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         tex.repeat.set(g.half * 2 / 6, g.half * 2 / 6);
         mat.map = tex;
       }
-      group.add(new THREE.Mesh(geo, mat));
+      const gm = new THREE.Mesh(geo, mat);
+      gm.userData.ground = !hollow;
+      gm.userData.farGround = hollow;
+      group.add(gm);
     };
     yield* ground(T2.fine, 0, false);
     yield* ground(T2.coarse, SINK, true);
@@ -16516,6 +16536,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       group.add(g);
     }
     facet(group);
+    if (shadowsOn())
+      group.traverse((o) => {
+        if (!o.isMesh || o.material.transparent || o.material.isMeshBasicMaterial) return;
+        if (o.userData.ground) o.receiveShadow = true;
+        else if (o.userData.farGround) return;
+        else if (!o.isInstancedMesh || o.userData.near) o.castShadow = true;
+      });
     part("places");
     return { group, base, towns };
   }
@@ -17506,6 +17533,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     scene.fog.far = shown.far;
     scene.fog.near = Math.min(40, shown.far * 0.2);
     lightOutdoors(h, day, dusk, skyC, !!storm, sight);
+    sun.position.x += P3.x;
+    sun.position.z += P3.z;
+    sun.target.position.set(P3.x, P3.y - 2, P3.z);
     nightNow = clamp2(1 - day * 1.3 + (storm ? 0.3 : 0), 0, 1);
     setNight(nightNow);
     const sa = (h - 6) / 14 * Math.PI;

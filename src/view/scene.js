@@ -24,7 +24,21 @@ camera.rotation.order = 'YXZ';
 const hemi = new THREE.HemisphereLight(0xdfe7ee, 0x5a554c, 0.75),
   sun = new THREE.DirectionalLight(0xfff1dc, 0.9),
   lamp = new THREE.PointLight(0xffc477, 0, 45, 1.6);
-scene.add(hemi, sun, lamp);
+scene.add(hemi, sun, lamp, sun.target);
+// Real-time shadows, on High only (C5.10): the sun casts from the places and near trees onto the ground, in a box
+// that follows the player. Everything else keeps its painted shading and blob shadows.
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 700 });
+sun.shadow.bias = -0.0015;
+sun.shadow.normalBias = 0.4;
+const shadowsOn = () => !!Q.shadows && lookOn('light') && lookOn('shadows');
+LOOK_SWITCHES.push(['shadows', 'Real-time shadows (High only)']);
+function setShadows() {
+  const on = shadowsOn();
+  renderer.shadowMap.enabled = on;
+  renderer.shadowMap.type = THREE.BasicShadowMap;
+  sun.castShadow = on;
+}
 scene.fog = new THREE.Fog(0xb9c7d1, 40, 600);
 scene.background = new THREE.Color(0xb9c7d1);
 let staticGroup = null,
@@ -792,6 +806,7 @@ function applyFrame() {
   V.terrain = inTown ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
 }
 function buildStatic() {
+  setShadows();
   const t0 = performance.now();
   buildStaticInner();
   perfBuild(performance.now() - t0);
@@ -1060,7 +1075,10 @@ function* buildLand(S, timed) {
       tex.repeat.set((g.half * 2) / 6, (g.half * 2) / 6);
       mat.map = tex;
     }
-    group.add(new THREE.Mesh(geo, mat));
+    const gm = new THREE.Mesh(geo, mat);
+    gm.userData.ground = !hollow; // only the fine ground takes shadows (they never reach the far land)
+    gm.userData.farGround = hollow;
+    group.add(gm);
   };
   yield* ground(T.fine, 0, false);
   yield* ground(T.coarse, SINK, true);
@@ -1224,6 +1242,13 @@ function* buildLand(S, timed) {
     group.add(g);
   }
   facet(group);
+  if (shadowsOn())
+    group.traverse((o) => {
+      if (!o.isMesh || o.material.transparent || o.material.isMeshBasicMaterial) return;
+      if (o.userData.ground) o.receiveShadow = true;
+      else if (o.userData.farGround) return;
+      else if (!o.isInstancedMesh || o.userData.near) o.castShadow = true; // not the land's far trees and rocks
+    });
   part('places');
   return { group, base, towns };
 }
@@ -1461,4 +1486,5 @@ export {
   applyFrame,
   resize,
   treesNear,
+  shadowsOn,
 };

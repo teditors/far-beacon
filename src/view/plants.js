@@ -176,11 +176,13 @@ function makeLOD(group, forest, list, tint) {
     group.add(m);
     return m;
   };
+  const near = mk(treeModel(forest, false));
+  near.userData.near = true; // casts a shadow on High (scene.js)
   return {
     list: new Float32Array(list),
     tint: new Float32Array(tint),
     n,
-    near: mk(treeModel(forest, false)),
+    near,
     far: mk(treeModel(forest, true)),
     at: null,
   };

@@ -55,6 +55,7 @@ const QUALITY = {
     grain: true,
     weather: 1600,
     treeNear: 260,
+    shadows: true, // real-time shadows from the sun, near the player (C5.10)
   },
 };
 const SET = { quality: 'medium', meter: false, off: {} };
