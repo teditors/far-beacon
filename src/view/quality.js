@@ -21,6 +21,8 @@ const QUALITY = {
     sky: false,
     grain: false,
     weather: 0,
+    grass: 0, // metres round the player where grass grows (C5.18), and the most tufts
+    grassMax: 0,
     texPx: 64, // painted textures' size (C5.17)
     aniso: 1,
     lite: true, // towns without their small things (shutters, flowers, street props)
@@ -41,6 +43,8 @@ const QUALITY = {
     grain: true,
     weather: 700,
     treeNear: 140,
+    grass: 26,
+    grassMax: 4000,
     texPx: 128,
     aniso: 4,
   },
@@ -48,8 +52,8 @@ const QUALITY = {
     label: 'High',
     ratio: 2,
     aa: true,
-    margin: 22,
-    fine: 216,
+    margin: 24,
+    fine: 288,
     coarse: 2,
     treesN: 1,
     treesF: 0.5,
@@ -58,7 +62,9 @@ const QUALITY = {
     sky: true,
     grain: true,
     weather: 1600,
-    treeNear: 260,
+    treeNear: 420,
+    grass: 45,
+    grassMax: 14000,
     texPx: 256,
     aniso: 8,
     shadows: true, // real-time shadows from the sun, near the player (C5.10)

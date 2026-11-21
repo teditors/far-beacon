@@ -113,7 +113,7 @@ const SHAPES = {
           P.cone(0.06, 1, 3),
           leaf,
           { x: Math.cos(a) * d, y: 0.5, z: Math.sin(a) * d, rx: Math.sin(a) * 0.25, rz: -Math.cos(a) * 0.25 },
-          { shade: (y) => 0.55 + 0.6 * y },
+          { shade: (y) => 0.75 + 0.45 * y },
         );
       }
     },
@@ -144,6 +144,16 @@ function treeModel(forest, far) {
   s.make(k, forest.tree.color, far);
   const g = k.build();
   g.scale(1, 1 / s.aspect, 1);
+  if (shape === 'grass' || shape === 'fern') {
+    // thin blades and fronds are lit as if they faced the sky, so they do not turn black edge-on to the light
+    const n = g.attributes.normal;
+    for (let i = 0; i < n.count; i++) {
+      const x = n.getX(i) * 0.35,
+        z = n.getZ(i) * 0.35,
+        l = Math.hypot(x, 0.94, z);
+      n.setXYZ(i, x / l, 0.94 / l, z / l);
+    }
+  }
   g.computeBoundingSphere();
   g.dispose = () => {}; // kept for the next build
   g.kept = true;

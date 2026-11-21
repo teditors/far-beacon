@@ -2,7 +2,7 @@
    in it, and rain, snow, hail, dust, ash or falling stars while a storm blows. Each is one mesh, updated each frame
    from numbers the frame already has; on Low there is none of it and the sky is the flat colour of the fog. */
 import { P, R, V } from './ctx.js';
-import { Q, lookOn } from './quality.js';
+import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { camera, scene } from './scene.js';
 
 const SKY_R = 1800;
@@ -114,8 +114,111 @@ function makeFall(kind) {
   return m;
 }
 // Called every frame outdoors: sky colour, how far round the sun is (0 dawn to 1 dusk, day 0..1), and the storm.
+/* Clouds (C5.18): soft heaps of white drawn in code, standing in a ring high round the traveller and drifting with the
+   wind; tinted by the hour (gold and rose at dawn and dusk, grey under a storm, faint at night). A halo round the sun.
+   Medium has a dozen clouds, High two dozen; Low none. Switch: `clouds`. */
+LOOK_SWITCHES.push(['clouds', "Clouds and the sun's glow"]);
+let clouds = null,
+  halo = null;
+function cloudTexture(seed) {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 128;
+  const g = c.getContext('2d');
+  let a = seed;
+  const r = () => (a = (a * 16807) % 2147483647) / 2147483647;
+  // puffs heaped along a flat base: white on top, a grey shadow under
+  for (let pass = 0; pass < 2; pass++)
+    for (let i = 0; i < 22; i++) {
+      const x = 40 + r() * 176,
+        rad = 14 + r() * 30 * (1 - Math.abs(x - 128) / 160),
+        y = 88 - rad * (0.4 + r() * 0.6) + (pass ? -6 : 4);
+      const grad = g.createRadialGradient(x, y - rad * 0.3, rad * 0.1, x, y, rad);
+      grad.addColorStop(0, pass ? 'rgba(255,255,255,0.95)' : 'rgba(170,176,190,0.7)');
+      grad.addColorStop(0.7, pass ? 'rgba(250,250,252,0.6)' : 'rgba(160,166,180,0.35)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(x, y, rad, 0, Math.PI * 2);
+      g.fill();
+    }
+  const t = new THREE.CanvasTexture(c);
+  return t;
+}
+function makeClouds() {
+  const g = new THREE.Group(),
+    n = Q.texPx >= 256 ? 24 : 12,
+    texes = [cloudTexture(7), cloudTexture(19), cloudTexture(41), cloudTexture(77)];
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: texes[i % 4], fog: false, transparent: true, depthWrite: false, opacity: 0.9 }),
+    );
+    const a = (i / n) * Math.PI * 2 + (i % 3) * 0.4,
+      d = 900 + ((i * 37) % 7) * 110,
+      w = 260 + ((i * 53) % 5) * 70;
+    m.userData.a = a;
+    m.userData.d = d;
+    m.userData.h = 260 + ((i * 29) % 6) * 45;
+    m.scale.set(w, w * 0.45, 1);
+    m.renderOrder = -8;
+    g.add(m);
+  }
+  const ht = (() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const x = c.getContext('2d'),
+      gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,240,200,0.9)');
+    gr.addColorStop(0.2, 'rgba(255,220,160,0.35)');
+    gr.addColorStop(1, 'rgba(255,200,120,0)');
+    x.fillStyle = gr;
+    x.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  })();
+  halo = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: ht, fog: false, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }),
+  );
+  halo.scale.setScalar(700);
+  halo.renderOrder = -9;
+  scene.add(g, halo);
+  return g;
+}
+const cTint = new THREE.Color(),
+  cDusk = new THREE.Color(0xf0a080),
+  cNight = new THREE.Color(0x30384c),
+  cStorm = new THREE.Color(0x7c8088);
+function updateClouds(on, skyColor, sunPos, day, storm, dt) {
+  if (on && !clouds) clouds = makeClouds();
+  if (!clouds) return;
+  clouds.visible = halo.visible = on;
+  if (!on) return;
+  const t = performance.now() / 1000,
+    low = 1 - Math.min(1, Math.max(0, sunPos.y / 300) * 2.5);
+  cTint
+    .setRGB(1, 1, 1)
+    .lerp(cDusk, low * day * 0.7)
+    .lerp(cNight, 1 - day);
+  if (storm) cTint.lerp(cStorm, 0.7);
+  for (const m of clouds.children) {
+    const a = m.userData.a + t * 0.004; // drifting round, slowly
+    m.position.set(
+      camera.position.x + Math.cos(a) * m.userData.d,
+      camera.position.y + m.userData.h,
+      camera.position.z + Math.sin(a) * m.userData.d,
+    );
+    m.material.color.copy(cTint);
+    m.material.opacity = (storm ? 0.95 : 0.85) * (0.35 + 0.65 * day);
+  }
+  const d = sunPos
+    .clone()
+    .normalize()
+    .multiplyScalar(SKY_R * 0.9);
+  halo.position.copy(camera.position).add(d);
+  halo.material.opacity = storm ? 0 : day * (0.55 + 0.45 * low);
+}
 function updateSky(skyColor, sunPos, day, storm, dt) {
   const on = Q.sky && !R.isDark(V.S);
+  updateClouds(on && lookOn('clouds') && lookOn('light'), skyColor, sunPos, day, storm, dt);
   if (on && !dome) {
     dome = makeDome();
     sunDisc = disc(70, 0xfff2c8);
@@ -171,6 +274,7 @@ function updateSky(skyColor, sunPos, day, storm, dt) {
 }
 function hideSky() {
   if (dome) dome.visible = sunDisc.visible = moonDisc.visible = false;
+  if (clouds) clouds.visible = halo.visible = false;
   if (fall) fall.visible = false;
 }
 function showFall() {

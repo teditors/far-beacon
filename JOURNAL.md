@@ -97,6 +97,46 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.18: High pushed harder
+
+**Asked by Andrew**: High runs without trouble on the Pixel, so loosen the reins and make High very good; players on
+lesser devices can choose Medium or Low.
+
+**What it is.**
+- **Grass and wildflowers underfoot** (`grass.js`): tufts of seven fine blades, knee-high, and here and there a flower
+  (yellow, red, white, violet, orange), scattered from where each patch lies in the world within 45 m of the traveller on
+  High (up to 14,000 tufts) and 26 m on Medium (4,000), re-scattered every few metres walked, thinning toward the edge of
+  the ring so it fades rather than stops, swaying in the wind. How much grows is the land's: lush in temperate and wet
+  lands, thicker in woods and flower meadows (where the flowers are), sparse and straw-coloured in hot lands, almost none
+  in the cold; none on water, roads, mountains, high ground or in towns. Two draw calls in all.
+- **Clouds** (`sky.js`): soft heaps of white drawn in code, a ring of them high round the traveller (24 on High, 12 on
+  Medium) drifting slowly, gold and rose at dawn and dusk, grey under a storm, faint at night; and a glow round the sun.
+- **Shadows on High** are soft-edged now (PCF soft), from a map twice as fine each way (2048), reaching 110 m instead
+  of 70.
+- **The land on High** is finer (a vertex every 3.5 m instead of 4.7: rounder hills, smoother light) and drawn further
+  (24 tiles of neighbouring land instead of 22); trees keep their full shape out to 420 m instead of 260.
+- Tall grass and fern woodlands are lit as if their blades faced the sky, so they no longer go black edge-on to the sun.
+
+**Switches.** `grass` ("Grass and flowers underfoot"), `clouds` ("Clouds and the sun's glow"); the rest is the High
+preset in quality.js.
+
+**Numbers** (software renderer):
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Low | 75 | 73 | 106,484 | 68.6 |
+| Medium | 97 | 97 | 199,798 | 135.0 |
+| High, before (C5.17) | 186 | 103 | 349,705 | 208.1 |
+| High, now | 285 | 111 | 571,206 | 300.2 |
+
+High is 45% dearer here, on purpose: most of it is the grass and the finer land, triangles a phone's graphics chip
+draws easily but this software renderer does not. Medium and Low are as they were. **Andrew: please run High with the
+meter on in a grassy land and in a town.** If it is too much, the levers are in quality.js's `high`: `grassMax` and
+`grass` (the grass), `fine` (the land), `treeNear` (full trees).
+
+**Verdict.** Pearl: walking through a meadow of swaying grass with flowers under drifting clouds is the most alive the
+land has looked.
+
 ## C5.17: sharper textures
 
 **Asked by Andrew**: some town textures, especially, were muddy: big softened brown pixels.

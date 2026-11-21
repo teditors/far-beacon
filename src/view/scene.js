@@ -10,6 +10,7 @@ import { levelFloor, levelKit, levelMat, levelWalls } from './levels.js';
 import { ruinGroup, ruinsOn } from './ruins.js';
 import * as FX from './fx.js';
 import { landmark } from './landmarks.js';
+import { makeGrass } from './grass.js';
 import { seaSheet, waterMesh, waterOn } from './water.js';
 import { blob, fire, water } from './fx.js';
 import { actorsOn, clearActors, creatureActor, markKilled, personActor, settleActors, shiftActors, track } from './actors.js';
@@ -29,8 +30,8 @@ const hemi = new THREE.HemisphereLight(0xdfe7ee, 0x5a554c, 0.75),
 scene.add(hemi, sun, lamp, sun.target);
 // Real-time shadows, on High only (C5.10): the sun casts from the places and near trees onto the ground, in a box
 // that follows the player. Everything else keeps its painted shading and blob shadows.
-sun.shadow.mapSize.set(1024, 1024);
-Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 700 });
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -110, right: 110, top: 110, bottom: -110, near: 10, far: 700 });
 sun.shadow.bias = -0.0015;
 sun.shadow.normalBias = 0.4;
 const shadowsOn = () => !!Q.shadows && lookOn('light') && lookOn('shadows');
@@ -38,7 +39,7 @@ LOOK_SWITCHES.push(['shadows', 'Real-time shadows (High only)']);
 function setShadows() {
   const on = shadowsOn();
   renderer.shadowMap.enabled = on;
-  renderer.shadowMap.type = THREE.BasicShadowMap;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap; // soft edges (C5.18)
   sun.castShadow = on;
 }
 scene.fog = new THREE.Fog(0xb9c7d1, 40, 600);
@@ -1224,6 +1225,18 @@ function* buildLand(S, timed) {
       }
     }
   }
+  {
+    // grass and flowers round the player (grass.js), re-scattered as they walk (treesNear)
+    const gr = makeGrass(
+      group,
+      T,
+      pal.map((p) => p.lush),
+      towns,
+      townHalf,
+      S.seed,
+    );
+    if (gr) group.userData.grass = gr;
+  }
   part('trees');
   const instances = (geom, mat, list, tint) => {
     if (!list.length) return;
@@ -1297,11 +1310,12 @@ function* buildLand(S, timed) {
 // only when the player has walked a little way. The land's group may be shifted (a border just crossed) or seen from
 // the town's frame, so the player is put into the land's own coordinates first.
 function treesNear(force) {
-  const lods = staticGroup && staticGroup.userData.lods;
-  if (!lods) return;
+  const lods = (staticGroup && staticGroup.userData.lods) || [];
+  if (!staticGroup) return;
   const x = P.x - staticGroup.position.x,
     z = P.z - staticGroup.position.z;
   for (const rec of lods) updateLOD(rec, x, z, Q.treeNear, force);
+  if (staticGroup.userData.grass) staticGroup.userData.grass.update(x, z, force);
 }
 const fxOn = () => lookOn('fx') && lookOn('light');
 LOOK_SWITCHES.push(['fx', 'Fire, water and shadows']);
