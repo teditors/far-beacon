@@ -10807,8 +10807,8 @@
     fn(s, dt) {
       if (!s.player || s.over) return;
       updateSwim(s);
-      const rec = areaRec(s), under = rec.kind === "sea" && kindOf2(rec.place).under, swimming = inOverworld(s) && s.terrain[idx(s.player.x, s.player.y)] === DEEP && !s.player.aloft && !hasBoat(s);
-      if (!(under || swimming) || breathes(s) || s.godMode) return;
+      const rec = areaRec(s), under2 = rec.kind === "sea" && kindOf2(rec.place).under, swimming = inOverworld(s) && s.terrain[idx(s.player.x, s.player.y)] === DEEP && !s.player.aloft && !hasBoat(s);
+      if (!(under2 || swimming) || breathes(s) || s.godMode) return;
       const p = s.player;
       p.hp -= S().drown * dt;
       if (!s.warn.drown) {
@@ -13001,7 +13001,9 @@
       rocksF: 0,
       sky: false,
       grain: false,
-      weather: 0
+      weather: 0,
+      treeNear: 0
+      // metres round the player within which trees have their full shape (C5.3); 0: nowhere
     },
     medium: {
       label: "Medium",
@@ -13016,7 +13018,8 @@
       rocksF: 0.5,
       sky: true,
       grain: true,
-      weather: 700
+      weather: 700,
+      treeNear: 140
     },
     high: {
       label: "High",
@@ -13031,7 +13034,8 @@
       rocksF: 1,
       sky: true,
       grain: true,
-      weather: 1600
+      weather: 1600,
+      treeNear: 260
     }
   };
   var SET = { quality: "medium", meter: false, off: {} };
@@ -13411,6 +13415,301 @@
   }
   var paintOn = () => lookOn("paint") && lookOn("light") && Q.grain;
 
+  // src/view/kit.js
+  var _m = new THREE.Matrix4();
+  var _q = new THREE.Quaternion();
+  var _e = new THREE.Euler();
+  var _v = new THREE.Vector3();
+  var _s = new THREE.Vector3();
+  var _c = new THREE.Color();
+  function placeMatrix(p) {
+    p = p || {};
+    _e.set(p.rx || 0, p.ry || 0, p.rz || 0);
+    _q.setFromEuler(_e);
+    const s = p.s || 1;
+    _s.set((p.sx || 1) * s, (p.sy || 1) * s, (p.sz || 1) * s);
+    _v.set(p.x || 0, p.y || 0, p.z || 0);
+    return _m.compose(_v, _q, _s);
+  }
+  function kit() {
+    const parts2 = [];
+    const self = {
+      add(geo, color, place, opts) {
+        opts = opts || {};
+        let g = geo.index ? geo.toNonIndexed() : geo.clone();
+        if (geo !== g) geo.dispose();
+        g.applyMatrix4(placeMatrix(place));
+        if (opts.flat || !g.attributes.normal) g.computeVertexNormals();
+        if (opts.flat) {
+          const p2 = g.attributes.position, n = g.attributes.normal, a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+          for (let i = 0; i < p2.count; i += 3) {
+            a.fromBufferAttribute(p2, i);
+            b.fromBufferAttribute(p2, i + 1);
+            c.fromBufferAttribute(p2, i + 2);
+            c.sub(b);
+            a.sub(b);
+            c.cross(a).normalize();
+            for (let k = 0; k < 3; k++) n.setXYZ(i + k, c.x, c.y, c.z);
+          }
+        }
+        const p = g.attributes.position, col = new Float32Array(p.count * 3);
+        _c.set(color);
+        let lo = Infinity, hi = -Infinity;
+        if (opts.shade) for (let i = 0; i < p.count; i++) lo = Math.min(lo, p.getY(i)), hi = Math.max(hi, p.getY(i));
+        for (let i = 0; i < p.count; i++) {
+          let k = 1;
+          if (opts.shade) k *= opts.shade(hi > lo ? (p.getY(i) - lo) / (hi - lo) : 1);
+          if (opts.jitter) k *= 1 + Math.sin(i * 12.9898 + p.getX(i) * 78.233) * 0.5 * opts.jitter;
+          col[i * 3] = _c.r * k;
+          col[i * 3 + 1] = _c.g * k;
+          col[i * 3 + 2] = _c.b * k;
+        }
+        g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+        for (const k of Object.keys(g.attributes)) if (k !== "position" && k !== "normal" && k !== "color") g.deleteAttribute(k);
+        parts2.push(g);
+        return self;
+      },
+      build() {
+        let n = 0;
+        for (const g of parts2) n += g.attributes.position.count;
+        const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3);
+        let o = 0;
+        for (const g of parts2) {
+          pos.set(g.attributes.position.array, o * 3);
+          nor.set(g.attributes.normal.array, o * 3);
+          col.set(g.attributes.color.array, o * 3);
+          o += g.attributes.position.count;
+          g.dispose();
+        }
+        const out = new THREE.BufferGeometry();
+        out.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        out.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+        out.setAttribute("color", new THREE.BufferAttribute(col, 3));
+        out.computeBoundingSphere();
+        return out;
+      }
+    };
+    return self;
+  }
+  var P4 = {
+    box: (w, h, d) => new THREE.BoxGeometry(w, h, d),
+    cyl: (rt, rb, h, n) => new THREE.CylinderGeometry(rt, rb, h, n || 6),
+    cone: (r, h, n) => new THREE.ConeGeometry(r, h, n || 6),
+    ball: (r, w, h) => new THREE.SphereGeometry(r, w || 8, h || 6),
+    blob: (r, d) => new THREE.IcosahedronGeometry(r, d || 0),
+    plane: (w, h) => new THREE.PlaneGeometry(w, h)
+  };
+  var kitMat = (extra) => new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, extra || {}));
+  var WIND = { time: { value: 0 }, strength: { value: 1 } };
+  function swaying(mat, amount) {
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.windTime = WIND.time;
+      sh.uniforms.windStrength = WIND.strength;
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float windTime;\nuniform float windStrength;").replace(
+        "#include <begin_vertex>",
+        `#include <begin_vertex>
+#ifdef USE_INSTANCING
+float wph = instanceMatrix[3].x * 0.071 + instanceMatrix[3].z * 0.053;
+#else
+float wph = 0.0;
+#endif
+float wk = max(transformed.y, 0.0);
+wk *= wk * ${amount.toFixed(3)} * windStrength;
+transformed.x += sin(windTime * 1.3 + wph) * wk;
+transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
+      );
+    };
+    mat.customProgramCacheKey = () => "sway" + amount;
+    return mat;
+  }
+
+  // src/view/plants.js
+  LOOK_SWITCHES.push(["plants", "Trees with shapes"]);
+  var BARK = 5981490;
+  var PALE_BARK = 15131092;
+  var under = (y) => 0.62 + 0.38 * y;
+  var SHAPES = {
+    conifer: {
+      aspect: 4.5,
+      make(k, leaf, far) {
+        if (far) return k.add(P4.cone(1, 4.5, 6), leaf, { y: 2.25 }, { shade: under });
+        k.add(P4.cyl(0.12, 0.2, 1.2, 5), BARK, { y: 0.6 });
+        [
+          [1, 1.9, 0.7],
+          [0.78, 1.7, 1.9],
+          [0.52, 1.5, 3]
+        ].forEach(([r, h, y], i) => k.add(P4.cone(r, h, 7), leaf, { y: y + h / 2, ry: i }, { shade: under }));
+      }
+    },
+    birch: {
+      aspect: 4.6,
+      make(k, leaf, far) {
+        k.add(P4.cyl(0.07, 0.12, 3.2, far ? 4 : 6), PALE_BARK, { y: 1.6 });
+        if (far) return k.add(new THREE.OctahedronGeometry(1, 0), leaf, { y: 3.3, sy: 1.5 }, { shade: under });
+        [
+          [0.75, 0, 2.9, 0],
+          [0.6, 0.35, 3.7, 0.2],
+          [0.55, -0.3, 3.5, -0.25],
+          [0.45, 0.05, 4.2, 0.1]
+        ].forEach(([r, x, y, z]) => k.add(P4.blob(r), leaf, { x, y, z, sy: 1.25 }, { shade: under, jitter: 0.12 }));
+      }
+    },
+    broad: {
+      aspect: 2.6,
+      make(k, leaf, far) {
+        k.add(P4.cyl(0.12, 0.2, 1.4, far ? 4 : 6), BARK, { y: 0.7 });
+        if (far) return k.add(new THREE.OctahedronGeometry(1, 0), leaf, { y: 1.9, sy: 0.8 }, { shade: under });
+        [
+          [0.75, 0, 1.6, 0],
+          [0.6, 0.45, 1.9, 0.2],
+          [0.6, -0.4, 1.85, -0.25],
+          [0.55, 0, 2.2, 0.1]
+        ].forEach(([r, x, y, z]) => k.add(P4.blob(r), leaf, { x, y, z }, { shade: under, jitter: 0.12 }));
+      }
+    },
+    thorn: {
+      aspect: 1.8,
+      make(k, leaf, far) {
+        if (far) return k.add(new THREE.OctahedronGeometry(1, 0), leaf, { y: 0.7, sy: 0.7 }, { shade: under });
+        [
+          [0.6, 0, 0.6, 0],
+          [0.45, 0.45, 0.45, 0.2],
+          [0.45, -0.4, 0.5, -0.3]
+        ].forEach(([r, x, y, z]) => k.add(P4.blob(r), leaf, { x, y, z, sy: 0.8 }, { shade: under, flat: true }));
+        for (let i = 0; i < 4; i++) k.add(P4.cyl(0.02, 0.04, 1.4, 3), BARK, { y: 0.8, ry: i * 1.6, rz: 0.5 + i % 2 * 0.3 });
+      }
+    },
+    dead: {
+      aspect: 7,
+      make(k, leaf, far) {
+        k.add(P4.cyl(0.06, 0.16, 7, far ? 4 : 5), leaf, { y: 3.5 });
+        const n = far ? 2 : 5;
+        for (let i = 0; i < n; i++) {
+          const a = i * 2.3, h = 2.6 + i * 0.8;
+          k.add(P4.cyl(0.02, 0.06, 2.2, 3), leaf, { x: Math.cos(a) * 0.5, y: h + 0.5, z: Math.sin(a) * 0.5, ry: -a, rz: 0.9 });
+        }
+      }
+    },
+    fern: {
+      aspect: 1.4,
+      make(k, leaf, far) {
+        const n = far ? 3 : 7;
+        for (let i = 0; i < n; i++) {
+          const a = i / n * Math.PI * 2;
+          k.add(
+            P4.cone(0.22, 1.1, 3),
+            leaf,
+            { x: Math.cos(a) * 0.25, y: 0.55, z: Math.sin(a) * 0.25, ry: -a, rz: -0.55, sz: 0.3 },
+            { shade: under }
+          );
+          if (!far)
+            k.add(
+              P4.cone(0.16, 0.7, 3),
+              leaf,
+              { x: Math.cos(a) * 0.75, y: 1.05, z: Math.sin(a) * 0.75, ry: -a, rz: -1.2, sz: 0.3 },
+              { shade: under }
+            );
+        }
+      }
+    },
+    grass: {
+      aspect: 1,
+      make(k, leaf, far) {
+        const n = far ? 4 : 9;
+        for (let i = 0; i < n; i++) {
+          const a = i * 2.4, d = 0.15 + i % 3 * 0.25;
+          k.add(
+            P4.cone(0.06, 1, 3),
+            leaf,
+            { x: Math.cos(a) * d, y: 0.5, z: Math.sin(a) * d, rx: Math.sin(a) * 0.25, rz: -Math.cos(a) * 0.25 },
+            { shade: (y) => 0.55 + 0.6 * y }
+          );
+        }
+      }
+    }
+  };
+  var BY_NAME = [
+    [/pine|fir|spruce|conifer|taiga/, "conifer"],
+    [/birch|aspen/, "birch"],
+    [/thorn|scrub|bush|brush/, "thorn"],
+    [/dead|bare|burnt|ash/, "dead"],
+    [/fern|bracken/, "fern"],
+    [/grass|reed|rush/, "grass"]
+  ];
+  function shapeOf2(forest) {
+    if (forest.tree.shape && SHAPES[forest.tree.shape]) return forest.tree.shape;
+    const n = (forest.name || "").toLowerCase();
+    for (const [re, s] of BY_NAME) if (re.test(n)) return s;
+    return "broad";
+  }
+  var CACHE = {};
+  function treeModel(forest, far) {
+    const shape = shapeOf2(forest), key = shape + forest.tree.color + (far ? "f" : "n");
+    if (CACHE[key]) return CACHE[key];
+    const s = SHAPES[shape], k = kit();
+    s.make(k, forest.tree.color, far);
+    const g = k.build();
+    g.scale(1, 1 / s.aspect, 1);
+    g.computeBoundingSphere();
+    g.dispose = () => {
+    };
+    g.kept = true;
+    return CACHE[key] = g;
+  }
+  var MATS = {};
+  function treeMat(forest) {
+    const shape = shapeOf2(forest), amt = { conifer: 0.025, birch: 0.04, broad: 0.03, dead: 0.015, thorn: 0.02, fern: 0.06, grass: 0.12 }[shape] || 0.03;
+    if (MATS[shape]) return MATS[shape];
+    const m = swaying(kitMat(), amt);
+    m.dispose = () => {
+    };
+    return MATS[shape] = m;
+  }
+  var plantsOn = () => lookOn("plants") && lookOn("light");
+  function makeLOD(group, forest, list, tint) {
+    const n = list.length / 16;
+    if (!n) return null;
+    const mk = (geo) => {
+      const m = new THREE.InstancedMesh(geo, treeMat(forest), n);
+      m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
+      m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      m.frustumCulled = false;
+      m.count = 0;
+      group.add(m);
+      return m;
+    };
+    return {
+      list: new Float32Array(list),
+      tint: new Float32Array(tint),
+      n,
+      near: mk(treeModel(forest, false)),
+      far: mk(treeModel(forest, true)),
+      at: null
+    };
+  }
+  function updateLOD(rec, x, z, radius, force) {
+    if (!force && rec.at && Math.abs(rec.at.x - x) + Math.abs(rec.at.z - z) < 25) return;
+    rec.at = { x, z };
+    const r2 = radius * radius, L3 = rec.list, T2 = rec.tint, nm = rec.near.instanceMatrix.array, fm = rec.far.instanceMatrix.array, nc = rec.near.instanceColor.array, fc = rec.far.instanceColor.array;
+    let a = 0, b = 0;
+    for (let i = 0; i < rec.n; i++) {
+      const dx = L3[i * 16 + 12] - x, dz = L3[i * 16 + 14] - z;
+      if (dx * dx + dz * dz < r2) {
+        nm.set(L3.subarray(i * 16, i * 16 + 16), a * 16);
+        nc.set(T2.subarray(i * 3, i * 3 + 3), a * 3);
+        a++;
+      } else {
+        fm.set(L3.subarray(i * 16, i * 16 + 16), b * 16);
+        fc.set(T2.subarray(i * 3, i * 3 + 3), b * 3);
+        b++;
+      }
+    }
+    rec.near.count = a;
+    rec.far.count = b;
+    rec.near.instanceMatrix.needsUpdate = rec.far.instanceMatrix.needsUpdate = true;
+    rec.near.instanceColor.needsUpdate = rec.far.instanceColor.needsUpdate = true;
+  }
+
   // src/view/scene.js
   var clampI = (i, n) => i < 0 ? 0 : i > n ? n : i;
   var renderer = new THREE.WebGLRenderer({ canvas: $("c"), antialias: Q.aa, powerPreference: "high-performance" });
@@ -13461,6 +13760,7 @@
     if (!g) return;
     scene.remove(g);
     g.traverse((o) => {
+      if (o.isInstancedMesh && o.dispose) o.dispose();
       if (o.geometry) o.geometry.dispose();
       if (o.material) {
         if (o.material.map) o.material.map.dispose();
@@ -13868,7 +14168,7 @@
   function skyGround(map, ts, at, look2) {
     const g = new THREE.Group(), T2 = map.terrain, tiles = [];
     for (let i = 0; i < T2.length; i++) if (T2[i] !== R.VOID) tiles.push(i);
-    const slab = new THREE.InstancedMesh(new THREE.BoxGeometry(ts, 1.2, ts), std(look2.floor), Math.max(1, tiles.length)), under = new THREE.InstancedMesh(
+    const slab = new THREE.InstancedMesh(new THREE.BoxGeometry(ts, 1.2, ts), std(look2.floor), Math.max(1, tiles.length)), under2 = new THREE.InstancedMesh(
       new THREE.ConeGeometry(ts * 0.75, ts * 3, 5).rotateX(Math.PI),
       std(look2.stone),
       Math.max(1, tiles.length)
@@ -13878,15 +14178,15 @@
       m.makeTranslation(x, -0.6, z);
       slab.setMatrixAt(n, m);
       m.makeTranslation(x, -1.2 - ts * 1.5 - i * 7 % 5, z);
-      under.setMatrixAt(n, m);
+      under2.setMatrixAt(n, m);
     });
-    slab.count = under.count = tiles.length;
-    slab.frustumCulled = under.frustumCulled = false;
-    g.add(slab, under);
+    slab.count = under2.count = tiles.length;
+    slab.frustumCulled = under2.frustumCulled = false;
+    g.add(slab, under2);
     if (look2.water) {
       const sea = new THREE.Mesh(new THREE.PlaneGeometry(R.W * ts * 6, R.W * ts * 6).rotateX(-Math.PI / 2), std(3108762));
       sea.position.y = -0.9;
-      under.visible = false;
+      under2.visible = false;
       g.add(sea);
     }
     return g;
@@ -14143,15 +14443,15 @@
       return c;
     };
     const ground = function* (g, sink, hollow) {
-      const n = g.n, N1 = n + 1, cnt = N1 * N1, P4 = new Float32Array(cnt * 3), UV = new Float32Array(cnt * 2), col = new Float32Array(cnt * 3), keep = HALF - g.cell * 1.5, inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+      const n = g.n, N1 = n + 1, cnt = N1 * N1, P5 = new Float32Array(cnt * 3), UV = new Float32Array(cnt * 2), col = new Float32Array(cnt * 3), keep = HALF - g.cell * 1.5, inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
       const smooth2 = lookOn("light"), painted2 = paintOn(), NR = smooth2 ? new Float32Array(cnt * 3) : null, SF = painted2 ? new Float32Array(cnt * 4) : null, sw = [0, 0, 0, 0], H2 = (ix, iz) => g.h[clampI(iz, n) * N1 + clampI(ix, n)];
       for (let iz = 0; iz <= n; iz++) {
         const z = -g.half + iz * g.cell;
         for (let ix = 0; ix <= n; ix++) {
           const x = -g.half + ix * g.cell, k = iz * N1 + ix;
-          P4[k * 3] = x;
-          P4[k * 3 + 1] = g.h[k] - sink;
-          P4[k * 3 + 2] = z;
+          P5[k * 3] = x;
+          P5[k * 3 + 1] = g.h[k] - sink;
+          P5[k * 3 + 2] = z;
           UV[k * 2] = ix / n;
           UV[k * 2 + 1] = 1 - iz / n;
           if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue;
@@ -14192,7 +14492,7 @@
           }
         }
       const geo = new THREE.BufferGeometry();
-      geo.setAttribute("position", new THREE.BufferAttribute(P4, 3));
+      geo.setAttribute("position", new THREE.BufferAttribute(P5, 3));
       geo.setAttribute("uv", new THREE.BufferAttribute(UV, 2));
       geo.setIndex(new THREE.BufferAttribute(idx2.subarray(0, m2), 1));
       yield;
@@ -14211,7 +14511,7 @@
     yield* ground(T2.fine, 0, false);
     yield* ground(T2.coarse, SINK, true);
     part("ground");
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []), treesNear2 = pal.map(() => []), shaped = plantsOn(), tints = pal.map(() => ({ n: [], f: [] }));
     const townHalf = R.W * TOWN_TS / 2, towns = land2.sites.filter((q2) => q2.st.kind === "town").map((q2) => ({
       id: q2.st.town || "town",
       here: q2.here,
@@ -14249,6 +14549,18 @@
         for (let j = 0, n = Math.ceil(tr.n * (far ? Q.treesF : Q.treesN)); j < n; j++) {
           const px = x0 + r() * TS, pz = z0 + r() * TS, hgt = tr.h[0] + r() * (tr.h[1] - tr.h[0]), wd = tr.w * (0.7 + r() * 0.6), ry = r() * 6.28;
           if (nearSite(px, pz)) continue;
+          if (shaped) {
+            const lean = (r() - 0.5) * 0.08, band = Math.ceil(Q.treeNear / TS), near = Q.treeNear > 0 && x >= -band && y >= -band && x < R.W + band && y < R.H + band, shade = 0.85 + r() * 0.3;
+            e.set(lean, ry, -lean);
+            q.setFromEuler(e);
+            sc.set(wd, hgt, wd);
+            v.set(px, T2.height(px, pz) - 0.3, pz);
+            m.compose(v, q, sc);
+            const list = near ? treesNear2[bi] : trees[bi];
+            for (let i = 0; i < 16; i++) list.push(m.elements[i]);
+            (near ? tints[bi].n : tints[bi].f).push(shade, shade * (0.95 + r() * 0.1), shade * 0.95);
+            continue;
+          }
           e.set(0, ry, 0);
           q.setFromEuler(e);
           sc.set(wd, hgt, wd);
@@ -14259,10 +14571,11 @@
       }
     }
     part("trees");
-    const instances = (geom, mat, list) => {
+    const instances = (geom, mat, list, tint) => {
       if (!list.length) return;
       const inst = new THREE.InstancedMesh(geom, mat, list.length / 16);
       inst.instanceMatrix.array.set(list);
+      if (tint) inst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(tint), 3);
       inst.frustumCulled = false;
       group.add(inst);
     };
@@ -14272,7 +14585,12 @@
       rock.computeVertexNormals();
       rock.faceted = true;
       instances(rock, std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
-      instances(TREE, std(land2.biomes[bi].forest.tree.color), trees[bi]);
+      const forest = land2.biomes[bi].forest;
+      if (shaped) {
+        instances(treeModel(forest, true), treeMat(forest), trees[bi], tints[bi].f);
+        const lod = makeLOD(group, forest, treesNear2[bi], tints[bi].n);
+        if (lod) (group.userData.lods = group.userData.lods || []).push(lod);
+      } else instances(TREE, std(forest.tree.color), trees[bi]);
     });
     for (const site of land2.sites) {
       if (site.st.kind !== "spring") yield;
@@ -14305,6 +14623,13 @@
     part("places");
     return { group, base, towns };
   }
+  function treesNear(force) {
+    const lods = staticGroup && staticGroup.userData.lods;
+    if (!lods) return;
+    const x = P3.x - staticGroup.position.x, z = P3.z - staticGroup.position.z;
+    for (const rec of lods) updateLOD(rec, x, z, Q.treeNear, force);
+  }
+  var REEDS = { name: "reeds", tree: { color: 7311176 } };
   function buildDynamic() {
     dispose(dynGroup);
     dynGroup = new THREE.Group();
@@ -14340,8 +14665,11 @@
         w.position.set(x, y + 0.3, z);
         dynGroup.add(w);
         for (let i = 0; i < 7; i++) {
-          const a = i * 0.9 + +k % 5, d = 5.5 + i % 3 * 1.6, rx = x + Math.cos(a) * d, rz = z + Math.sin(a) * d, c = new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.4 + i % 3, 5), std(5798464));
-          c.position.set(rx, ground(rx, rz) + 1.1, rz);
+          const a = i * 0.9 + +k % 5, d = 5.5 + i % 3 * 1.6, rx = x + Math.cos(a) * d, rz = z + Math.sin(a) * d, c = plantsOn() ? new THREE.Mesh(treeModel(REEDS, false), treeMat(REEDS)) : new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.4 + i % 3, 5), std(5798464));
+          if (plantsOn()) {
+            c.scale.set(1.3, 2.2 + i % 3 * 0.6, 1.3);
+            c.position.set(rx, ground(rx, rz) - 0.2, rz);
+          } else c.position.set(rx, ground(rx, rz) + 1.1, rz);
           dynGroup.add(c);
         }
       }
@@ -14879,6 +15207,8 @@
     }
     lamp.distance = 45;
     const storm = V.S.weather.storm;
+    WIND.time.value = still ? 0 : performance.now() / 1e3;
+    WIND.strength.value = lerp(WIND.strength.value, storm ? 2.6 : 1, 0.02);
     if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
     scene.background.copy(skyC);
     scene.fog.color.copy(skyC);
@@ -14895,6 +15225,7 @@
     finishFrame();
   }
   function finishFrame() {
+    treesNear();
     const target = V.terrain.height(P3.x, P3.z) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P3.walked * 1.7) * 0.05);
     P3.y = lerp(P3.y, target, Math.abs(target - P3.y) > 3 ? 0.06 : 0.35);
     camera.position.set(P3.x, P3.y, P3.z);

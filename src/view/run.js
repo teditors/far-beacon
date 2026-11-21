@@ -12,6 +12,7 @@ import {
   scene,
   stepBuild,
   sun,
+  treesNear,
 } from './scene.js';
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
 import { Q } from './quality.js';
@@ -19,6 +20,7 @@ import { perfBuild, perfFrame, perfSave, perfWork } from './perf.js';
 import { hideSky, updateSky } from './sky.js';
 import { guard } from './oops.js';
 import { lightIndoors, lightOutdoors } from './light.js';
+import { WIND } from './kit.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -299,6 +301,8 @@ function frame() {
   }
   lamp.distance = 45;
   const storm = V.S.weather.storm;
+  WIND.time.value = still ? 0 : performance.now() / 1000;
+  WIND.strength.value = lerp(WIND.strength.value, storm ? 2.6 : 1, 0.02);
   if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
   scene.background.copy(skyC);
   scene.fog.color.copy(skyC);
@@ -316,6 +320,7 @@ function frame() {
   finishFrame();
 }
 function finishFrame() {
+  treesNear();
   const target = V.terrain.height(P.x, P.z) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P.walked * 1.7) * 0.05); // flying: high above the land
   P.y = lerp(P.y, target, Math.abs(target - P.y) > 3 ? 0.06 : 0.35); // rise and fall slowly
   camera.position.set(P.x, P.y, P.z);

@@ -5,6 +5,7 @@ import { EW, MARGIN, PAD, SINK, makeTerrainG } from './terrain.js';
 import { Q, lookOn } from './quality.js';
 import { PF, perfBuild } from './perf.js';
 import { groundMaterial, paintOn, surfaceOf } from './paint.js';
+import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 
 /* ---------- scene ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: Q.aa, powerPreference: 'high-performance' });
@@ -63,6 +64,7 @@ const dispose = (g) => {
   if (!g) return;
   scene.remove(g);
   g.traverse((o) => {
+    if (o.isInstancedMesh && o.dispose) o.dispose(); // its own instance buffers
     if (o.geometry) o.geometry.dispose();
     if (o.material) {
       if (o.material.map) o.material.map.dispose();
@@ -973,7 +975,10 @@ function* buildLand(S, timed) {
     v = new THREE.Vector3(),
     sc = new THREE.Vector3(),
     rocks = pal.map(() => []),
-    trees = pal.map(() => []);
+    trees = pal.map(() => []),
+    treesNear = pal.map(() => []),
+    shaped = plantsOn(),
+    tints = pal.map(() => ({ n: [], f: [] }));
   // every town in view (a world may have several); V.townAt is the one in the player's region, which can be walked into
   const townHalf = (R.W * TOWN_TS) / 2,
     towns = land.sites
@@ -1038,6 +1043,22 @@ function* buildLand(S, timed) {
           wd = tr.w * (0.7 + r() * 0.6),
           ry = r() * 6.28;
         if (nearSite(px, pz)) continue;
+        if (shaped) {
+          // a shaped tree stands from its foot, leans a little, and is a shade lighter or darker than its neighbours
+          const lean = (r() - 0.5) * 0.08,
+            band = Math.ceil(Q.treeNear / TS),
+            near = Q.treeNear > 0 && x >= -band && y >= -band && x < R.W + band && y < R.H + band, // could come near
+            shade = 0.85 + r() * 0.3;
+          e.set(lean, ry, -lean);
+          q.setFromEuler(e);
+          sc.set(wd, hgt, wd);
+          v.set(px, T.height(px, pz) - 0.3, pz);
+          m.compose(v, q, sc);
+          const list = near ? treesNear[bi] : trees[bi];
+          for (let i = 0; i < 16; i++) list.push(m.elements[i]);
+          (near ? tints[bi].n : tints[bi].f).push(shade, shade * (0.95 + r() * 0.1), shade * 0.95);
+          continue;
+        }
         e.set(0, ry, 0);
         q.setFromEuler(e);
         sc.set(wd, hgt, wd);
@@ -1048,10 +1069,11 @@ function* buildLand(S, timed) {
     }
   }
   part('trees');
-  const instances = (geom, mat, list) => {
+  const instances = (geom, mat, list, tint) => {
     if (!list.length) return;
     const inst = new THREE.InstancedMesh(geom, mat, list.length / 16);
     inst.instanceMatrix.array.set(list);
+    if (tint) inst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(tint), 3);
     inst.frustumCulled = false; // its instances are spread over the whole land
     group.add(inst);
   };
@@ -1061,7 +1083,12 @@ function* buildLand(S, timed) {
     rock.computeVertexNormals(); // one normal per face: a rock with cut faces
     rock.faceted = true;
     instances(rock, std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
-    instances(TREE, std(land.biomes[bi].forest.tree.color), trees[bi]);
+    const forest = land.biomes[bi].forest;
+    if (shaped) {
+      instances(treeModel(forest, true), treeMat(forest), trees[bi], tints[bi].f);
+      const lod = makeLOD(group, forest, treesNear[bi], tints[bi].n);
+      if (lod) (group.userData.lods = group.userData.lods || []).push(lod);
+    } else instances(TREE, std(forest.tree.color), trees[bi]);
   });
   for (const site of land.sites) {
     if (site.st.kind !== 'spring') yield;
@@ -1098,6 +1125,17 @@ function* buildLand(S, timed) {
   part('places');
   return { group, base, towns };
 }
+// Trees near the player in their full shape, the rest in their far one (plants.js). Called every frame; it does work
+// only when the player has walked a little way. The land's group may be shifted (a border just crossed) or seen from
+// the town's frame, so the player is put into the land's own coordinates first.
+function treesNear(force) {
+  const lods = staticGroup && staticGroup.userData.lods;
+  if (!lods) return;
+  const x = P.x - staticGroup.position.x,
+    z = P.z - staticGroup.position.z;
+  for (const rec of lods) updateLOD(rec, x, z, Q.treeNear, force);
+}
+const REEDS = { name: 'reeds', tree: { color: 0x6f8f48 } }; // round a spring, drawn as a clump of grass
 // Everything that can change, for every area in view: outdoors that is the region and, if it stands here, the town.
 function buildDynamic() {
   dispose(dynGroup);
@@ -1147,8 +1185,13 @@ function drawArea(id, kind) {
           d = 5.5 + (i % 3) * 1.6,
           rx = x + Math.cos(a) * d,
           rz = z + Math.sin(a) * d,
-          c = new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.4 + (i % 3), 5), std(0x587a40));
-        c.position.set(rx, ground(rx, rz) + 1.1, rz);
+          c = plantsOn()
+            ? new THREE.Mesh(treeModel(REEDS, false), treeMat(REEDS))
+            : new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.4 + (i % 3), 5), std(0x587a40));
+        if (plantsOn()) {
+          c.scale.set(1.3, 2.2 + (i % 3) * 0.6, 1.3);
+          c.position.set(rx, ground(rx, rz) - 0.2, rz);
+        } else c.position.set(rx, ground(rx, rz) + 1.1, rz);
         dynGroup.add(c);
       }
     }
@@ -1284,4 +1327,5 @@ export {
   buildDynamic,
   applyFrame,
   resize,
+  treesNear,
 };

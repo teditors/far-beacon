@@ -21,6 +21,7 @@ const QUALITY = {
     sky: false,
     grain: false,
     weather: 0,
+    treeNear: 0, // metres round the player within which trees have their full shape (C5.3); 0: nowhere
   },
   medium: {
     label: 'Medium',
@@ -36,6 +37,7 @@ const QUALITY = {
     sky: true,
     grain: true,
     weather: 700,
+    treeNear: 140,
   },
   high: {
     label: 'High',
@@ -51,6 +53,7 @@ const QUALITY = {
     sky: true,
     grain: true,
     weather: 1600,
+    treeNear: 260,
   },
 };
 const SET = { quality: 'medium', meter: false, off: {} };

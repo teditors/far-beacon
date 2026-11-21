@@ -24,6 +24,36 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.3: trees with shapes, near and far
+
+**What it is.** Every kind of woodland has a shape of its own (`src/view/plants.js`): pines are three tiers of cone on
+a short trunk; birches pale trunks under four soft clumps; thorn scrub a low faceted bush with twigs; dead wood a
+bare trunk with crooked branches; fern brakes a ring of arching fronds; tall grass a tuft of blades; anything else a
+round-crowned broadleaf. Crowns are darker underneath, each tree is a shade lighter or darker than its neighbours and
+leans a little, and the tops sway in the wind, harder in a storm (a few lines added to the vertex shader, one shared
+clock). The reeds round a spring are tufts of the same grass.
+
+Models are built with a new **kit** (`src/view/kit.js`): a model is put together from simple parts (box, cone, ball,
+blob), each with its own colour and place, merged into one geometry with the colours in its vertices, so one model
+is one draw call and a forest of them, instanced, is one too. Buildings, people and creatures will use the same kit.
+
+The shape comes from a woodland's name (`tree.shape` in content wins if given), so the generated biomes, which reuse
+the named woodlands, needed nothing new.
+
+**Near and far.** Full shapes everywhere tripled the triangles (Medium 152k to 400k, frame 119 to 173 ms). So each
+shape has a far version (a single cone or blob, close to the old cost), and only trees within `Q.treeNear` metres of
+the player (140 on Medium, 260 on High, none on Low) take the full one. The trees that could come that near are kept
+in a list and re-sorted into a near and a far instanced mesh every 25 m walked (under a millisecond); the rest of the
+land's trees are one static far mesh.
+
+**Switch.** `plants` ("Trees with shapes").
+
+**Numbers.** Low 89 ms build (noise: 64 to 89 between runs), 67 calls, 101,360 triangles, 65.3 ms a frame; Medium 94 /
+85 / 194,167 / 127.7; High 196 / 96 / 342,154 / 193.8. Against C5.1, Medium costs 7% more a frame, still well under
+the 144 ms it cost before this commission. Page 631 KB.
+
+**Verdict.** Pearl: the land stops looking like a field of traffic cones, and the near/far trick keeps it cheap.
+
 ## C5.2: painted ground, and textures made in code
 
 **What it is.** `src/view/paint.js` makes every texture when the page starts, from seeded noise and brush strokes: no
