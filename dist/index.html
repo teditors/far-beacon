@@ -13804,7 +13804,7 @@
       for (let y = 0; y < px; y++)
         for (let x = 0; x < px; x++) {
           const c = at(x, y), gap = (c.d2 - c.d1) / cell, dome2 = Math.min(1, gap * 4);
-          f[y * px + x] = gap < 0.08 ? 0.16 : 0.32 + dome2 * 0.25 + (c.b - 0.5) * 0.18 - c.dy / cell * 0.12 + F2[y * px + x] * 0.12;
+          f[y * px + x] = gap < 0.06 ? 0.3 : 0.36 + dome2 * 0.22 + (c.b - 0.5) * 0.18 - c.dy / cell * 0.12 + F2[y * px + x] * 0.12;
         }
       return f;
     },
@@ -15726,41 +15726,76 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var MODELS = {};
   var kept = (g) => (g.dispose = () => {
   }, g.kept = true, g);
-  function personModel(cloth, skin, hat, hair) {
-    const key = ["p", cloth, skin, hat, hair].join();
+  function personModel(cloth, skin, hat, hair, look2) {
+    look2 = look2 || {};
+    const outfit = look2.outfit || "tunic", hairdo = look2.hairdo || "cap", trim = look2.trim || new THREE.Color(cloth).multiplyScalar(0.6).getHex(), key = ["p", cloth, skin, hat, hair, outfit, hairdo, look2.beard ? 1 : 0, look2.cloak ? 1 : 0, trim].join();
     if (MODELS[key]) return MODELS[key];
-    const k = kit(), dark = new THREE.Color(cloth).multiplyScalar(0.6).getHex(), boot = 3811870;
+    const k = kit(), dark = new THREE.Color(cloth).multiplyScalar(0.6).getHex(), legs = outfit === "coat" ? trim : dark, boot = 3811870, H2 = [0, 1.62, 0];
     for (const [sx, b] of [
-      [-0.13, 1],
-      [0.13, 2]
+      [-0.12, 1],
+      [0.12, 2]
     ]) {
-      k.add(P4.box(0.17, 0.75, 0.2), dark, { x: sx, y: 0.5 }, { bone: b, pivot: [sx, 0.88, 0] });
-      k.add(P4.box(0.19, 0.14, 0.3), boot, { x: sx, y: 0.07, z: 0.04 }, { bone: b, pivot: [sx, 0.88, 0] });
+      k.add(P4.cyl(0.08, 0.065, 0.42, 6), legs, { x: sx, y: 0.67 }, { bone: b, pivot: [sx, 0.88, 0] });
+      k.add(P4.cyl(0.065, 0.055, 0.4, 6), legs, { x: sx, y: 0.3 }, { bone: b, pivot: [sx, 0.88, 0] });
+      k.add(P4.box(0.15, 0.12, 0.3), boot, { x: sx, y: 0.06, z: 0.05 }, { bone: b, pivot: [sx, 0.88, 0] });
     }
-    k.add(P4.cyl(0.24, 0.32, 0.8, 8), cloth, { y: 1.15 }, { bone: 0 });
-    k.add(P4.cyl(0.32, 0.36, 0.35, 8), cloth, { y: 0.72 }, { bone: 0 });
-    k.add(P4.box(0.5, 0.08, 0.3), dark, { y: 0.9 }, { bone: 0 });
-    for (const [sx, b] of [
-      [-0.33, 3],
-      [0.33, 4]
-    ]) {
-      k.add(P4.cyl(0.07, 0.08, 0.62, 6), cloth, { x: sx, y: 1.22 }, { bone: b, pivot: [sx, 1.5, 0] });
-      k.add(P4.ball(0.075, 6, 4), skin, { x: sx, y: 0.88 }, { bone: b, pivot: [sx, 1.5, 0] });
-    }
-    k.add(P4.cyl(0.08, 0.09, 0.14, 6), skin, { y: 1.6 }, { bone: 0 });
-    k.add(P4.ball(0.17, 10, 8), skin, { y: 1.8, sy: 1.1 }, { bone: 5, pivot: [0, 1.62, 0] });
-    k.add(P4.ball(0.03, 4, 3), 1709072, { x: -0.06, y: 1.82, z: 0.15 }, { bone: 5, pivot: [0, 1.62, 0] });
-    k.add(P4.ball(0.03, 4, 3), 1709072, { x: 0.06, y: 1.82, z: 0.15 }, { bone: 5, pivot: [0, 1.62, 0] });
-    if (hat) {
-      k.add(P4.cyl(0.26, 0.26, 0.04, 10), hat, { y: 1.93 }, { bone: 5, pivot: [0, 1.62, 0] });
-      k.add(P4.cone(0.17, 0.34, 8), hat, { y: 2.1 }, { bone: 5, pivot: [0, 1.62, 0] });
-    } else
+    if (outfit === "robe") {
+      k.add(P4.cyl(0.23, 0.4, 1.35, 10), cloth, { y: 0.85 }, { bone: 0 });
+      k.add(P4.cyl(0.25, 0.25, 0.06, 10), 13152384, { y: 0.98 }, { bone: 0 });
+    } else {
+      k.add(P4.cyl(0.22, 0.27, 0.58, 10), cloth, { y: 1.22 }, { bone: 0 });
       k.add(
-        new THREE.SphereGeometry(0.18, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.55),
+        P4.cyl(0.27, outfit === "coat" ? 0.38 : 0.33, outfit === "coat" ? 0.55 : 0.36, 10),
+        cloth,
+        { y: outfit === "coat" ? 0.68 : 0.76 },
+        { bone: 0 }
+      );
+      k.add(P4.cyl(0.255, 0.255, 0.07, 10), 3811870, { y: 0.93 }, { bone: 0 });
+      k.add(P4.box(0.07, 0.06, 0.02), 13148224, { y: 0.93, z: 0.26 }, { bone: 0 });
+      if (outfit === "apron") {
+        k.add(P4.box(0.38, 0.62, 0.03), 15129798, { y: 0.66, z: 0.3, rx: -0.12 }, { bone: 0 });
+        k.add(P4.box(0.3, 0.3, 0.03), 15129798, { y: 1.15, z: 0.24 }, { bone: 0 });
+      }
+      if (outfit === "coat") k.add(P4.box(0.42, 0.12, 0.3), trim, { y: 1.5 }, { bone: 0 });
+    }
+    if (look2.cloak) {
+      k.add(P4.box(0.56, 1.05, 0.04), trim, { y: 1, z: -0.26, rx: 0.08 }, { bone: 0 });
+      k.add(P4.cyl(0.3, 0.3, 0.08, 10), trim, { y: 1.5 }, { bone: 0 });
+    }
+    for (const [sx, b] of [
+      [-0.31, 3],
+      [0.31, 4]
+    ]) {
+      k.add(P4.ball(0.09, 8, 6), cloth, { x: sx, y: 1.47 }, { bone: b, pivot: [sx, 1.47, 0] });
+      k.add(P4.cyl(0.065, 0.06, 0.34, 6), cloth, { x: sx, y: 1.28 }, { bone: b, pivot: [sx, 1.47, 0] });
+      k.add(
+        P4.cyl(0.058, 0.05, 0.32, 6),
+        outfit === "apron" ? skin : cloth,
+        { x: sx, y: 0.98, z: 0.03 },
+        { bone: b, pivot: [sx, 1.47, 0] }
+      );
+      k.add(P4.ball(0.06, 6, 4), skin, { x: sx, y: 0.8, z: 0.03 }, { bone: b, pivot: [sx, 1.47, 0] });
+    }
+    k.add(P4.cyl(0.07, 0.08, 0.14, 6), skin, { y: 1.6 }, { bone: 0 });
+    k.add(P4.ball(0.16, 12, 9), skin, { y: 1.8, sy: 1.12 }, { bone: 5, pivot: H2 });
+    k.add(P4.ball(0.035, 4, 3), skin, { y: 1.78, z: 0.16 }, { bone: 5, pivot: H2 });
+    k.add(P4.ball(0.03, 4, 3), 1709072, { x: -0.055, y: 1.83, z: 0.14 }, { bone: 5, pivot: H2 });
+    k.add(P4.ball(0.03, 4, 3), 1709072, { x: 0.055, y: 1.83, z: 0.14 }, { bone: 5, pivot: H2 });
+    if (look2.beard) k.add(P4.cone(0.12, 0.24, 8), hair, { y: 1.66, z: 0.08, rx: Math.PI }, { bone: 5, pivot: H2 });
+    if (hat) {
+      k.add(P4.cyl(0.25, 0.25, 0.04, 12), hat, { y: 1.95 }, { bone: 5, pivot: H2 });
+      k.add(P4.cone(0.16, 0.34, 10), hat, { y: 2.12 }, { bone: 5, pivot: H2 });
+    } else if (hairdo !== "bald") {
+      k.add(
+        new THREE.SphereGeometry(0.172, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.55),
         hair,
         { y: 1.83, z: -0.02, sy: 1.1 },
-        { bone: 5, pivot: [0, 1.62, 0] }
+        { bone: 5, pivot: H2 }
       );
+      if (hairdo === "long") k.add(P4.box(0.3, 0.36, 0.08), hair, { y: 1.66, z: -0.13 }, { bone: 5, pivot: H2 });
+      if (hairdo === "bun") k.add(P4.ball(0.08, 8, 6), hair, { y: 1.9, z: -0.16 }, { bone: 5, pivot: H2 });
+      if (hairdo === "braid") k.add(P4.cyl(0.035, 0.025, 0.5, 6), hair, { y: 1.55, z: -0.17, rx: 0.15 }, { bone: 5, pivot: H2 });
+    } else k.add(P4.cyl(0.165, 0.165, 0.06, 12), hair, { y: 1.76, z: -0.01 }, { bone: 5, pivot: H2 });
     return MODELS[key] = kept(k.build());
   }
   function creatureModel(form, eye) {
@@ -15832,8 +15867,16 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var SKIN = [15254688, 14266508, 12618340, 10119752, 7227954];
   var HAIR = [2760214, 4861984, 8018480, 11569744, 9077880];
-  function personActor(cloth, hat, seed) {
-    const s = Math.abs(seed | 0), mesh2 = new THREE.Mesh(personModel(cloth, SKIN[s % 5], hat || 0, HAIR[(s >> 3) % 5]), actorMat());
+  var TRIMS = [4864554, 3029578, 5910058, 3820078, 6969914, 2763310, 8022608];
+  function personActor(cloth, hat, seed, outfit) {
+    const s = Math.abs(seed | 0), r = (k) => (s * 2654435761 + k * 40503 >>> 0) % 997 / 997, look2 = {
+      outfit: outfit || ["tunic", "tunic", "coat", "apron", "robe"][Math.floor(r(1) * 5)],
+      hairdo: ["cap", "long", "bun", "braid", "bald", "cap"][Math.floor(r(2) * 6)],
+      beard: r(3) < 0.3,
+      cloak: r(4) < 0.25,
+      trim: TRIMS[Math.floor(r(5) * TRIMS.length)]
+    }, mesh2 = new THREE.Mesh(personModel(cloth, SKIN[s % 5], hat || 0, HAIR[(s >> 3) % 5], look2), actorMat());
+    mesh2.scale.set(0.9 + r(6) * 0.25, 0.92 + r(7) * 0.16, 0.9 + r(6) * 0.25);
     mesh2.userData.actor = { kind: "person", seed: s };
     return mesh2;
   }
@@ -16776,10 +16819,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     }
     return g;
   }
-  function person(color, hat, seed) {
+  function person(color, hat, seed, outfit) {
     if (actorsOn()) {
       const g2 = new THREE.Group();
-      g2.add(personActor(color, hat, seed || color));
+      g2.add(personActor(color, hat, seed || color, outfit));
       if (fxOn()) g2.add(blob(0.5));
       return g2;
     }
@@ -16797,11 +16840,11 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var FOLK = [6974042, 8018490, 4872826, 9071178, 5925450, 9062970, 6969978, 10521184];
   function interiorSite(st, ts, inTown2, k) {
     const g = new THREE.Group();
-    if (st.kind === "elder") g.add(person(9055276, 5905436, k));
-    else if (st.kind === "inn") g.add(person(8018478, 0, k), box2(1.6, 0.9, 0.8, std(5913890), 1.2, 0.45, 0));
+    if (st.kind === "elder") g.add(person(9055276, 5905436, k, "robe"));
+    else if (st.kind === "inn") g.add(person(8018478, 0, k, "apron"), box2(1.6, 0.9, 0.8, std(5913890), 1.2, 0.45, 0));
     else if (st.kind === "shop")
       g.add(
-        person(3104655, 0, k),
+        person(3104655, 0, k, "coat"),
         box2(1.8, 0.9, 0.9, std(7031338), 0, 0.45, -1.1),
         box2(0.4, 0.4, 0.4, std(13214247), -0.4, 1.1, -1.1)
       );

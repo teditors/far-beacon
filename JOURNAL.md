@@ -97,6 +97,29 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.20: people of their own
+
+**What it is.** Every person used to be the same figure in another colour. Now each is dressed and built their own
+way (`personModel` and `personActor` in actors.js), from their seed:
+- **Outfits**: a belted tunic with a buckle; a long robe to the ankles with a rope belt (the elder always); a tunic
+  under an apron with sleeves rolled to bare forearms (the innkeeper always); a coat over trousers of a second colour,
+  with a collar (the shopkeeper always). Townsfolk and trades are any of them.
+- **Hair**: cropped, long to the shoulders, a bun, a braid, or bald with a fringe; a beard on some; a hat for those
+  whose trade wears one.
+- **A cloak** down the back of some, in a second colour from a list of earthy dyes.
+- **Build**: a little taller or shorter, broader or slighter.
+- **The figure itself** is better made: thighs and shins, rounded shoulders, upper arms and forearms, hands, a nose.
+
+Still one draw call each, jointed as before (the legs and arms swing as one piece from hip and shoulder).
+
+Also: the plaza's cobbles have softer joints, so they read as stones rather than dark lines.
+
+**Switch.** Part of `actors`.
+
+**Numbers.** A person is about 900 to 1,100 triangles (measured): a street of fifteen is some 15,000, small beside the land. Page 774 KB.
+
+**Verdict.** Pearl: a street of townsfolk reads as people, not as copies.
+
 ## C5.19: the finish (High)
 
 **What it is.** On High the scene is drawn into a picture of its own (multisampled, so edges stay as smooth as

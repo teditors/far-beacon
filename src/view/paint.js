@@ -440,7 +440,7 @@ const MAKERS = {
         const c = at(x, y),
           gap = (c.d2 - c.d1) / cell,
           dome = Math.min(1, gap * 4);
-        f[y * px + x] = gap < 0.08 ? 0.16 : 0.32 + dome * 0.25 + (c.b - 0.5) * 0.18 - (c.dy / cell) * 0.12 + F[y * px + x] * 0.12;
+        f[y * px + x] = gap < 0.06 ? 0.3 : 0.36 + dome * 0.22 + (c.b - 0.5) * 0.18 - (c.dy / cell) * 0.12 + F[y * px + x] * 0.12;
       }
     return f;
   },

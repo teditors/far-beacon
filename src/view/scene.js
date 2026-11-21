@@ -676,11 +676,11 @@ function skyGround(map, ts, at, look, LK) {
   return g;
 }
 // Things inside that can change: people, stairs, traps, and anything lying on the floor.
-function person(color, hat, seed) {
+function person(color, hat, seed, outfit) {
   if (actorsOn()) {
-    // a jointed person who breathes, looks about and walks (actors.js)
+    // a jointed person who breathes, looks about and walks (actors.js), each dressed and built their own way
     const g = new THREE.Group();
-    g.add(personActor(color, hat, seed || color));
+    g.add(personActor(color, hat, seed || color, outfit));
     if (fxOn()) g.add(blob(0.5));
     return g;
   }
@@ -700,11 +700,11 @@ function person(color, hat, seed) {
 const FOLK = [0x6a6a5a, 0x7a5a3a, 0x4a5a7a, 0x8a6a4a, 0x5a6a4a, 0x8a4a3a, 0x6a5a7a, 0xa08a60];
 function interiorSite(st, ts, inTown, k) {
   const g = new THREE.Group();
-  if (st.kind === 'elder') g.add(person(0x8a2c2c, 0x5a1c1c, k));
-  else if (st.kind === 'inn') g.add(person(0x7a5a2e, 0, k), box(1.6, 0.9, 0.8, std(0x5a3d22), 1.2, 0.45, 0));
+  if (st.kind === 'elder') g.add(person(0x8a2c2c, 0x5a1c1c, k, 'robe'));
+  else if (st.kind === 'inn') g.add(person(0x7a5a2e, 0, k, 'apron'), box(1.6, 0.9, 0.8, std(0x5a3d22), 1.2, 0.45, 0));
   else if (st.kind === 'shop')
     g.add(
-      person(0x2f5f8f, 0, k),
+      person(0x2f5f8f, 0, k, 'coat'),
       box(1.8, 0.9, 0.9, std(0x6b4a2a), 0, 0.45, -1.1),
       box(0.4, 0.4, 0.4, std(0xc9a227), -0.4, 1.1, -1.1),
     );
