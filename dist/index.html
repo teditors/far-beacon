@@ -14998,10 +14998,12 @@ ${rich ? `{
   function setWaterSky(c) {
     SKY.value.copy(c);
   }
-  function waterMesh(T2, g, sink, hollow, keep, colourAt) {
+  function* waterMesh(T2, g, sink, hollow, keep, colourAt) {
     const W2 = T2.water, n = g.n, N1 = n + 1, idx2 = new Int32Array(N1 * N1).fill(-1), m = new Float32Array(N1 * N1), pos = [], wa = [], col = [], tri = [], c = new THREE.Color(), inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
-    for (let iz = 0; iz <= n; iz++)
+    for (let iz = 0; iz <= n; iz++) {
       for (let ix = 0; ix <= n; ix++) m[iz * N1 + ix] = W2.mask(-g.half + ix * g.cell, -g.half + iz * g.cell);
+      if ((iz & 15) === 15) yield;
+    }
     const vert = (ix, iz) => {
       const k = iz * N1 + ix;
       if (idx2[k] >= 0) return idx2[k];
@@ -15015,7 +15017,8 @@ ${rich ? `{
       col.push(c.r, c.g, c.b);
       return idx2[k];
     };
-    for (let iz = 0; iz < n; iz++)
+    for (let iz = 0; iz < n; iz++) {
+      if ((iz & 15) === 15) yield;
       for (let ix = 0; ix < n; ix++) {
         const a = iz * N1 + ix;
         if (m[a] <= 0.01 && m[a + 1] <= 0.01 && m[a + N1] <= 0.01 && m[a + N1 + 1] <= 0.01) continue;
@@ -15024,6 +15027,7 @@ ${rich ? `{
         const v00 = vert(ix, iz), v10 = vert(ix + 1, iz), v01 = vert(ix, iz + 1), v11 = vert(ix + 1, iz + 1);
         tri.push(v00, v01, v10, v01, v11, v10);
       }
+    }
     if (!tri.length) return null;
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -15655,6 +15659,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     live2.push(a);
     return a;
   }
+  function forgetActors() {
+    LAST.clear();
+    live2.length = 0;
+    prev = [];
+    for (const d of dying) if (d.g.parent) d.g.parent.remove(d.g);
+    dying.length = 0;
+  }
   function settleActors(group) {
     const now = new Set(live2.map((a) => a.key));
     for (const a of prev) {
@@ -15669,10 +15680,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     killed.clear();
   }
   var markKilled = (id) => killed.add("c:" + id);
-  function shiftActors(dx, dz) {
-    for (const [, l] of LAST) l.pos.x += dx, l.pos.z += dz;
+  function shiftActors(dx, dz, dy) {
+    dy = dy || 0;
+    for (const [, l] of LAST) l.pos.x += dx, l.pos.y += dy, l.pos.z += dz;
     for (const a of live2) {
       a.g.position.x += dx;
+      a.g.position.y += dy;
       a.g.position.z += dz;
     }
   }
@@ -16630,10 +16643,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   function applyFrame() {
     const kind2 = R.areaRec(V.S).kind, inTown2 = kind2 === "town" && V.townAt;
     if (R.isLevel(V.S)) return;
+    const was = { x: FR.x, y: FR.y, z: FR.z };
     FR.x = inTown2 ? V.townAt.x : 0;
     FR.y = inTown2 ? V.townAt.y : 0;
     FR.z = inTown2 ? V.townAt.z : 0;
     setGeometry(inTown2 ? "town" : "region");
+    if (was.x !== FR.x || was.y !== FR.y || was.z !== FR.z) shiftActors(was.x - FR.x, was.z - FR.z, was.y - FR.y);
     const sh = V.shift || { x: 0, z: 0 };
     staticGroup.position.set(-FR.x - sh.x, -FR.y, -FR.z - sh.z);
     V.terrain = inTown2 ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
@@ -16873,7 +16888,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         [T2.fine, 0, false],
         [T2.coarse, SINK, true]
       ]) {
-        const w = waterMesh(T2, g, sink, hollow, HALF - g.cell * 1.5, tint);
+        const w = yield* waterMesh(T2, g, sink, hollow, HALF - g.cell * 1.5, tint);
         if (w) group.add(w);
         yield;
       }
@@ -17009,6 +17024,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var fxOn = () => lookOn("fx") && lookOn("light");
   LOOK_SWITCHES.push(["fx", "Fire, water and shadows"]);
+  var FOLK_IDS = /* @__PURE__ */ new WeakMap();
+  var folkN = 0;
+  var folkId = (st) => FOLK_IDS.get(st) || (FOLK_IDS.set(st, ++folkN + ":" + st.name), FOLK_IDS.get(st));
   var HP = /* @__PURE__ */ new Map();
   var hashStr = (s) => {
     let h = 7;
@@ -17085,7 +17103,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
             who,
             st.kind === "folk" ? (
               // a townsperson is known by name, wherever the rules have them stand: they walk there
-              { key: "folk:" + id + ":" + st.name + ":" + st.role, speed: 1.4, roam: ts * 0.3, rise: false }
+              { key: "folk:" + id + ":" + folkId(st), speed: 1.4, roam: ts * 0.3, rise: false }
             ) : { key: "site:" + id + ":" + k }
           );
       }
@@ -17848,6 +17866,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var landKey = () => R.isLevel(V.S) ? V.S.area : R.outdoorRec(V.S).id;
   function enter(state) {
     V.S = state;
+    forgetActors();
     buildStatic();
     buildDynamic();
     placePlayer();
@@ -17950,7 +17969,6 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         applyFrame();
         nx += was.x - FR.x;
         nz += was.z - FR.z;
-        shiftActors(was.x - FR.x, was.z - FR.z);
         P3.y += was.y - FR.y;
         shown.area = V.S.area;
       } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {

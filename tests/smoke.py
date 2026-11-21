@@ -74,8 +74,8 @@ async def main():
         jump = await pg.evaluate("""async()=>{const g=window.__g,S=g.S,wait=(ms)=>new Promise(r=>setTimeout(r,ms));let prev=null,worst=0,counts=new Set();
           const look=()=>{const now={};g.scene.traverse(o=>{if(o.userData&&o.userData.actor&&o.userData.actor.kind==='person'&&o.userData.key){const w=new THREE.Vector3();o.parent.getWorldPosition(w);now[o.userData.key]=w}});return now};
           for(let step=0;step<12;step++){Rules.move(S,step%6<3?1:-1,0);g.refresh();for(let f=0;f<3;f++){await wait(100);const now=look();counts.add(Object.keys(now).length);
-            if(prev)for(const k in now)if(prev[k])worst=Math.max(worst,now[k].distanceTo(prev[k]));prev=now}}
-          return [worst,[...counts]]}""")
+            if(prev)for(const k in now)if(prev[k]){const d=now[k].distanceTo(prev[k]);if(d>worst){worst=d;window.__jw=[k,step,f,S.area,prev[k].toArray().map(v=>+v.toFixed(1)),now[k].toArray().map(v=>+v.toFixed(1))]}}prev=now}}
+          return [worst,[...counts],window.__jw]}""")
         assert jump[0] < 1.5 and len(jump[1]) == 1 and jump[1][0] > 0, 'townsfolk jumped or vanished: %r' % jump
         steps.append('townsfolk walk (%d, at most %.2f m a frame)' % (jump[1][0], jump[0]))
         await goto('elder'); await press('Talk to'); await shot('4-elder'); await pg.click('#modal-close'); steps.append('elder')

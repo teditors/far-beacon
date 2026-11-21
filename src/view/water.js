@@ -99,7 +99,7 @@ function setWaterSky(c) {
 /* A water surface over one of the land's height grids (terrain.js `fine` or `coarse`): a vertex wherever a cell
    touches water, at the water's level. colourAt(x, z, out) gives the water's tint there (the land's river colour).
    hollow: leave out the middle, where the fine grid's water lies. */
-function waterMesh(T, g, sink, hollow, keep, colourAt) {
+function* waterMesh(T, g, sink, hollow, keep, colourAt) {
   const W = T.water,
     n = g.n,
     N1 = n + 1,
@@ -111,8 +111,10 @@ function waterMesh(T, g, sink, hollow, keep, colourAt) {
     tri = [],
     c = new THREE.Color(),
     inner = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
-  for (let iz = 0; iz <= n; iz++)
+  for (let iz = 0; iz <= n; iz++) {
     for (let ix = 0; ix <= n; ix++) m[iz * N1 + ix] = W.mask(-g.half + ix * g.cell, -g.half + iz * g.cell);
+    if ((iz & 15) === 15) yield; // a pause now and then, for a build spread over frames
+  }
   const vert = (ix, iz) => {
     const k = iz * N1 + ix;
     if (idx[k] >= 0) return idx[k];
@@ -129,7 +131,8 @@ function waterMesh(T, g, sink, hollow, keep, colourAt) {
     col.push(c.r, c.g, c.b);
     return idx[k];
   };
-  for (let iz = 0; iz < n; iz++)
+  for (let iz = 0; iz < n; iz++) {
+    if ((iz & 15) === 15) yield;
     for (let ix = 0; ix < n; ix++) {
       const a = iz * N1 + ix;
       if (m[a] <= 0.01 && m[a + 1] <= 0.01 && m[a + N1] <= 0.01 && m[a + N1 + 1] <= 0.01) continue;
@@ -142,6 +145,7 @@ function waterMesh(T, g, sink, hollow, keep, colourAt) {
         v11 = vert(ix + 1, iz + 1);
       tri.push(v00, v01, v10, v01, v11, v10);
     }
+  }
   if (!tri.length) return null;
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));

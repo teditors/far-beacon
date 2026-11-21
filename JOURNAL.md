@@ -107,13 +107,22 @@ shopkeeper too, was redrawn from scratch at each step: a tile's jump each time t
 only ever reached creatures. (2) Townsfolk had no lasting identity in the tracking, only "the nearest remembered
 spot", and stale memories of others' old spots could be matched, while one left unmatched vanished.
 
-**The fix.** The figure is found wherever it is in its place's group; each townsperson is known by name and trade
-(which the rules keep with them as they move), so they walk from where they were to where they now are, at a walk,
+**The fix.** The figure is found wherever it is in its place's group; each townsperson is known by the record the rules keep
+for them as they move (not by name: two may share one), so they walk from where they were to where they now are, at a walk,
 and wander about their spot between steps; nobody vanishes unless they really leave.
 
 **Tested.** The browser test now walks the traveller up and down a town street twelve steps and checks that no
 townsperson moves more than 1.5 m between frames and none disappears (measured: at most 0.57 m a frame, 9 people
 throughout). The fault had slipped through because nothing measured it; now something does.
+
+Two more found while testing it across eight worlds: when the scene's frame moved between the land and a town by any
+way but walking through the gate (an action, a jump, a load), what was remembered of everyone was not moved with it,
+so they lurched (sideways, and up or down by the town's height); the shift now lives in the one function that moves the frame (`applyFrame`). And memories outlived
+their world: a new world's elder "walked" in from where the last world's elder had stood; entering a world now
+forgets them (`forgetActors`).
+
+Also fixed: building the water (C5.14) ran in one slice of the land's spread-out build, so crossing a border could
+take a 50 ms hitch on this machine (the browser test caught it); it now pauses every sixteen rows like the rest.
 
 **Verdict.** Fix.
 

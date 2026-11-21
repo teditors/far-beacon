@@ -12,7 +12,7 @@ import * as FX from './fx.js';
 import { landmark } from './landmarks.js';
 import { seaSheet, waterMesh, waterOn } from './water.js';
 import { blob, fire, water } from './fx.js';
-import { actorsOn, clearActors, creatureActor, markKilled, personActor, settleActors, track } from './actors.js';
+import { actorsOn, clearActors, creatureActor, markKilled, personActor, settleActors, shiftActors, track } from './actors.js';
 R.on('killed', (s, d) => d && d.c && markKilled(d.c.id));
 import { kitMat } from './kit.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
@@ -801,10 +801,13 @@ function applyFrame() {
   const kind = R.areaRec(V.S).kind,
     inTown = kind === 'town' && V.townAt;
   if (R.isLevel(V.S)) return;
+  const was = { x: FR.x, y: FR.y, z: FR.z };
   FR.x = inTown ? V.townAt.x : 0;
   FR.y = inTown ? V.townAt.y : 0;
   FR.z = inTown ? V.townAt.z : 0;
   setGeometry(inTown ? 'town' : 'region');
+  // everyone remembered moves with the frame, however it moved (the gate, an action, a jump): they walk on
+  if (was.x !== FR.x || was.y !== FR.y || was.z !== FR.z) shiftActors(was.x - FR.x, was.z - FR.z, was.y - FR.y);
   const sh = V.shift || { x: 0, z: 0 };
   staticGroup.position.set(-FR.x - sh.x, -FR.y, -FR.z - sh.z);
   V.terrain = inTown ? { height: (x, z) => V.base.height(x + FR.x, z + FR.z) - FR.y } : V.base;
@@ -1115,7 +1118,7 @@ function* buildLand(S, timed) {
       [T.fine, 0, false],
       [T.coarse, SINK, true],
     ]) {
-      const w = waterMesh(T, g, sink, hollow, HALF - g.cell * 1.5, tint);
+      const w = yield* waterMesh(T, g, sink, hollow, HALF - g.cell * 1.5, tint);
       if (w) group.add(w);
       yield;
     }
@@ -1302,6 +1305,10 @@ function treesNear(force) {
 }
 const fxOn = () => lookOn('fx') && lookOn('light');
 LOOK_SWITCHES.push(['fx', 'Fire, water and shadows']);
+// each townsperson's own id: the rules keep the same object for them as they move about (two may share a name)
+const FOLK_IDS = new WeakMap();
+let folkN = 0;
+const folkId = (st) => FOLK_IDS.get(st) || (FOLK_IDS.set(st, ++folkN + ':' + st.name), FOLK_IDS.get(st));
 const HP = new Map(); // creatures' health when last drawn, to see a hit land
 const hashStr = (s) => {
   let h = 7;
@@ -1401,7 +1408,7 @@ function drawArea(id, kind, nb) {
           who,
           st.kind === 'folk'
             ? // a townsperson is known by name, wherever the rules have them stand: they walk there
-              { key: 'folk:' + id + ':' + st.name + ':' + st.role, speed: 1.4, roam: ts * 0.3, rise: false }
+              { key: 'folk:' + id + ':' + folkId(st), speed: 1.4, roam: ts * 0.3, rise: false }
             : { key: 'site:' + id + ':' + k },
         );
     }

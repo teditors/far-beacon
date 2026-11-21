@@ -22,7 +22,7 @@ import { guard } from './oops.js';
 import { lightIndoors, lightOutdoors } from './light.js';
 import { WIND } from './kit.js';
 import { setNight } from './buildings.js';
-import { animateActors, shiftActors } from './actors.js';
+import { animateActors, forgetActors, shiftActors } from './actors.js';
 import { updateSound } from './sound.js';
 import { updateFx } from './fx.js';
 import { setWaterSky } from './water.js';
@@ -108,6 +108,7 @@ function placePlayer() {
 const landKey = () => (R.isLevel(V.S) ? V.S.area : R.outdoorRec(V.S).id);
 function enter(state) {
   V.S = state;
+  forgetActors();
   buildStatic();
   buildDynamic();
   placePlayer();
@@ -237,7 +238,6 @@ function tick(dt, now) {
       applyFrame();
       nx += was.x - FR.x;
       nz += was.z - FR.z;
-      shiftActors(was.x - FR.x, was.z - FR.z);
       P.y += was.y - FR.y;
       shown.area = V.S.area;
     } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {

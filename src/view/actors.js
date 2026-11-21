@@ -276,6 +276,14 @@ function track(g, mesh, o) {
   live.push(a);
   return a;
 }
+// A new world, or a run loaded: nobody remembered walks on from the world before.
+function forgetActors() {
+  LAST.clear();
+  live.length = 0;
+  prev = [];
+  for (const d of dying) if (d.g.parent) d.g.parent.remove(d.g);
+  dying.length = 0;
+}
 // After a build: everyone who was drawn before and is not now goes away gently, a killed creature falling over.
 function settleActors(group) {
   const now = new Set(live.map((a) => a.key));
@@ -294,10 +302,12 @@ function settleActors(group) {
 // A creature's id, told by the rules' 'killed' event (see scene.js), so its going is a fall.
 const markKilled = (id) => killed.add('c:' + id);
 // The frame of the scene moved by (dx, dz): move what is remembered with it.
-function shiftActors(dx, dz) {
-  for (const [, l] of LAST) (l.pos.x += dx), (l.pos.z += dz);
+function shiftActors(dx, dz, dy) {
+  dy = dy || 0;
+  for (const [, l] of LAST) (l.pos.x += dx), (l.pos.y += dy), (l.pos.z += dz);
   for (const a of live) {
     a.g.position.x += dx;
+    a.g.position.y += dy;
     a.g.position.z += dz;
   }
 }
@@ -407,6 +417,7 @@ export {
   clearActors,
   settleActors,
   shiftActors,
+  forgetActors,
   markKilled,
   personModel,
   creatureModel,
