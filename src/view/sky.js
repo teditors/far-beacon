@@ -2,7 +2,7 @@
    in it, and rain, snow, hail, dust, ash or falling stars while a storm blows. Each is one mesh, updated each frame
    from numbers the frame already has; on Low there is none of it and the sky is the flat colour of the fog. */
 import { P, R, V } from './ctx.js';
-import { Q } from './quality.js';
+import { Q, lookOn } from './quality.js';
 import { camera, scene } from './scene.js';
 
 const SKY_R = 1800;
@@ -12,20 +12,12 @@ let dome = null,
   fall = null,
   fallKind = '',
   fallN = 0;
-// A dome whose vertices are white at the horizon and darker overhead: its colour is the sky's, so the horizon meets the
-// fog exactly and the zenith is a deeper shade of it.
+// A dome whose vertices are the fog's colour at the horizon, so the land fades into it exactly, shading to a deeper blue
+// overhead and warming round the sun. Its few vertices are recoloured each frame (paintDome), which costs nothing.
 function makeDome() {
-  const g = new THREE.SphereGeometry(SKY_R, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2 + 0.15),
-    pos = g.attributes.position,
-    col = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    const up = Math.max(0, pos.getY(i) / SKY_R),
-      k = 1 - 0.38 * Math.pow(up, 0.8);
-    col[i * 3] = k * 0.92;
-    col[i * 3 + 1] = k * 0.97;
-    col[i * 3 + 2] = Math.min(1, k * 1.08);
-  }
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const g = new THREE.SphereGeometry(SKY_R, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2 + 0.15),
+    pos = g.attributes.position;
+  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
   const m = new THREE.Mesh(
     g,
     new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }),
@@ -33,6 +25,45 @@ function makeDome() {
   m.renderOrder = -10;
   m.frustumCulled = false;
   return m;
+}
+const ZENITH_DAY = new THREE.Color(0x4f86cf),
+  ZENITH_NIGHT = new THREE.Color(0x060a18),
+  GLOW_LOW = new THREE.Color(0xffb070),
+  GLOW_HIGH = new THREE.Color(0xfff4dc),
+  zen = new THREE.Color(),
+  glowC = new THREE.Color(),
+  vc = new THREE.Color(),
+  sd = new THREE.Vector3();
+function paintDome(skyColor, sunPos, day, storm) {
+  const g = dome.geometry,
+    pos = g.attributes.position,
+    col = g.attributes.color,
+    painted = lookOn('light');
+  zen
+    .copy(ZENITH_NIGHT)
+    .lerp(ZENITH_DAY, day)
+    .lerp(skyColor, storm ? 0.85 : 0.35);
+  sd.copy(sunPos).normalize();
+  const low = 1 - Math.min(1, Math.max(0, sd.y) * 2.5); // 1 when the sun is on the horizon
+  glowC.copy(GLOW_HIGH).lerp(GLOW_LOW, low);
+  const glowK = storm ? 0 : day * (0.25 + 0.45 * low);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i) / SKY_R,
+      y = pos.getY(i) / SKY_R,
+      z = pos.getZ(i) / SKY_R,
+      up = Math.max(0, y);
+    if (!painted) {
+      // the old sky: one colour, darker overhead
+      const k = 1 - 0.38 * Math.pow(up, 0.8);
+      vc.setRGB(skyColor.r * k * 0.92, skyColor.g * k * 0.97, Math.min(1, skyColor.b * k * 1.08));
+    } else {
+      vc.copy(skyColor).lerp(zen, Math.pow(up, 0.6));
+      const toward = Math.max(0, x * sd.x + y * sd.y + z * sd.z);
+      vc.lerp(glowC, glowK * Math.pow(toward, 6));
+    }
+    col.setXYZ(i, vc.r, vc.g, vc.b);
+  }
+  col.needsUpdate = true;
 }
 const disc = (r, color) => {
   const m = new THREE.Mesh(
@@ -95,7 +126,7 @@ function updateSky(skyColor, sunPos, day, storm, dt) {
     dome.visible = sunDisc.visible = moonDisc.visible = on;
     if (on) {
       dome.position.copy(camera.position);
-      dome.material.color.copy(skyColor);
+      paintDome(skyColor, sunPos, day, storm);
       const d = sunPos
         .clone()
         .normalize()

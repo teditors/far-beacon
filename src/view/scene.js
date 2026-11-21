@@ -1,7 +1,8 @@
 /* The 3D scene: lights, models, and the static and moving parts of the world. */
-import { $, FR, G, HALF, P, R, TOWN_TS, TS, V, setGeometry } from './ctx.js';
+import { $, FR, G, HALF, P, R, TOWN_TS, TS, V, clamp, setGeometry } from './ctx.js';
+const clampI = (i, n) => (i < 0 ? 0 : i > n ? n : i);
 import { EW, MARGIN, PAD, SINK, makeTerrainG } from './terrain.js';
-import { Q } from './quality.js';
+import { Q, lookOn } from './quality.js';
 import { PF, perfBuild } from './perf.js';
 
 /* ---------- scene ---------- */
@@ -18,8 +19,38 @@ scene.fog = new THREE.Fog(0xb9c7d1, 40, 600);
 scene.background = new THREE.Color(0xb9c7d1);
 let staticGroup = null,
   dynGroup = null;
+// A plain painted surface. With the look's light on (light.js) it is a Lambert material, lit per vertex: smooth, and
+// the cheapest light there is. Faceted shapes (roofs, rocks) get their facets from their geometry instead (facet()).
 const std = (color, extra) =>
-  new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
+  lookOn('light')
+    ? new THREE.MeshLambertMaterial(Object.assign({ color }, extra || {}))
+    : new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
+// Shapes with few sides (a four-sided roof, a six-sided tower, a rock) read as cut faces, not as a blur: each face gets
+// its own normals. Run over a finished group; shared geometry (marked kept) is left alone.
+const FACETED = {
+  ConeGeometry: 8,
+  CylinderGeometry: 8,
+  IcosahedronGeometry: 99,
+  OctahedronGeometry: 99,
+  DodecahedronGeometry: 99,
+};
+function facet(group) {
+  if (!lookOn('light')) return group;
+  group.traverse((o) => {
+    const g = o.geometry;
+    if (!o.isMesh || !g || g.faceted || g.kept) return;
+    const most = FACETED[g.type];
+    if (!most || (g.parameters && g.parameters.radialSegments > most)) return;
+    const n = g.index ? g.toNonIndexed() : g;
+    n.computeVertexNormals();
+    n.faceted = true;
+    if (n !== g) {
+      g.dispose();
+      o.geometry = n;
+    }
+  });
+  return group;
+}
 const glow = (color, opacity) =>
   new THREE.MeshBasicMaterial({ color, fog: false, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
 const box = (w, h, d, mat, x, y, z) => {
@@ -51,6 +82,7 @@ const TREE = (() => {
   }
   g.setIndex(keep);
   g.dispose = () => {}; // shared: never thrown away with a scene
+  g.kept = true;
   return g;
 })();
 // The ground's grain: soft speckles and a few darker strokes, tiled. Made once.
@@ -677,7 +709,7 @@ function buildStaticInner() {
     setGeometry('vault');
     FR.x = FR.y = FR.z = 0;
     V.base = V.terrain = FLAT;
-    staticGroup.add(interiorGroup(V.S, R.areaRec(V.S), G.ts));
+    staticGroup.add(facet(interiorGroup(V.S, R.areaRec(V.S), G.ts)));
     return;
   }
   const g = buildLand(V.S, true);
@@ -784,6 +816,7 @@ function* buildLand(S, timed) {
         (springsNear[k] = springsNear[k] || []).push(sp);
       }
   for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
+  const painted = lookOn('light');
   // The colour of the ground at a point: each biome's own palette, mixed where two biomes meet.
   const colourAt = (x, z) => {
     const l = T.level(x, z),
@@ -817,6 +850,12 @@ function* buildLand(S, timed) {
       const d = Math.hypot(dx, dz);
       if (d < 34) c.lerp(lush, (1 - d / 34) * 0.8);
     }
+    if (painted) {
+      // the storybook palette: the land's colours a little richer than life
+      const L = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b,
+        f = 1 + 0.35 * clamp((0.85 - L) / 0.35, 0, 1); // pale snow and salt stay pale
+      c.setRGB(L + (c.r - L) * f, L + (c.g - L) * f, L + (c.b - L) * f);
+    }
     return c;
   };
   // One ground mesh from a height grid. The coarse one leaves out the middle, where the fine one lies.
@@ -832,6 +871,9 @@ function* buildLand(S, timed) {
       col = new Float32Array(cnt * 3),
       keep = HALF - g.cell * 1.5,
       inner = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+    const smooth = lookOn('light'),
+      NR = smooth ? new Float32Array(cnt * 3) : null,
+      H = (ix, iz) => g.h[clampI(iz, n) * N1 + clampI(ix, n)];
     for (let iz = 0; iz <= n; iz++) {
       const z = -g.half + iz * g.cell;
       for (let ix = 0; ix <= n; ix++) {
@@ -844,9 +886,26 @@ function* buildLand(S, timed) {
         UV[k * 2 + 1] = 1 - iz / n;
         if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue; // never drawn
         const c = colourAt(x, z);
-        col[k * 3] = c.r;
-        col[k * 3 + 1] = c.g;
-        col[k * 3 + 2] = c.b;
+        let shade = 1;
+        if (smooth) {
+          // a smooth normal from the slope across the neighbouring points, so the land shows no triangles
+          const hx = H(ix + 1, iz) - H(ix - 1, iz),
+            hz = H(ix, iz + 1) - H(ix, iz - 1),
+            d = 2 * g.cell,
+            nl = Math.hypot(hx, d, hz);
+          NR[k * 3] = -hx / nl;
+          NR[k * 3 + 1] = d / nl;
+          NR[k * 3 + 2] = -hz / nl;
+          // painted shading baked into the colour: hollows a little darker, crests a little lighter, and steep ground
+          // toward bare earth, as a painter would lay it in
+          const around = (H(ix + 2, iz) + H(ix - 2, iz) + H(ix, iz + 2) + H(ix, iz - 2)) / 4,
+            bulge = clamp((g.h[k] - around) / (g.cell * 0.9), -1, 1),
+            steep = 1 - d / nl;
+          shade = 1 + bulge * 0.16 - steep * 0.22;
+        }
+        col[k * 3] = c.r * shade;
+        col[k * 3 + 1] = c.g * shade;
+        col[k * 3 + 2] = c.b * shade;
       }
       if ((iz & 3) === 3) yield;
     }
@@ -880,8 +939,11 @@ function* buildLand(S, timed) {
     geo.setIndex(new THREE.BufferAttribute(idx.subarray(0, m), 1));
     yield;
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    // no vertex normals: flat shading takes each face's from the screen, so computing them would be wasted
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
+    // with the old light, no vertex normals: flat shading takes each face's from the screen
+    if (smooth) geo.setAttribute('normal', new THREE.BufferAttribute(NR, 3));
+    const mat = smooth
+      ? new THREE.MeshLambertMaterial({ vertexColors: true })
+      : new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
     if (Q.grain) {
       // a fine pattern of light and dark in the ground, about every six metres, so near ground reads as ground
       const tex = GRAIN.clone();
@@ -985,7 +1047,10 @@ function* buildLand(S, timed) {
   };
   yield;
   pal.forEach((p, bi) => {
-    instances(new THREE.IcosahedronGeometry(1, 0), std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
+    const rock = new THREE.IcosahedronGeometry(1, 0);
+    rock.computeVertexNormals(); // one normal per face: a rock with cut faces
+    rock.faceted = true;
+    instances(rock, std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
     instances(TREE, std(land.biomes[bi].forest.tree.color), trees[bi]);
   });
   for (const site of land.sites) {
@@ -1019,6 +1084,7 @@ function* buildLand(S, timed) {
     if (st.kind !== 'beacon') g.rotation.y = (site.k % 7) * 0.9;
     group.add(g);
   }
+  facet(group);
   part('places');
   return { group, base, towns };
 }
@@ -1027,9 +1093,13 @@ function buildDynamic() {
   dispose(dynGroup);
   dynGroup = new THREE.Group();
   scene.add(dynGroup);
-  if (R.isLevel(V.S)) return drawArea(V.S.area, 'vault'); // any level below (or, later, above) the world
-  drawArea(R.outdoorRec(V.S).id, 'region');
-  if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, 'town');
+  if (R.isLevel(V.S))
+    drawArea(V.S.area, 'vault'); // any level below or above the world
+  else {
+    drawArea(R.outdoorRec(V.S).id, 'region');
+    if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, 'town');
+  }
+  facet(dynGroup);
 }
 function drawArea(id, kind) {
   const map = R.mapOf(V.S, id),

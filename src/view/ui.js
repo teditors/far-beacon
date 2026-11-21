@@ -3,7 +3,7 @@ import { $, G, P, R, V, VIEW, clamp, el, f1 } from './ctx.js';
 import { guard, showError, errors } from './oops.js';
 import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSeed, save, start, sync } from './run.js';
 import { box, buildDynamic, buildStatic, renderer, resize, scene } from './scene.js';
-import { Q, QUALITY, SET, saveSettings, setQuality } from './quality.js';
+import { LOOK_SWITCHES, Q, QUALITY, SET, lookChanged, lookOn, saveSettings, setQuality } from './quality.js';
 import { PF } from './perf.js';
 
 /* ---------- HUD and panels ---------- */
@@ -1376,6 +1376,25 @@ function openMenu() {
         el('li', { cls: 'item' }, [el('label', { for: 'perf-meter', text: 'Show the performance meter' }), cb]),
       ]);
     })(),
+    // the look's pieces, each on or off for this device (quality.js), to compare
+    el(
+      'ul',
+      { cls: 'items' },
+      LOOK_SWITCHES.map(([id, label]) => {
+        const cb = el('input', { type: 'checkbox', id: 'look-' + id });
+        cb.checked = lookOn(id);
+        cb.addEventListener('change', () => {
+          SET.off[id] = !cb.checked;
+          saveSettings();
+          guard('redrawing', () => {
+            buildStatic();
+            buildDynamic();
+          });
+          lookChanged(id);
+        });
+        return el('li', { cls: 'item' }, [el('label', { for: 'look-' + id, text: label }), cb]);
+      }),
+    ),
     el('h3', { text: 'Tinker' }),
     el('p', { cls: 'note', text: 'Switch whole systems off, or change the numbers while you play.' }),
     godPanel(),

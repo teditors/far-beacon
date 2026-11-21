@@ -7201,7 +7201,7 @@
     return (h >>> 0) / 4294967296;
   }
   function worldNoise(seed, world, cellsPerRegion, salt) {
-    const NX = world.cols * cellsPerRegion, NY = world.rows * cellsPerRegion, sd = seed ^ Math.imul(salt, 2654435761) | 0, v = (i, j) => hash2(sd, wrap(i, NX), wrap(j, NY));
+    const NX = world.cols * cellsPerRegion, NY = world.rows * cellsPerRegion, sd2 = seed ^ Math.imul(salt, 2654435761) | 0, v = (i, j) => hash2(sd2, wrap(i, NX), wrap(j, NY));
     return (gx, gy) => {
       const fx = gx / W * cellsPerRegion, fy = gy / H * cellsPerRegion, x0 = Math.floor(fx), y0 = Math.floor(fy);
       let tx = fx - x0, ty = fy - y0;
@@ -8274,7 +8274,7 @@
       h *= 60;
     }
     h = ((h + deg) % 360 + 360) % 360;
-    const C2 = (1 - Math.abs(2 * l - 1)) * s, X8 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X8, 0] : h < 120 ? [X8, C2, 0] : h < 180 ? [0, C2, X8] : h < 240 ? [0, X8, C2] : h < 300 ? [X8, 0, C2] : [C2, 0, X8];
+    const C22 = (1 - Math.abs(2 * l - 1)) * s, X8 = C22 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C22 / 2, [r1, g1, b1] = h < 60 ? [C22, X8, 0] : h < 120 ? [X8, C22, 0] : h < 180 ? [0, C22, X8] : h < 240 ? [0, X8, C22] : h < 300 ? [X8, 0, C22] : [C22, 0, X8];
     const out = Math.round((r1 + m) * 255) << 16 | Math.round((g1 + m) * 255) << 8 | Math.round((b1 + m) * 255);
     return num2 ? out : "#" + out.toString(16).padStart(6, "0");
   }
@@ -13034,12 +13034,13 @@
       weather: 1600
     }
   };
-  var SET = { quality: "medium", meter: false };
+  var SET = { quality: "medium", meter: false, off: {} };
   try {
     Object.assign(SET, JSON.parse(localStorage.getItem(KEY2) || "{}") || {});
   } catch (e) {
   }
   if (!QUALITY[SET.quality]) SET.quality = "medium";
+  if (!SET.off || typeof SET.off !== "object") SET.off = {};
   var Q = Object.assign({}, QUALITY[SET.quality]);
   function saveSettings() {
     try {
@@ -13053,6 +13054,10 @@
     Object.assign(Q, QUALITY[name]);
     saveSettings();
   }
+  var LOOK_SWITCHES = [];
+  var lookOn = (id) => !SET.off[id];
+  var LOOK_CHANGED = [];
+  var lookChanged = (id) => LOOK_CHANGED.forEach((fn) => fn(id));
 
   // src/view/terrain.js
   var PAD = { town: 102, vault: 11, beacon: 9, spring: 6, hamlet: 10, camp: 8, siege: 8, stone: 7, den: 9 };
@@ -13282,6 +13287,7 @@
   }
 
   // src/view/scene.js
+  var clampI = (i, n) => i < 0 ? 0 : i > n ? n : i;
   var renderer = new THREE.WebGLRenderer({ canvas: $("c"), antialias: Q.aa, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
   var scene = new THREE.Scene();
@@ -13295,7 +13301,31 @@
   scene.background = new THREE.Color(12175313);
   var staticGroup = null;
   var dynGroup = null;
-  var std = (color, extra) => new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
+  var std = (color, extra) => lookOn("light") ? new THREE.MeshLambertMaterial(Object.assign({ color }, extra || {})) : new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
+  var FACETED = {
+    ConeGeometry: 8,
+    CylinderGeometry: 8,
+    IcosahedronGeometry: 99,
+    OctahedronGeometry: 99,
+    DodecahedronGeometry: 99
+  };
+  function facet(group) {
+    if (!lookOn("light")) return group;
+    group.traverse((o) => {
+      const g = o.geometry;
+      if (!o.isMesh || !g || g.faceted || g.kept) return;
+      const most = FACETED[g.type];
+      if (!most || g.parameters && g.parameters.radialSegments > most) return;
+      const n = g.index ? g.toNonIndexed() : g;
+      n.computeVertexNormals();
+      n.faceted = true;
+      if (n !== g) {
+        g.dispose();
+        o.geometry = n;
+      }
+    });
+    return group;
+  }
   var glow = (color, opacity) => new THREE.MeshBasicMaterial({ color, fog: false, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
   var box2 = (w, h, d, mat, x, y, z) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -13323,6 +13353,7 @@
     g.setIndex(keep);
     g.dispose = () => {
     };
+    g.kept = true;
     return g;
   })();
   var GRAIN = (() => {
@@ -13866,7 +13897,7 @@
       setGeometry("vault");
       FR.x = FR.y = FR.z = 0;
       V.base = V.terrain = FLAT;
-      staticGroup.add(interiorGroup(V.S, R.areaRec(V.S), G2.ts));
+      staticGroup.add(facet(interiorGroup(V.S, R.areaRec(V.S), G2.ts)));
       return;
     }
     const g = buildLand(V.S, true);
@@ -13949,6 +13980,7 @@
           (springsNear[k] = springsNear[k] || []).push(sp);
         }
     for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
+    const painted = lookOn("light");
     const colourAt = (x, z) => {
       const l = T2.level(x, z), mv = [T2.masks[0](x, z), T2.masks[1](x, z), T2.masks[2](x, z)];
       let total = 0;
@@ -13979,10 +14011,15 @@
         const d = Math.hypot(dx, dz);
         if (d < 34) c.lerp(lush, (1 - d / 34) * 0.8);
       }
+      if (painted) {
+        const L3 = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b, f = 1 + 0.35 * clamp2((0.85 - L3) / 0.35, 0, 1);
+        c.setRGB(L3 + (c.r - L3) * f, L3 + (c.g - L3) * f, L3 + (c.b - L3) * f);
+      }
       return c;
     };
     const ground = function* (g, sink, hollow) {
       const n = g.n, N1 = n + 1, cnt = N1 * N1, P4 = new Float32Array(cnt * 3), UV = new Float32Array(cnt * 2), col = new Float32Array(cnt * 3), keep = HALF - g.cell * 1.5, inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+      const smooth2 = lookOn("light"), NR = smooth2 ? new Float32Array(cnt * 3) : null, H2 = (ix, iz) => g.h[clampI(iz, n) * N1 + clampI(ix, n)];
       for (let iz = 0; iz <= n; iz++) {
         const z = -g.half + iz * g.cell;
         for (let ix = 0; ix <= n; ix++) {
@@ -13994,9 +14031,18 @@
           UV[k * 2 + 1] = 1 - iz / n;
           if (hollow && Math.abs(x) < keep - g.cell && Math.abs(z) < keep - g.cell) continue;
           const c2 = colourAt(x, z);
-          col[k * 3] = c2.r;
-          col[k * 3 + 1] = c2.g;
-          col[k * 3 + 2] = c2.b;
+          let shade = 1;
+          if (smooth2) {
+            const hx = H2(ix + 1, iz) - H2(ix - 1, iz), hz = H2(ix, iz + 1) - H2(ix, iz - 1), d = 2 * g.cell, nl = Math.hypot(hx, d, hz);
+            NR[k * 3] = -hx / nl;
+            NR[k * 3 + 1] = d / nl;
+            NR[k * 3 + 2] = -hz / nl;
+            const around = (H2(ix + 2, iz) + H2(ix - 2, iz) + H2(ix, iz + 2) + H2(ix, iz - 2)) / 4, bulge = clamp2((g.h[k] - around) / (g.cell * 0.9), -1, 1), steep = 1 - d / nl;
+            shade = 1 + bulge * 0.16 - steep * 0.22;
+          }
+          col[k * 3] = c2.r * shade;
+          col[k * 3 + 1] = c2.g * shade;
+          col[k * 3 + 2] = c2.b * shade;
         }
         if ((iz & 3) === 3) yield;
       }
@@ -14022,7 +14068,8 @@
       geo.setIndex(new THREE.BufferAttribute(idx2.subarray(0, m2), 1));
       yield;
       geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
+      if (smooth2) geo.setAttribute("normal", new THREE.BufferAttribute(NR, 3));
+      const mat = smooth2 ? new THREE.MeshLambertMaterial({ vertexColors: true }) : new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
       if (Q.grain) {
         const tex = GRAIN.clone();
         tex.needsUpdate = true;
@@ -14091,7 +14138,10 @@
     };
     yield;
     pal.forEach((p, bi) => {
-      instances(new THREE.IcosahedronGeometry(1, 0), std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
+      const rock = new THREE.IcosahedronGeometry(1, 0);
+      rock.computeVertexNormals();
+      rock.faceted = true;
+      instances(rock, std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
       instances(TREE, std(land2.biomes[bi].forest.tree.color), trees[bi]);
     });
     for (const site of land2.sites) {
@@ -14121,6 +14171,7 @@
       if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
       group.add(g);
     }
+    facet(group);
     part("places");
     return { group, base, towns };
   }
@@ -14128,9 +14179,13 @@
     dispose(dynGroup);
     dynGroup = new THREE.Group();
     scene.add(dynGroup);
-    if (R.isLevel(V.S)) return drawArea(V.S.area, "vault");
-    drawArea(R.outdoorRec(V.S).id, "region");
-    if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, "town");
+    if (R.isLevel(V.S))
+      drawArea(V.S.area, "vault");
+    else {
+      drawArea(R.outdoorRec(V.S).id, "region");
+      if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, "town");
+    }
+    facet(dynGroup);
   }
   function drawArea(id, kind2) {
     const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind2 !== "region", ts = kind2 === "town" ? TOWN_TS : kind2 === "vault" ? G2.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
@@ -14267,14 +14322,8 @@
   var fallKind = "";
   var fallN = 0;
   function makeDome() {
-    const g = new THREE.SphereGeometry(SKY_R, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2 + 0.15), pos = g.attributes.position, col = new Float32Array(pos.count * 3);
-    for (let i = 0; i < pos.count; i++) {
-      const up = Math.max(0, pos.getY(i) / SKY_R), k = 1 - 0.38 * Math.pow(up, 0.8);
-      col[i * 3] = k * 0.92;
-      col[i * 3 + 1] = k * 0.97;
-      col[i * 3 + 2] = Math.min(1, k * 1.08);
-    }
-    g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const g = new THREE.SphereGeometry(SKY_R, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2 + 0.15), pos = g.attributes.position;
+    g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
     const m = new THREE.Mesh(
       g,
       new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })
@@ -14282,6 +14331,35 @@
     m.renderOrder = -10;
     m.frustumCulled = false;
     return m;
+  }
+  var ZENITH_DAY = new THREE.Color(5211855);
+  var ZENITH_NIGHT = new THREE.Color(395800);
+  var GLOW_LOW = new THREE.Color(16756848);
+  var GLOW_HIGH = new THREE.Color(16774364);
+  var zen = new THREE.Color();
+  var glowC = new THREE.Color();
+  var vc = new THREE.Color();
+  var sd = new THREE.Vector3();
+  function paintDome(skyColor, sunPos, day, storm) {
+    const g = dome.geometry, pos = g.attributes.position, col = g.attributes.color, painted = lookOn("light");
+    zen.copy(ZENITH_NIGHT).lerp(ZENITH_DAY, day).lerp(skyColor, storm ? 0.85 : 0.35);
+    sd.copy(sunPos).normalize();
+    const low = 1 - Math.min(1, Math.max(0, sd.y) * 2.5);
+    glowC.copy(GLOW_HIGH).lerp(GLOW_LOW, low);
+    const glowK = storm ? 0 : day * (0.25 + 0.45 * low);
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i) / SKY_R, y = pos.getY(i) / SKY_R, z = pos.getZ(i) / SKY_R, up = Math.max(0, y);
+      if (!painted) {
+        const k = 1 - 0.38 * Math.pow(up, 0.8);
+        vc.setRGB(skyColor.r * k * 0.92, skyColor.g * k * 0.97, Math.min(1, skyColor.b * k * 1.08));
+      } else {
+        vc.copy(skyColor).lerp(zen, Math.pow(up, 0.6));
+        const toward = Math.max(0, x * sd.x + y * sd.y + z * sd.z);
+        vc.lerp(glowC, glowK * Math.pow(toward, 6));
+      }
+      col.setXYZ(i, vc.r, vc.g, vc.b);
+    }
+    col.needsUpdate = true;
   }
   var disc = (r, color) => {
     const m = new THREE.Mesh(
@@ -14340,7 +14418,7 @@
       dome.visible = sunDisc.visible = moonDisc.visible = on2;
       if (on2) {
         dome.position.copy(camera.position);
-        dome.material.color.copy(skyColor);
+        paintDome(skyColor, sunPos, day, storm);
         const d = sunPos.clone().normalize().multiplyScalar(SKY_R * 0.95);
         sunDisc.position.copy(camera.position).add(d);
         sunDisc.lookAt(camera.position);
@@ -14379,6 +14457,61 @@
   function hideSky() {
     if (dome) dome.visible = sunDisc.visible = moonDisc.visible = false;
     if (fall) fall.visible = false;
+  }
+
+  // src/view/light.js
+  LOOK_SWITCHES.push(["light", "Warm sun and cool shade"]);
+  var C2 = (h) => new THREE.Color(h);
+  var PAL = {
+    sunHigh: C2(16773590),
+    // the sun overhead: nearly white, a little warm
+    sunLow: C2(16753244),
+    // at dawn and dusk: orange
+    moon: C2(9414364),
+    // moonlight: pale blue
+    skyDay: C2(12375280),
+    // the sky's light from above, by day (mixed with the land's own sky colour)
+    skyNight: C2(3424878),
+    earthDay: C2(8020552),
+    // light thrown back up by the ground: warm brown
+    earthNight: C2(1381918),
+    storm: C2(10133670)
+  };
+  var tmp = C2(0);
+  function lightOutdoors(h, day, dusk, skyC2, storm, sight) {
+    if (!lookOn("light")) {
+      hemi.color.setHex(14673902);
+      hemi.groundColor.setHex(5920076);
+      hemi.intensity = lerp(0.22, 0.78, day);
+      sun.color.setHex(16773596);
+      sun.intensity = lerp(0.03, 0.9, day) * (storm ? 0.4 : 1);
+      const sa2 = (h - 6) / 14 * Math.PI;
+      sun.position.set(-Math.cos(sa2) * 300, Math.max(20, Math.sin(sa2) * 300), 120);
+      return;
+    }
+    const sa = (h - 6) / 14 * Math.PI, sy = Math.sin(sa), up = Math.max(0, sy);
+    tmp.copy(skyC2).lerp(PAL.skyDay, 0.45);
+    hemi.color.copy(PAL.skyNight).lerp(tmp, day);
+    hemi.groundColor.copy(PAL.earthNight).lerp(PAL.earthDay, day);
+    if (storm) {
+      hemi.color.lerp(PAL.storm, 0.6);
+      hemi.groundColor.lerp(PAL.storm, 0.3);
+    }
+    hemi.intensity = lerp(sight ? 0.55 : 0.42, storm ? 0.75 : 0.5, day) + dusk * 0.22;
+    if (day > 0.02) {
+      sun.color.copy(PAL.sunLow).lerp(PAL.sunHigh, Math.min(1, up * 2.2));
+      if (dusk > 0) sun.color.lerp(PAL.sunLow, dusk * 0.5);
+      sun.intensity = (0.3 + 0.85 * Math.min(1, up * 2.5)) * day * (storm ? 0.3 : 1);
+      sun.position.set(-Math.cos(sa) * 300, Math.max(25, sy * 300), 120);
+    } else {
+      sun.color.copy(PAL.moon);
+      sun.intensity = storm ? 0.05 : 0.28;
+      sun.position.set(Math.cos(sa) * 300, Math.max(60, Math.abs(sy) * 300), -120);
+    }
+  }
+  function lightIndoors() {
+    sun.intensity = 0;
+    hemi.groundColor.setHex(lookOn("light") ? 2761760 : 5920076);
   }
 
   // src/view/run.js
@@ -14495,6 +14628,7 @@
   var duskC = new THREE.Color(14260844);
   var nightC = new THREE.Color(1185831);
   var stormC = new THREE.Color(9277324);
+  var sunDir = new THREE.Vector3();
   var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function tick(dt, now) {
     if (!V.S || V.S.over || !$("modal").hidden) return;
@@ -14606,7 +14740,7 @@
       scene.fog.near = 1;
       hemi.intensity = glowing ? look2.light || 0.45 : 0.05;
       hemi.color.setHex(glowing && look2.glow ? look2.glow : 14673902);
-      sun.intensity = 0;
+      lightIndoors();
       lamp.intensity = lit || glowing ? 1.1 : 0.25;
       lamp.distance = lit || glowing ? 26 : 6;
       lamp.position.set(P3.x, P3.y + 0.8, P3.z);
@@ -14622,14 +14756,12 @@
     shown.far = lerp(shown.far, far, 0.05);
     scene.fog.far = shown.far;
     scene.fog.near = Math.min(40, shown.far * 0.2);
-    hemi.intensity = lerp(0.22, 0.78, day);
-    hemi.color.setHex(14673902);
-    sun.intensity = lerp(0.03, 0.9, day) * (storm ? 0.4 : 1);
+    lightOutdoors(h, day, dusk, skyC, !!storm, sight);
     const sa = (h - 6) / 14 * Math.PI;
-    sun.position.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
+    sunDir.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
     lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
     lamp.position.set(P3.x, P3.y + 0.3, P3.z);
-    updateSky(skyC, sun.position, day, storm ? R.stormOfNow(V.S) : null, frameDt);
+    updateSky(skyC, sunDir, day, storm ? R.stormOfNow(V.S) : null, frameDt);
     finishFrame();
   }
   function finishFrame() {
@@ -15799,6 +15931,25 @@
           el("li", { cls: "item" }, [el("label", { for: "perf-meter", text: "Show the performance meter" }), cb])
         ]);
       })(),
+      // the look's pieces, each on or off for this device (quality.js), to compare
+      el(
+        "ul",
+        { cls: "items" },
+        LOOK_SWITCHES.map(([id, label]) => {
+          const cb = el("input", { type: "checkbox", id: "look-" + id });
+          cb.checked = lookOn(id);
+          cb.addEventListener("change", () => {
+            SET.off[id] = !cb.checked;
+            saveSettings();
+            guard("redrawing", () => {
+              buildStatic();
+              buildDynamic();
+            });
+            lookChanged(id);
+          });
+          return el("li", { cls: "item" }, [el("label", { for: "look-" + id, text: label }), cb]);
+        })
+      ),
       el("h3", { text: "Tinker" }),
       el("p", { cls: "note", text: "Switch whole systems off, or change the numbers while you play." }),
       godPanel(),

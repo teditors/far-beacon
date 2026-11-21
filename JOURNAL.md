@@ -1,3 +1,59 @@
+# Commission 5
+
+## The style
+
+**A painted storybook, about 2005.** Chunky, readable shapes with a little exaggeration (round crowns, steep roofs,
+leaning towers), smooth soft shading rather than facets on land and living things, but cut facets on stone, roofs and
+rock. Colours a little richer than life, never neon; whites stay chalky. Light is warm where the sun falls and cool in
+the shade, with an orange sun low in the sky and blue moonlight at night; the sky deepens overhead and glows round the
+sun, and fog in the sky's colour gives depth. Textures, where there are any, are soft painted blotches and strokes made
+in code, never photographs. Firelight and lanterns are the only bright warm things at night. Every visual piece is
+held to this; when in doubt, simpler and rounder.
+
+**Switches for the look** live with the graphics quality (Menu, Settings), as settings of the device rather than of
+the run, since a piece of the look never changes the game: `LOOK_SWITCHES` and `lookOn(id)` in `src/view/quality.js`.
+
+**Measuring.** `python3 tools/bench.py low medium high` (seeds 11 / 222 / 3333, software renderer at 412 x 915). This
+machine is slower than the one commission 4 measured on, so the "before" row below is re-measured here, at the start:
+
+| before (v0.15) | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Low | 54 | 67 | 81,780 | 89.4 |
+| Medium | 93 | 81 | 151,882 | 144.1 |
+| High | 176 | 91 | 283,906 | 209.9 |
+
+The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
+
+## C5.1: light, and land without triangles
+
+**What it is.** The land is smooth: each point of the ground has a normal from the slope around it, so light rolls over
+hills instead of picking out triangles. All surfaces use Lambert materials (light worked out per vertex), the cheapest
+light three.js has, in place of the standard material with flat shading. A new `light.js` sets the sun, sky light and
+moon: the hemisphere light is sky blue from above and warm brown from below; the sun is orange when low and nearly
+white when high; at night the same light becomes a pale blue moon opposite the sun. The sky dome now deepens to blue
+overhead and glows round the sun (orange at dawn and dusk), its few vertices recoloured each frame. Painted shading is
+baked into the ground's colours as it is built: hollows a touch darker, crests lighter, steep slopes toward bare earth;
+and the land's colours are made a little richer (pale snow and salt left pale). Roofs, towers and rocks with few sides
+keep cut faces (`facet()` in scene.js gives them per-face normals).
+
+**In play.** The shape of the land reads at a glance: which way a slope faces, where the hollows are. Dawn and dusk
+are warm, night is blue rather than black.
+
+**Switch.** `light` (Menu, Settings: "Warm sun and cool shade"), which brings back the old light and flat ground.
+
+**Numbers** (after; before is at the top):
+
+| after C5.1 | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Low | 60 | 67 | 81,780 | 67.0 |
+| Medium | 85 | 81 | 152,038 | 119.8 |
+| High | 196 | 91 | 284,062 | 180.6 |
+
+Frames are cheaper on every setting (Lambert is cheaper than the standard material); builds are a few ms dearer for
+the normals and baked shading, within the noise. Page 613 KB.
+
+**Verdict.** Pearl: the biggest visible gain for the least cost, and it pays for itself in frame time.
+
 # Commission 4
 
 ## Summary

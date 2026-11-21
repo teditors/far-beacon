@@ -53,13 +53,14 @@ const QUALITY = {
     weather: 1600,
   },
 };
-const SET = { quality: 'medium', meter: false };
+const SET = { quality: 'medium', meter: false, off: {} };
 try {
   Object.assign(SET, JSON.parse(localStorage.getItem(KEY) || '{}') || {});
 } catch (e) {
   /* storage is optional */
 }
 if (!QUALITY[SET.quality]) SET.quality = 'medium';
+if (!SET.off || typeof SET.off !== 'object') SET.off = {};
 const Q = Object.assign({}, QUALITY[SET.quality]);
 function saveSettings() {
   try {
@@ -73,4 +74,11 @@ function setQuality(name) {
   Object.assign(Q, QUALITY[name]);
   saveSettings();
 }
-export { QUALITY, Q, SET, setQuality, saveSettings };
+/* The look's own switches (commission 5): each visual or sound piece registers [id, label] here and asks on(id). They
+   are settings of this device, like the quality, not of the run: a piece of the look never changes the game. */
+const LOOK_SWITCHES = [];
+const lookOn = (id) => !SET.off[id];
+// functions (id) told when a look switch is changed, for pieces that keep running state (the sound)
+const LOOK_CHANGED = [];
+const lookChanged = (id) => LOOK_CHANGED.forEach((fn) => fn(id));
+export { QUALITY, Q, SET, setQuality, saveSettings, LOOK_SWITCHES, lookOn, LOOK_CHANGED, lookChanged };
