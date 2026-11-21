@@ -134,6 +134,14 @@ Every place you walk into is an area; commission 4 added four kinds of level and
   list, which every piece fills through `PLACES`; world settings are plain options, `newGame(seed, off, set)`, kept
   in `s.gen` where they differ from `content/worldset.js`, and read with `genOf(s)` (the playtest takes `SET=`).
 
+## The look (commission 6)
+
+The art direction is in `ART.md`. What a place looks like is content (`content/looks.js`): layers of palette and style
+for the climate, the world's turn of it, rare looks, other worlds, the year, troubles, rare countries, the weather and
+the hour. `view/look.js` resolves them with plain numbers (no Three.js, tested in Node); `view/mood.js` puts the result
+in `NOW.look` each frame, which light.js, sky.js, run.js (fog) and post.js (the grade) read; null means "do as
+commission 5 did" (indoors, or the `look` switch off).
+
 ## The look (commission 5)
 
 The view is painted in one style (a storybook of about 2005: see the top of JOURNAL.md's commission 5) and built from

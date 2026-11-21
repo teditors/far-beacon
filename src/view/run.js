@@ -17,7 +17,7 @@ import {
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
 import { Q } from './quality.js';
 import { perfBuild, perfFrame, perfSave, perfWork } from './perf.js';
-import { hideSky, updateSky } from './sky.js';
+import { hideSky, kindOf, updateSky } from './sky.js';
 import { guard } from './oops.js';
 import { lightIndoors, lightOutdoors } from './light.js';
 import { WIND } from './kit.js';
@@ -28,6 +28,7 @@ import { updateFx } from './fx.js';
 import { setWaterSky } from './water.js';
 import { warmSurfaces } from './paint.js';
 import { draw as drawFrame } from './post.js';
+import { updateLook } from './mood.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -289,7 +290,13 @@ function frame() {
     .copy(nightC)
     .lerp(dayC, day)
     .lerp(duskC, dusk * 0.55);
-  const look = R.levelLook(V.S);
+  const look = R.levelLook(V.S),
+    lk = updateLook(
+      day,
+      dusk,
+      { x: P.x + FR.x, z: P.z + FR.z },
+      V.S.weather.storm ? kindOf((R.stormOfNow(V.S) || {}).name) : null,
+    ); // the palette in force (C6); null indoors
   if (R.isDark(V.S) || look) {
     // underground: no sky, and you see only as far as your light reaches (a level with a glow of its own is lit by it)
     const lit = R.stat(V.S, 'nightSight', 0) > 0,
@@ -314,15 +321,16 @@ function frame() {
   const storm = V.S.weather.storm;
   WIND.time.value = still ? 0 : performance.now() / 1000;
   WIND.strength.value = lerp(WIND.strength.value, storm ? 2.6 : 1, 0.02);
-  if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
+  if (lk) skyC.copy(lk.c.fog);
+  else if (storm) skyC.lerp(stormC, 0.6).multiplyScalar(0.5 + 0.5 * day);
   scene.background.copy(skyC);
   scene.fog.color.copy(skyC);
   const sight = R.stat(V.S, 'nightSight', 0) > 0,
-    far = Math.min(storm ? 85 : lerp(sight ? 260 : 110, 620, day), Q.margin * TS * 0.95); // never past the drawn land
+    far = Math.min((storm ? 85 : lerp(sight ? 260 : 110, 620, day)) * (lk ? lk.reach : 1), Q.margin * TS * 0.95); // never past the drawn land
   shown.far = lerp(shown.far, far, 0.05);
   scene.fog.far = shown.far;
   scene.fog.near = Math.min(40, shown.far * 0.2);
-  lightOutdoors(h, day, dusk, skyC, !!storm, sight);
+  lightOutdoors(h, day, dusk, skyC, !!storm, sight, lk);
   // the sun shines the same way from wherever the player is, so its shadows follow them
   sun.position.x += P.x;
   sun.position.z += P.z;

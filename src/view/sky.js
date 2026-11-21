@@ -4,6 +4,7 @@
 import { P, R, V } from './ctx.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { camera, scene } from './scene.js';
+import { NOW } from './mood.js';
 
 const SKY_R = 1800;
 let dome = null,
@@ -15,7 +16,7 @@ let dome = null,
 // A dome whose vertices are the fog's colour at the horizon, so the land fades into it exactly, shading to a deeper blue
 // overhead and warming round the sun. Its few vertices are recoloured each frame (paintDome), which costs nothing.
 function makeDome() {
-  const g = new THREE.SphereGeometry(SKY_R, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2 + 0.15),
+  const g = new THREE.SphereGeometry(SKY_R, 24, 18, 0, Math.PI * 2, 0, Math.PI / 2 + 0.15),
     pos = g.attributes.position;
   g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
   const m = new THREE.Mesh(
@@ -31,6 +32,7 @@ const ZENITH_DAY = new THREE.Color(0x4f86cf),
   GLOW_LOW = new THREE.Color(0xffb070),
   GLOW_HIGH = new THREE.Color(0xfff4dc),
   zen = new THREE.Color(),
+  haze = new THREE.Color(),
   glowC = new THREE.Color(),
   vc = new THREE.Color(),
   sd = new THREE.Vector3();
@@ -39,10 +41,20 @@ function paintDome(skyColor, sunPos, day, storm) {
     pos = g.attributes.position,
     col = g.attributes.color,
     painted = lookOn('light');
-  zen
-    .copy(ZENITH_NIGHT)
-    .lerp(ZENITH_DAY, day)
-    .lerp(skyColor, storm ? 0.85 : 0.35);
+  if (NOW.look)
+    zen.copy(NOW.look.c.zenith); // the look's own sky (C6)
+  else
+    zen
+      .copy(ZENITH_NIGHT)
+      .lerp(ZENITH_DAY, day)
+      .lerp(skyColor, storm ? 0.85 : 0.35);
+  if (NOW.look) {
+    // the band between: the zenith lightened toward the horizon's brightness, keeping the zenith's hue
+    const lz = zen.r * 0.3 + zen.g * 0.59 + zen.b * 0.11,
+      lh = skyColor.r * 0.3 + skyColor.g * 0.59 + skyColor.b * 0.11;
+    haze.copy(zen).multiplyScalar(Math.min(2.5, (lz * 0.4 + lh * 0.6) / Math.max(0.02, lz)));
+    haze.lerp(skyColor, 0.25);
+  }
   sd.copy(sunPos).normalize();
   const low = 1 - Math.min(1, Math.max(0, sd.y) * 2.5); // 1 when the sun is on the horizon
   glowC.copy(GLOW_HIGH).lerp(GLOW_LOW, low);
@@ -57,7 +69,13 @@ function paintDome(skyColor, sunPos, day, storm) {
       const k = 1 - 0.38 * Math.pow(up, 0.8);
       vc.setRGB(skyColor.r * k * 0.92, skyColor.g * k * 0.97, Math.min(1, skyColor.b * k * 1.08));
     } else {
-      vc.copy(skyColor).lerp(zen, Math.pow(up, 0.6));
+      if (NOW.look) {
+        // three stops (C6): the horizon, a pale band of the zenith's own colour, the zenith; a straight mix of a warm
+        // horizon and a blue zenith would pass through a muddy green
+        const t = Math.pow(up, 0.55);
+        if (t < 0.35) vc.copy(skyColor).lerp(haze, t / 0.35);
+        else vc.copy(haze).lerp(zen, (t - 0.35) / 0.65);
+      } else vc.copy(skyColor).lerp(zen, Math.pow(up, 0.6));
       const toward = Math.max(0, x * sd.x + y * sd.y + z * sd.z);
       vc.lerp(glowC, glowK * Math.pow(toward, 6));
     }
@@ -194,11 +212,14 @@ function updateClouds(on, skyColor, sunPos, day, storm, dt) {
   if (!on) return;
   const t = performance.now() / 1000,
     low = 1 - Math.min(1, Math.max(0, sunPos.y / 300) * 2.5);
-  cTint
-    .setRGB(1, 1, 1)
-    .lerp(cDusk, low * day * 0.7)
-    .lerp(cNight, 1 - day);
-  if (storm) cTint.lerp(cStorm, 0.7);
+  if (NOW.look) cTint.copy(NOW.look.c.cloud);
+  else {
+    cTint
+      .setRGB(1, 1, 1)
+      .lerp(cDusk, low * day * 0.7)
+      .lerp(cNight, 1 - day);
+    if (storm) cTint.lerp(cStorm, 0.7);
+  }
   for (const m of clouds.children) {
     const a = m.userData.a + t * 0.004; // drifting round, slowly
     m.position.set(

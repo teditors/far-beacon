@@ -3,6 +3,7 @@
    build and its parts, the save's size and memory where the browser reports it. Turned on from Menu, Settings. It reads numbers the view already has, so when
    it is off it costs one comparison per frame. */
 import { SET } from './quality.js';
+import { NOW } from './mood.js';
 
 const PF = {
   work: 0,
@@ -119,7 +120,8 @@ function perfFrame(renderer) {
     ' KB' +
     mem +
     ' | ' +
-    SET.quality;
+    SET.quality +
+    (NOW.look ? '\nlook: ' + NOW.look.names.join(', ') + (NOW.look.turned ? ' (turned ' + NOW.look.turned + '°)' : '') : '');
   PF.t0 = now;
   PF.frames = 0;
   PF.sum = 0;

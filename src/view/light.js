@@ -21,8 +21,9 @@ const PAL = {
 };
 const tmp = C(0);
 /* Outdoors. h: hour of the day (0-24); day: 0 at night to 1 by day; dusk: how near dawn or dusk; skyC: the sky's colour
-   now; storm: whether a storm blows; sight: whether the traveller sees in the dark. */
-function lightOutdoors(h, day, dusk, skyC, storm, sight) {
+   now; storm: whether a storm blows; sight: whether the traveller sees in the dark; lk: the look in force (C6, mood.js),
+   whose sun, shade and bounce colours replace the fixed ones here. */
+function lightOutdoors(h, day, dusk, skyC, storm, sight, lk) {
   if (!lookOn('light')) {
     // the old light, to compare
     hemi.color.setHex(0xdfe7ee);
@@ -46,16 +47,27 @@ function lightOutdoors(h, day, dusk, skyC, storm, sight) {
     hemi.groundColor.lerp(PAL.storm, 0.3);
   }
   hemi.intensity = lerp(sight ? 0.55 : 0.42, storm ? 0.75 : 0.5, day) + dusk * 0.22;
+  if (lk) {
+    // the look's palette: a sun, the sky's light in the shade, the light thrown up by the ground
+    hemi.color.copy(lk.c.shade);
+    hemi.groundColor.copy(lk.c.bounce);
+    hemi.intensity *= lk.fillK;
+  }
   if (day > 0.02) {
     // the sun: orange when low, nearly white when high
     sun.color.copy(PAL.sunLow).lerp(PAL.sunHigh, Math.min(1, up * 2.2));
     if (dusk > 0) sun.color.lerp(PAL.sunLow, dusk * 0.5);
     sun.intensity = (0.3 + 0.85 * Math.min(1, up * 2.5)) * day * (storm ? 0.3 : 1);
+    if (lk) {
+      sun.color.copy(lk.c.sun);
+      sun.intensity *= lk.sunK;
+    }
     sun.position.set(-Math.cos(sa) * 300, Math.max(25, sy * 300), 120);
   } else {
     // the moon, opposite the sun, as the sky shows it (sky.js)
     sun.color.copy(PAL.moon);
-    sun.intensity = storm ? 0.05 : 0.28;
+    sun.intensity = (storm ? 0.05 : 0.28) * (lk ? lk.sunK : 1);
+    if (lk) sun.color.copy(lk.c.sun);
     sun.position.set(Math.cos(sa) * 300, Math.max(60, Math.abs(sy) * 300), -120);
   }
 }

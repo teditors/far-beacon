@@ -17,6 +17,55 @@ there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session
 
 The page was 774 KB.
 
+## C6.2: the look in data: palettes rolled from the land, the hour and the world
+
+**What it is.** How a place looks is now content (`src/content/looks.js`), resolved by a small pure module
+(`src/view/look.js`, no Three.js, tested in Node) and put into the frame by `mood.js`. A look is a palette (the sky
+overhead and at the horizon, the fog, the sun, the shade's fill light, the light bounced from the ground, the clouds,
+the colour grade's lift and gain, the ink) and a few numbers of style (sun and fill strength, saturation, contrast,
+bands, softness, how far the eye sees, ink lines, outlines, paper grain, vignette; the later pieces use these). It is
+built in layers, each naming only what it changes and how hard it pulls:
+
+1. **the climate by day**: temperate clear and green, wet grey-green and soft, hot bleached gold with lilac shade (the
+   Journey trick: warm light, cool violet shade), cold steel blue, ashen ash and ember, steppe wide and straw-gold;
+2. **this world's turn of it**: every colour of the climate turned in hue and saturation by a roll of the world's seed,
+   within a range per climate that leans toward pleasing turns (a taiga steel blue in one world, violet-grey in another;
+   a desert toward rose rather than lime);
+3. **a rare look** for a whole world (5%) or one country away from home (4%): sepia, all reds, verdigris, the violet
+   hour, ivory, indigo noon;
+4. **another world's** style and palette (C6.4 makes the style);
+5. **the year** (a drought bleaches, a hard winter blues, a long summer gilds, a year of long nights turns violet...);
+6. **the great trouble**, faintly everywhere (20%: a tyrant's iron red, a plague's fevered yellow, the deep king's
+   violet), and **a curse** strongly on the cursed country (75%, sickly green);
+7. **the country's rare trait** (burned lands ash-grey with an ember sun, hallowed ones gold, silent ones drained of
+   colour, glowing ones teal in the shade...);
+8. **the weather**: every storm greys, then rain, snow, dust, hail, ash or star-fall adds its own;
+9. **dusk** (gold, with a rose horizon and a violet zenith) and **night** (deep blue).
+
+The light takes its sun, shade and bounce colours from it; the sky dome its zenith (with a pale band between horizon
+and zenith, so a gold horizon and a blue zenith do not mix to mud); the fog and the far land its horizon; the clouds
+their colour; the finish (Low and up) its grade: saturation, contrast, the darks leaning toward the lift colour and
+lifted a little into it (shade the colour of the air, never black), the lights toward the gain colour, the vignette.
+Near a border the looks of the biomes either side are mixed by their share of the land, as the sky was. Indoors and in
+levels nothing changes. With the meter on, the look's layers are named under it ("look: Steel blue, Hard blue, Gold
+dusk (turned 12°)").
+
+**Switch.** `look` ("Palettes rolled from the land, the hour and the world"), in Menu, Settings. Its menus are in
+the Almanac ("The look"); `tests/pieces.test.js` checks that every climate, year, rare country and trouble it names is
+real, that a world always rolls the same look and worlds differ, that night is dark, dusk warm, storms grey, curses
+green, other worlds in clean line, and that rare looks come about as often as they should.
+
+**Numbers.** Colour only: the same draw calls and triangles; frames within the noise.
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 87 | 77 | 106,492 | 111.9 |
+| Low | 388 | 117 | 571,746 | 411.4 |
+| Medium | 366 | 116 | 571,744 | 397.9 |
+| High | 362 | 121 | 648,132 | 472.7 |
+
+**Verdict.** Pearl, and the base of everything after it.
+
 ## C6.1: the levels moved up, a fallback that comes by itself, and pictures for the phone
 
 **What it is.**
