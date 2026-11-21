@@ -18,6 +18,11 @@ now fixtures), and the bot wins as often as before.
 | C4.7 | Fixtures from v0.14 and from inside the new places; the door drawn; how to play; `bench.py places` | (tests, view) | small |
 | C4.8 | Kin: the windborn fly by nature, the merrow breathe water; offered only where the sky or the sea is | `kin` | maybe-to-pearl |
 | C4.9 | Other worlds have dungeons of their own; the plot's places inside levels are drawn | `realms`, (view) | small |
+| C4.10 | Fix: a floating town's trader froze the screen (Andrew) | | fix |
+| C4.11 | No more black screens (errors shown, the game runs on, a rescue); an explorer fuzz through every kind of place | (view, tests) | pearl |
+| C4.12 | Wayfarers: water-carriers, mapmakers, pilgrims, trappers and the lost, at fires in the wilds | `wayfarers` | pearl |
+| C4.13 | Old worlds deepen: a world made before gains its dungeons and sky places once | `deepen` | small, for Andrew's game |
+| C4.14 | A gold ring on the map where the goal leads next | (view) | pearl, on a phone |
 
 **The limits** (node, `--expose-gc`; god mode walking every place):
 - **How deep a dungeon can go**: as deep as you like, as far as the rules go. Each walked level adds about **2.1 KB to

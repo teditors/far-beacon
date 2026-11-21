@@ -134,6 +134,13 @@ Every place you walk into is an area; commission 4 added four kinds of level and
   list, which every piece fills through `PLACES`; world settings are plain options, `newGame(seed, off, set)`, kept
   in `s.gen` where they differ from `content/worldset.js`, and read with `genOf(s)` (the playtest takes `SET=`).
 
+## When something goes wrong
+
+`src/view/oops.js` is the safety net: the frame loop asks for its next frame before anything else, and walking,
+building, drawing, actions and panels each run through `guard()`, so an error never freezes the page or leaves it
+black. It is shown in a note with a button to copy it, and Menu then offers `R.rescue` (back to the well). Errors
+the player sends on are worth a test in `tests/explore.js` or `tests/c4.test.js`.
+
 ## The phone budget
 
 The game must run on a phone. `src/view/quality.js` holds the graphics presets (Low / Medium / High) and the device's
@@ -173,6 +180,7 @@ More hooks, added by later pieces on the commission/1 branch:
 | `LEVELS`, `ENTRANCES` | hooks.js | the stair down for a kind of level; how a level is entered from its parent |
 | `OBJECTIVES` | hooks.js | turn a goal into the way to it first (another world's door) |
 | `emit(s, 'mapBuilt' / 'heldPlaced')` | areas.js, route.js | add to a map as it is built; learn where a held thing went |
+| `AFTER_LOAD` | hooks.js | change a save once it has loaded and been upgraded (old worlds deepen) |
 
 Each piece's checks are a block in `tests/pieces.test.js`, and its menus a section in `tools/almanac.js`.
 
@@ -229,6 +237,7 @@ node tools/check.js          everything, including a 40-world playtest and the b
 | state.test.js | non-deterministic worlds, saves that load differently, broken world invariants; warns when world generation changes for existing seeds (accept with `--update`) |
 | fuzz.js | crashes and impossible values under random play, with save and reload along the way |
 | quest.js | every rolled quest shape can actually be completed |
+| explore.js | random play in every kind of place (reached by god mode) in worlds made to have everything, pressing every button and opening every dialog, saving and loading: catches anything the screen could trip over |
 | c4.test.js | commission 4: god mode, world settings, dungeons, packed maps, the sky, the sea, other worlds, and each trouble that goes below, above, under or beyond followed by its route to the end |
 | playtest.js | a bot plays honestly and reports win rate and causes of death; a balance thermometer, not a pass or fail |
 | smoke.py | the built page in a real browser: create, walk, panels, town, a fight, reload, with no page errors |
