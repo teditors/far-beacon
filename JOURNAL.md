@@ -24,6 +24,27 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.2: painted ground, and textures made in code
+
+**What it is.** `src/view/paint.js` makes every texture when the page starts, from seeded noise and brush strokes: no
+image files. The ground has one 128 x 128 texture whose four channels are four kinds of grain: grass (short upright
+blades over a mottle), grains for sand, salt, mud and ash (speckle and wind ripples), rock (broad facets and cracks)
+and snow or still water (soft drifts and glitter). Each point of the land carries four weights, read from its colour
+and slope (`surfaceOf`), and the ground's shader mixes the four by them: every kind of ground gets its own grain for
+one texture fetch. The grain fades with distance, where it would only shimmer. The same file makes 64 x 64 grey
+textures for built and worn things (stone in courses, brick, planks, thatch, roof tiles, cloth, plaster), multiplied
+into a surface's own colour, so a culture keeps its colours; they are used from C5.4 on.
+
+Reading the kind of ground from its colour rather than from the biome means generated biomes and rare strange-hued
+lands get the right grain with no content change.
+
+**Switch.** `paint` ("Painted textures"); on Low there is no grain at all, as before (`Q.grain`).
+
+**Numbers.** Low 64 ms build, 67 calls, 81,780 triangles, 61.6 ms a frame; Medium 92 / 81 / 152,038 / 119.1; High
+203 / 91 / 284,062 / 180.5. No measurable cost against C5.1. Page 618 KB.
+
+**Verdict.** Pearl: near ground now reads as grass, sand or snow at a glance, for nothing.
+
 ## C5.1: light, and land without triangles
 
 **What it is.** The land is smooth: each point of the ground has a normal from the slope around it, so light rolls over

@@ -4,6 +4,7 @@ const clampI = (i, n) => (i < 0 ? 0 : i > n ? n : i);
 import { EW, MARGIN, PAD, SINK, makeTerrainG } from './terrain.js';
 import { Q, lookOn } from './quality.js';
 import { PF, perfBuild } from './perf.js';
+import { groundMaterial, paintOn, surfaceOf } from './paint.js';
 
 /* ---------- scene ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: Q.aa, powerPreference: 'high-performance' });
@@ -872,7 +873,10 @@ function* buildLand(S, timed) {
       keep = HALF - g.cell * 1.5,
       inner = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
     const smooth = lookOn('light'),
+      painted = paintOn(),
       NR = smooth ? new Float32Array(cnt * 3) : null,
+      SF = painted ? new Float32Array(cnt * 4) : null,
+      sw = [0, 0, 0, 0],
       H = (ix, iz) => g.h[clampI(iz, n) * N1 + clampI(ix, n)];
     for (let iz = 0; iz <= n; iz++) {
       const z = -g.half + iz * g.cell;
@@ -902,6 +906,11 @@ function* buildLand(S, timed) {
             bulge = clamp((g.h[k] - around) / (g.cell * 0.9), -1, 1),
             steep = 1 - d / nl;
           shade = 1 + bulge * 0.16 - steep * 0.22;
+          if (painted) {
+            // what kind of ground this is, for its painted grain (paint.js)
+            surfaceOf(c, steep, sw);
+            SF.set(sw, k * 4);
+          }
         }
         col[k * 3] = c.r * shade;
         col[k * 3 + 1] = c.g * shade;
@@ -941,10 +950,11 @@ function* buildLand(S, timed) {
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     // with the old light, no vertex normals: flat shading takes each face's from the screen
     if (smooth) geo.setAttribute('normal', new THREE.BufferAttribute(NR, 3));
+    if (painted) geo.setAttribute('surf', new THREE.BufferAttribute(SF, 4));
     const mat = smooth
-      ? new THREE.MeshLambertMaterial({ vertexColors: true })
+      ? groundMaterial()
       : new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
-    if (Q.grain) {
+    if (Q.grain && !painted) {
       // a fine pattern of light and dark in the ground, about every six metres, so near ground reads as ground
       const tex = GRAIN.clone();
       tex.needsUpdate = true;
