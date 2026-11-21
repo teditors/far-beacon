@@ -4528,9 +4528,9 @@
     let a = seed | 0;
     return () => {
       a = a + 1831565813 | 0;
-      let t = Math.imul(a ^ a >>> 15, a | 1);
-      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      let t2 = Math.imul(a ^ a >>> 15, a | 1);
+      t2 ^= t2 + Math.imul(t2 ^ t2 >>> 7, t2 | 61);
+      return ((t2 ^ t2 >>> 14) >>> 0) / 4294967296;
     };
   }
   function stream(seed, name) {
@@ -4540,9 +4540,9 @@
   }
   function srand(s) {
     s.rng = s.rng + 1831565813 | 0;
-    let t = Math.imul(s.rng ^ s.rng >>> 15, s.rng | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    let t2 = Math.imul(s.rng ^ s.rng >>> 15, s.rng | 1);
+    t2 ^= t2 + Math.imul(t2 ^ t2 >>> 7, t2 | 61);
+    return ((t2 ^ t2 >>> 14) >>> 0) / 4294967296;
   }
   var listeners = {};
   function on(type, fn) {
@@ -4629,16 +4629,16 @@
   function learn(s, axis) {
     if (s.civKnown[axis]) return;
     s.civKnown[axis] = true;
-    const t = traitText(axis, s.civ[axis]);
+    const t2 = traitText(axis, s.civ[axis]);
     say(
       s,
       {
-        habit: "Ruins of the " + s.civ.name + ", " + t.label.toLowerCase() + ". ",
-        age: t.label + ". ",
-        style: "The " + s.civ.name + " were " + t.label.toLowerCase() + ". ",
+        habit: "Ruins of the " + s.civ.name + ", " + t2.label.toLowerCase() + ". ",
+        age: t2.label + ". ",
+        style: "The " + s.civ.name + " were " + t2.label.toLowerCase() + ". ",
         affinity: "Their sign is the " + trait(s, "affinity").name + ". ",
-        doom: "Their end: " + t.label.toLowerCase() + ". "
-      }[axis] + t.text,
+        doom: "Their end: " + t2.label.toLowerCase() + ". "
+      }[axis] + t2.text,
       "good"
     );
     emit(s, "learned", { axis, id: s.civ[axis] });
@@ -4666,13 +4666,13 @@
     }
     return out;
   }
-  function unpackGrid(t) {
-    if (typeof t !== "string" || t[0] !== "~") return t;
-    const end = t.indexOf("~", 1), vals = t.slice(1, end).split("|").map(Number), out = [];
-    for (let i = end + 1; i < t.length; ) {
-      const v = vals[LETTERS.indexOf(t[i++])];
+  function unpackGrid(t2) {
+    if (typeof t2 !== "string" || t2[0] !== "~") return t2;
+    const end = t2.indexOf("~", 1), vals = t2.slice(1, end).split("|").map(Number), out = [];
+    for (let i = end + 1; i < t2.length; ) {
+      const v = vals[LETTERS.indexOf(t2[i++])];
       let n = 0;
-      while (i < t.length && t.charCodeAt(i) >= 48 && t.charCodeAt(i) <= 57) n = n * 10 + t.charCodeAt(i++) - 48;
+      while (i < t2.length && t2.charCodeAt(i) >= 48 && t2.charCodeAt(i) <= 57) n = n * 10 + t2.charCodeAt(i++) - 48;
       for (let k = Math.max(1, n); k > 0; k--) out.push(v);
     }
     return out;
@@ -4741,11 +4741,11 @@
   }
   var TOWN_R = 2;
   var TOWN_GATE = { x: W / 2, y: H - 1 };
-  var townId = (t) => t && t.id || "town";
+  var townId = (t2) => t2 && t2.id || "town";
   var allTowns = (s) => (s.town ? [s.town] : []).concat(s.towns || []);
-  var townById = (s, id) => allTowns(s).find((t) => townId(t) === id) || null;
-  var townArea = (s, t) => (t || s.town) && (t || s.town).area || HOME;
-  var townInRegion = (s, regionId2) => allTowns(s).find((t) => townArea(s, t) === regionId2) || null;
+  var townById = (s, id) => allTowns(s).find((t2) => townId(t2) === id) || null;
+  var townArea = (s, t2) => (t2 || s.town) && (t2 || s.town).area || HOME;
+  var townInRegion = (s, regionId2) => allTowns(s).find((t2) => townArea(s, t2) === regionId2) || null;
   function curTown(s) {
     const rec = areaRec(s);
     if (rec && rec.kind === "town") return townById(s, rec.id) || s.town;
@@ -4753,15 +4753,15 @@
     while (o && o.kind !== "region" && o.from) o = s.areas[o.from.area];
     return o && townInRegion(s, o.id) || s.town;
   }
-  function withTown(s, t, fn) {
-    if (!t || t === s.town) return fn();
+  function withTown(s, t2, fn) {
+    if (!t2 || t2 === s.town) return fn();
     const was = s.town, wasC = s.townCulture;
-    s.town = t;
-    s.townCulture = t.culture;
+    s.town = t2;
+    s.townCulture = t2.culture;
     try {
       return fn();
     } finally {
-      t.culture = s.townCulture;
+      t2.culture = s.townCulture;
       s.town = was;
       s.townCulture = wasC;
     }
@@ -4769,32 +4769,32 @@
   var townSfx = (s) => s.town && s.town.id ? ":" + s.town.id : "";
   var inTown = (s) => areaRec(s).kind === "town";
   var townBlockAt = (s, x, y) => {
-    const t = townInRegion(s, s.area);
-    return t && Math.abs(x - t.x) <= TOWN_R && Math.abs(y - t.y) <= TOWN_R ? t : null;
+    const t2 = townInRegion(s, s.area);
+    return t2 && Math.abs(x - t2.x) <= TOWN_R && Math.abs(y - t2.y) <= TOWN_R ? t2 : null;
   };
   var inTownBlock = (s, x, y) => !!townBlockAt(s, x, y);
-  var townDoor = (s, t) => ({ x: (t || s.town).x, y: (t || s.town).y + TOWN_R + 1 });
+  var townDoor = (s, t2) => ({ x: (t2 || s.town).x, y: (t2 || s.town).y + TOWN_R + 1 });
   var TOWN_SPAN = W / (2 * TOWN_R + 1);
-  function townEntry(s, px, py, ox2, oy2, t) {
-    t = t || townBlockAt(s, ox2, oy2) || s.town;
-    const bx = ox2 - (t.x - TOWN_R), by = oy2 - (t.y - TOWN_R), mid = (b) => Math.min(W - 1, Math.floor((b + 0.5) * TOWN_SPAN));
-    if (px < t.x - TOWN_R) return { x: 0, y: mid(by) };
-    if (px > t.x + TOWN_R) return { x: W - 1, y: mid(by) };
-    if (py < t.y - TOWN_R) return { x: mid(bx), y: 0 };
+  function townEntry(s, px, py, ox2, oy2, t2) {
+    t2 = t2 || townBlockAt(s, ox2, oy2) || s.town;
+    const bx = ox2 - (t2.x - TOWN_R), by = oy2 - (t2.y - TOWN_R), mid = (b) => Math.min(W - 1, Math.floor((b + 0.5) * TOWN_SPAN));
+    if (px < t2.x - TOWN_R) return { x: 0, y: mid(by) };
+    if (px > t2.x + TOWN_R) return { x: W - 1, y: mid(by) };
+    if (py < t2.y - TOWN_R) return { x: mid(bx), y: 0 };
     return { x: mid(bx), y: H - 1 };
   }
-  function townExit(s, tx, ty, dx, dy, t) {
-    t = t || curTown(s);
-    const o = (v) => Math.min(2 * TOWN_R, Math.max(0, Math.floor(v / TOWN_SPAN))), x0 = t.x - TOWN_R, y0 = t.y - TOWN_R;
+  function townExit(s, tx, ty, dx, dy, t2) {
+    t2 = t2 || curTown(s);
+    const o = (v) => Math.min(2 * TOWN_R, Math.max(0, Math.floor(v / TOWN_SPAN))), x0 = t2.x - TOWN_R, y0 = t2.y - TOWN_R;
     if (dx < 0) return { x: x0 - 1, y: y0 + o(ty) };
-    if (dx > 0) return { x: t.x + TOWN_R + 1, y: y0 + o(ty) };
+    if (dx > 0) return { x: t2.x + TOWN_R + 1, y: y0 + o(ty) };
     if (dy < 0) return { x: x0 + o(tx), y: y0 - 1 };
-    return { x: x0 + o(tx), y: t.y + TOWN_R + 1 };
+    return { x: x0 + o(tx), y: t2.y + TOWN_R + 1 };
   }
   function ensureTown(s) {
-    for (const t of allTowns(s)) {
-      const id = townId(t);
-      if (!s.areas[id]) s.areas[id] = { id, kind: "town", indoor: true, name: t.name };
+    for (const t2 of allTowns(s)) {
+      const id = townId(t2);
+      if (!s.areas[id]) s.areas[id] = { id, kind: "town", indoor: true, name: t2.name };
       buildArea(s, s.areas[id]);
     }
   }
@@ -4850,8 +4850,8 @@
         for (let dx = -1; dx <= 1; dx++) {
           const id = regionId(s, wrap(here2.cx + dx, s.world.cols), wrap(here2.cy + dy, s.world.rows));
           out.add(id);
-          const t = townInRegion(s, id);
-          if (t) out.add(townId(t));
+          const t2 = townInRegion(s, id);
+          if (t2) out.add(townId(t2));
         }
     if (rec.from) out.add(rec.from.area);
     return out;
@@ -5114,15 +5114,15 @@
     const ax = itemAffixes(it);
     for (const a of ax) mods = mods.concat(a.mods);
     const pw = it.art && C.artifacts ? byId(C.artifacts.powers, it.art) : null;
-    let t = b.weapon ? b.weapon.dice[0] + "d" + b.weapon.dice[1] + " damage" + (b.weapon.finesse ? ", uses Dexterity" : "") : "";
+    let t2 = b.weapon ? b.weapon.dice[0] + "d" + b.weapon.dice[1] + " damage" + (b.weapon.finesse ? ", uses Dexterity" : "") : "";
     {
       const dm = describeMods(mods);
-      t += (t && dm ? ", " : "") + dm;
+      t2 += (t2 && dm ? ", " : "") + dm;
     }
-    if (pw) t = pw.text + (t ? " Also: " + t : "");
+    if (pw) t2 = pw.text + (t2 ? " Also: " + t2 : "");
     for (const a of ax)
-      if (a.wtMul !== void 0) t += (t ? ", " : "") + (a.wtMul === 0 ? "weighs nothing" : "weighs " + a.wtMul + " times normal");
-    return t;
+      if (a.wtMul !== void 0) t2 += (t2 ? ", " : "") + (a.wtMul === 0 ? "weighs nothing" : "weighs " + a.wtMul + " times normal");
+    return t2;
   }
   var describeUse = (u) => Object.keys(u).map((k) => (u[k] > 0 ? "+" : "") + u[k] + " " + (k === "hp" ? "hit points" : k)).join(", ");
 
@@ -5135,17 +5135,17 @@
     8: { name: "open air", wall: true, moveMin: 0, moveSta: 0, mods: [] },
     9: { name: "deep water", deep: true, moveMin: 12, moveSta: 1.4, wet: 6, mods: [] }
   };
-  function terrainInfo(s, t) {
-    if (t >= WALL) return INDOOR_GROUND[t];
+  function terrainInfo(s, t2) {
+    if (t2 >= WALL) return INDOOR_GROUND[t2];
     const b = biomeOf(s);
-    if (t < 3)
+    if (t2 < 3)
       return {
-        name: ["flat ground", "hills", "mountains"][t],
-        moveMin: s.tun.moveMin[TERR[t]],
-        moveSta: s.tun.moveSta[TERR[t]],
+        name: ["flat ground", "hills", "mountains"][t2],
+        moveMin: s.tun.moveMin[TERR[t2]],
+        moveSta: s.tun.moveSta[TERR[t2]],
         mods: []
       };
-    return b[TERR[t]];
+    return b[TERR[t2]];
   }
   var groundHere = (s) => terrainInfo(s, s.terrain[here(s)]);
   var siteHere = (s) => s.sites[here(s)] || null;
@@ -5400,9 +5400,9 @@
     return it ? { it, w: byId(C.bases, it.base).weapon } : { it: null, w: { dice: [1, 3] } };
   }
   function roll(s, n, sides) {
-    let t = 0;
-    for (let i = 0; i < n; i++) t += 1 + Math.floor(srand(s) * sides);
-    return t;
+    let t2 = 0;
+    for (let i = 0; i < n; i++) t2 += 1 + Math.floor(srand(s) * sides);
+    return t2;
   }
 
   // src/rules/exotics.js
@@ -6043,7 +6043,7 @@
   function makeTownRec(s, r, x, y, race) {
     const T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
     race = race || pick(C.races.filter((e) => !e.exotic && !e.roster));
-    const t = {
+    const t2 = {
       x,
       y,
       name: pick(T2.a) + pick(T2.b),
@@ -6054,14 +6054,14 @@
       stock: [],
       speech: []
     };
-    while (t.merchant === t.elder) t.merchant = pick(race.names);
-    for (const b of T2.staples) t.stock.push(makeItem(s, b, null, null, true));
+    while (t2.merchant === t2.elder) t2.merchant = pick(race.names);
+    for (const b of T2.staples) t2.stock.push(makeItem(s, b, null, null, true));
     for (let i = 0; i < T2.stock; i++) {
       const it = genItem(s, { noConsumables: i < 3 });
       it.known = true;
-      t.stock.push(it);
+      t2.stock.push(it);
     }
-    return t;
+    return t2;
   }
   function makeQuest(s, r, townP, vaultP, a0, goalP) {
     const Q2 = C.quest, T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
@@ -6141,7 +6141,7 @@
           dir: o.at ? dirFrom(worldPos(s), homePos(s, o.at.area, o.at.x, o.at.y).x, homePos(s, o.at.area, o.at.x, o.at.y).y) : null
         };
     }
-    const q = s.quest, t = s.town, v = findSite(s, "vault"), wp = worldPos(s), toWorld = (p) => p.area ? dirFrom(wp, homePos(s, p.area, p.x, p.y).x, homePos(s, p.area, p.x, p.y).y) : dirFrom(wp, p.x, p.y), toHere = (p) => dirTo(s, p.x, p.y), vaultName = q.vault.name, inVault = areaRec(s).kind === "vault";
+    const q = s.quest, t2 = s.town, v = findSite(s, "vault"), wp = worldPos(s), toWorld = (p) => p.area ? dirFrom(wp, homePos(s, p.area, p.x, p.y).x, homePos(s, p.area, p.x, p.y).y) : dirFrom(wp, p.x, p.y), toHere = (p) => dirTo(s, p.x, p.y), vaultName = q.vault.name, inVault = areaRec(s).kind === "vault";
     const loose = (base, what) => {
       const l = findLoose(s, base);
       if (!l) return null;
@@ -6181,7 +6181,7 @@
     if (!q.told)
       return {
         text: s.area === "town" ? "Talk to the elder" : "Find the town",
-        dir: s.area === "town" ? toHere(findHere(s, "elder")) : toWorld({ area: townArea(s), x: t.x, y: t.y })
+        dir: s.area === "town" ? toHere(findHere(s, "elder")) : toWorld({ area: townArea(s), x: t2.x, y: t2.y })
       };
     if (q.key === "beast") {
       const b = beastOf(s);
@@ -6193,7 +6193,7 @@
   function talkElder(s) {
     if (s.over || !atTown(s)) return false;
     if (curTown(s) !== s.town) return talkOtherElder(s);
-    const q = s.quest, t = s.town, v = findSite(s, "vault"), sp = t.speech = [];
+    const q = s.quest, t2 = s.town, v = findSite(s, "vault"), sp = t2.speech = [];
     if (PLOT_HOOKS.storyTalk && PLOT_HOOKS.storyTalk(s, sp)) return true;
     if (!q.told) {
       q.told = true;
@@ -6243,7 +6243,7 @@
         sp.push('"What else do we remember of the ' + s.civ.name + "? Only this: " + tx.label.toLowerCase() + ". " + tx.text + '"');
       }
       gainXp(s, 30);
-      say(s, t.elder + ", elder of " + t.name + ", tells you what this land needs. Your goal is under the meters.", "good");
+      say(s, t2.elder + ", elder of " + t2.name + ", tells you what this land needs. Your goal is under the meters.", "good");
     } else {
       const o = objective(s);
       sp.push('"' + o.text + (o.dir && o.dir !== "here" ? ", to the " + o.dir : "") + '. Nothing has changed, traveller."');
@@ -6253,8 +6253,8 @@
   var ELDER_TALK = [];
   var PLOT_HOOKS = { storyTalk: null, objective: null, relicWins: () => true, relicSideDone: null };
   function talkOtherElder(s) {
-    const t = curTown(s), sp = t.speech = [];
-    for (const f of ELDER_TALK) f(s, t, sp);
+    const t2 = curTown(s), sp = t2.speech = [];
+    for (const f of ELDER_TALK) f(s, t2, sp);
     if (!sp.length) {
       const m = s.town;
       if (!s.quest.told) {
@@ -6264,38 +6264,38 @@
         );
       } else sp.push('"Rest here, traveller. ' + m.name + ' sent you, I think; the road goes on from here."');
     }
-    if (!t.met) {
-      t.met = true;
+    if (!t2.met) {
+      t2.met = true;
       gainXp(s, 10);
     }
-    say(s, t.elder + ", elder of " + t.name + ", speaks with you.");
+    say(s, t2.elder + ", elder of " + t2.name + ", speaks with you.");
     return true;
   }
   function buy(s, id) {
     if (s.over || !atTown(s)) return false;
-    const t = curTown(s), i = t.stock.findIndex((x) => x.id === id);
+    const t2 = curTown(s), i = t2.stock.findIndex((x) => x.id === id);
     if (i < 0) return false;
-    const price3 = buyPrice(s, t.stock[i]);
+    const price3 = buyPrice(s, t2.stock[i]);
     if (s.player.coin < price3) {
       say(s, "You cannot afford that.");
       return false;
     }
     s.player.coin -= price3;
-    const it = t.stock.splice(i, 1)[0];
+    const it = t2.stock.splice(i, 1)[0];
     s.player.items.push(it);
     autoEquip(s, it);
     say(s, "You buy the " + itemName(it) + " for " + price3 + " coin.");
     return true;
   }
   function buyFuel(s) {
-    const t = curTown(s);
-    if (s.over || !atTown(s) || t.fuel < 1) return false;
+    const t2 = curTown(s);
+    if (s.over || !atTown(s) || t2.fuel < 1) return false;
     if (s.player.coin < priceOf(s, "fuelPrice")) {
       say(s, "You cannot afford that.");
       return false;
     }
     s.player.coin -= priceOf(s, "fuelPrice");
-    t.fuel--;
+    t2.fuel--;
     s.player.fuel += 1;
     return true;
   }
@@ -6362,22 +6362,22 @@
     return true;
   }
   function enterTown(s, ox2, oy2, at) {
-    const t = townBlockAt(s, ox2, oy2);
-    if (s.over || !t) return false;
-    const st = s.sites[idx(t.x, t.y)] || {}, id = townId(t);
-    let p = townEntry(s, s.player.x, s.player.y, ox2, oy2, t);
+    const t2 = townBlockAt(s, ox2, oy2);
+    if (s.over || !t2) return false;
+    const st = s.sites[idx(t2.x, t2.y)] || {}, id = townId(t2);
+    let p = townEntry(s, s.player.x, s.player.y, ox2, oy2, t2);
     if (at && (at.x === p.x || at.y === p.y) && at.x >= 0 && at.y >= 0 && at.x < W && at.y < H) p = { x: at.x, y: at.y };
     if (mapOf(s, id).terrain[idx(p.x, p.y)] === WALL) {
-      say(s, "The wall of " + t.name + ". " + (t.walled ? "Its gates are where the streets meet the wall." : ""));
+      say(s, "The wall of " + t2.name + ". " + (t2.walled ? "Its gates are where the streets meet the wall." : ""));
       return false;
     }
-    enterArea(s, id, { kind: "town", indoor: true, name: t.name }, p);
+    enterArea(s, id, { kind: "town", indoor: true, name: t2.name }, p);
     if (!st.entered) {
       st.entered = true;
       gainXp(s, 20);
       say(
         s,
-        "You walk into " + t.name + "." + (s.quest.told || t !== s.town ? "" : " The elder will be at the hall on the north side of the square.")
+        "You walk into " + t2.name + "." + (s.quest.told || t2 !== s.town ? "" : " The elder will be at the hall on the north side of the square.")
       );
       emit(s, "townEntered", { town: id });
     }
@@ -6632,8 +6632,8 @@
       say(s, "You can see nothing through the " + stormOf(s).name + ".");
       return false;
     }
-    const t = s.terrain[here(s)], blindG = groundHere(s).blind;
-    let rad = (blindG ? 1.5 : [3, 5, 7, 3, 3, 4][t]) + (blindG ? 0 : stat(s, "surveyRadius", 0));
+    const t2 = s.terrain[here(s)], blindG = groundHere(s).blind;
+    let rad = (blindG ? 1.5 : [3, 5, 7, 3, 3, 4][t2]) + (blindG ? 0 : stat(s, "surveyRadius", 0));
     if (!clock(s).isDay && stat(s, "nightSight", 0) <= 0) rad = Math.min(rad, 1.5);
     rad = Math.max(1.5, rad);
     advance(s, 30, "rest");
@@ -6642,7 +6642,7 @@
     if (!n)
       say(
         s,
-        blindG ? "The trees hide everything. Survey from open ground." : "You study the land" + (t === 0 ? ". Higher ground would show more." : " and add it to your map.")
+        blindG ? "The trees hide everything. Survey from open ground." : "You study the land" + (t2 === 0 ? ". Higher ground would show more." : " and add it to your map.")
       );
     return true;
   }
@@ -7256,15 +7256,15 @@
     sites[idx(entry.x, entry.y - 1 >= start3.y ? entry.y - 1 : entry.y)] = { kind: lvl === 1 ? "exit" : "stairsUp" };
     rec.entry = { x: entry.x, y: entry.y };
     const tier = Math.min(3, lvl), others = rooms.filter((o) => o !== start3 && o !== far), pickRoom = () => others[Math.floor(r() * others.length)] || far, spot2 = (o) => {
-      for (let t = 0; t < 30; t++) {
+      for (let t2 = 0; t2 < 30; t2++) {
         const x = o.x + Math.floor(r() * o.w), y = o.y + Math.floor(r() * o.h), i = idx(x, y);
         if (!sites[i] && !depots[i] && !creatures.some((c) => c.x === x && c.y === y)) return { x, y };
       }
       return { x: o.cx, y: o.cy };
     };
     let cid = 200 + lvl * 10;
-    const guard2 = (o, t) => {
-      const p = spot2(o), c = makeCreature(s, cid++, s.quest.guardSp, p.x, p.y, t);
+    const guard2 = (o, t2) => {
+      const p = spot2(o), c = makeCreature(s, cid++, s.quest.guardSp, p.x, p.y, t2);
       creatures.push(c);
       return c;
     };
@@ -7342,8 +7342,8 @@
   function rollYear(seed, off) {
     if (off && off.year) return null;
     const r = stream(seed, "year"), pickW = (list) => {
-      let t = list.reduce((a, e) => a + (e.w || 1), 0) * r();
-      for (const e of list) if ((t -= e.w || 1) < 0) return e;
+      let t2 = list.reduce((a, e) => a + (e.w || 1), 0) * r();
+      for (const e of list) if ((t2 -= e.w || 1) < 0) return e;
       return list[list.length - 1];
     };
     return r() < Y().rareChance ? pickW(Y().rare) : pickW(Y().common);
@@ -7527,9 +7527,9 @@
       for (let k = 0; k < n; k++) {
         const x0 = 3 + Math.floor(k * (W - 6) / n), x1 = 3 + Math.floor((k + 1) * (W - 6) / n);
         for (let tries = 0; tries < 300; tries++) {
-          const x = x0 + Math.floor(rS() * Math.max(1, x1 - x0)), y = clamp(1 + Math.floor((k % 2 + rS()) * (H - 2) / 2), 1, H - 2), t = terrain[idx(x, y)];
-          if (t === 2 || t >= 4 || !free(x, y)) continue;
-          if (want !== void 0 && t !== want && tries < 150) continue;
+          const x = x0 + Math.floor(rS() * Math.max(1, x1 - x0)), y = clamp(1 + Math.floor((k % 2 + rS()) * (H - 2) / 2), 1, H - 2), t2 = terrain[idx(x, y)];
+          if (t2 === 2 || t2 >= 4 || !free(x, y)) continue;
+          if (want !== void 0 && t2 !== want && tries < 150) continue;
           sites[idx(x, y)] = mk();
           break;
         }
@@ -8112,8 +8112,8 @@
   // src/rules/towns.js
   var T = () => C.townCulture;
   var cultureOf = (s) => {
-    const t = curTown(s);
-    return t === s.town ? s.townCulture : t.culture;
+    const t2 = curTown(s);
+    return t2 === s.town ? s.townCulture : t2.culture;
   };
   var partsOf = (s) => {
     const c = cultureOf(s);
@@ -8148,7 +8148,7 @@
   on("worldBorn", (s, d) => {
     if (!d.off.towns) rollCulture(s, stream(s.seed, "townCulture"));
   });
-  TOWN_MAKERS.push((s, t, r) => {
+  TOWN_MAKERS.push((s, t2, r) => {
     if (!s.off.towns) rollCulture(s, r);
   });
   SOURCES.push({
@@ -8235,9 +8235,9 @@
     const kind2 = pick(X8.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X8.liarChance, giver = pick(X8.givers) + (liar ? " " + pick(X8.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
     let fill3 = { region: byId(C.biomes, rec.biome).name, reward };
     if (kind2.id === "slay") {
-      const live2 = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
-      if (!live2.length) return false;
-      const c = pick(live2);
+      const live3 = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
+      if (!live3.length) return false;
+      const c = pick(live3);
       Object.assign(e, { cid: c.id, x: c.x, y: c.y });
       fill3.species = s.species[c.sp].name;
       fill3.victims = pick(kind2.victims);
@@ -8351,7 +8351,7 @@
   });
   function fallStar(s) {
     const r = stream(s.seed, "star:" + Math.round(s.weather.changeAt));
-    for (let t = 0; t < 40; t++) {
+    for (let t2 = 0; t2 < 40; t2++) {
       const x = Math.round(s.player.x + (r() - 0.5) * 10), y = Math.round(s.player.y + (r() - 0.5) * 10), k = idx(x, y);
       if (x < 1 || y < 1 || x > W - 2 || y > H - 2 || s.sites[k] || s.terrain[k] === 2 || s.terrain[k] >= 4) continue;
       if (Math.abs(x - s.player.x) + Math.abs(y - s.player.y) < 2) continue;
@@ -8496,7 +8496,7 @@
     if (k.sleep) {
       for (const c of m.creatures) if (!c.warden) c.cool = 1e9;
     }
-    if (k.reveal) m.seen = m.terrain.map((t) => t === 7 ? 1 : 0);
+    if (k.reveal) m.seen = m.terrain.map((t2) => t2 === 7 ? 1 : 0);
     return m;
   }
   function rollQuirk(s, name, last2) {
@@ -8640,9 +8640,9 @@
   Object.assign(SITE_NAME, { folk: "townsperson", grave: "grave" });
   function rollLife(s, r) {
     const X8 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
-    let t = X8.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X8.sizes[0];
+    let t2 = X8.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X8.sizes[0];
     for (const e of X8.sizes)
-      if ((t -= e.w) < 0) {
+      if ((t2 -= e.w) < 0) {
         size = e;
         break;
       }
@@ -8662,7 +8662,7 @@
   on("worldBorn", (s, d) => {
     if (!d.off.townlife) rollLife(s, stream(s.seed, "townlife"));
   });
-  TOWN_MAKERS.push((s, t, r) => {
+  TOWN_MAKERS.push((s, t2, r) => {
     if (!s.off.townlife) rollLife(s, r);
   });
   var oldTown = GENERATORS.town;
@@ -8734,7 +8734,7 @@
     let li = 0;
     for (const q of queue) if (order[li]) build(order[li++], q);
     if (size.graveyard && order[li]) {
-      const lot = order[li++], sp = s.species.filter((x) => !x.named), fill4 = (t) => t.replace("{storm}", byId(C.biomes, s.biome).storm.name).replace("{species}", sp.length ? pick(sp).name : "wolf").replace("{dir}", pick(["north", "south", "east", "west"])).replace("{site}", pick(["spring", "ruin", "cave"])), nm = byId(C.races, s.town.race).names;
+      const lot = order[li++], sp = s.species.filter((x) => !x.named), fill4 = (t2) => t2.replace("{storm}", byId(C.biomes, s.biome).storm.name).replace("{species}", sp.length ? pick(sp).name : "wolf").replace("{dir}", pick(["north", "south", "east", "west"])).replace("{site}", pick(["spring", "ruin", "cave"])), nm = byId(C.races, s.town.race).names;
       lot.cells.forEach(([x, y], i) => {
         if ((x + y) % 2 === 0 && i % 2 === 0)
           sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill4(pick(X8.epitaphs)) };
@@ -8834,8 +8834,8 @@
     return out.length && srand(s) < 0.8 ? pick(out)() : pick(L2().flavour);
   }
   function serviceInfo(s) {
-    for (const t of TALK) {
-      const i = t.info(s);
+    for (const t2 of TALK) {
+      const i = t2.info(s);
       if (i) return i;
     }
     const st = siteHere(s);
@@ -8908,7 +8908,7 @@
     return { title: st.name + ", " + sv.role, text, options: opt };
   }
   function useService(s, optId, arg) {
-    for (const t of TALK) if (t.info(s)) return t.use(s, optId, arg);
+    for (const t2 of TALK) if (t2.info(s)) return t2.use(s, optId, arg);
     const info = serviceInfo(s), o = info && info.options.find((x) => x.id === optId && (arg === void 0 || x.arg === arg));
     if (!o || s.over) return false;
     const p = s.player;
@@ -9047,9 +9047,9 @@
     const r = stream(s.seed, "roster"), W8 = X2().offer.weights, draw = (list, n) => {
       const pool = list.slice(), out = [];
       while (out.length < n && pool.length) {
-        let t = pool.reduce((a, e) => a + W8[kind(e)], 0) * r();
+        let t2 = pool.reduce((a, e) => a + W8[kind(e)], 0) * r();
         let k = 0;
-        for (; k < pool.length - 1; k++) if ((t -= W8[kind(pool[k])]) < 0) break;
+        for (; k < pool.length - 1; k++) if ((t2 -= W8[kind(pool[k])]) < 0) break;
         out.push(pool.splice(k, 1)[0].id);
       }
       return out;
@@ -9109,10 +9109,10 @@
     fn(s, dt, ctx) {
       for (const e of parts(s))
         if (e.tick) {
-          const t = Object.assign({}, e.tick);
-          if (ctx.activity !== "move") delete t.stamina;
-          for (const k in t) t[k] *= dt;
-          gain(s, t);
+          const t2 = Object.assign({}, e.tick);
+          if (ctx.activity !== "move") delete t2.stamina;
+          for (const k in t2) t2[k] *= dt;
+          gain(s, t2);
         }
     }
   });
@@ -9281,8 +9281,8 @@
   // src/rules/tiers.js
   ITEM_HOOKS.push((s, it) => {
     if (s.off.tiers || !it.pre && !it.suf && !it.mark || !s.player) return;
-    const rec = outdoorRec(s), danger = rec && rec.cx !== void 0 ? sketchOf(s, rec.cx, rec.cy).danger : 0, deep = areaRec(s).kind === "vault" && areaRec(s).level === areaRec(s).levels ? 1 : 0, t = Math.min(C.tiers.max, 1 + danger + deep);
-    if (t > 1) it.tier = t;
+    const rec = outdoorRec(s), danger = rec && rec.cx !== void 0 ? sketchOf(s, rec.cx, rec.cy).danger : 0, deep = areaRec(s).kind === "vault" && areaRec(s).level === areaRec(s).levels ? 1 : 0, t2 = Math.min(C.tiers.max, 1 + danger + deep);
+    if (t2 > 1) it.tier = t2;
   });
   SWITCHES.push(["tiers", "Finer things far from home"]);
 
@@ -9290,9 +9290,9 @@
   var Z = () => C.worldSize;
   function rollSize(seed) {
     const r = stream(seed, "worldsize"), shapes = Z().shapes;
-    let t = shapes.reduce((a, e) => a + e.w, 0) * r(), sh = shapes[shapes.length - 1];
+    let t2 = shapes.reduce((a, e) => a + e.w, 0) * r(), sh = shapes[shapes.length - 1];
     for (const e of shapes)
-      if ((t -= e.w) < 0) {
+      if ((t2 -= e.w) < 0) {
         sh = e;
         break;
       }
@@ -9341,7 +9341,7 @@
   }
   function spot(m, r, hw, hd, near) {
     let best = null;
-    for (let t = 0; t < 600; t++) {
+    for (let t2 = 0; t2 < 600; t2++) {
       const x = 3 + hw + Math.floor(r() * (W - 6 - 2 * hw)), y = 3 + hw + Math.floor(r() * (H - 6 - hw - hd));
       let ok = true;
       for (let j = -hw - 1; j <= hd + 1 && ok; j++)
@@ -9411,9 +9411,9 @@
     };
     const dist2 = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
     const well = { area: HOME, x: s.start.x, y: s.start.y };
-    const t = r() < HOME_TOWN_CHANCE ? null : move2("town", 0, 2, 3, well);
-    if (t) Object.assign(s.town, t);
-    const townAt = t ? { area: t.area, x: t.x, y: t.y + 3 } : well;
+    const t2 = r() < HOME_TOWN_CHANCE ? null : move2("town", 0, 2, 3, well);
+    if (t2) Object.assign(s.town, t2);
+    const townAt = t2 ? { area: t2.area, x: t2.x, y: t2.y + 3 } : well;
     let keyAt = townAt;
     if (s.quest.key === "ruin") {
       const m = regionMap(s, take(3)), ref = inFrame(townAt, 3), ruins = Object.keys(m.sites).filter((k) => m.sites[k].kind === "ruin").sort((a, b) => dist2({ x: a % W, y: Math.floor(a / W) }, ref) - dist2({ x: b % W, y: Math.floor(b / W) }, ref));
@@ -9533,19 +9533,19 @@
     }
     if (!p) return null;
     flatten(m, p.x, p.y, 2, 3);
-    const id = "t_" + rec.id, t = makeTownRec(s, r, p.x, p.y);
-    for (let k = 0; k < 6 && allTowns(s).some((o) => o.name === t.name); k++)
-      t.name = C.town.a[Math.floor(r() * C.town.a.length)] + C.town.b[Math.floor(r() * C.town.b.length)];
-    t.id = id;
-    t.area = rec.id;
+    const id = "t_" + rec.id, t2 = makeTownRec(s, r, p.x, p.y);
+    for (let k = 0; k < 6 && allTowns(s).some((o) => o.name === t2.name); k++)
+      t2.name = C.town.a[Math.floor(r() * C.town.a.length)] + C.town.b[Math.floor(r() * C.town.b.length)];
+    t2.id = id;
+    t2.area = rec.id;
     m.sites[idx(p.x, p.y)] = { kind: "town", town: id };
-    (s.towns = s.towns || []).push(t);
+    (s.towns = s.towns || []).push(t2);
     const rt = stream(s.seed, "town:" + id);
-    withTown(s, t, () => {
-      for (const f of TOWN_MAKERS) f(s, t, rt);
+    withTown(s, t2, () => {
+      for (const f of TOWN_MAKERS) f(s, t2, rt);
     });
     ensureTown(s);
-    return t;
+    return t2;
   }
   on("worldBorn", (s, d) => {
     if (d.off.moretowns) return;
@@ -9560,7 +9560,7 @@
     (s) => (s.towns || []).length ? [
       {
         label: "Towns",
-        text: allTowns(s).map((t) => t.name).join(", ") + ". Each has its own elder, inn and shop, and its own troubles."
+        text: allTowns(s).map((t2) => t2.name).join(", ") + ". Each has its own elder, inn and shop, and its own troubles."
       }
     ] : []
   );
@@ -9610,8 +9610,8 @@
         for (let dx = -r; dx <= r; dx++) {
           const xx = x + dx, yy = y + dy;
           if (xx < 1 || yy < 1 || xx >= W - 1 || yy >= H - 1) continue;
-          const t = m.terrain[idx(xx, yy)];
-          if (t !== 2 && t < 6 && !m.sites[idx(xx, yy)]) return { x: xx, y: yy };
+          const t2 = m.terrain[idx(xx, yy)];
+          if (t2 !== 2 && t2 < 6 && !m.sites[idx(xx, yy)]) return { x: xx, y: yy };
         }
     return { x, y };
   }
@@ -9637,20 +9637,20 @@
           go: (s2) => jumpRegion(s2, cx, cy)
         });
       }
-    for (const t of allTowns(s)) {
-      const id = townId(t);
+    for (const t2 of allTowns(s)) {
+      const id = townId(t2);
       out.push({
         id: "town:" + id,
         group: "Towns",
-        label: t.name,
+        label: t2.name,
         go: (s2) => {
-          const rec = s2.areas[townArea(s2, t)];
+          const rec = s2.areas[townArea(s2, t2)];
           if (!rec) return false;
-          const d = townDoor(s2, t);
-          jumpRegion(s2, rec.cx, rec.cy, d.x, d.y, t.realm);
+          const d = townDoor(s2, t2);
+          jumpRegion(s2, rec.cx, rec.cy, d.x, d.y, t2.realm);
           s2.player.x = d.x;
           s2.player.y = d.y;
-          return enterTown(s2, t.x, t.y + 2) || true;
+          return enterTown(s2, t2.x, t2.y + 2) || true;
         }
       });
     }
@@ -9696,7 +9696,7 @@
     const set = ev.set || genOf(s), r = stream(s.seed, "deeps"), X8 = D2(), w = s.world, pick = (a) => a[Math.floor(r() * a.length)], most = Math.max(1, set.depth), list = [];
     let n = 0;
     const add = (area, at) => {
-      const themes = X8.themes.filter((t2) => t2.entry.includes(at)), t = pick(themes), [lo, hi] = X8.depth, depth = clamp(lo + Math.floor(r() * (hi - lo + 1)), 1, most), unused = t.names.filter((nm) => !list.some((o) => o.name === nm || o.name === "the Lower " + nm.slice(4))), name = unused.length ? pick(unused) : "the Lower " + pick(t.names).slice(4), d = { id: "d" + n++, theme: t.id, name, area, at, depth };
+      const themes = X8.themes.filter((t3) => t3.entry.includes(at)), t2 = pick(themes), [lo, hi] = X8.depth, depth = clamp(lo + Math.floor(r() * (hi - lo + 1)), 1, most), unused = t2.names.filter((nm) => !list.some((o) => o.name === nm || o.name === "the Lower " + nm.slice(4))), name = unused.length ? pick(unused) : "the Lower " + pick(t2.names).slice(4), d = { id: "d" + n++, theme: t2.id, name, area, at, depth };
       list.push(d);
       return d;
     };
@@ -9706,7 +9706,7 @@
         let k = Math.floor(per) + (r() < per - Math.floor(per) ? 1 : 0);
         for (; k > 0; k--) add(regionId(s, cx, cy), r() < 0.5 ? "cave" : "ruin");
       }
-    for (const t of [s.town].concat(s.towns || [])) if (t && r() < X8.townChance * set.dungeons) add(townId(t), "town");
+    for (const t2 of [s.town].concat(s.towns || [])) if (t2 && r() < X8.townChance * set.dungeons) add(townId(t2), "town");
     const deepest = list.slice().sort((a, b) => b.depth - a.depth)[0];
     if (deepest && deepest.depth >= 3 && !ev.off.artifacts) deepest.prize = makeArtifact(s, stream(s.seed, "deeps:art"), []);
     s.deeps = list;
@@ -9729,8 +9729,8 @@
         const town = d.at === "town", free = [];
         for (let y = 3; y < H - 3; y++)
           for (let x = 3; x < W - 3; x++) {
-            const i = idx(x, y), t = m.terrain[i];
-            if (m.sites[i] || (town ? t !== FLOOR : t === 2 || t >= 4)) continue;
+            const i = idx(x, y), t2 = m.terrain[i];
+            if (m.sites[i] || (town ? t2 !== FLOOR : t2 === 2 || t2 >= 4)) continue;
             if (town && ![idx(x + 1, y), idx(x - 1, y), idx(x, y + 1), idx(x, y - 1)].some((j) => m.terrain[j] === WALL)) continue;
             if (town && Math.abs(x - 18) <= 7 && Math.abs(y - 18) <= 7) continue;
             let near = false;
@@ -9764,24 +9764,24 @@
   var inner = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1;
   var LAYOUTS = {
     rooms(r) {
-      const t = blank2(WALL), rooms = [];
+      const t2 = blank2(WALL), rooms = [];
       for (let tries = 0; tries < 300 && rooms.length < 10; tries++) {
         const w = 4 + Math.floor(r() * 5), h = 4 + Math.floor(r() * 5), x = 2 + Math.floor(r() * (W - w - 4)), y = 2 + Math.floor(r() * (H - h - 4));
         if (rooms.some((o) => x < o.x + o.w + 2 && x + w + 2 > o.x && y < o.y + o.h + 2 && y + h + 2 > o.y)) continue;
         rooms.push({ x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) });
       }
-      for (const o of rooms) for (let y = o.y; y < o.y + o.h; y++) for (let x = o.x; x < o.x + o.w; x++) t[idx(x, y)] = FLOOR;
+      for (const o of rooms) for (let y = o.y; y < o.y + o.h; y++) for (let x = o.x; x < o.x + o.w; x++) t2[idx(x, y)] = FLOOR;
       rooms.sort((a, b) => a.cx - b.cx);
-      for (let i = 1; i < rooms.length; i++) corridor(t, rooms[i - 1], rooms[i], r() < 0.5);
-      return t;
+      for (let i = 1; i < rooms.length; i++) corridor(t2, rooms[i - 1], rooms[i], r() < 0.5);
+      return t2;
     },
     halls(r) {
-      const t = blank2(WALL), cells = [];
+      const t2 = blank2(WALL), cells = [];
       for (let gy = 0; gy < 4; gy++)
         for (let gx = 0; gx < 4; gx++) {
           if (r() < 0.2) continue;
           const x = 2 + gx * 8, y = 2 + gy * 8, cx = x + 3, cy = y + 3;
-          for (let j = 0; j < 7; j++) for (let i = 0; i < 7; i++) t[idx(x + i, y + j)] = FLOOR;
+          for (let j = 0; j < 7; j++) for (let i = 0; i < 7; i++) t2[idx(x + i, y + j)] = FLOOR;
           if (r() < 0.7)
             for (const [i, j] of [
               [2, 2],
@@ -9789,32 +9789,32 @@
               [2, 4],
               [4, 4]
             ])
-              t[idx(x + i, y + j)] = WALL;
+              t2[idx(x + i, y + j)] = WALL;
           cells.push({ gx, gy, cx, cy });
         }
       for (const a of cells)
         for (const b of cells)
-          if (b.gx === a.gx + 1 && b.gy === a.gy || b.gy === a.gy + 1 && b.gx === a.gx) corridor(t, a, b, true);
-      for (let i = 1; i < cells.length; i++) corridor(t, cells[i - 1], cells[i], r() < 0.5);
-      return t;
+          if (b.gx === a.gx + 1 && b.gy === a.gy || b.gy === a.gy + 1 && b.gx === a.gx) corridor(t2, a, b, true);
+      for (let i = 1; i < cells.length; i++) corridor(t2, cells[i - 1], cells[i], r() < 0.5);
+      return t2;
     },
     caves(r) {
-      let t = blank2(WALL);
-      for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (r() < 0.55) t[idx(x, y)] = FLOOR;
+      let t2 = blank2(WALL);
+      for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (r() < 0.55) t2[idx(x, y)] = FLOOR;
       for (let pass = 0; pass < 4; pass++) {
-        const n = t.slice();
+        const n = t2.slice();
         for (let y = 1; y < H - 1; y++)
           for (let x = 1; x < W - 1; x++) {
             let walls = 0;
-            for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (t[idx(x + i, y + j)] === WALL) walls++;
+            for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (t2[idx(x + i, y + j)] === WALL) walls++;
             n[idx(x, y)] = walls >= 5 ? WALL : FLOOR;
           }
-        t = n;
+        t2 = n;
       }
-      return t;
+      return t2;
     },
     tunnels(r) {
-      const t = blank2(WALL);
+      const t2 = blank2(WALL);
       let x = 18, y = 18, dir = Math.floor(r() * 4), dug = 0;
       const D4 = [
         [1, 0],
@@ -9823,15 +9823,15 @@
         [0, -1]
       ];
       for (let step2 = 0; step2 < 4e3 && dug < W * H * 0.3; step2++) {
-        if (t[idx(x, y)] === WALL) dug++;
-        t[idx(x, y)] = FLOOR;
+        if (t2[idx(x, y)] === WALL) dug++;
+        t2[idx(x, y)] = FLOOR;
         if (r() < 0.12) dir = (dir + (r() < 0.5 ? 1 : 3)) % 4;
         if (r() < 0.015) {
           for (let j = -1; j <= 1; j++)
             for (let i = -2; i <= 2; i++)
               if (inner(x + i, y + j)) {
-                if (t[idx(x + i, y + j)] === WALL) dug++;
-                t[idx(x + i, y + j)] = FLOOR;
+                if (t2[idx(x + i, y + j)] === WALL) dug++;
+                t2[idx(x + i, y + j)] = FLOOR;
               }
         }
         const nx = x + D4[dir][0], ny = y + D4[dir][1];
@@ -9842,12 +9842,12 @@
         x = nx;
         y = ny;
       }
-      return t;
+      return t2;
     }
   };
-  function corridor(t, a, b, horizFirst) {
+  function corridor(t2, a, b, horizFirst) {
     let x = a.cx, y = a.cy;
-    const dig2 = () => t[idx(x, y)] = FLOOR;
+    const dig2 = () => t2[idx(x, y)] = FLOOR;
     if (horizFirst) {
       while (x !== b.cx) x += Math.sign(b.cx - x), dig2();
       while (y !== b.cy) y += Math.sign(b.cy - y), dig2();
@@ -9856,7 +9856,7 @@
       while (x !== b.cx) x += Math.sign(b.cx - x), dig2();
     }
   }
-  function distFrom(t, start3) {
+  function distFrom(t2, start3) {
     const dist = blank2(-1), q = [start3];
     dist[start3] = 0;
     for (let h = 0; h < q.length; h++) {
@@ -9864,7 +9864,7 @@
       for (const j of [i + 1, i - 1, i + W, i - W]) {
         const xx = j % W, yy = Math.floor(j / W);
         if (j < 0 || j >= W * H || Math.abs(xx - x) + Math.abs(yy - y) !== 1) continue;
-        if (t[j] === FLOOR && dist[j] < 0) {
+        if (t2[j] === FLOOR && dist[j] < 0) {
           dist[j] = dist[i] + 1;
           q.push(j);
         }
@@ -9924,7 +9924,7 @@
     for (let i = 0; i < W * H; i++) if (dist[i] < 0) terrain[i] = WALL;
     const far = floors.filter((i) => dist[i] >= 0).reduce((a, b) => dist[b] > dist[a] ? b : a, start3), sites = {}, depots = {}, creatures = [], taken = (i) => sites[i] || depots[i] || creatures.some((c) => idx(c.x, c.y) === i) || i === start3;
     const open = floors.filter((i) => dist[i] >= 0), spot2 = (minD) => {
-      for (let t = 0; t < 60; t++) {
+      for (let t2 = 0; t2 < 60; t2++) {
         const i = open[Math.floor(r() * open.length)];
         if (!taken(i) && dist[i] >= minD) return i;
       }
@@ -10182,8 +10182,8 @@
   }
   function deepDoor(s, d) {
     if (d.x === void 0) {
-      const t = townById(s, d.area);
-      if (t) withTown(s, t, () => mapOf(s, d.area));
+      const t2 = townById(s, d.area);
+      if (t2) withTown(s, t2, () => mapOf(s, d.area));
       else {
         const rec = s.areas[d.area], o = d.area.match(/^(o\d+):r(\d+)_(\d+)$/), c = d.area.match(/^r(\d+)_(\d+)$/);
         if (o)
@@ -10293,8 +10293,8 @@
     const set = ev.set || genOf(s), r = stream(s.seed, "sky");
     if (!(r() < set.sky)) return;
     const X8 = K(), w = s.world, pickW = (list2) => {
-      let t = list2.reduce((a, e) => a + e.weight, 0) * r();
-      for (const e of list2) if ((t -= e.weight) < 0) return e;
+      let t2 = list2.reduce((a, e) => a + e.weight, 0) * r();
+      for (const e of list2) if ((t2 -= e.weight) < 0) return e;
       return list2[0];
     }, n = X8.places[0] + Math.floor(r() * (X8.places[1] - X8.places[0] + 1)), regions = [];
     for (let cy = 0; cy < w.rows; cy++)
@@ -10334,9 +10334,9 @@
     s.skies = list;
     const F2 = X8.firstFlight, deepest = deepsOf(s).slice().sort((a, b) => b.depth - a.depth)[0], boots = makeItem(s, "wingboots", null, null, true);
     if (r() < F2.shop || !deepest) {
-      const towns = allTowns(s), t = towns[Math.floor(r() * towns.length)];
-      t.stock.push(boots);
-      s.skyShop = t.id || "town";
+      const towns = allTowns(s), t2 = towns[Math.floor(r() * towns.length)];
+      t2.stock.push(boots);
+      s.skyShop = t2.id || "town";
     } else (deepest.extra = deepest.extra || []).push(boots);
     for (const id in s.areas) {
       const m = s.areas[id].map || id === s.area ? mapOf(s, id) : null;
@@ -10348,8 +10348,8 @@
     for (const k of skiesOf(s)) {
       if (k.area !== area) continue;
       let i = idx(k.x, k.y);
-      for (let t = 0; t < 40 && (m.sites[i] || m.terrain[i] >= 4 || m.terrain[i] === 2); t++)
-        i = idx(clamp(k.x + t * 7 % 9 - 4, 2, W - 3), clamp(k.y + t * 5 % 9 - 4, 2, H - 3));
+      for (let t2 = 0; t2 < 40 && (m.sites[i] || m.terrain[i] >= 4 || m.terrain[i] === 2); t2++)
+        i = idx(clamp(k.x + t2 * 7 % 9 - 4, 2, W - 3), clamp(k.y + t2 * 5 % 9 - 4, 2, H - 3));
       m.sites[i] = { kind: "shadow", sky: k.id };
       k.x = i % W;
       k.y = Math.floor(i / W);
@@ -10365,49 +10365,49 @@
   }
   var blank3 = (v) => new Array(W * H).fill(v);
   function isle(r, rad) {
-    const t = blank3(VOID), wob = [];
+    const t2 = blank3(VOID), wob = [];
     for (let a = 0; a < 16; a++) wob.push(0.75 + r() * 0.35);
     for (let y = 1; y < H - 1; y++)
       for (let x = 1; x < W - 1; x++) {
         const dx = x - 17.5, dy = y - 17.5, a = (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI) * 16, i0 = Math.floor(a) % 16, f = a - Math.floor(a), wv = wob[i0] * (1 - f) + wob[(i0 + 1) % 16] * f;
-        if (Math.hypot(dx, dy) < rad * wv) t[idx(x, y)] = FLOOR;
+        if (Math.hypot(dx, dy) < rad * wv) t2[idx(x, y)] = FLOOR;
       }
-    return t;
+    return t2;
   }
   var LAYOUTS2 = {
     isle: (r) => isle(r, 15),
     castle(r, lvl) {
-      const t = lvl === 1 ? isle(r, 15) : isle(r, 9);
+      const t2 = lvl === 1 ? isle(r, 15) : isle(r, 9);
       const k0 = lvl === 1 ? 11 : 12, k1 = lvl === 1 ? 24 : 23;
       for (let y = k0; y <= k1; y++)
-        for (let x = k0; x <= k1; x++) if (x === k0 || x === k1 || y === k0 || y === k1) t[idx(x, y)] = WALL;
+        for (let x = k0; x <= k1; x++) if (x === k0 || x === k1 || y === k0 || y === k1) t2[idx(x, y)] = WALL;
       for (let x = k0 + 1; x < k1; x++)
-        if (x % 4 === 0) for (let y = k0 + 1; y < k1 - 3; y++) t[idx(x, y)] = r() < 0.75 ? WALL : FLOOR;
-      t[idx(18, k1)] = FLOOR;
-      t[idx(17, k1)] = FLOOR;
-      return t;
+        if (x % 4 === 0) for (let y = k0 + 1; y < k1 - 3; y++) t2[idx(x, y)] = r() < 0.75 ? WALL : FLOOR;
+      t2[idx(18, k1)] = FLOOR;
+      t2[idx(17, k1)] = FLOOR;
+      return t2;
     },
     city(r) {
-      const t = isle(r, 16);
+      const t2 = isle(r, 16);
       for (let by = 6; by < 30; by += 6)
         for (let bx = 6; bx < 30; bx += 6) {
           if (Math.abs(bx - 18) < 4 && Math.abs(by - 18) < 4) continue;
           const w = 2 + Math.floor(r() * 3), h = 2 + Math.floor(r() * 3);
-          for (let y = by; y < by + h; y++) for (let x = bx; x < bx + w; x++) if (t[idx(x, y)] === FLOOR) t[idx(x, y)] = WALL;
+          for (let y = by; y < by + h; y++) for (let x = bx; x < bx + w; x++) if (t2[idx(x, y)] === FLOOR) t2[idx(x, y)] = WALL;
         }
-      return t;
+      return t2;
     },
     moon(r, lvl) {
-      const t = isle(r, lvl === 1 ? 17 : 12);
+      const t2 = isle(r, lvl === 1 ? 17 : 12);
       for (let c = 0; c < 5; c++) {
         const cx = 8 + Math.floor(r() * 20), cy = 8 + Math.floor(r() * 20), rad = 2 + r() * 3;
         for (let a = 0; a < 40; a++) {
           if (a % 9 === 0) continue;
           const x = Math.round(cx + Math.cos(a / 6.4) * rad), y = Math.round(cy + Math.sin(a / 6.4) * rad);
-          if (t[idx(x, y)] === FLOOR) t[idx(x, y)] = WALL;
+          if (t2[idx(x, y)] === FLOOR) t2[idx(x, y)] = WALL;
         }
       }
-      return t;
+      return t2;
     }
   };
   function placeSpecies(s, kd, r) {
@@ -10435,14 +10435,14 @@
     }
     return all[kd.id] || [];
   }
-  function reach(t, start3) {
+  function reach(t2, start3) {
     const d = blank3(-1), q = [start3];
     d[start3] = 0;
     for (let h = 0; h < q.length; h++) {
       const i = q[h];
       for (const j of [i + 1, i - 1, i + W, i - W]) {
         if (j < 0 || j >= W * H || Math.abs(j % W - i % W) > 1) continue;
-        if (t[j] === FLOOR && d[j] < 0) {
+        if (t2[j] === FLOOR && d[j] < 0) {
           d[j] = d[i] + 1;
           q.push(j);
         }
@@ -10460,7 +10460,7 @@
     const open = [];
     for (let i = 0; i < W * H; i++) if (dist[i] >= 0) open.push(i);
     const far = open.reduce((a, b) => dist[b] > dist[a] ? b : a, start3), taken = (i) => sites[i] || depots[i] || i === start3 || creatures.some((c) => idx(c.x, c.y) === i), spot2 = (minD) => {
-      for (let t = 0; t < 80; t++) {
+      for (let t2 = 0; t2 < 80; t2++) {
         const i = open[Math.floor(r() * open.length)];
         if (!taken(i) && dist[i] >= minD) return i;
       }
@@ -10747,7 +10747,7 @@
       for (let cx = 0; cx < world2.cols; cx++) if (at(cx, cy).danger >= 2) far.push({ cx, cy });
     if (!far.length) return;
     const [lo, hi] = S().regions, want = lo + Math.floor(r() * (hi - lo + 1)), start3 = far[Math.floor(r() * far.length)], patch = [start3];
-    for (let t = 0; t < 40 && patch.length < want; t++) {
+    for (let t2 = 0; t2 < 40 && patch.length < want; t2++) {
       const p = patch[Math.floor(r() * patch.length)], d = [
         [1, 0],
         [-1, 0],
@@ -10789,7 +10789,7 @@
     m.creatures = m.creatures.filter((c) => m.terrain[idx(c.x, c.y)] !== DEEP || c.plot || c.key || c.lair);
   }
   function seaRegion(s, rec, m) {
-    const d = distTo(m.terrain, (t) => t === 1 || t === 2, 3), deep = [];
+    const d = distTo(m.terrain, (t2) => t2 === 1 || t2 === 2, 3), deep = [];
     for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (d[idx(x, y)] >= 2) deep.push(idx(x, y));
     flood(m, deep);
     if (!Object.values(m.sites).some((st) => st.sure)) {
@@ -10833,9 +10833,9 @@
     const opts = [];
     for (let y = 3; y < H - 3; y++)
       for (let x = 3; x < W - 3; x++) {
-        const i = idx(x, y), t = m.terrain[i], nearDeep = [i + 1, i - 1, i + W, i - W].some((j) => m.terrain[j] === DEEP);
+        const i = idx(x, y), t2 = m.terrain[i], nearDeep = [i + 1, i - 1, i + W, i - W].some((j) => m.terrain[j] === DEEP);
         if (m.sites[i]) continue;
-        if (coast ? t !== DEEP && t !== 2 && t < 6 && nearDeep : t === DEEP) opts.push(i);
+        if (coast ? t2 !== DEEP && t2 !== 2 && t2 < 6 && nearDeep : t2 === DEEP) opts.push(i);
       }
     return opts.length ? opts[Math.floor(r() * opts.length)] : null;
   }
@@ -10893,14 +10893,14 @@
     const seas = seaIds(s);
     const towns = allTowns(s);
     let best = towns[0], bd = 1e9;
-    for (const t of towns) {
-      const a = s.areas[townArea(s, t)];
+    for (const t2 of towns) {
+      const a = s.areas[townArea(s, t2)];
       if (!a) continue;
       for (const id of seas) {
         const [cx, cy] = id.slice(1).split("_").map(Number), dd = Math.abs(cx - a.cx) + Math.abs(cy - a.cy);
         if (dd < bd) {
           bd = dd;
-          best = t;
+          best = t2;
         }
       }
     }
@@ -10937,28 +10937,28 @@
   var blank4 = (v) => new Array(W * H).fill(v);
   var LAYOUTS3 = {
     raft(r) {
-      const t = blank4(VOID);
+      const t2 = blank4(VOID);
       for (let by = 8; by < 28; by += 5)
         for (let bx = 8; bx < 28; bx += 5) {
           if (r() < 0.2 && !(bx === 18 && by === 18)) continue;
-          for (let y = by; y < by + 3; y++) for (let x = bx; x < bx + 4; x++) t[idx(x, y)] = FLOOR;
+          for (let y = by; y < by + 3; y++) for (let x = bx; x < bx + 4; x++) t2[idx(x, y)] = FLOOR;
         }
-      for (let y = 9; y < 28; y++) t[idx(18, y)] = FLOOR;
-      for (let x = 9; x < 28; x++) t[idx(x, 19)] = FLOOR;
-      return t;
+      for (let y = 9; y < 28; y++) t2[idx(18, y)] = FLOOR;
+      for (let x = 9; x < 28; x++) t2[idx(x, 19)] = FLOOR;
+      return t2;
     },
     halls: LAYOUTS.halls,
     rooms: LAYOUTS.rooms,
     caves: LAYOUTS.caves
   };
-  function reach2(t, start3) {
+  function reach2(t2, start3) {
     const d = blank4(-1), q = [start3];
     d[start3] = 0;
     for (let h = 0; h < q.length; h++) {
       const i = q[h];
       for (const j of [i + 1, i - 1, i + W, i - W]) {
         if (j < 0 || j >= W * H || Math.abs(j % W - i % W) > 1) continue;
-        if (t[j] === FLOOR && d[j] < 0) {
+        if (t2[j] === FLOOR && d[j] < 0) {
           d[j] = d[i] + 1;
           q.push(j);
         }
@@ -11000,7 +11000,7 @@
     const open = [];
     for (let i = 0; i < W * H; i++) if (dist[i] >= 0) open.push(i);
     const far = open.reduce((a, b) => dist[b] > dist[a] ? b : a, start3), sites = {}, depots = {}, creatures = [], taken = (i) => sites[i] || depots[i] || i === start3 || creatures.some((c) => idx(c.x, c.y) === i), spot2 = (minD) => {
-      for (let t = 0; t < 80; t++) {
+      for (let t2 = 0; t2 < 80; t2++) {
         const i = open[Math.floor(r() * open.length)];
         if (!taken(i) && dist[i] >= minD) return i;
       }
@@ -11032,9 +11032,9 @@
     emit(s, "seaBuilt", { place: p.id, level: lvl, map: m, r });
     return m;
   };
-  var hashId = (t) => {
+  var hashId = (t2) => {
     let h = 7;
-    for (let i = 0; i < t.length; i++) h = h * 31 + t.charCodeAt(i) | 0;
+    for (let i = 0; i < t2.length; i++) h = h * 31 + t2.charCodeAt(i) | 0;
     return h;
   };
   function seaLevelRec(p, n) {
@@ -11164,7 +11164,7 @@
   var doorTo = (s, rid) => doorsOf(s).find((d) => d.realm === rid) || null;
   var realmName = (s, rid) => rid && realmById(s, rid) ? realmById(s, rid).name : "home";
   function freeTile(m, r) {
-    for (let t = 0; t < 400; t++) {
+    for (let t2 = 0; t2 < 400; t2++) {
       const x = 4 + Math.floor(r() * (W - 8)), y = 4 + Math.floor(r() * (H - 8)), i = idx(x, y);
       if (m.terrain[i] === 2 || m.terrain[i] >= 4) continue;
       let ok = true;
@@ -11203,7 +11203,7 @@
       m.sites[i] = { kind: "door", back: true, realm: rid };
       door.back = { area: rec.id, x: i % W, y: Math.floor(i / W) };
       if (X4().town && w.cols * w.rows > 1) {
-        for (let t = 0; t < 6; t++) {
+        for (let t2 = 0; t2 < 6; t2++) {
           const tx = Math.floor(r() * w.cols), ty = Math.floor(r() * w.rows);
           if (tx === w.home.cx && ty === w.home.cy) continue;
           const town = addTown(s, tx, ty, r);
@@ -11243,7 +11243,7 @@
           });
         }
       }
-      for (let t = 0; t < 8; t++) {
+      for (let t2 = 0; t2 < 8; t2++) {
         const cx = Math.floor(r() * w.cols), cy = Math.floor(r() * w.rows);
         if (cx === w.home.cx && cy === w.home.cy || sketchOf(s, cx, cy).sea) continue;
         if (makeDoor(s, realm.id, cx, cy, r)) break;
@@ -11331,7 +11331,7 @@
             label: rm.name + ": " + (b ? b.name : e.biome) + " (" + cx + ", " + cy + ")",
             go: (s2) => {
               enterRealm(s2, d.realm, cx, cy, { x: 18, y: 18 });
-              for (let t = 0; t < 30 && (s2.terrain[idx(s2.player.x, s2.player.y)] === 2 || s2.terrain[idx(s2.player.x, s2.player.y)] >= 4); t++)
+              for (let t2 = 0; t2 < 30 && (s2.terrain[idx(s2.player.x, s2.player.y)] === 2 || s2.terrain[idx(s2.player.x, s2.player.y)] >= 4); t2++)
                 s2.player.x = (s2.player.x + 1) % W;
               return true;
             }
@@ -11354,7 +11354,7 @@
   }
   var heldIn = (s, areaId) => s.held && s.held[areaId] || [];
   function reachFrom(m, start3) {
-    const d = new Array(W * H).fill(-1), open = (t) => t === FLOOR || t < WALL, q = [start3];
+    const d = new Array(W * H).fill(-1), open = (t2) => t2 === FLOOR || t2 < WALL, q = [start3];
     d[start3] = 0;
     for (let h = 0; h < q.length; h++) {
       const i = q[h];
@@ -11375,35 +11375,35 @@
     for (let i = 0; i < W * H; i++) if (d[i] > 0) open.push(i);
     const far = open.reduce((a, b) => d[b] > d[a] ? b : a, open[0] || idx(e.x, e.y)), busy = (i) => m.sites[i] || (m.creatures || []).some((c) => idx(c.x, c.y) === i);
     delete s.held[ev.id];
-    for (const t of list) {
+    for (const t2 of list) {
       let i = far;
-      if (t.where === "near") {
+      if (t2.where === "near") {
         const near = open.filter(
           (j) => Math.abs(j % W - far % W) <= 3 && Math.abs(Math.floor(j / W) - Math.floor(far / W)) <= 3 && j !== far && !busy(j)
         );
         if (near.length) i = near[Math.floor(r() * near.length)];
-      } else if (t.where === "any") {
+      } else if (t2.where === "any") {
         const free = open.filter((j) => d[j] > 5 && !busy(j));
         if (free.length) i = free[Math.floor(r() * free.length)];
       }
-      if (t.site) {
-        if (m.sites[i] && t.where !== "any") {
+      if (t2.site) {
+        if (m.sites[i] && t2.where !== "any") {
           const alt = open.filter((j) => !busy(j) && !(m.depots || {})[j]).sort((a, b) => d[b] - d[a])[0];
           if (alt !== void 0) i = alt;
         }
-        m.sites[i] = t.site;
+        m.sites[i] = t2.site;
       }
-      if (t.item) {
+      if (t2.item) {
         m.depots = m.depots || {};
         const dp = m.depots[i] = m.depots[i] || { water: 0, fuel: 0, items: [] };
-        dp.items.push(t.item);
+        dp.items.push(t2.item);
       }
-      if (t.creature) {
-        t.creature.x = i % W;
-        t.creature.y = Math.floor(i / W);
-        (m.creatures = m.creatures || []).push(t.creature);
+      if (t2.creature) {
+        t2.creature.x = i % W;
+        t2.creature.y = Math.floor(i / W);
+        (m.creatures = m.creatures || []).push(t2.creature);
       }
-      emit(s, "heldPlaced", { area: ev.id, thing: t, x: i % W, y: Math.floor(i / W) });
+      emit(s, "heldPlaced", { area: ev.id, thing: t2, x: i % W, y: Math.floor(i / W) });
     }
   });
   function entranceOf(s, areaId) {
@@ -11438,9 +11438,9 @@
   function route(s, goal) {
     if (!goal) return null;
     if (goal.town) {
-      const t2 = townById(s, goal.town), area = t2 ? townArea(s, t2) : null, rec2 = areaRec(s);
+      const t3 = townById(s, goal.town), area = t3 ? townArea(s, t3) : null, rec2 = areaRec(s);
       if (rec2.kind !== "region" && rec2.kind !== "town") return Object.assign({ up: true }, wayOut(s));
-      if (area && (realmOf(s, area) || null) !== (s.realm || null)) return route(s, { area, x: t2.x, y: t2.y + 3 });
+      if (area && (realmOf(s, area) || null) !== (s.realm || null)) return route(s, { area, x: t3.x, y: t3.y + 3 });
       return goal;
     }
     if (goal.area === s.area) return { x: goal.x, y: goal.y, here: true };
@@ -11457,9 +11457,9 @@
         const o = f(s, g.outer);
         if (o && o.at) return Object.assign(localPos(s, o.at.area, o.at.x, o.at.y), { act: "stepThrough", area: o.at.area });
       }
-    const first = g.steps[0], t = first || { area: g.outer, x: goal.x, y: goal.y };
-    if (s.areas[t.area] && s.areas[t.area].kind === "town") return { town: t.area };
-    return Object.assign(localPos(s, t.area, t.x, t.y), { act: first ? first.act : null, fly: first && first.fly, area: t.area });
+    const first = g.steps[0], t2 = first || { area: g.outer, x: goal.x, y: goal.y };
+    if (s.areas[t2.area] && s.areas[t2.area].kind === "town") return { town: t2.area };
+    return Object.assign(localPos(s, t2.area, t2.x, t2.y), { act: first ? first.act : null, fly: first && first.fly, area: t2.area });
   }
 
   // src/rules/kin.js
@@ -11495,9 +11495,9 @@
       if (s.off.wayfarers || rec.id === HOME) return m;
       const r = stream(s.seed, "wayfarer:" + rec.id);
       if (!(r() < X5().chance)) return m;
-      let t = X5().kinds.reduce((a, k) => a + k.weight, 0) * r(), kind2 = X5().kinds[0];
+      let t2 = X5().kinds.reduce((a, k) => a + k.weight, 0) * r(), kind2 = X5().kinds[0];
       for (const k of X5().kinds)
-        if ((t -= k.weight) < 0) {
+        if ((t2 -= k.weight) < 0) {
           kind2 = k;
           break;
         }
@@ -11542,12 +11542,12 @@
   function nearestUnknown(s) {
     const from = worldPos(s);
     let best = null, bd = 1e9;
-    for (const t of unknownThings(s)) {
-      if (!s.areas[t.area]) continue;
-      const h = homePos(s, t.area, t.x, t.y), d = Math.hypot(h.x - from.x, h.y - from.y);
+    for (const t2 of unknownThings(s)) {
+      if (!s.areas[t2.area]) continue;
+      const h = homePos(s, t2.area, t2.x, t2.y), d = Math.hypot(h.x - from.x, h.y - from.y);
       if (d < bd) {
         bd = d;
-        best = Object.assign({ dist: d, at: h }, t);
+        best = Object.assign({ dist: d, at: h }, t2);
       }
     }
     return best;
@@ -11626,16 +11626,16 @@
         );
         moveOn(s, st, "The mapmaker rolls up the charts and goes on.");
       } else if (opt === "sign") {
-        const t = nearestUnknown(s);
-        if (t) {
-          if (!mapOf(s, t.area)) {
-            const c = t.area.match(/r(\d+)_(\d+)$/);
+        const t2 = nearestUnknown(s);
+        if (t2) {
+          if (!mapOf(s, t2.area)) {
+            const c = t2.area.match(/r(\d+)_(\d+)$/);
             if (c) ensureRegion(s, +c[1], +c[2]);
           }
-          mark(s, t.x, t.y, t.area);
+          mark(s, t2.x, t2.y, t2.area);
           say(
             s,
-            '"Off to the ' + dirFrom(worldPos(s), t.at.x, t.at.y) + ", a day or two, I saw " + t.what + '." It is on your map now.',
+            '"Off to the ' + dirFrom(worldPos(s), t2.at.x, t2.at.y) + ", a day or two, I saw " + t2.what + '." It is on your map now.',
             "good"
           );
         } else say(s, '"I have seen nothing on this road that you have not." The pilgrim smiles and says no more.');
@@ -11766,8 +11766,8 @@
     if (!R2.where) return "land";
     if (p.forceWhere && canWhere(s, p.forceWhere, R2)) return p.forceWhere;
     const opts = (typeof R2.where === "string" ? [[R2.where, 1]] : R2.where).filter(([w]) => canWhere(s, w, R2));
-    let t = opts.reduce((a, o) => a + o[1], 0) * r();
-    for (const [w, n] of opts) if ((t -= n) < 0) return w;
+    let t2 = opts.reduce((a, o) => a + o[1], 0) * r();
+    for (const [w, n] of opts) if ((t2 -= n) < 0) return w;
     return "land";
   }
   function levelPlace(s, where, R2, r, giverArea, regionAt) {
@@ -11781,13 +11781,13 @@
         if (opts.length) d = opts[Math.floor(r() * opts.length)];
       }
       if (!d) {
-        const c = regionAt(R2.dist || [1, 2], R2.far), reg = ensureRegion(s, c.cx, c.cy), th = C.deeps.themes.filter((t2) => t2.entry.includes("cave") || t2.entry.includes("ruin")), t = th[Math.floor(r() * th.length)], [lo, hi] = R2.depth || C.deeps.plotDepth, used = deepsOf(s).map((x) => x.name), free = t.names.filter((nm) => !used.includes(nm));
+        const c = regionAt(R2.dist || [1, 2], R2.far), reg = ensureRegion(s, c.cx, c.cy), th = C.deeps.themes.filter((t3) => t3.entry.includes("cave") || t3.entry.includes("ruin")), t2 = th[Math.floor(r() * th.length)], [lo, hi] = R2.depth || C.deeps.plotDepth, used = deepsOf(s).map((x) => x.name), free = t2.names.filter((nm) => !used.includes(nm));
         d = {
           id: "d" + deepsOf(s).length,
-          theme: t.id,
-          name: free.length ? free[Math.floor(r() * free.length)] : "the Lower " + t.names[0].slice(4),
+          theme: t2.id,
+          name: free.length ? free[Math.floor(r() * free.length)] : "the Lower " + t2.names[0].slice(4),
           area: reg.id,
-          at: t.entry.includes("cave") ? "cave" : "ruin",
+          at: t2.entry.includes("cave") ? "cave" : "ruin",
           depth: lo + Math.floor(r() * (hi - lo + 1))
         };
         (s.deeps = s.deeps || []).push(d);
@@ -11829,7 +11829,7 @@
   }
   function realmPlace(s, p, R2, key, r) {
     const w = s.world;
-    for (let t = 0; t < 8; t++) {
+    for (let t2 = 0; t2 < 8; t2++) {
       const cx = Math.floor(r() * w.cols), cy = Math.floor(r() * w.rows), reg = ensureRegion(s, cx, cy), m = mapOf(s, reg.id);
       if (sketchOf(s, cx, cy).sea || townInRegion(s, reg.id)) continue;
       const q = spot(m, r, 1, 1, null);
@@ -11845,17 +11845,17 @@
     return c && c.x !== void 0 ? { area: c.area, x: c.x, y: c.y } : null;
   }
   on("heldPlaced", (s, ev) => {
-    const t = ev.thing;
-    if (!t.site || !t.plot) return;
-    const p = plotById(s, t.plot);
-    if (p && p.roles[t.role]) Object.assign(p.roles[t.role], { x: ev.x, y: ev.y });
+    const t2 = ev.thing;
+    if (!t2.site || !t2.plot) return;
+    const p = plotById(s, t2.plot);
+    if (p && p.roles[t2.role]) Object.assign(p.roles[t2.role], { x: ev.x, y: ev.y });
   });
   function placeRoles(s, p, r, link) {
     const k = kindOf4(p), giverArea = townArea(s, townById(s, p.giver)), g = s.areas[giverArea] || s.areas[HOME], pick = (a) => a[Math.floor(r() * a.length)], roles = p.roles = {};
     let cid = 600 + 20 * +p.id.slice(1);
     const clear = (area, x, y, rad) => {
-      const t = townInRegion(s, area);
-      if (t && Math.max(Math.abs(t.x - x), Math.abs(t.y - y)) < rad) return false;
+      const t2 = townInRegion(s, area);
+      if (t2 && Math.max(Math.abs(t2.x - x), Math.abs(t2.y - y)) < rad) return false;
       if (area === HOME && Math.max(Math.abs(s.start.x - x), Math.abs(s.start.y - y)) < 8) return false;
       return true;
     };
@@ -11880,7 +11880,7 @@
     for (const key in k.roles || {}) {
       const R2 = k.roles[key];
       if (R2.town) {
-        const others = [s.town].concat(s.towns || []).filter((t) => townId(t) !== p.giver && !t.realm);
+        const others = [s.town].concat(s.towns || []).filter((t2) => townId(t2) !== p.giver && !t2.realm);
         if (!others.length) return false;
         roles[key] = townId(pick(others));
       } else if (R2.place) {
@@ -11928,7 +11928,7 @@
               continue;
             }
           }
-          const t = R2.near === "giver" ? townById(s, p.giver) : null, q = spot(m, r, 1, 1, t ? { x: t.x, y: t.y + 7 } : null);
+          const t2 = R2.near === "giver" ? townById(s, p.giver) : null, q = spot(m, r, 1, 1, t2 ? { x: t2.x, y: t2.y + 7 } : null);
           if (!q || !clear(rec.id, q.x, q.y, 6)) continue;
           m.sites[idx(q.x, q.y)] = { kind: R2.site, plot: p.id, role: key };
           m.creatures = m.creatures.filter(
@@ -11983,7 +11983,7 @@
             named: true
           });
           let x = at.x, y = at.y;
-          for (let t = 0; t < 30; t++) {
+          for (let t2 = 0; t2 < 30; t2++) {
             const xx = at.x + Math.round((r() - 0.5) * 4), yy = at.y + Math.round((r() - 0.5) * 4);
             if (xx < 1 || yy < 1 || xx > W - 2 || yy > H - 2 || m.terrain[idx(xx, yy)] === 2) continue;
             if (m.creatures.some((c2) => c2.x === xx && c2.y === yy) || xx === at.x && yy === at.y || !clear(at.area, xx, yy, 4))
@@ -12043,8 +12043,8 @@
   on("worldBorn", (s, d) => {
     if (d.off.plots) return;
     const r = stream(s.seed, "plots"), X8 = P2(), pickW = (list, w) => {
-      let t = list.reduce((a, e) => a + (e[w] || 0), 0) * r();
-      for (const e of list) if ((t -= e[w] || 0) < 0) return e;
+      let t2 = list.reduce((a, e) => a + (e[w] || 0), 0) * r();
+      for (const e of list) if ((t2 -= e[w] || 0) < 0) return e;
       return list[0];
     };
     s.plots = [];
@@ -12059,9 +12059,9 @@
     let mp = add(main, "town", true);
     if (!mp) mp = add(byId(X8.kinds, "relic"), "town", true);
     if (mp.kind !== "relic") add(byId(X8.kinds, "relic"), "town", false);
-    const towns = (s.towns || []).filter((t) => !t.realm), want = Math.min(towns.length, X8.side[0] + Math.floor(r() * (X8.side[1] - X8.side[0] + 1)));
+    const towns = (s.towns || []).filter((t2) => !t2.realm), want = Math.min(towns.length, X8.side[0] + Math.floor(r() * (X8.side[1] - X8.side[0] + 1)));
     for (let i = 0; i < want && towns.length; i++) {
-      const t = towns.splice(Math.floor(r() * towns.length), 1)[0];
+      const t2 = towns.splice(Math.floor(r() * towns.length), 1)[0];
       for (let tries = 0; tries < 4; tries++) {
         const kind2 = pickW(fits, "side");
         if (kind2.needs === "other" && !(s.towns || []).length) continue;
@@ -12069,7 +12069,7 @@
         const beast = s.plots.find((q) => q.kind === "beast");
         let link = null;
         if (kind2.id === "plague" && beast && r() < X8.linkChance) link = { place: "patch", item: "cure", at: beast.roles.lair };
-        const p = add(kind2, townId(t), false, link);
+        const p = add(kind2, townId(t2), false, link);
         if (p) {
           if (link) p.linked = beast.id;
           break;
@@ -12078,10 +12078,10 @@
     }
     for (const d2 of doorsOf(s)) {
       if (s.plots.some((q) => q.realm === d2.realm)) continue;
-      const free = [s.town].concat(s.towns || []).filter((t2) => !t2.realm && !s.plots.some((q) => q.giver === townId(t2) && !q.main)), t = free[Math.floor(r() * free.length)] || s.town, p = {
+      const free = [s.town].concat(s.towns || []).filter((t3) => !t3.realm && !s.plots.some((q) => q.giver === townId(t3) && !q.main)), t2 = free[Math.floor(r() * free.length)] || s.town, p = {
         id: "p" + n++,
         kind: "beyond",
-        giver: townId(t),
+        giver: townId(t2),
         main: false,
         known: false,
         step: 0,
@@ -12171,7 +12171,7 @@
   }
   var dirLocal = (s, at) => at.x === s.player.x && at.y === s.player.y ? "here" : dirFrom(s.player, at.x, at.y);
   function dirToTown(s, id) {
-    const t = townById(s, id) || s.town, h = homePos(s, townArea(s, t), t.x, t.y);
+    const t2 = townById(s, id) || s.town, h = homePos(s, townArea(s, t2), t2.x, t2.y);
     return dirFrom(worldPos(s), h.x, h.y);
   }
   function finishStep(s, p) {
@@ -12200,15 +12200,15 @@
     emit(s, "plotDone", { id: p.id, kind: k.id });
     const next = plotById(s, p.opens);
     if (next && !next.known) {
-      const t = townById(s, next.giver);
-      if (t) {
-        mark(s, t.x, t.y, townArea(s, t));
-        say(s, '"If you are the kind who helps, go to ' + t.name + '. They have trouble of their own." It is marked on your map.');
+      const t2 = townById(s, next.giver);
+      if (t2) {
+        mark(s, t2.x, t2.y, townArea(s, t2));
+        say(s, '"If you are the kind who helps, go to ' + t2.name + '. They have trouble of their own." It is marked on your map.');
       }
     }
   }
-  function plotTalk(s, t, sp) {
-    const id = townId(t);
+  function plotTalk(s, t2, sp) {
+    const id = townId(t2);
     let told = false;
     for (const p of plotsOf(s)) {
       if (p.kind === "relic") continue;
@@ -12225,7 +12225,7 @@
         const k = kindOf4(p), linked = p.linked && plotById(s, p.linked);
         if (k.days) p.due = clock(s).day + k.days;
         sp.push(fill2(s, p, linked ? k.tellHoard.replace("{beast}", linked.roles.beast.name) : k.tell));
-        const areas = new Set([townArea(s, t)].concat(p.legs || []));
+        const areas = new Set([townArea(s, t2)].concat(p.legs || []));
         for (const key in p.roles) {
           const r = p.roles[key];
           if (r && r.area) areas.add(r.area);
@@ -12242,7 +12242,7 @@
               }
           }
         }
-        say(s, t.elder + " of " + t.name + " asks for your help: " + k.name.toLowerCase() + ".", "good");
+        say(s, t2.elder + " of " + t2.name + " asks for your help: " + k.name.toLowerCase() + ".", "good");
         gainXp(s, 15);
       }
       if (!p.known) continue;
@@ -12302,7 +12302,7 @@
     }
     return told;
   }
-  ELDER_TALK.push((s, t, sp) => plotTalk(s, t, sp));
+  ELDER_TALK.push((s, t2, sp) => plotTalk(s, t2, sp));
   Object.assign(PLOT_HOOKS, {
     // talking to the story town's elder: true if a plot was told (and the relic's story should wait)
     storyTalk: (s, sp) => plotTalk(s, s.town, sp) && !relicWins(s),
@@ -12467,11 +12467,11 @@
     const here2 = townId(curTown(s));
     for (const p of plotsOf(s)) {
       if (p.known || p.main || p.kind === "relic" || p.done || p.giver === here2) continue;
-      const t = townById(s, p.giver);
-      if (!t) continue;
+      const t2 = townById(s, p.giver);
+      if (!t2) continue;
       out.push(() => {
-        mark(s, t.x, t.y, townArea(s, t));
-        return '"Have you been to ' + t.name + "? They have trouble there: " + kindOf4(p).name.toLowerCase() + ', they say. Their elder would pay someone to deal with it." (' + t.name + " is on your map.)";
+        mark(s, t2.x, t2.y, townArea(s, t2));
+        return '"Have you been to ' + t2.name + "? They have trouble there: " + kindOf4(p).name.toLowerCase() + ', they say. Their elder would pay someone to deal with it." (' + t2.name + " is on your map.)";
       });
     }
   });
@@ -12503,8 +12503,8 @@
     if (!rt) return null;
     if (rt.town) {
       if (areaRec(s).kind === "town") return null;
-      const t = townById(s, rt.town) || s.town, d = townDoor(s, t);
-      return localPos(s, townArea(s, t), d.x, d.y - 1);
+      const t2 = townById(s, rt.town) || s.town, d = townDoor(s, t2);
+      return localPos(s, townArea(s, t2), d.x, d.y - 1);
     }
     return rt.x === void 0 ? null : { x: rt.x, y: rt.y };
   }
@@ -12601,13 +12601,13 @@
   var X7 = () => C.trade;
   var goods = (s) => s.player.goods = s.player.goods || {};
   var goodOf = (id) => byId(X7().goods, id);
-  var cultureOf2 = (s, t) => (t === s.town ? s.townCulture : t.culture) || {};
-  var biomeOfTown = (s, t) => {
-    const a = s.areas[townArea(s, t)];
+  var cultureOf2 = (s, t2) => (t2 === s.town ? s.townCulture : t2.culture) || {};
+  var biomeOfTown = (s, t2) => {
+    const a = s.areas[townArea(s, t2)];
     return byId(C.biomes, a ? a.biome : s.biome);
   };
-  function makes(s, t, g) {
-    const b = biomeOfTown(s, t), m = g.made, cu = cultureOf2(s, t);
+  function makes(s, t2, g) {
+    const b = biomeOfTown(s, t2), m = g.made, cu = cultureOf2(s, t2);
     if (m.trade && cu.trade === m.trade) return true;
     if (m.cold && (b.night.cold || 0) >= m.cold) return true;
     if (m.warm && (b.day.warm || 0) >= m.warm) return true;
@@ -12617,33 +12617,33 @@
     if (m.special && b.special && b.special.name.includes(m.special)) return true;
     return false;
   }
-  function price2(s, t, id) {
-    const g = goodOf(id), r = stream(s.seed, "market:" + townId(t) + ":" + id)(), y = (X7().year[s.year] || {})[id] || 1;
-    return g.price * (makes(s, t, g) ? X7().made : X7().wanted) * (1 + (r * 2 - 1) * X7().wander) * y;
+  function price2(s, t2, id) {
+    const g = goodOf(id), r = stream(s.seed, "market:" + townId(t2) + ":" + id)(), y = (X7().year[s.year] || {})[id] || 1;
+    return g.price * (makes(s, t2, g) ? X7().made : X7().wanted) * (1 + (r * 2 - 1) * X7().wander) * y;
   }
-  var buyAt = (s, t, id) => Math.max(1, Math.round(price2(s, t, id) * stat(s, "town.buy", 1)));
-  var sellAt = (s, t, id) => Math.max(1, Math.floor(price2(s, t, id) * X7().spread));
-  function stockOf(s, t, id) {
-    t.goods = t.goods || {};
-    if (t.goods[id] === void 0) {
-      const r = stream(s.seed, "marketstock:" + townId(t) + ":" + id)(), [a, b] = X7().stock;
-      t.goods[id] = makes(s, t, goodOf(id)) ? a + Math.floor(r * (b - a + 1)) : 0;
+  var buyAt = (s, t2, id) => Math.max(1, Math.round(price2(s, t2, id) * stat(s, "town.buy", 1)));
+  var sellAt = (s, t2, id) => Math.max(1, Math.floor(price2(s, t2, id) * X7().spread));
+  function stockOf(s, t2, id) {
+    t2.goods = t2.goods || {};
+    if (t2.goods[id] === void 0) {
+      const r = stream(s.seed, "marketstock:" + townId(t2) + ":" + id)(), [a, b] = X7().stock;
+      t2.goods[id] = makes(s, t2, goodOf(id)) ? a + Math.floor(r * (b - a + 1)) : 0;
     }
-    return t.goods[id];
+    return t2.goods[id];
   }
   function market(s) {
     if (s.off.trade || areaRec(s).kind !== "town") return [];
-    const t = curTown(s);
+    const t2 = curTown(s);
     return X7().goods.map((g) => ({
       id: g.id,
       name: g.name,
       text: g.text,
       wt: g.wt,
-      buy: buyAt(s, t, g.id),
-      sell: sellAt(s, t, g.id),
+      buy: buyAt(s, t2, g.id),
+      sell: sellAt(s, t2, g.id),
       have: goods(s)[g.id] || 0,
-      stock: stockOf(s, t, g.id),
-      made: makes(s, t, g)
+      stock: stockOf(s, t2, g.id),
+      made: makes(s, t2, g)
     }));
   }
   function buyGood(s, id) {
@@ -12677,9 +12677,9 @@
   }
   function bestMarket(s, id) {
     let best = null;
-    for (const t of [s.town].concat(s.towns || [])) {
-      const p = sellAt(s, t, id);
-      if (!best || p > best.p) best = { t, p };
+    for (const t2 of [s.town].concat(s.towns || [])) {
+      const p = sellAt(s, t2, id);
+      if (!best || p > best.p) best = { t: t2, p };
     }
     return best;
   }
@@ -13008,8 +13008,8 @@
   var EYE = 1.7;
   var VIEW = { speed: 7 };
   var clamp2 = (v, a, b) => Math.max(a, Math.min(b, v));
-  var lerp = (a, b, t) => a + (b - a) * t;
-  var smooth = (t) => t * t * (3 - 2 * t);
+  var lerp = (a, b, t2) => a + (b - a) * t2;
+  var smooth = (t2) => t2 * t2 * (3 - 2 * t2);
   var f1 = (v) => (Math.round(v * 10) / 10).toFixed(1);
   var el = (tag, props, kids) => {
     const e = document.createElement(tag);
@@ -13026,9 +13026,9 @@
   function mulberry2(a) {
     return () => {
       a = a + 1831565813 | 0;
-      let t = Math.imul(a ^ a >>> 15, a | 1);
-      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      let t2 = Math.imul(a ^ a >>> 15, a | 1);
+      t2 ^= t2 + Math.imul(t2 ^ t2 >>> 7, t2 | 61);
+      return ((t2 ^ t2 >>> 14) >>> 0) / 4294967296;
     };
   }
   var INDOOR_TS = 4;
@@ -13277,17 +13277,17 @@
     yield;
     const tileOf = (x) => Math.floor((x + HALF) / TS), etile = (x, z) => clamp2(tileOf(z) + MARGIN, 0, EW - 1) * EW + clamp2(tileOf(x) + MARGIN, 0, EW - 1), roadAt = (x, z) => land2.road[etile(x, z)];
     const share = land2.biomes.map((_, b) => {
-      const g = new Float32Array(EW * EW), t = new Float32Array(EW * EW), B = 3;
+      const g = new Float32Array(EW * EW), t2 = new Float32Array(EW * EW), B = 3;
       for (let y = 0; y < EW; y++)
         for (let x = 0; x < EW; x++) {
           let a = 0;
           for (let i = -B; i <= B; i++) a += land2.biome[y * EW + clamp2(x + i, 0, EW - 1)] === b ? 1 : 0;
-          t[y * EW + x] = a / (2 * B + 1);
+          t2[y * EW + x] = a / (2 * B + 1);
         }
       for (let y = 0; y < EW; y++)
         for (let x = 0; x < EW; x++) {
           let a = 0;
-          for (let i = -B; i <= B; i++) a += t[clamp2(y + i, 0, EW - 1) * EW + x];
+          for (let i = -B; i <= B; i++) a += t2[clamp2(y + i, 0, EW - 1) * EW + x];
           g[y * EW + x] = a / (2 * B + 1);
         }
       return field(g, false);
@@ -13407,15 +13407,15 @@
     let a = seed | 0;
     return () => {
       a = a + 1831565813 | 0;
-      let t = Math.imul(a ^ a >>> 15, a | 1);
-      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      let t2 = Math.imul(a ^ a >>> 15, a | 1);
+      t2 ^= t2 + Math.imul(t2 ^ t2 >>> 7, t2 | 61);
+      return ((t2 ^ t2 >>> 14) >>> 0) / 4294967296;
     };
   }
   function noiseField(px, n, seed) {
     const r = rnd(seed), g = new Float32Array(n * n);
     for (let i = 0; i < n * n; i++) g[i] = r();
-    const out = new Float32Array(px * px), s = (t) => t * t * (3 - 2 * t);
+    const out = new Float32Array(px * px), s = (t2) => t2 * t2 * (3 - 2 * t2);
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
         const u = x / px * n, v = y / px * n, x0 = Math.floor(u), y0 = Math.floor(v), tx = s(u - x0), ty = s(v - y0), at = (i, j) => g[(j % n + n) % n * n + (i % n + n) % n];
@@ -13437,14 +13437,14 @@
   }
   var toByte = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
   function dataTexture(data, px) {
-    const t = new THREE.DataTexture(data, px, px, THREE.RGBAFormat);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.magFilter = THREE.LinearFilter;
-    t.minFilter = THREE.LinearMipmapLinearFilter;
-    t.generateMipmaps = true;
-    t.anisotropy = 2;
-    t.needsUpdate = true;
-    return t;
+    const t2 = new THREE.DataTexture(data, px, px, THREE.RGBAFormat);
+    t2.wrapS = t2.wrapT = THREE.RepeatWrapping;
+    t2.magFilter = THREE.LinearFilter;
+    t2.minFilter = THREE.LinearMipmapLinearFilter;
+    t2.generateMipmaps = true;
+    t2.anisotropy = 2;
+    t2.needsUpdate = true;
+    return t2;
   }
   var GROUND = null;
   function groundTexture() {
@@ -13493,11 +13493,11 @@
     const L3 = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b, max = Math.max(c.r, c.g, c.b), min = Math.min(c.r, c.g, c.b), sat = max > 0 ? (max - min) / max : 0;
     let grass = c.g >= c.r * 0.98 && c.g >= c.b * 0.9 && sat > 0.12 ? 1 : 0, snow = L3 > 0.72 && sat < 0.22 ? 1 : c.b > c.r * 1.25 && c.b > c.g ? 0.8 : 0, rock = Math.min(1, Math.max(0, (steep - 0.25) * 3)) + (sat < 0.12 && L3 < 0.5 ? 0.6 : 0), grains = snow ? 0.05 : 0.35;
     if (snow) grass *= 0.2;
-    const t = grass + snow + rock + grains;
-    out[0] = grass / t;
-    out[1] = grains / t;
-    out[2] = rock / t;
-    out[3] = snow / t;
+    const t2 = grass + snow + rock + grains;
+    out[0] = grass / t2;
+    out[1] = grains / t2;
+    out[2] = rock / t2;
+    out[3] = snow / t2;
     return out;
   }
   function groundMaterial() {
@@ -13603,10 +13603,10 @@
       d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v;
       d[i * 4 + 3] = 255;
     }
-    const t = dataTexture(d, px);
-    t.dispose = () => {
+    const t2 = dataTexture(d, px);
+    t2.dispose = () => {
     };
-    return SURF[name] = t;
+    return SURF[name] = t2;
   }
 
   // src/view/kit.js
@@ -13757,7 +13757,7 @@
       [1, 4, 2]
       // right slope
     ], pos = [];
-    for (const t of tri) for (const i of t) pos.push(...v[i]);
+    for (const t2 of tri) for (const i of t2) pos.push(...v[i]);
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     g.computeVertexNormals();
@@ -13794,9 +13794,9 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     let a = seed | 0;
     const r = () => {
       a = a + 1831565813 | 0;
-      let t = Math.imul(a ^ a >>> 15, a | 1);
-      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      let t2 = Math.imul(a ^ a >>> 15, a | 1);
+      t2 ^= t2 + Math.imul(t2 ^ t2 >>> 7, t2 | 61);
+      return ((t2 ^ t2 >>> 14) >>> 0) / 4294967296;
     };
     r.pick = (list) => list[Math.floor(r() * list.length) % list.length];
     return r;
@@ -13812,7 +13812,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     return biome && biome.parts && biome.parts.climate || biome && L3.biomeClimate[biome.id] || "temperate";
   }
   function styleOf(S2, townId2, biome) {
-    const L3 = R.C.townLooks, t = townId2 ? R.townById(S2, townId2) : null, culture = t ? t === S2.town ? S2.townCulture : t.culture : null, area = t && t.area;
+    const L3 = R.C.townLooks, t2 = townId2 ? R.townById(S2, townId2) : null, culture = t2 ? t2 === S2.town ? S2.townCulture : t2.culture : null, area = t2 && t2.area;
     if (!biome) biome = area && S2.areas[area] ? R.byId(R.C.biomes, S2.areas[area].biome) : R.biomeOf(S2);
     const climate = climateOf(biome), st = Object.assign({ climate }, L3.climates[climate] || L3.climates.temperate), off = S2.off && S2.off.towns, tr = culture && !off && L3.trades[culture.trade] || {}, cu = culture && !off && L3.customs[culture.custom] || {}, ra = culture && !off && culture.rare && L3.rares[culture.rare] || {};
     Object.assign(st, {
@@ -14258,7 +14258,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     return out;
   }
   function townGroup(S2, townId2, map, ts) {
-    const st = styleOf(S2, townId2), r = dice(hash((townId2 || "town") + ":" + S2.seed)), K2 = kits(), group = new THREE.Group(), W2 = R.W, size = W2 * ts, at = (t) => (t + 0.5) * ts - size / 2, edge = (t) => t * ts - size / 2, T2 = map.terrain, walled = !!(S2.areas[townId2] && S2.areas[townId2].walled), c = 18;
+    const st = styleOf(S2, townId2), r = dice(hash((townId2 || "town") + ":" + S2.seed)), K2 = kits(), group = new THREE.Group(), W2 = R.W, size = W2 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T2 = map.terrain, walled = !!(S2.areas[townId2] && S2.areas[townId2].walled), c = 18;
     K2.ground.add(P4.box(size, 0.1, size), st.ground, { y: 0.03 }, { uv: 5, jitter: 0.04 });
     K2.stone.add(P4.box(13 * ts, 0.1, 13 * ts), st.plinth, { y: 0.06 }, { uv: 1.1, jitter: 0.03 });
     const kindAt = {};
@@ -14486,9 +14486,9 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     let a = seed | 0;
     const r = () => {
       a = a + 1831565813 | 0;
-      let t = Math.imul(a ^ a >>> 15, a | 1);
-      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      let t2 = Math.imul(a ^ a >>> 15, a | 1);
+      t2 ^= t2 + Math.imul(t2 ^ t2 >>> 7, t2 | 61);
+      return ((t2 ^ t2 >>> 14) >>> 0) / 4294967296;
     };
     return r;
   }
@@ -14505,14 +14505,14 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     ancient: { stand: 0.32, gone: 0.3, roof: false, moss: 0.55 }
   };
   var C2 = (h) => new THREE.Color(h);
-  function wall(Z2, x0, z0, x1, z1, h, t, o) {
+  function wall(Z2, x0, z0, x1, z1, h, t2, o) {
     const len = Math.hypot(x1 - x0, z1 - z0), ry = -Math.atan2(z1 - z0, x1 - x0), [bw, bh] = Z2.st.block, cols = Math.max(1, Math.round(len / bw)), rows = Math.max(1, Math.round(h / bh)), r = Z2.r;
     for (let c = 0; c < cols; c++) {
       const f = (c + 0.5) / cols, x = x0 + (x1 - x0) * f, z = z0 + (z1 - z0) * f;
       if (o && o.gap && Math.abs(f - 0.5) * len < o.gap / 2) {
         const top2 = Math.round(rows * Z2.age.stand * (0.9 + r() * 0.2));
         if (top2 * bh > 2.6)
-          Z2.stone.add(P4.box(o.gap + 0.8, bh, t * 1.05), Z2.colAt(2.6, r), { x, y: 2.6 + bh / 2, z, ry }, { uv: 1.5 });
+          Z2.stone.add(P4.box(o.gap + 0.8, bh, t2 * 1.05), Z2.colAt(2.6, r), { x, y: 2.6 + bh / 2, z, ry }, { uv: 1.5 });
         continue;
       }
       let top = rows * (Z2.age.stand + (r() - 0.5) * (1 - Z2.age.stand) * 1.2);
@@ -14528,10 +14528,10 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
           Z2.stone.add(
             P4.blob(bh * 0.75, 0),
             Z2.colAt(y, r),
-            { x, y, z, ry: r() * 6, sx: w / bh * 0.7, sz: t * 0.8 },
+            { x, y, z, ry: r() * 6, sx: w / bh * 0.7, sz: t2 * 0.8 },
             { flat: true, uv: 1.5 }
           );
-        else Z2.stone.add(P4.box(w, bh * 0.97, t * taper), Z2.colAt(y, r), { x, y, z, ry: ry + (r() - 0.5) * 0.05 }, { uv: 1.5 });
+        else Z2.stone.add(P4.box(w, bh * 0.97, t2 * taper), Z2.colAt(y, r), { x, y, z, ry: ry + (r() - 0.5) * 0.05 }, { uv: 1.5 });
       }
     }
   }
@@ -14707,6 +14707,163 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     return g;
   }
 
+  // src/view/fx.js
+  var live = [];
+  var NIGHT = { value: 0 };
+  var canvasTex = (draw, n) => {
+    const c = document.createElement("canvas");
+    c.width = c.height = n || 64;
+    draw(c.getContext("2d"), c.width);
+    const t2 = new THREE.CanvasTexture(c);
+    t2.dispose = () => {
+    };
+    return t2;
+  };
+  var HALO_T = null;
+  var RIPPLE_T = null;
+  var BLOB_M = null;
+  var FLAME_M = null;
+  var haloTex = () => HALO_T || (HALO_T = canvasTex((g, n) => {
+    const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+    r.addColorStop(0, "rgba(255,200,120,1)");
+    r.addColorStop(0.3, "rgba(255,150,60,0.45)");
+    r.addColorStop(1, "rgba(255,120,40,0)");
+    g.fillStyle = r;
+    g.fillRect(0, 0, n, n);
+  }));
+  var rippleTex = () => {
+    if (RIPPLE_T) return RIPPLE_T;
+    RIPPLE_T = canvasTex((g, n) => {
+      g.fillStyle = "#808080";
+      g.fillRect(0, 0, n, n);
+      for (let i = 0; i < 40; i++) {
+        const x = i * 37 % n, y = i * 53 % n, rr = 6 + i % 5 * 4;
+        g.strokeStyle = i % 2 ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.18)";
+        g.lineWidth = 1.5;
+        for (const [ox2, oy2] of [
+          [0, 0],
+          [n, 0],
+          [0, n],
+          [-n, 0],
+          [0, -n]
+        ]) {
+          g.beginPath();
+          g.arc(x + ox2, y + oy2, rr, 0.2, 1.6);
+          g.stroke();
+        }
+      }
+    }, 128);
+    RIPPLE_T.wrapS = RIPPLE_T.wrapT = THREE.RepeatWrapping;
+    RIPPLE_T.repeat.set(2, 2);
+    return RIPPLE_T;
+  };
+  function fire2(scale) {
+    const g = new THREE.Group(), k = kit();
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2;
+      k.add(P4.blob(0.22, 0), 6972508, { x: Math.cos(a) * 0.75, y: 0.1, z: Math.sin(a) * 0.75, ry: a }, { flat: true });
+    }
+    for (const a of [0.3, 1.9, 3.4]) k.add(P4.cyl(0.09, 0.11, 1.2, 5), 4863012, { y: 0.18, rz: Math.PI / 2 - 0.25, ry: a });
+    k.add(P4.cyl(0.5, 0.55, 0.06, 8), 2759188, { y: 0.03 });
+    g.add(new THREE.Mesh(k.build(), kitMat({ map: surface("stone") })));
+    if (!FLAME_M) {
+      FLAME_M = new THREE.MeshBasicMaterial({ color: 16752704, transparent: true, opacity: 0.9, depthWrite: false });
+      FLAME_M.dispose = () => {
+      };
+    }
+    const flames = [];
+    for (const [x, z, h, c] of [
+      [0, 0, 1.1, 16752704],
+      [0.18, 0.1, 0.8, 16765040],
+      [-0.15, -0.1, 0.7, 16742944]
+    ]) {
+      const m = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1, 6), FLAME_M.clone());
+      m.material.color.setHex(c);
+      m.position.set(x, h / 2 + 0.1, z);
+      m.scale.y = h;
+      m.userData.h = h;
+      g.add(m);
+      flames.push(m);
+    }
+    const halo = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: haloTex(),
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+        opacity: 0.6
+      })
+    );
+    halo.position.y = 0.9;
+    halo.scale.setScalar(6);
+    g.add(halo);
+    g.scale.setScalar(scale || 1);
+    live.push({ kind: "fire", g, flames, halo, seed: Math.random() * 10 });
+    return g;
+  }
+  function water(r, foul) {
+    const m = new THREE.Mesh(
+      new THREE.CircleGeometry(r, 20).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: foul ? 7301685 : 4889288, map: rippleTex() })
+    );
+    const rim = new THREE.Mesh(
+      new THREE.RingGeometry(r * 0.96, r * 1.12, 20).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: foul ? 4867624 : 6978138, transparent: true, opacity: 0.7, depthWrite: false })
+    );
+    rim.position.y = -0.02;
+    const g = new THREE.Group();
+    g.add(m, rim);
+    return g;
+  }
+  function blob(r) {
+    if (!BLOB_M) {
+      BLOB_M = new THREE.MeshBasicMaterial({
+        map: canvasTex((g, n) => {
+          const rr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+          rr.addColorStop(0, "rgba(0,0,0,0.55)");
+          rr.addColorStop(0.6, "rgba(0,0,0,0.3)");
+          rr.addColorStop(1, "rgba(0,0,0,0)");
+          g.fillStyle = rr;
+          g.fillRect(0, 0, n, n);
+        }),
+        transparent: true,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2
+      });
+      BLOB_M.dispose = () => {
+      };
+    }
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, r * 2).rotateX(-Math.PI / 2), BLOB_M);
+    m.position.y = 0.06;
+    m.renderOrder = 1;
+    return m;
+  }
+  var inScene = (o) => {
+    while (o.parent) o = o.parent;
+    return o.isScene;
+  };
+  var t = 0;
+  function updateFx(dt, night, still2) {
+    t += dt;
+    NIGHT.value = night;
+    if (RIPPLE_T && !still2) RIPPLE_T.offset.set(t * 0.02, t * 0.013);
+    for (let i = live.length - 1; i >= 0; i--) {
+      const f = live[i];
+      if (!inScene(f.g)) {
+        live.splice(i, 1);
+        continue;
+      }
+      const w = still2 ? 0 : 1;
+      f.flames.forEach((m, j) => {
+        const s = 1 + w * (0.18 * Math.sin(t * 11 + j * 2 + f.seed) + 0.1 * Math.sin(t * 23 + j));
+        m.scale.set(1 + w * 0.08 * Math.sin(t * 7 + j), m.userData.h * s, 1 + w * 0.08 * Math.cos(t * 9 + j));
+      });
+      f.halo.material.opacity = (0.2 + 0.7 * night) * (1 + w * 0.12 * Math.sin(t * 13 + f.seed));
+      f.halo.scale.setScalar(5 + 4 * night);
+    }
+  }
+
   // src/view/actors.js
   LOOK_SWITCHES.push(["actors", "People and creatures that move"]);
   var actorsOn = () => lookOn("actors") && lookOn("light");
@@ -14874,10 +15031,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     return mesh;
   }
   var LAST = /* @__PURE__ */ new Map();
-  var live = [];
+  var live2 = [];
   var clock2 = 0;
   function clearActors() {
-    live.length = 0;
+    live2.length = 0;
   }
   function track(g, mesh, o) {
     const to = g.position.clone();
@@ -14898,7 +15055,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       g,
       mesh,
       u: mesh.material.userData.u,
-      key: o.key || (o.pool ? o.pool + "#" + live.length : null),
+      key: o.key || (o.pool ? o.pool + "#" + live2.length : null),
       to,
       speed: o.speed || 3,
       fight: !!o.fight,
@@ -14912,7 +15069,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     };
     if (from && from.pos.distanceTo(to) > 0.05) g.position.copy(from.pos);
     g.rotation.y = a.yaw;
-    live.push(a);
+    live2.push(a);
     return a;
   }
   var angDiff = (a, b) => {
@@ -14923,10 +15080,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   };
   function animateActors(dt, px, pz, still2) {
     clock2 += dt;
-    if (!live.length) return;
+    if (!live2.length) return;
     for (const [, l] of LAST) l.claimed = false;
     const keep = /* @__PURE__ */ new Map();
-    for (const a of live) {
+    for (const a of live2) {
       const g = a.g, dx = a.to.x - g.position.x, dz = a.to.z - g.position.z, d = Math.hypot(dx, dz);
       let moving = false;
       if (d > 0.08 && !still2) {
@@ -14943,17 +15100,17 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       g.rotation.y = a.yaw;
       a.swing += ((moving ? 0.65 : a.fight ? 0.18 : 0) - a.swing) * Math.min(1, dt * 6);
       a.phase += dt * (moving ? a.speed * 2.4 : a.fight ? 5 : 1.2);
-      const u = a.u, t = clock2 + a.seed;
+      const u = a.u, t2 = clock2 + a.seed;
       u.aPhase.value = a.phase;
       u.aSwing.value = still2 ? 0 : a.swing;
-      const tx = px - g.position.x, tz = pz - g.position.z, near = Math.hypot(tx, tz) < 18, look2 = near ? Math.max(-1, Math.min(1, angDiff(a.yaw, Math.atan2(tx, tz)))) : Math.sin(t * 0.37) * Math.sin(t * 0.21) * 0.8;
+      const tx = px - g.position.x, tz = pz - g.position.z, near = Math.hypot(tx, tz) < 18, look2 = near ? Math.max(-1, Math.min(1, angDiff(a.yaw, Math.atan2(tx, tz)))) : Math.sin(t2 * 0.37) * Math.sin(t2 * 0.21) * 0.8;
       u.aHead.value += (look2 - u.aHead.value) * Math.min(1, dt * 4);
-      u.aTail.value = Math.sin(t * (a.fight ? 9 : 4)) * 0.35;
-      let bob = moving ? Math.abs(Math.sin(a.phase)) * 0.07 : Math.sin(t * 1.8) * 0.012;
-      if (a.mesh.userData.actor.kind === "wight") bob += 0.25 + Math.sin(t * 1.3) * 0.12;
+      u.aTail.value = Math.sin(t2 * (a.fight ? 9 : 4)) * 0.35;
+      let bob = moving ? Math.abs(Math.sin(a.phase)) * 0.07 : Math.sin(t2 * 1.8) * 0.012;
+      if (a.mesh.userData.actor.kind === "wight") bob += 0.25 + Math.sin(t2 * 1.3) * 0.12;
       let fwd = 0, lean = 0;
       if (a.fight && !still2) {
-        const cyc = t * 0.55 % 1, l = cyc > 0.8 ? Math.sin((cyc - 0.8) / 0.2 * Math.PI) : 0;
+        const cyc = t2 * 0.55 % 1, l = cyc > 0.8 ? Math.sin((cyc - 0.8) / 0.2 * Math.PI) : 0;
         fwd = l * 1.2;
         lean = l * 0.25;
         u.aArm.value = 0.6 + l * 1.2;
@@ -15247,13 +15404,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         y += 1;
       }
     }
-    const t = new THREE.DataTexture(d, n, n, THREE.RGBAFormat);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.magFilter = THREE.LinearFilter;
-    t.minFilter = THREE.LinearMipmapLinearFilter;
-    t.generateMipmaps = true;
-    t.needsUpdate = true;
-    return t;
+    const t2 = new THREE.DataTexture(d, n, n, THREE.RGBAFormat);
+    t2.wrapS = t2.wrapT = THREE.RepeatWrapping;
+    t2.magFilter = THREE.LinearFilter;
+    t2.minFilter = THREE.LinearMipmapLinearFilter;
+    t2.generateMipmaps = true;
+    t2.needsUpdate = true;
+    return t2;
   })();
   var BUILD = {
     // the shadow of a place in the sky, and the place itself hanging high above it, seen from far off
@@ -15290,6 +15447,17 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     // someone at a small fire in the wilds (only the ashes, once they have gone on)
     wayfarer(S2, st) {
       const g = new THREE.Group();
+      if (fxOn()) {
+        if (st.gone) g.add(box2(1.4, 0.15, 1.4, std(3813415), 0, 0.08, 0));
+        else {
+          g.add(fire2(0.9));
+          const who = person(6969920, 9075290, st.who ? String(st.who).length : 3);
+          who.position.set(2.2, 0, 0.6);
+          who.rotation.y = -1.9;
+          g.add(who);
+        }
+        return g;
+      }
       g.add(box2(1.4, 0.3, 1.4, std(3813415), 0, 0.15, 0));
       if (!st.gone) {
         const f = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.4, 6), glow(16752704, 0.9));
@@ -15380,19 +15548,23 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       return g;
     },
     camp() {
-      const g = new THREE.Group(), cloth = std(8018490), fire2 = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.4, 6), glow(16747050, 1));
+      const g = new THREE.Group(), cloth = std(8018490), fire3 = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.4, 6), glow(16747050, 1));
       for (const [x, z, r] of [
         [-4, -2, 0.4],
         [3, -3, -0.6],
         [0, 4, 1.8]
       ]) {
-        const t = new THREE.Mesh(new THREE.ConeGeometry(2.2, 2.6, 4), cloth);
-        t.position.set(x, 1.3, z);
-        t.rotation.y = r;
-        g.add(t);
+        const t2 = new THREE.Mesh(new THREE.ConeGeometry(2.2, 2.6, 4), cloth);
+        t2.position.set(x, 1.3, z);
+        t2.rotation.y = r;
+        g.add(t2);
       }
-      fire2.position.y = 0.7;
-      g.add(fire2, box2(0.15, 4, 0.15, std(3811866), 2, 2, 1), box2(1.4, 0.9, 0.05, glow(11549226, 1), 2.7, 3.4, 1));
+      fire3.position.y = 0.7;
+      g.add(
+        fxOn() ? fire2(1.3) : fire3,
+        box2(0.15, 4, 0.15, std(3811866), 2, 2, 1),
+        box2(1.4, 0.9, 0.05, glow(11549226, 1), 2.7, 3.4, 1)
+      );
       return g;
     },
     siege(s) {
@@ -15578,7 +15750,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var FLAT = { height: () => 0 };
   function interiorGroup(map, rec, ts, id) {
-    const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T2 = map.terrain, at = (t) => (t + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T2[y * R.W + x] === R.WALL;
+    const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T2 = map.terrain, at = (t2) => (t2 + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T2[y * R.W + x] === R.WALL;
     if (town && townsOn()) {
       return cachedModel("town" + V.S.seed + ":" + (id || "town") + ":" + (V.S.realm || ""), () => {
         const g = townGroup(V.S, id || "town", map, ts);
@@ -15693,6 +15865,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (actorsOn()) {
       const g2 = new THREE.Group();
       g2.add(personActor(color, hat, seed || color));
+      if (fxOn()) g2.add(blob(0.5));
       return g2;
     }
     const g = new THREE.Group(), body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 1.5, 8), std(color)), head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 10, 8), std(14268566));
@@ -15851,7 +16024,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     applyFrame();
   }
   function townsHere() {
-    const t = R.townInRegion(V.S, R.outdoorRec(V.S).id), id = t ? t.id || "town" : null, w = (V.towns || []).find((x) => x.id === id);
+    const t2 = R.townInRegion(V.S, R.outdoorRec(V.S).id), id = t2 ? t2.id || "town" : null, w = (V.towns || []).find((x) => x.id === id);
     V.townAt = w ? { x: w.x - V.shift.x, y: w.y, z: w.z - V.shift.z } : null;
     V.townId = w ? id : null;
   }
@@ -15905,7 +16078,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const T2 = base, land2 = T2.land, pal = land2.biomes.map((b) => ({
       cols: b.colors.map((c2) => new THREE.Color(c2)),
       lush: new THREE.Color(b.lush !== void 0 ? b.lush : b.id === "taiga" ? 6126200 : 6261317)
-    })), paved = new THREE.Color(9210502), c = new THREE.Color(), cb = new THREE.Color(), lush = new THREE.Color(), centre = (t) => (t + 0.5) * TS - HALF, springs = land2.sites.filter((q2) => q2.st.kind === "spring").map((q2) => ({ x: centre(q2.x), z: centre(q2.y) }));
+    })), paved = new THREE.Color(9210502), c = new THREE.Color(), cb = new THREE.Color(), lush = new THREE.Color(), centre = (t2) => (t2 + 0.5) * TS - HALF, springs = land2.sites.filter((q2) => q2.st.kind === "spring").map((q2) => ({ x: centre(q2.x), z: centre(q2.y) }));
     const springsNear = {}, NONE2 = [];
     for (const sp of springs)
       for (let dz = -2; dz <= 2; dz++)
@@ -16029,7 +16202,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       z: centre(q2.y)
     }));
     const nearSite = (x, z) => {
-      for (const t of towns) if (Math.abs(x - t.x) < townHalf + 4 && Math.abs(z - t.z) < townHalf + 4) return true;
+      for (const t2 of towns) if (Math.abs(x - t2.x) < townHalf + 4 && Math.abs(z - t2.z) < townHalf + 4) return true;
       const site = land2.siteAt[T2.etile(x, z)];
       return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;
     };
@@ -16115,7 +16288,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         continue;
       }
       if (st.kind === "town") {
-        const id = st.town || "town", tw = towns.find((t) => t.id === id);
+        const id = st.town || "town", tw = towns.find((t2) => t2.id === id);
         if (!S2.areas[id] || !R.mapOf(S2, id) || !tw) continue;
         const g2 = interiorGroup(R.mapOf(S2, id), S2.areas[id], TOWN_TS, id);
         g2.position.set(tw.x, tw.y, tw.z);
@@ -16141,6 +16314,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const x = P3.x - staticGroup.position.x, z = P3.z - staticGroup.position.z;
     for (const rec of lods) updateLOD(rec, x, z, Q.treeNear, force);
   }
+  var fxOn = () => lookOn("fx") && lookOn("light");
+  LOOK_SWITCHES.push(["fx", "Fire, water and shadows"]);
   var HP = /* @__PURE__ */ new Map();
   var hashStr = (s) => {
     let h = 7;
@@ -16177,7 +16352,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       for (const k in map.sites) {
         const st = map.sites[k];
         if (st.kind !== "spring") continue;
-        const [x, y, z] = at(+k), w = new THREE.Mesh(
+        const [x, y, z] = at(+k), w = fxOn() ? water(4.6, st.known && st.foul) : new THREE.Mesh(
           new THREE.CircleGeometry(4.6, 16).rotateX(-Math.PI / 2),
           new THREE.MeshBasicMaterial({ color: st.known && st.foul ? 7301685 : 4165568 })
         );
@@ -16221,8 +16396,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         color: sp.rare === "docile" ? 10478495 : sp.temper === "hunter" ? 16726831 : sp.temper === "skittish" ? 16769130 : 16751146,
         fog: false
       });
-      if (actorsOn()) g.add(creatureActor(sp.form, col, eye.color.getHex()));
-      else if (sp.form === "hound")
+      if (actorsOn()) {
+        g.add(creatureActor(sp.form, col, eye.color.getHex()));
+        if (fxOn()) g.add(blob({ hound: 0.9, brute: 1.4, wight: 0.7, serpent: 1.1 }[sp.form] || 1));
+      } else if (sp.form === "hound")
         g.add(
           box2(0.6, 0.7, 1.7, mat, 0, 0.8, 0),
           box2(0.5, 0.5, 0.6, mat, 0, 1.15, 1),
@@ -16285,12 +16462,18 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       }
     }
     if (camp !== null) {
-      const [x, y, z] = at(camp, 5, 3), t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(14262858));
-      t.position.set(x, y + 1.8, z);
+      const [x, y, z] = at(camp, 5, 3), t2 = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(14262858));
+      t2.position.set(x, y + 1.8, z);
+      if (fxOn()) {
+        t2.material = kitMat({ vertexColors: false, color: 14262858, map: surface("cloth") });
+        const f = fire2(1);
+        f.position.set(x - 3.5, ground(x - 3.5, z + 3) + 0.05, z + 3);
+        dynGroup.add(f);
+      }
       const sm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.6, 150, 8, 1, true), glow(15921902, 0.38));
       sm.material.side = THREE.DoubleSide;
       sm.position.set(x + 3, y + 76, z - 2);
-      dynGroup.add(t, sm);
+      dynGroup.add(t2, sm);
     }
   }
   function resize() {
@@ -16546,9 +16729,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   function volumes() {
     if (!A2) return;
-    const t = A2.currentTime;
-    musicBus.gain.setTargetAtTime(on2() ? SET.music * 0.5 : 0, t, 0.3);
-    sfxBus.gain.setTargetAtTime(on2() ? SET.sfx : 0, t, 0.1);
+    const t2 = A2.currentTime;
+    musicBus.gain.setTargetAtTime(on2() ? SET.music * 0.5 : 0, t2, 0.3);
+    sfxBus.gain.setTargetAtTime(on2() ? SET.sfx : 0, t2, 0.1);
   }
   ["pointerdown", "keydown", "touchstart"].forEach((e) => document.addEventListener(e, start, { passive: true }));
   document.addEventListener("visibilitychange", () => {
@@ -16568,13 +16751,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (on2()) start();
     volumes();
   }
-  var env = (g, t, a, peak, d) => {
-    g.gain.setValueAtTime(1e-4, t);
-    g.gain.linearRampToValueAtTime(peak, t + a);
-    g.gain.exponentialRampToValueAtTime(1e-4, t + a + d);
+  var env = (g, t2, a, peak, d) => {
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(peak, t2 + a);
+    g.gain.exponentialRampToValueAtTime(1e-4, t2 + a + d);
   };
   var mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
-  function bell(t, m, vel, out) {
+  function bell(t2, m, vel, out) {
     for (const [mul, k] of [
       [1, 1],
       [2.76, 0.3],
@@ -16582,62 +16765,62 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     ]) {
       const o = A2.createOscillator(), g = A2.createGain();
       o.frequency.value = mtof(m) * mul;
-      env(g, t, 5e-3, vel * k, 2.8 / mul);
+      env(g, t2, 5e-3, vel * k, 2.8 / mul);
       o.connect(g).connect(out);
-      o.start(t);
-      o.stop(t + 3.2);
+      o.start(t2);
+      o.stop(t2 + 3.2);
     }
   }
-  function pluck(t, m, vel, out) {
+  function pluck(t2, m, vel, out) {
     const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain();
     o.type = "triangle";
     o.frequency.value = mtof(m);
     f.type = "lowpass";
-    f.frequency.setValueAtTime(mtof(m) * 6, t);
-    f.frequency.exponentialRampToValueAtTime(mtof(m) * 1.2, t + 0.6);
-    env(g, t, 4e-3, vel, 1.1);
+    f.frequency.setValueAtTime(mtof(m) * 6, t2);
+    f.frequency.exponentialRampToValueAtTime(mtof(m) * 1.2, t2 + 0.6);
+    env(g, t2, 4e-3, vel, 1.1);
     o.connect(f).connect(g).connect(out);
-    o.start(t);
-    o.stop(t + 1.3);
+    o.start(t2);
+    o.stop(t2 + 1.3);
   }
-  function pad(t, m, vel, dur, out, wave) {
+  function pad(t2, m, vel, dur, out, wave) {
     const f = A2.createBiquadFilter(), g = A2.createGain();
     f.type = "lowpass";
     f.frequency.value = Math.min(2400, mtof(m) * 3);
-    g.gain.setValueAtTime(1e-4, t);
-    g.gain.linearRampToValueAtTime(vel, t + dur * 0.4);
-    g.gain.linearRampToValueAtTime(1e-4, t + dur);
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel, t2 + dur * 0.4);
+    g.gain.linearRampToValueAtTime(1e-4, t2 + dur);
     for (const det of [-7, 6]) {
       const o = A2.createOscillator();
       o.type = wave || "triangle";
       o.frequency.value = mtof(m);
       o.detune.value = det;
       o.connect(f);
-      o.start(t);
-      o.stop(t + dur + 0.1);
+      o.start(t2);
+      o.stop(t2 + dur + 0.1);
     }
     f.connect(g).connect(out);
   }
-  function drum(t, vel, out, pitch) {
+  function drum(t2, vel, out, pitch) {
     const o = A2.createOscillator(), g = A2.createGain();
-    o.frequency.setValueAtTime(pitch || 110, t);
-    o.frequency.exponentialRampToValueAtTime((pitch || 110) * 0.45, t + 0.25);
-    env(g, t, 3e-3, vel, 0.35);
+    o.frequency.setValueAtTime(pitch || 110, t2);
+    o.frequency.exponentialRampToValueAtTime((pitch || 110) * 0.45, t2 + 0.25);
+    env(g, t2, 3e-3, vel, 0.35);
     o.connect(g).connect(out);
-    o.start(t);
-    o.stop(t + 0.5);
-    noiseHit(t, vel * 0.25, 900, 0.08, out);
+    o.start(t2);
+    o.stop(t2 + 0.5);
+    noiseHit(t2, vel * 0.25, 900, 0.08, out);
   }
-  function noiseHit(t, vel, freq, dur, out, type, q) {
+  function noiseHit(t2, vel, freq, dur, out, type, q) {
     const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
     s.buffer = NOISE;
     f.type = type || "bandpass";
     f.frequency.value = freq;
     f.Q.value = q || 1;
-    env(g, t, 4e-3, vel, dur);
+    env(g, t2, 4e-3, vel, dur);
     s.connect(f).connect(g).connect(out);
-    s.start(t, Math.random() * 1.5);
-    s.stop(t + dur + 0.05);
+    s.start(t2, Math.random() * 1.5);
+    s.stop(t2 + dur + 0.05);
   }
   var MODES = {
     dorian: [0, 2, 3, 5, 7, 9, 10],
@@ -16693,11 +16876,11 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     }
     const md = MOODS[mood], scale = MODES[md.mode], biome = S2 ? R.biomeOf(S2) : null, key = biome && (BIOME_KEY[biome.id] !== void 0 ? BIOME_KEY[biome.id] : (biome.name || "").length % 5) || 0, root = md.root + (mood === "fight" || mood === "deep" ? 0 : key), note = (d, oct) => root + 12 * (oct || 0) + scale[(d % scale.length + scale.length) % scale.length] + 12 * Math.floor(d / scale.length);
     while (M2.next < now + 0.6) {
-      const t = M2.next, bar = md.bar, out = M2.gain;
+      const t2 = M2.next, bar = md.bar, out = M2.gain;
       M2.bar++;
-      if (md.drone && M2.bar % 2 === 1) pad(t, root - 12 - (md.low ? 12 : 0), 0.05, bar * 2.1, out, "sine");
+      if (md.drone && M2.bar % 2 === 1) pad(t2, root - 12 - (md.low ? 12 : 0), 0.05, bar * 2.1, out, "sine");
       const chord = [0, 2, 4].map((x) => note(x + (M2.phrase % 4 === 2 ? 3 : M2.phrase % 4 === 3 ? 4 : 0)));
-      if (M2.bar % 2 === 0 || md.swell) for (const n of chord) pad(t, n - 12, md.swell ? 0.035 : 0.028, bar * 1.9, out, md.padWave);
+      if (M2.bar % 2 === 0 || md.swell) for (const n of chord) pad(t2, n - 12, md.swell ? 0.035 : 0.028, bar * 1.9, out, md.padWave);
       const steps = md.pulse ? 4 : md.drums ? 4 : 3;
       for (let i = 0; i < steps; i++) {
         if (Math.random() > md.density) continue;
@@ -16705,14 +16888,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         M2.deg += r < 0.35 ? 1 : r < 0.7 ? -1 : r < 0.85 ? 2 : -2;
         if (M2.deg > 8) M2.deg -= 3;
         if (M2.deg < -3) M2.deg += 3;
-        const tt = t + i * bar / steps + (md.pulse ? 0 : Math.random() * 0.15), n = note(M2.deg, md.low ? 0 : 1);
+        const tt = t2 + i * bar / steps + (md.pulse ? 0 : Math.random() * 0.15), n = note(M2.deg, md.low ? 0 : 1);
         if (md.lead === "pluck") pluck(tt, n, 0.09, out);
         else bell(tt, n, 0.06, out);
       }
-      if (md.pulse) for (let i = 0; i < 4; i++) pluck(t + i * bar / 4, note(i % 2 ? 4 : 0, -1), 0.05, out);
+      if (md.pulse) for (let i = 0; i < 4; i++) pluck(t2 + i * bar / 4, note(i % 2 ? 4 : 0, -1), 0.05, out);
       if (md.drums) {
         for (let i = 0; i < 4; i++)
-          if (i !== 3 || Math.random() < 0.5) drum(t + i * bar / 4, i === 0 ? 0.35 : 0.2, out, i === 0 ? 90 : 120);
+          if (i !== 3 || Math.random() < 0.5) drum(t2 + i * bar / 4, i === 0 ? 0.35 : 0.2, out, i === 0 ? 90 : 120);
       }
       if (M2.bar % 4 === 0) M2.phrase++;
       M2.next += bar;
@@ -16797,7 +16980,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (seen2.chp !== null && chp !== null && chp < seen2.chp) blow(now);
     seen2.chp = chp;
   }
-  function step(t, S2, look2) {
+  function step(t2, S2, look2) {
     const ti = S2.player.y * R.W + S2.player.x, ter = S2.terrain[ti], b = R.biomeOf(S2), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", kind2 = R.areaRec(S2).kind;
     let ground = "grass";
     if (look2) ground = look2.kit === "planks" ? "wood" : look2.void && !look2.kit ? "grass" : "stone";
@@ -16807,52 +16990,52 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     else if (climate === "hot" || climate === "ashen" || climate === "steppe") ground = "sand";
     else if (ter === 2) ground = "stone";
     const v = 0.05 + Math.random() * 0.02;
-    if (ground === "grass") noiseHit(t, v, 500 + Math.random() * 200, 0.09, sfxBus, "lowpass");
-    else if (ground === "sand") noiseHit(t, v, 2200 + Math.random() * 800, 0.1, sfxBus, "bandpass", 0.8);
+    if (ground === "grass") noiseHit(t2, v, 500 + Math.random() * 200, 0.09, sfxBus, "lowpass");
+    else if (ground === "sand") noiseHit(t2, v, 2200 + Math.random() * 800, 0.1, sfxBus, "bandpass", 0.8);
     else if (ground === "snow") {
-      noiseHit(t, v, 1500, 0.13, sfxBus, "bandpass", 2);
-      noiseHit(t + 0.03, v * 0.6, 3500, 0.06, sfxBus, "highpass");
-    } else if (ground === "water") noiseHit(t, v * 1.3, 900 + Math.random() * 400, 0.18, sfxBus, "bandpass", 3);
-    else if (ground === "wood") drum(t, v * 0.8, sfxBus, 180 + Math.random() * 30);
-    else noiseHit(t, v * 1.1, 3e3 + Math.random() * 1500, 0.04, sfxBus, "bandpass", 4);
+      noiseHit(t2, v, 1500, 0.13, sfxBus, "bandpass", 2);
+      noiseHit(t2 + 0.03, v * 0.6, 3500, 0.06, sfxBus, "highpass");
+    } else if (ground === "water") noiseHit(t2, v * 1.3, 900 + Math.random() * 400, 0.18, sfxBus, "bandpass", 3);
+    else if (ground === "wood") drum(t2, v * 0.8, sfxBus, 180 + Math.random() * 30);
+    else noiseHit(t2, v * 1.1, 3e3 + Math.random() * 1500, 0.04, sfxBus, "bandpass", 4);
   }
-  function call(t, form, vel) {
-    if (form === "serpent") return noiseHit(t, vel * 0.8, 5e3, 0.9, sfxBus, "highpass");
+  function call(t2, form, vel) {
+    if (form === "serpent") return noiseHit(t2, vel * 0.8, 5e3, 0.9, sfxBus, "highpass");
     const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain(), [a, b, dur, type] = form === "hound" ? [440, 700, 1.4, "sawtooth"] : form === "brute" ? [90, 60, 0.7, "sawtooth"] : [220, 180, 2.2, "sine"];
     o.type = type;
-    o.frequency.setValueAtTime(a, t);
-    o.frequency.linearRampToValueAtTime(b, t + dur * 0.4);
-    o.frequency.linearRampToValueAtTime(a * 0.8, t + dur);
+    o.frequency.setValueAtTime(a, t2);
+    o.frequency.linearRampToValueAtTime(b, t2 + dur * 0.4);
+    o.frequency.linearRampToValueAtTime(a * 0.8, t2 + dur);
     f.type = "lowpass";
     f.frequency.value = form === "brute" ? 500 : 1400;
-    env(g, t, dur * 0.25, vel, dur * 0.75);
+    env(g, t2, dur * 0.25, vel, dur * 0.75);
     o.connect(f).connect(g).connect(sfxBus);
     g.connect(verb);
-    o.start(t);
-    o.stop(t + dur + 0.1);
+    o.start(t2);
+    o.stop(t2 + dur + 0.1);
   }
-  var blow = (t) => (noiseHit(t, 0.35, 700, 0.12, sfxBus, "lowpass"), drum(t, 0.3, sfxBus, 70));
-  var hurt2 = (t) => (noiseHit(t, 0.3, 400, 0.2, sfxBus, "lowpass"), pluck(t, 40, 0.15, sfxBus));
+  var blow = (t2) => (noiseHit(t2, 0.35, 700, 0.12, sfxBus, "lowpass"), drum(t2, 0.3, sfxBus, 70));
+  var hurt2 = (t2) => (noiseHit(t2, 0.3, 400, 0.2, sfxBus, "lowpass"), pluck(t2, 40, 0.15, sfxBus));
   R.on("did", (s, d) => {
     if (!A2 || !on2()) return;
-    const t = A2.currentTime;
-    if (d.id === "attack") noiseHit(t, 0.12, 1600, 0.18, sfxBus, "bandpass", 0.7);
-    else if (d.id === "drink" || d.id === "fill" || d.id === "fillWater") noiseHit(t, 0.08, 900, 0.4, sfxBus, "bandpass", 4);
+    const t2 = A2.currentTime;
+    if (d.id === "attack") noiseHit(t2, 0.12, 1600, 0.18, sfxBus, "bandpass", 0.7);
+    else if (d.id === "drink" || d.id === "fill" || d.id === "fillWater") noiseHit(t2, 0.08, 900, 0.4, sfxBus, "bandpass", 4);
   });
   R.on("killed", () => {
     if (!A2 || !on2()) return;
-    const t = A2.currentTime;
-    for (const [i, m] of [67, 71, 74].entries()) bell(t + i * 0.12, m, 0.06, sfxBus);
+    const t2 = A2.currentTime;
+    for (const [i, m] of [67, 71, 74].entries()) bell(t2 + i * 0.12, m, 0.06, sfxBus);
   });
   document.addEventListener("click", (e) => {
     if (!A2 || !on2() || !(e.target && e.target.closest && e.target.closest("button"))) return;
-    const t = A2.currentTime, o = A2.createOscillator(), g = A2.createGain();
-    o.frequency.setValueAtTime(1300, t);
-    o.frequency.exponentialRampToValueAtTime(700, t + 0.05);
-    env(g, t, 2e-3, 0.05, 0.06);
+    const t2 = A2.currentTime, o = A2.createOscillator(), g = A2.createGain();
+    o.frequency.setValueAtTime(1300, t2);
+    o.frequency.exponentialRampToValueAtTime(700, t2 + 0.05);
+    env(g, t2, 2e-3, 0.05, 0.06);
     o.connect(g).connect(sfxBus);
-    o.start(t);
-    o.stop(t + 0.1);
+    o.start(t2);
+    o.stop(t2 + 0.1);
   });
   var lastUpdate = 0;
   function updateSound(dt) {
@@ -16895,13 +17078,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   function load() {
     for (const k of [KEY].concat(OLD_KEYS)) {
-      let t = null;
+      let t2 = null;
       try {
-        t = localStorage.getItem(k);
+        t2 = localStorage.getItem(k);
       } catch (e) {
       }
-      if (!t) continue;
-      const res = R.deserialize(t);
+      if (!t2) continue;
+      const res = R.deserialize(t2);
       if (res.state) return res.state;
     }
     return null;
@@ -16932,8 +17115,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       });
       P3.yaw = [0, -Math.PI / 2, Math.PI, Math.PI / 2][best];
     } else {
-      const t = R.localPos(V.S, R.townArea(V.S), V.S.town.x, V.S.town.y);
-      P3.yaw = Math.atan2(-(tileX(t.x) - P3.x), -(tileX(t.y) - P3.z));
+      const t2 = R.localPos(V.S, R.townArea(V.S), V.S.town.x, V.S.town.y);
+      P3.yaw = Math.atan2(-(tileX(t2.x) - P3.x), -(tileX(t2.y) - P3.z));
     }
     shown.t = V.S.time;
     shown.area = V.S.area;
@@ -17020,8 +17203,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     };
     {
       const tm = !indoor && V.townAt && V.townId ? R.mapOf(V.S, V.townId) : null, wall2 = (x, z) => {
-        const t = townTile(x, z);
-        return !!(t && tm && tm.terrain[t.y * R.W + t.x] === R.WALL);
+        const t2 = townTile(x, z);
+        return !!(t2 && tm && tm.terrain[t2.y * R.W + t2.x] === R.WALL);
       };
       if (tm && wall2(nx, nz)) {
         if (!wall2(nx, P3.z)) nz = P3.z;
@@ -17093,7 +17276,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       hemi.intensity = glowing ? look2.light || 0.45 : 0.05;
       hemi.color.setHex(glowing && look2.glow ? look2.glow : 14673902);
       lightIndoors();
-      setNight(1);
+      setNight(nightNow = 1);
       lamp2.intensity = lit || glowing ? 1.1 : 0.25;
       lamp2.distance = lit || glowing ? 26 : 6;
       lamp2.position.set(P3.x, P3.y + 0.8, P3.z);
@@ -17112,7 +17295,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     scene.fog.far = shown.far;
     scene.fog.near = Math.min(40, shown.far * 0.2);
     lightOutdoors(h, day, dusk, skyC, !!storm, sight);
-    setNight(clamp2(1 - day * 1.3 + (storm ? 0.3 : 0), 0, 1));
+    nightNow = clamp2(1 - day * 1.3 + (storm ? 0.3 : 0), 0, 1);
+    setNight(nightNow);
     const sa = (h - 6) / 14 * Math.PI;
     sunDir.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
     lamp2.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
@@ -17124,6 +17308,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     treesNear();
     animateActors(frameDt, P3.x, P3.z, still);
     guard("sound", () => updateSound(frameDt));
+    updateFx(frameDt, nightNow, still);
     const target = V.terrain.height(P3.x, P3.z) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P3.walked * 1.7) * 0.05);
     P3.y = lerp(P3.y, target, Math.abs(target - P3.y) > 3 ? 0.06 : 0.35);
     camera.position.set(P3.x, P3.y, P3.z);
@@ -17135,6 +17320,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var last = performance.now();
   var frameDt = 0.016;
+  var nightNow = 0;
   var BUILD_BUDGET = 5;
   function loop(now) {
     requestAnimationFrame(loop);
@@ -17435,7 +17621,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       )
     ];
   }
-  function marketRows(t, re) {
+  function marketRows(t2, re) {
     const rows = R.market(V.S);
     if (!rows.length) return [];
     const made = rows.filter((m2) => m2.made), tip = made.length ? R.bestMarket(V.S, made[0].id) : null, m = V.S.player.mats || {}, mats2 = (R.C.crafting ? R.C.crafting.mats : []).filter((x) => m[x.id] > 0);
@@ -17443,7 +17629,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       el("h3", { text: "Market" }),
       el("p", {
         cls: "note",
-        text: (made.length ? t.name + " makes " + made.map((x) => x.name.toLowerCase()).join(" and ") + ", and sells it cheap." : t.name + " makes nothing to trade, and pays well for what others make.") + (tip && tip.t !== t ? " " + t.merchant + ': "' + made[0].name + " fetch the most in " + tip.t.name + '."' : "")
+        text: (made.length ? t2.name + " makes " + made.map((x) => x.name.toLowerCase()).join(" and ") + ", and sells it cheap." : t2.name + " makes nothing to trade, and pays well for what others make.") + (tip && tip.t !== t2 ? " " + t2.merchant + ': "' + made[0].name + " fetch the most in " + tip.t.name + '."' : "")
       }),
       el(
         "ul",
@@ -17527,7 +17713,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const info = R.serviceInfo(V.S);
     if (!info) return;
     openModal(info.title, [
-      ...info.text.map((t) => el("p", { text: t })),
+      ...info.text.map((t2) => el("p", { text: t2 })),
       info.options.length ? el("p", { cls: "note", text: "You have " + V.S.player.coin + " coin." }) : null,
       el(
         "ul",
@@ -17552,13 +17738,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   function openTown(section) {
     if (!["elder", "inn", "shop"].includes(section)) return openService();
-    const t = R.curTown(V.S);
-    if (section === "elder" && (!V.S.quest.told || t !== V.S.town)) act(() => R.talkElder(V.S));
-    const p = V.S.player, T2 = R.C.town, race = R.byId(R.C.races, t.race).name.toLowerCase(), re = (fn) => () => {
+    const t2 = R.curTown(V.S);
+    if (section === "elder" && (!V.S.quest.told || t2 !== V.S.town)) act(() => R.talkElder(V.S));
+    const p = V.S.player, T2 = R.C.town, race = R.byId(R.C.races, t2.race).name.toLowerCase(), re = (fn) => () => {
       act(fn);
       if (!V.S.over) openTown(section);
     };
-    const stock = t.stock.map(
+    const stock = t2.stock.map(
       (it) => el("li", { cls: "item" }, [
         el("div", null, [
           el("strong", { text: R.itemName(it) }),
@@ -17591,8 +17777,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     );
     const coin = el("p", { cls: "note", text: "You have " + p.coin + " coin." });
     if (section === "elder")
-      openModal(t.elder + ", elder of " + t.name, [
-        ...t.speech.length ? t.speech.map((l) => el("p", { text: l })) : [el("p", { cls: "note", text: "An old " + race + " looks up from a table covered in maps." })],
+      openModal(t2.elder + ", elder of " + t2.name, [
+        ...t2.speech.length ? t2.speech.map((l) => el("p", { text: l })) : [el("p", { cls: "note", text: "An old " + race + " looks up from a table covered in maps." })],
         el("div", { cls: "row" }, [
           btn(
             V.S.quest.told ? "Ask what to do now" : "Talk",
@@ -17636,11 +17822,11 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         ])
       ]);
     else
-      openModal(t.merchant + "'s shop", [
+      openModal(t2.merchant + "'s shop", [
         coin,
         el("div", { cls: "row" }, [
           btn(
-            "Fuel, " + R.priceOf(V.S, "fuelPrice") + " coin each (" + t.fuel + " left)",
+            "Fuel, " + R.priceOf(V.S, "fuelPrice") + " coin each (" + t2.fuel + " left)",
             re(() => R.buyFuel(V.S))
           )
         ]),
@@ -17648,7 +17834,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         el("ul", { cls: "items" }, stock),
         el("h3", { text: "Your goods" }),
         mine.length ? el("ul", { cls: "items" }, mine) : el("p", { cls: "note", text: "Nothing they would buy." }),
-        ...marketRows(t, re)
+        ...marketRows(t2, re)
       ]);
   }
   function showEnd() {
@@ -18408,19 +18594,19 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     "touchstart",
     (e) => {
       e.preventDefault();
-      for (const t of e.changedTouches) {
-        if (t.clientX < window.innerWidth * 0.45 && moveId === null) {
-          moveId = t.identifier;
-          ox = t.clientX;
-          oy = t.clientY;
+      for (const t2 of e.changedTouches) {
+        if (t2.clientX < window.innerWidth * 0.45 && moveId === null) {
+          moveId = t2.identifier;
+          ox = t2.clientX;
+          oy = t2.clientY;
           stick.style.display = "block";
           stick.style.left = ox + "px";
           stick.style.top = oy + "px";
           knob.style.transform = "";
         } else if (lookId === null) {
-          lookId = t.identifier;
-          tlx = t.clientX;
-          tly = t.clientY;
+          lookId = t2.identifier;
+          tlx = t2.clientX;
+          tly = t2.clientY;
         }
       }
     },
@@ -18430,9 +18616,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     "touchmove",
     (e) => {
       e.preventDefault();
-      for (const t of e.changedTouches) {
-        if (t.identifier === moveId) {
-          let dx = t.clientX - ox, dy = t.clientY - oy;
+      for (const t2 of e.changedTouches) {
+        if (t2.identifier === moveId) {
+          let dx = t2.clientX - ox, dy = t2.clientY - oy;
           const d = Math.hypot(dx, dy), RR2 = 50;
           if (d > RR2) {
             dx *= RR2 / d;
@@ -18441,23 +18627,23 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           input.fx = dx / RR2;
           input.fy = -dy / RR2;
           knob.style.transform = "translate(" + dx + "px," + dy + "px)";
-        } else if (t.identifier === lookId) {
-          look(t.clientX - tlx, t.clientY - tly, 6e-3);
-          tlx = t.clientX;
-          tly = t.clientY;
+        } else if (t2.identifier === lookId) {
+          look(t2.clientX - tlx, t2.clientY - tly, 6e-3);
+          tlx = t2.clientX;
+          tly = t2.clientY;
         }
       }
     },
     { passive: false }
   );
   var endTouch = (e) => {
-    for (const t of e.changedTouches) {
-      if (t.identifier === moveId) {
+    for (const t2 of e.changedTouches) {
+      if (t2.identifier === moveId) {
         moveId = null;
         input.fx = input.fy = 0;
         stick.style.display = "none";
       }
-      if (t.identifier === lookId) lookId = null;
+      if (t2.identifier === lookId) lookId = null;
     }
   };
   cv.addEventListener("touchend", endTouch);

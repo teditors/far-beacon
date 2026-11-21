@@ -24,6 +24,25 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.8: fire, water and shadows
+
+**What it is.** The small living things of the look (`src/view/fx.js`):
+
+- **Fire**: your camp has a cloth tent with a fire before it, and every wayfarer sits by one: a ring of stones,
+  crossed logs, three flames that flicker, and a warm halo that grows at night and pulses with the flames. The plots'
+  camps burn the same way. With the towns' lamps and windows, it is the warm light at night the brief asked for, done
+  with glowing shapes and halos rather than real lights, which would cost every vertex on screen.
+- **Water**: springs are pools with a muddy rim and ripples that drift slowly across them; foul ones, once known, are
+  murky green. The reeds round them are the grass tufts of C5.3.
+- **Shadows**: everyone stands in a soft round shadow, sized to their form, so people and creatures sit on the ground
+  rather than float over it. A blob shadow is one small quad each: real shadows are left for later (see the summary).
+
+**Switch.** `fx` ("Fire, water and shadows"). With reduced motion asked for, the flames and ripples hold still.
+
+**Numbers.** Graphics unchanged away from camps (a fire is four or five draw calls). Page 720 KB.
+
+**Verdict.** Pearl, small: a camp at night is now the warmest thing in the land, which is what a camp should be.
+
 ## C5.7: sound and a generative score
 
 **What it is.** The game has sound (`src/view/sound.js`), all made in the browser with the Web Audio API: no files.

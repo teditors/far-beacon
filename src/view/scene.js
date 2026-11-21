@@ -2,12 +2,14 @@
 import { $, FR, G, HALF, P, R, TOWN_TS, TS, V, clamp, setGeometry } from './ctx.js';
 const clampI = (i, n) => (i < 0 ? 0 : i > n ? n : i);
 import { EW, MARGIN, PAD, SINK, makeTerrainG } from './terrain.js';
-import { Q, SET, lookOn } from './quality.js';
+import { LOOK_SWITCHES, Q, SET, lookOn } from './quality.js';
 import { PF, perfBuild } from './perf.js';
 import { groundMaterial, paintOn, surface, surfaceOf } from './paint.js';
 import { hamletGroup, townGroup, townsOn } from './buildings.js';
 import { levelFloor, levelKit, levelWalls } from './levels.js';
 import { ruinGroup, ruinsOn } from './ruins.js';
+import * as FX from './fx.js';
+import { blob, fire, water } from './fx.js';
 import { actorsOn, clearActors, creatureActor, personActor, track } from './actors.js';
 import { kitMat } from './kit.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
@@ -162,6 +164,18 @@ const BUILD = {
   // someone at a small fire in the wilds (only the ashes, once they have gone on)
   wayfarer(S, st) {
     const g = new THREE.Group();
+    if (fxOn()) {
+      // a small fire, and someone sitting by it (gone on: only the ashes)
+      if (st.gone) g.add(box(1.4, 0.15, 1.4, std(0x3a3027), 0, 0.08, 0));
+      else {
+        g.add(fire(0.9));
+        const who = person(0x6a5a40, 0x8a7a5a, st.who ? String(st.who).length : 3);
+        who.position.set(2.2, 0, 0.6);
+        who.rotation.y = -1.9;
+        g.add(who);
+      }
+      return g;
+    }
     g.add(box(1.4, 0.3, 1.4, std(0x3a3027), 0, 0.15, 0));
     if (!st.gone) {
       const f = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.4, 6), glow(0xffa040, 0.9));
@@ -277,7 +291,11 @@ const BUILD = {
       g.add(t);
     }
     fire.position.y = 0.7;
-    g.add(fire, box(0.15, 4, 0.15, std(0x3a2a1a), 2, 2, 1), box(1.4, 0.9, 0.05, glow(0xb03a2a, 1), 2.7, 3.4, 1));
+    g.add(
+      fxOn() ? FX.fire(1.3) : fire,
+      box(0.15, 4, 0.15, std(0x3a2a1a), 2, 2, 1),
+      box(1.4, 0.9, 0.05, glow(0xb03a2a, 1), 2.7, 3.4, 1),
+    );
     return g;
   },
   siege(s) {
@@ -639,6 +657,7 @@ function person(color, hat, seed) {
     // a jointed person who breathes, looks about and walks (actors.js)
     const g = new THREE.Group();
     g.add(personActor(color, hat, seed || color));
+    if (fxOn()) g.add(blob(0.5));
     return g;
   }
   const g = new THREE.Group(),
@@ -1211,6 +1230,8 @@ function treesNear(force) {
     z = P.z - staticGroup.position.z;
   for (const rec of lods) updateLOD(rec, x, z, Q.treeNear, force);
 }
+const fxOn = () => lookOn('fx') && lookOn('light');
+LOOK_SWITCHES.push(['fx', 'Fire, water and shadows']);
 const HP = new Map(); // creatures' health when last drawn, to see a hit land
 const hashStr = (s) => {
   let h = 7;
@@ -1257,10 +1278,12 @@ function drawArea(id, kind) {
       const st = map.sites[k];
       if (st.kind !== 'spring') continue;
       const [x, y, z] = at(+k),
-        w = new THREE.Mesh(
-          new THREE.CircleGeometry(4.6, 16).rotateX(-Math.PI / 2),
-          new THREE.MeshBasicMaterial({ color: st.known && st.foul ? 0x6f6a35 : 0x3f8fc0 }),
-        );
+        w = fxOn()
+          ? water(4.6, st.known && st.foul)
+          : new THREE.Mesh(
+              new THREE.CircleGeometry(4.6, 16).rotateX(-Math.PI / 2),
+              new THREE.MeshBasicMaterial({ color: st.known && st.foul ? 0x6f6a35 : 0x3f8fc0 }),
+            );
       w.position.set(x, y + 0.3, z);
       dynGroup.add(w);
       for (let i = 0; i < 7; i++) {
@@ -1318,8 +1341,10 @@ function drawArea(id, kind) {
           sp.rare === 'docile' ? 0x9fe39f : sp.temper === 'hunter' ? 0xff3b2f : sp.temper === 'skittish' ? 0xffe06a : 0xff9a2a,
         fog: false,
       });
-    if (actorsOn()) g.add(creatureActor(sp.form, col, eye.color.getHex()));
-    else if (sp.form === 'hound')
+    if (actorsOn()) {
+      g.add(creatureActor(sp.form, col, eye.color.getHex()));
+      if (fxOn()) g.add(blob({ hound: 0.9, brute: 1.4, wight: 0.7, serpent: 1.1 }[sp.form] || 1));
+    } else if (sp.form === 'hound')
       g.add(
         box(0.6, 0.7, 1.7, mat, 0, 0.8, 0),
         box(0.5, 0.5, 0.6, mat, 0, 1.15, 1),
@@ -1387,6 +1412,13 @@ function drawArea(id, kind) {
     const [x, y, z] = at(camp, 5, 3),
       t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(0xd9a24a));
     t.position.set(x, y + 1.8, z);
+    if (fxOn()) {
+      // your camp: the tent of cloth, and a fire before it that lights up the night
+      t.material = kitMat({ vertexColors: false, color: 0xd9a24a, map: surface('cloth') });
+      const f = fire(1);
+      f.position.set(x - 3.5, ground(x - 3.5, z + 3) + 0.05, z + 3);
+      dynGroup.add(f);
+    }
     const sm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.6, 150, 8, 1, true), glow(0xf2f2ee, 0.38));
     sm.material.side = THREE.DoubleSide;
     sm.position.set(x + 3, y + 76, z - 2);
