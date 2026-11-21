@@ -1,5 +1,73 @@
 # Commission 5
 
+## Summary
+
+Eleven entries, newest last in the table: light first (the brief's "matters most"), then textures, trees, towns and
+levels, ruins, people and creatures, sound, fire and water, landmarks and shadows. Every check passes; the rules are
+untouched apart from content: a `kit` name on each level's look and a new `content/townlooks.js`, both read only by
+the view. No save changes. The page went from 621 KB to 730 KB.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C5.1 | Smooth land, warm sun and cool shade, a deepening sky, blue moonlight; Lambert light everywhere | `light` | pearl |
+| C5.2 | Painted ground (grass, sand, rock, snow grains in one texture) and surface textures made in code | `paint` | pearl |
+| C5.3 | Trees with shapes per woodland, swaying, near and far by distance; the modelling kit | `plants` | pearl |
+| C5.4 | Towns built by climate, trade and custom; levels with walls of their own | `towns` | pearl |
+| C5.5 | Ruins built in their people's style, aged and marked by their doom; places kept between builds | `ruins` | pearl |
+| C5.6 | People and creatures as jointed models that walk, breathe, look, lunge and flinch | `actors` | pearl |
+| C5.7 | A generative score that follows where you are; wind, rain, water, footsteps, creatures, blows | `sound` | pearl |
+| C5.8 | Campfires that glow at night, rippling springs, blob shadows | `fx` | pearl, small |
+| C5.9 | Landmarks: a beacon tower, a stone ring, rock caves, castles, barrows, temples, wells, doors | `landmarks` | small pearl |
+| C5.10 | Real-time sun shadows, High only | `shadows` | maybe |
+| C5.11 | Lantern light on dark floors again; the browser test photographs the new look | (fix, tests) | fix |
+
+**The style**, in short: a painted storybook of about 2005. Chunky readable shapes, smooth soft shading on land and
+living things, cut facets on stone and roofs, colours a little richer than life, warm sun and cool shade, fog in the
+sky's colour, firelight the only bright warm thing at night (in full above).
+
+**Numbers, before and after** (`python3 tools/bench.py low medium high`, software renderer at 412 x 915, seeds 11 / 222
+/ 3333; slow in absolute terms, comparable across rows; frame times swing about 8% between runs):
+
+| | build ms | draw calls | triangles | frame ms | page |
+| --- | --- | --- | --- | --- | --- |
+| before, Low | 54 | 67 | 81,780 | 89.4 | 621 KB |
+| after, Low | 73 | 65 | 105,353 | 73.3 | 730 KB |
+| before, Medium (default) | 93 | 81 | 151,882 | 144.1 | |
+| after, Medium | 105 | 82 | 197,275 | 129.7 | |
+| before, High | 176 | 91 | 283,906 | 209.9 | |
+| after, High (with shadows) | 226 | 92 | 343,102 | 231.5 | |
+
+Low and Medium are **cheaper a frame than before** and look entirely different: Lambert light (per vertex) costs less
+than the standard material did, and pays for the trees, towns and people. High costs about a tenth more, all of it
+the shadows (C5.10), which can be switched off. Builds are 10 to 20 ms dearer the first time a place is in view;
+places are then reused. Inside places, every kind is cheaper than before (C5.11's table): a floating castle 186 to 58
+ms, a dungeon level 70 to 49. The sound costs a handful of oscillators. **Andrew: on the Pixel, turn the meter on and
+compare High with and without "Real-time shadows", and send the numbers for a floating castle and a town at night.**
+
+**My three best.**
+1. **The modelling kit with joints in the shader (C5.3, C5.6)**: one small brick that every model is made of. A forest
+   is one draw call, a town seven, a person or a creature one however many limbs it has, and moving the limbs costs
+   the processor five numbers a frame. It is why the look got richer while the frame got cheaper.
+2. **Towns from culture (C5.4)**: a town's look is data, read from its climate, trade and custom, so a desert town of
+   traders under striped awnings and a northern town of pious log houses with a steeple are told apart at a glance,
+   and a new culture is a content entry.
+3. **Ruins aged block by block (C5.5)**: building a ruin as its people built it and letting age and doom take it apart
+   makes all five traits of the lost people readable before you search, which is gameplay the game always had and
+   never showed.
+
+**What I would do next.**
+1. Measure on the Pixel (above), and if High's shadows are dear there, default them off.
+2. Water that moves: rivers and the open sea are still coloured ground; a gently waving water surface with the
+   sky's colour in it would lift the sea places most.
+3. More life in towns: townsfolk walk between tiles but do not yet go anywhere; carts, smoke from chimneys, washing
+   that moves in the wind (the sway is there to use).
+4. The music: a second instrument family per biome and short themes for finding a place, a town's welcome and a win.
+5. The sky places (isles, cloud cities) seen from below are still the old shapes; give them the kit too.
+
+**CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
+
+| v0.16 | Commission 5: how the game looks and sounds. A painted storybook style: smooth land in warm sun and cool shade, a deepening sky and blue moonlight; textures made in code; trees with shapes that sway; towns built by their climate, trade and custom, glowing at night; levels with walls of their own; ruins in their people's style, aged and marked by their doom; landmarks; people and creatures that walk, breathe, look round, lunge and flinch; campfires, springs and shadows; real-time shadows on High; a generative score that follows where you are and the sounds of the world. Every piece has a switch in Menu, Settings; Low and Medium are cheaper a frame than before. |
+
 ## The style
 
 **A painted storybook, about 2005.** Chunky, readable shapes with a little exaggeration (round crowns, steep roofs,

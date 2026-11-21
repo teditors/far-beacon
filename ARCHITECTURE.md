@@ -134,6 +134,31 @@ Every place you walk into is an area; commission 4 added four kinds of level and
   list, which every piece fills through `PLACES`; world settings are plain options, `newGame(seed, off, set)`, kept
   in `s.gen` where they differ from `content/worldset.js`, and read with `genOf(s)` (the playtest takes `SET=`).
 
+## The look (commission 5)
+
+The view is painted in one style (a storybook of about 2005: see the top of JOURNAL.md's commission 5) and built from
+a few shared bricks. Every piece of the look has a switch of its own, a setting of the device rather than of the run
+(`LOOK_SWITCHES` and `lookOn(id)` in quality.js, listed in Menu, Settings), so it can be compared on and off.
+
+| Module | What it does |
+| --- | --- |
+| `light.js` | the sun, the sky's light and the moon, by the hour; Lambert (per-vertex) light everywhere |
+| `paint.js` | every texture, made in code: the ground's four grains (mixed per point by `surfaceOf`) and grey surfaces (stone, brick, wood, thatch, tiles, cloth, plaster) multiplied into a colour |
+| `kit.js` | the modelling kit: a model is parts (box, cone, ball...) with colours and places, merged into one geometry (one draw call; instanced, a whole forest is one); parts can hang from joints; `swaying` bends tops in the wind |
+| `plants.js` | a shape for each woodland, near and far versions, sorted by distance from the player as they walk (`updateLOD`) |
+| `buildings.js` | towns and hamlets from their climate, trade and custom (data: `content/townlooks.js`); windows and lamps glow at night (`setNight`) |
+| `levels.js` | the walls and floors of levels, by the `kit` their look names in content |
+| `ruins.js` | ruins from the lost people's five traits, laid course by course and aged |
+| `landmarks.js` | the beacon, shrine, caves, the locked place, wells, doors |
+| `actors.js` | people and creatures as jointed models worked in the vertex shader; walking from where they were drawn, idling, fighting |
+| `fx.js` | fires, pools of water and blob shadows |
+| `sound.js` | the generative score (`MOODS`) and the sounds of the world, Web Audio only, started by the first tap |
+
+Rules for the look: generate, never ship files (textures, models and sounds are all code); anything costly reads `Q`
+and is lighter or absent on Low; models of places are kept between builds (`cachedModel` in scene.js), so their key
+must hold everything they are made from; measure with `python3 tools/bench.py low medium high places` before and
+after. To add a building style, a creature's look or a tree shape, see "Adding things".
+
 ## When something goes wrong
 
 `src/view/oops.js` is the safety net: the frame loop asks for its next frame before anything else, and walking,
@@ -216,7 +241,11 @@ Players can copy a run out of Menu and paste it into another device.
 | --- | --- |
 | An item base or affix | an entry in content/items.js, a value in content/tuning.js |
 | A trait of the lost peoples | an entry in the right list in content/peoples.js, then make the rules read its fields in civOf() |
-| A creature form | an entry in content/creatures.js, and a model in view/scene.js |
+| A creature form | an entry in content/creatures.js, and a model in `creatureModel` in view/actors.js |
+| A way towns look | an entry (climate, trade or custom) in content/townlooks.js; a new street prop is a function in `PROPS` in view/buildings.js |
+| A tree shape | a function in `SHAPES` in view/plants.js, and `tree.shape` on the woodland in content |
+| A look for a level | a `kit` name on its `look` in content (view/levels.js lists them) |
+| A mood of the music | an entry in `MOODS` in view/sound.js, and a case in `moodNow` |
 | A biome | an entry in content/biomes.js (the content test lists every field it needs), and name prefixes in content/creatures.js |
 | A god | an entry in content/gods.js |
 | A new kind of modifier | use a new stat name in content, read it with stat() in the rules, and add it to the known list in tests/content.test.js |
