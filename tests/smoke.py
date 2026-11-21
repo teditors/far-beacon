@@ -176,9 +176,9 @@ async def main():
         await shot('10-new-world')
         await pg.locator('#modal-body button', has_text='Make this world').click(); await pg.wait_for_timeout(600)
         await pg.locator('#modal-body button', has_text='Begin').click(); await pg.wait_for_timeout(300)
-        w = await pg.evaluate("()=>{const S=window.__g.S;return [S.world.cols,S.world.rows,(S.towns||[]).length,!!S.cheated]}")
+        w = await pg.evaluate("()=>{const S=window.__g.S;return [S.world.cols,S.world.rows,(S.towns||[]).filter(t=>!t.realm).length,!!S.cheated]}")
         assert w == [3, 3, 0, False], 'the new world did not follow its settings: %r' % w
-        steps.append('new world with settings')
+        steps.append('new world with settings')  # (a door's other world may hold a town of its own: not counted)
         await pg.reload(); await pg.wait_for_timeout(1200); steps.append('reload')
         await b.close()
         print('smoke steps:', ', '.join(steps))
