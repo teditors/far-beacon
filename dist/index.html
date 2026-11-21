@@ -14456,6 +14456,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     } else k.add(P4.box(ts, h, ts), W2, { y: h / 2 }, { uv: name === "brick" ? 1.5 : 2.5 });
     return k.build();
   }
+  var levelMat = (o) => new THREE.MeshLambertMaterial(o);
   var levelsOn = () => lookOn("towns") && lookOn("light");
   function levelKit(look2) {
     if (!levelsOn() || !look2) return null;
@@ -14464,7 +14465,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
   function levelWalls(K2, ts, h, color, list, y0) {
     const mesh2 = new THREE.InstancedMesh(
       tileModel(K2.name, ts, h),
-      kitMat({ color, map: surface(K2.wall) }),
+      levelMat({ vertexColors: true, color, map: surface(K2.wall) }),
       Math.max(1, list.length)
     ), m = new THREE.Matrix4();
     list.forEach(([x, z], i) => {
@@ -14476,9 +14477,9 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     return mesh2;
   }
   function levelFloor(K2, size, color, up) {
-    const g = new THREE.PlaneGeometry(size, size).rotateX(up ? Math.PI / 2 : -Math.PI / 2), uv = g.attributes.uv;
+    const seg = Math.max(1, Math.round(size / 2)), g = new THREE.PlaneGeometry(size, size, seg, seg).rotateX(up ? Math.PI / 2 : -Math.PI / 2), uv = g.attributes.uv;
     for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * size / K2.floorRep, uv.getY(i) * size / K2.floorRep);
-    return new THREE.Mesh(g, kitMat({ vertexColors: false, color, map: surface(up ? K2.wall : K2.floor) }));
+    return new THREE.Mesh(g, levelMat({ color, map: surface(up ? K2.wall : K2.floor) }));
   }
 
   // src/view/ruins.js
@@ -16063,7 +16064,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     for (let i = 0; i < T2.length; i++) if (T2[i] !== R.VOID) tiles.push(i);
     const slab = new THREE.InstancedMesh(
       new THREE.BoxGeometry(ts, 1.2, ts),
-      LK ? kitMat({ vertexColors: false, color: look2.floor, map: surface(LK.floor) }) : std(look2.floor),
+      LK ? levelMat({ color: look2.floor, map: surface(LK.floor) }) : std(look2.floor),
       Math.max(1, tiles.length)
     ), under2 = new THREE.InstancedMesh(
       new THREE.ConeGeometry(ts * 0.75, ts * 3, 5).rotateX(Math.PI),

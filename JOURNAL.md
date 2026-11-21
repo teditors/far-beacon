@@ -24,6 +24,25 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.11: the new look in the browser test's pictures, and a fix for dark floors
+
+**What it is.** `python3 tests/smoke.py --shots` now also photographs the new look close up (`build/shots/`): a ruin
+(12), a creature (13) and your camp at night (14), beside its old pictures of the town, the levels and the places in
+the sky and water. Those pictures caught a bug of my own: in dark levels the floor was black. Light worked out per
+vertex (Lambert, from C5.1) only lights a level's floor at its corners, and the floor was one big square, so the
+traveller's lantern never reached it. Floors and ceilings of levels now have a vertex every two metres, and the
+lantern's pool shows again. (Lighting levels per pixel instead fixed it too, but doubled their frame time.)
+
+Two flaky steps of the browser test (older than this commission, but met more often on this slower machine) are
+steadier: the fight is skipped if the random world has no hostile creature in reach, and the test waits for the eye
+to settle in the town's gateway before measuring it.
+
+**Numbers, inside places on Medium** (`bench.py places`, v0.15 in brackets): dungeon level 8 calls, 35,356 triangles,
+48.7 ms (70.2); sky castle 8 / 18,437 / 57.7 (185.6); open sea 49 / 186,181 / 126.8 (144.9); under the sea 2 / 14,256 /
+26.4 (43.3); another world 31 / 176,794 / 101.1 (104.5).
+
+**Verdict.** Fix.
+
 ## C5.10: real-time shadows, on High only
 
 **What it is.** On High the sun casts real shadows (three's shadow map, 1024 square, in a 140 m box that follows the

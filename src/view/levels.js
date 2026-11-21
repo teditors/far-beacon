@@ -5,7 +5,7 @@
      stone   dressed blocks          castle  blocks with battlements   brick   small bricks (cisterns)
      rock    rough faceted boulders  mine    rock propped with timber  marble  white walls under gilded domes
      planks  boarded walls on posts  coral   rounded pillars of coral and shell */
-import { P, kit, kitMat } from './kit.js';
+import { P, kit } from './kit.js';
 import { surface } from './paint.js';
 import { lookOn } from './quality.js';
 
@@ -53,6 +53,9 @@ function tileModel(name, ts, h) {
   } else k.add(P.box(ts, h, ts), W, { y: h / 2 }, { uv: name === 'brick' ? 1.5 : 2.5 });
   return k.build();
 }
+// Levels are lit per vertex like everything else (Lambert); their floors and ceilings get a vertex every two metres, so
+// that a lantern's pool of light can fall across them (one big square would only be lit at its corners).
+const levelMat = (o) => new THREE.MeshLambertMaterial(o);
 const levelsOn = () => lookOn('towns') && lookOn('light');
 // The kit a level's look names, or null to keep the plain blocks.
 function levelKit(look) {
@@ -63,7 +66,7 @@ function levelKit(look) {
 function levelWalls(K, ts, h, color, list, y0) {
   const mesh = new THREE.InstancedMesh(
       tileModel(K.name, ts, h),
-      kitMat({ color, map: surface(K.wall) }),
+      levelMat({ vertexColors: true, color, map: surface(K.wall) }),
       Math.max(1, list.length),
     ),
     m = new THREE.Matrix4();
@@ -77,9 +80,10 @@ function levelWalls(K, ts, h, color, list, y0) {
 }
 // A floor (or ceiling) of `size` metres with the kit's surface, its texture repeating every floorRep metres.
 function levelFloor(K, size, color, up) {
-  const g = new THREE.PlaneGeometry(size, size).rotateX(up ? Math.PI / 2 : -Math.PI / 2),
+  const seg = Math.max(1, Math.round(size / 2)),
+    g = new THREE.PlaneGeometry(size, size, seg, seg).rotateX(up ? Math.PI / 2 : -Math.PI / 2),
     uv = g.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * size) / K.floorRep, (uv.getY(i) * size) / K.floorRep);
-  return new THREE.Mesh(g, kitMat({ vertexColors: false, color, map: surface(up ? K.wall : K.floor) }));
+  return new THREE.Mesh(g, levelMat({ color, map: surface(up ? K.wall : K.floor) }));
 }
-export { levelKit, levelWalls, levelFloor, KITS };
+export { levelKit, levelWalls, levelFloor, levelMat, KITS };

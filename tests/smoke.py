@@ -63,6 +63,9 @@ async def main():
             if await pg.evaluate("()=>window.__g.S.area") == 'town': break
         await pg.wait_for_timeout(1500); await pg.keyboard.up('w'); steps.append('walk into town')
         assert await pg.evaluate("()=>window.__g.S.area") == 'town', 'did not walk in through the gate'
+        for _ in range(20):  # the eye eases down to the town's ground over a few frames
+            if await pg.evaluate("()=>window.__g.P.y<4"): break
+            await pg.wait_for_timeout(200)
         st = await pg.evaluate("()=>{const g=window.__g;return {x:g.S.player.x,y:g.S.player.y,px:g.P.x,pz:g.P.z,py:g.P.y}}")
         assert st['x'] == 18 and 28 <= st['y'] <= 35 and abs(st['px'] - 1.9) < 2 and 40 < st['pz'] < 70 and st['py'] < 4, 'not standing in the gateway after walking in: %r' % st
         await shot('3-town')
@@ -165,6 +168,15 @@ async def main():
         await pg.mouse.click(box['x'] + box['width'] * 0.2, box['y'] + box['height'] * 0.2); await pg.wait_for_timeout(400)
         assert await pg.evaluate("()=>document.getElementById('modal').hidden && Rules.inOverworld(window.__g.S)"), 'a tap on the map did not jump'
         steps.append('map tap jump')
+        # the look of commission 5, close up: a ruin, a creature, the town and a camp at night (see build/shots with --shots)
+        for name, js in [
+            ('12-ruin', "let f=null;for(const k in S.sites){if(S.sites[k].kind==='ruin'){f={x:k%36,y:Math.floor(k/36)};break}}if(!f)return;S.player.x=f.x;S.player.y=Math.min(35,f.y+1);g.refresh();const cx=(f.x+0.5)*28-504,cz=(f.y+0.5)*28-504;g.P.x=cx+8;g.P.z=cz+20;g.P.yaw=Math.atan2(-(cx-g.P.x),-(cz-g.P.z));g.P.pitch=-0.1;"),
+            ('13-creature', "const c=S.creatures.find(c=>!c.bound);if(!c)return;c.cool=999;S.player.x=c.x;S.player.y=Math.min(35,c.y+1);g.refresh();const cx=(c.x+0.5)*28-504-4,cz=(c.y+0.5)*28-504-5;g.P.x=cx+1.5;g.P.z=cz+6;g.P.yaw=Math.atan2(-(cx-g.P.x),-(cz-g.P.z));g.P.pitch=-0.2;"),
+            ('14-camp-night', "S.time+=(24-((S.time/60+6)%24)+22)*60;S.camp={area:S.area,i:S.player.y*36+S.player.x};g.refresh();g.P.z+=14;g.P.x-=2;g.P.yaw=0.3;g.P.pitch=-0.15;"),
+        ]:
+            await pg.evaluate("()=>{const g=window.__g,S=g.S;Rules.travelTo(S,'overworld',18,18);S.combat=null;S.weather.storm=false;g.refresh();" + js + "}")
+            await pg.wait_for_timeout(700); await shot(name)
+        steps.append('the new look')
         # every new kind of place, in a world that has them all, reached by god mode and drawn without an error
         await pg.evaluate("()=>{const g=window.__g;g.newWorld(34,{sky:1,sea:1,doors:1,size:'5x5'});document.querySelectorAll('#modal-close').forEach(b=>b.click());Rules.setGodMode(g.S,true);}")
         for group in ['Below', 'Above', 'Water', 'Other worlds']:

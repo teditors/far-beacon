@@ -6,7 +6,7 @@ import { LOOK_SWITCHES, Q, SET, lookOn } from './quality.js';
 import { PF, perfBuild } from './perf.js';
 import { groundMaterial, paintOn, surface, surfaceOf } from './paint.js';
 import { hamletGroup, townGroup, townsOn } from './buildings.js';
-import { levelFloor, levelKit, levelWalls } from './levels.js';
+import { levelFloor, levelKit, levelMat, levelWalls } from './levels.js';
 import { ruinGroup, ruinsOn } from './ruins.js';
 import * as FX from './fx.js';
 import { landmark } from './landmarks.js';
@@ -641,7 +641,7 @@ function skyGround(map, ts, at, look, LK) {
   for (let i = 0; i < T.length; i++) if (T[i] !== R.VOID) tiles.push(i);
   const slab = new THREE.InstancedMesh(
       new THREE.BoxGeometry(ts, 1.2, ts),
-      LK ? kitMat({ vertexColors: false, color: look.floor, map: surface(LK.floor) }) : std(look.floor),
+      LK ? levelMat({ color: look.floor, map: surface(LK.floor) }) : std(look.floor),
       Math.max(1, tiles.length),
     ),
     under = new THREE.InstancedMesh(
