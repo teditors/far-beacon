@@ -68,6 +68,62 @@ compare High with and without "Real-time shadows", and send the numbers for a fl
 
 | v0.16 | Commission 5: how the game looks and sounds. A painted storybook style: smooth land in warm sun and cool shade, a deepening sky and blue moonlight; textures made in code; trees with shapes that sway; towns built by their climate, trade and custom, glowing at night; levels with walls of their own; ruins in their people's style, aged and marked by their doom; landmarks; people and creatures that walk, breathe, look round, lunge and flinch; campfires, springs and shadows; real-time shadows on High; a generative score that follows where you are and the sounds of the world. Every piece has a switch in Menu, Settings; Low and Medium are cheaper a frame than before. |
 
+## The style
+
+**A painted storybook, about 2005.** Chunky, readable shapes with a little exaggeration (round crowns, steep roofs,
+leaning towers), smooth soft shading rather than facets on land and living things, but cut facets on stone, roofs and
+rock. Colours a little richer than life, never neon; whites stay chalky. Light is warm where the sun falls and cool in
+the shade, with an orange sun low in the sky and blue moonlight at night; the sky deepens overhead and glows round the
+sun, and fog in the sky's colour gives depth. Textures, where there are any, are soft painted blotches and strokes made
+in code, never photographs. Firelight and lanterns are the only bright warm things at night. Every visual piece is
+held to this; when in doubt, simpler and rounder.
+
+**Switches for the look** live with the graphics quality (Menu, Settings), as settings of the device rather than of
+the run, since a piece of the look never changes the game: `LOOK_SWITCHES` and `lookOn(id)` in `src/view/quality.js`.
+
+**Measuring.** `python3 tools/bench.py low medium high` (seeds 11 / 222 / 3333, software renderer at 412 x 915). This
+machine is slower than the one commission 4 measured on, so the "before" row below is re-measured here, at the start:
+
+| before (v0.15) | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Low | 54 | 67 | 81,780 | 89.4 |
+| Medium | 93 | 81 | 151,882 | 144.1 |
+| High | 176 | 91 | 283,906 | 209.9 |
+
+The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
+
+## C5.13: every house of its own stuff
+
+**Asked by Andrew**: variety in textures; not every building in a town sharing one.
+
+**What it is.** Every painted surface now comes in three variants (other sizes of block, brick, plank, tile or shingle,
+another seed), and there are four new ones: **rubble** (rough stones of every size in mortar), **logs** (rounded logs
+laid one on another), **shingle** (short boards in staggered rows) and **adobe** (smoothed mud over big bricks, flecked
+with straw). Each climate in `content/townlooks.js` now lists the walls and roofs a house may be built of
+(`wallMix`, `roofMix`, also in the Almanac), and every building picks one of each, in one of the variants, along with
+its own colour:
+
+| Climate | Walls | Roofs |
+| --- | --- | --- |
+| hot | plaster, adobe, brick | flat plaster or adobe |
+| temperate | plaster (timber-framed), brick, stone | thatch, tiles |
+| wet | dressed stone, rubble | thatch, shingle |
+| cold | logs, planks | shingle, tiles |
+| ashen | stone, rubble, brick | tiles, shingle |
+| steppe | felt | felt |
+
+Walls are grimier toward the foot, by a different amount on each house. A walled town's mud wall is adobe. Each ruin's
+stone is a variant of its people's, so two ruins of one people are kin but not twins.
+
+**How, cheaply.** A town keeps one kit per texture and variant it uses (`switchKit` in buildings.js routes a house's
+parts to its choice), so a town is a few more draw calls (about 8 more with two towns in view), and no more textures
+are made than are used: each is 64 x 64, made the first time it is asked for.
+
+**Numbers.** Medium 110 ms build, 91 calls (83 before), 203,151 triangles, 130.8 ms a frame. Page 739 KB.
+
+**Verdict.** Pearl: a street of log houses and plank houses under shingles and tiles reads as built over time by
+different hands.
+
 ## C5.12: nobody teleports
 
 **Asked by Andrew** after the first pass: natural movement for townsfolk and monsters, never a jump.
@@ -93,30 +149,6 @@ compare High with and without "Real-time shadows", and send the numbers for a fl
 the same page measured 130 to 146 today). A few more creatures in view; nothing else.
 
 **Verdict.** Pearl: the land is never still and nobody blinks from place to place.
-
-## The style
-
-**A painted storybook, about 2005.** Chunky, readable shapes with a little exaggeration (round crowns, steep roofs,
-leaning towers), smooth soft shading rather than facets on land and living things, but cut facets on stone, roofs and
-rock. Colours a little richer than life, never neon; whites stay chalky. Light is warm where the sun falls and cool in
-the shade, with an orange sun low in the sky and blue moonlight at night; the sky deepens overhead and glows round the
-sun, and fog in the sky's colour gives depth. Textures, where there are any, are soft painted blotches and strokes made
-in code, never photographs. Firelight and lanterns are the only bright warm things at night. Every visual piece is
-held to this; when in doubt, simpler and rounder.
-
-**Switches for the look** live with the graphics quality (Menu, Settings), as settings of the device rather than of
-the run, since a piece of the look never changes the game: `LOOK_SWITCHES` and `lookOn(id)` in `src/view/quality.js`.
-
-**Measuring.** `python3 tools/bench.py low medium high` (seeds 11 / 222 / 3333, software renderer at 412 x 915). This
-machine is slower than the one commission 4 measured on, so the "before" row below is re-measured here, at the start:
-
-| before (v0.15) | build ms | draw calls | triangles | frame ms |
-| --- | --- | --- | --- | --- |
-| Low | 54 | 67 | 81,780 | 89.4 |
-| Medium | 93 | 81 | 151,882 | 144.1 |
-| High | 176 | 91 | 283,906 | 209.9 |
-
-The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
 ## C5.11: the new look in the browser test's pictures, and a fix for dark floors
 

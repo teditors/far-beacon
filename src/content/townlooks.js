@@ -1,7 +1,8 @@
 /* How towns look (commission 5): data for the view only, read by src/view/buildings.js; the rules never read it.
    A town is built of what its land offers (its climate), dressed by its trade (what stands in the streets and on the
    roofs) and coloured by its custom (banners, lanterns, flowers, fences). Colours are lists; each building picks one.
-   climate:  walls     texture of the walls: plaster, stone, brick, wood, cloth (src/view/paint.js)
+   climate:  walls     texture of the walls: plaster, stone, brick, wood, cloth (src/view/paint.js); wallMix and
+             roofMix: the textures a house may be built with (each picks one, in one of three variants)
              wall      wall colours; timber: dark beams over plaster; plinth: a stone footing
              roof      gable, steep, hip, flat or dome; roofTex its texture; roofCol its colours; pitch: height for width
              storeys   storeys a house may have (one picked per house); outer: what a walled town's wall is
@@ -17,6 +18,8 @@ export default {
     biomeClimate: { salt: 'hot', moor: 'wet', taiga: 'cold' },
     climates: {
       hot: {
+        wallMix: ['plaster', 'plaster', 'adobe', 'brick'],
+        roofMix: ['plaster', 'adobe'],
         walls: 'plaster',
         wall: ['#dcbc8c', '#d0a878', '#e4cca4', '#c89870'],
         plinth: '#a88a64',
@@ -30,6 +33,8 @@ export default {
         trim: '#6e4e30',
       },
       temperate: {
+        wallMix: ['plaster', 'plaster', 'brick', 'stone'],
+        roofMix: ['thatch', 'thatch', 'tiles'],
         walls: 'plaster',
         wall: ['#ece2c8', '#e0d4b4', '#f0e8d8'],
         timber: '#4a3424',
@@ -44,6 +49,8 @@ export default {
         trim: '#5a4030',
       },
       wet: {
+        wallMix: ['stone', 'rubble', 'stone'],
+        roofMix: ['thatch', 'shingle'],
         walls: 'stone',
         wall: ['#9a968a', '#8a887e', '#a8a294'],
         plinth: '#6a6860',
@@ -57,6 +64,8 @@ export default {
         trim: '#4a3a2c',
       },
       cold: {
+        wallMix: ['logs', 'wood', 'logs'],
+        roofMix: ['shingle', 'tiles', 'shingle'],
         walls: 'wood',
         wall: ['#7c5c3c', '#6c4e32', '#86643e'],
         plinth: '#6a6a66',
@@ -71,6 +80,8 @@ export default {
         trim: '#3e2c1e',
       },
       ashen: {
+        wallMix: ['stone', 'rubble', 'brick'],
+        roofMix: ['tiles', 'shingle'],
         walls: 'stone',
         wall: ['#5c5854', '#4e4a48', '#646058'],
         plinth: '#3a3836',
@@ -84,6 +95,8 @@ export default {
         trim: '#2e2622',
       },
       steppe: {
+        wallMix: ['cloth'],
+        roofMix: ['cloth'],
         walls: 'cloth',
         wall: ['#d8c8a4', '#c8b48c', '#e0d0b0'],
         plinth: '#8a7a5a',

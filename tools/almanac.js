@@ -482,8 +482,8 @@ section('How towns look', ['townLooks'], () => {
     ['Climate', 'Walls', 'Roof', 'Storeys', 'Town wall'],
     Object.entries(X.climates).map(([id, c]) => [
       id,
-      c.walls + (c.timber ? ', timber-framed' : ''),
-      c.roof + ' of ' + c.roofTex + (c.snow ? ', snow' : ''),
+      (c.wallMix || [c.walls]).join('/') + (c.timber ? ', timber-framed' : ''),
+      c.roof + ' of ' + (c.roofMix || [c.roofTex]).join('/') + (c.snow ? ', snow' : ''),
       c.storeys.join('/'),
       c.outer,
     ]),

@@ -61,6 +61,7 @@ function styleOf(S, townId, biome) {
     stones: !!cu.stones,
   });
   for (const k in ra) st[k] = ra[k];
+  if (ra.walls) st.wallMix = [ra.walls];
   if (ra.lost) {
     // the people who never fell build in their own stone, under their own sign
     const stone = R.trait(S, 'style').stone;
@@ -114,17 +115,49 @@ const FH = 3.1; // metres a storey
 // a point turned by ry about the y axis, as three turns things
 const turn = (lx, lz, ry) => [lx * Math.cos(ry) + lz * Math.sin(ry), -lx * Math.sin(ry) + lz * Math.cos(ry)];
 
-function kits() {
-  return { ground: kit(), wall: kit(), roof: kit(), wood: kit(), stone: kit(), cloth: kit(), glow: kit(), lamps: [] };
+// A kit for each wall and roof texture a town uses (keyed 'name:variant'); K.wall and K.roof send parts to the one the
+// building being made has chosen (K.wall.cur), so every house can be of its own stuff at one draw call per texture.
+function switchKit(table, cur) {
+  const self = {
+    cur,
+    add(...a) {
+      (table[self.cur] = table[self.cur] || kit()).add(...a);
+      return self;
+    },
+  };
+  return self;
+}
+function kits(st) {
+  const walls = {},
+    roofs = {};
+  return {
+    ground: kit(),
+    walls,
+    roofs,
+    wall: switchKit(walls, st.walls + ':0'),
+    roof: switchKit(roofs, st.roofTex + ':0'),
+    wood: kit(),
+    stone: kit(),
+    cloth: kit(),
+    glow: kit(),
+    lamps: [],
+  };
+}
+// what this building is made of: one of its climate's wall and roof textures, in one of three variants
+function choose(K, st, r) {
+  const mix = st.wallMix || [st.walls],
+    rmix = st.roofMix || [st.roofTex];
+  K.wall.cur = r.pick(mix) + ':' + Math.floor(r() * 3);
+  K.roof.cur = r.pick(rmix) + ':' + Math.floor(r() * 3);
 }
 // The kits made into meshes, each with its painted surface.
 function finish(K, st, group) {
   const add = (k, mat) => {
     if (!k.empty) group.add(new THREE.Mesh(k.build(), mat));
   };
-  add(K.ground, kitMat({ map: surface('plaster') }));
-  add(K.wall, kitMat({ map: surface(st.walls) }));
-  add(K.roof, kitMat({ map: surface(st.roofTex) }));
+  add(K.ground, kitMat({ map: surface('plaster', 1) }));
+  for (const key in K.walls) add(K.walls[key], kitMat({ map: surface(key.split(':')[0], +key.split(':')[1]) }));
+  for (const key in K.roofs) add(K.roofs[key], kitMat({ map: surface(key.split(':')[0], +key.split(':')[1]) }));
   add(K.wood, kitMat({ map: surface('wood') }));
   add(K.stone, kitMat({ map: surface('stone') }));
   add(K.cloth, kitMat({ map: surface('cloth'), side: THREE.DoubleSide }));
@@ -145,12 +178,20 @@ function building(K, st, r, b) {
   const { cx, cz, kind } = b;
   let { w, d } = b;
   if (st.roof === 'dome') return tents(K, st, r, b);
+  choose(K, st, r);
   const storeys = kind === 'elder' ? 2 : kind ? Math.max(1, r.pick(st.storeys)) : r.pick(st.storeys),
     wallH = storeys * FH + 0.4,
     wcol = r.pick(st.wall),
     trim = st.trim;
   K.stone.add(P.box(w + 0.3, 0.6, d + 0.3), st.plinth, { x: cx, y: 0.3, z: cz }, { uv: 2 });
-  K.wall.add(P.box(w, wallH, d), wcol, { x: cx, y: wallH / 2, z: cz }, { uv: 3, jitter: 0.04 });
+  // grime and splash toward the foot, weathering a little higher on some houses than others
+  const grime = 0.2 + r() * 0.15;
+  K.wall.add(
+    P.box(w, wallH, d),
+    wcol,
+    { x: cx, y: wallH / 2, z: cz },
+    { uv: 3, jitter: 0.05, shade: (y) => 1 - grime * Math.max(0, 1 - y * 3) },
+  );
   if (st.timber) {
     // dark beams over the plaster: corner posts, a beam at each storey, and posts between
     for (const [sx, sz] of [
@@ -318,6 +359,7 @@ function roof(K, st, r, cx, cz, w, d, wallH, wcol, kind) {
 }
 // Round tents (the steppe): as many as fit along the block, each with a dome of felt and a smoke hole.
 function tents(K, st, r, b) {
+  choose(K, st, r);
   const { cx, cz, w, d } = b,
     along = w >= d,
     span = Math.min(w, d),
@@ -564,7 +606,7 @@ function blocks(map, walled) {
 function townGroup(S, townId, map, ts) {
   const st = styleOf(S, townId),
     r = dice(hash((townId || 'town') + ':' + S.seed)),
-    K = kits(),
+    K = kits(st),
     group = new THREE.Group(),
     W = R.W,
     size = W * ts,
@@ -665,6 +707,8 @@ function townGroup(S, townId, map, ts) {
 }
 // A walled town's wall: stone with battlements, a log palisade, or banked mud, by climate; towers at the gates.
 function outerWall(K, st, r, map, ts, at) {
+  K.wall.cur = (st.outer === 'mud' ? 'adobe' : st.walls) + ':0';
+  K.roof.cur = st.roofTex + ':0';
   const W = R.W,
     T = map.terrain;
   for (let i = 0; i < W * W; i++) {
@@ -739,7 +783,7 @@ function outerWall(K, st, r, map, ts, at) {
 function hamletGroup(S, biome, seed) {
   const st = styleOf(S, null, biome),
     r = dice(seed),
-    K = kits(),
+    K = kits(st),
     group = new THREE.Group();
   st.props = ['woodpile', 'barrel'];
   st.banners = [];

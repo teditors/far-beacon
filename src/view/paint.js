@@ -178,67 +178,69 @@ const SURF = {};
 // the textures for built and worn things, each made the first time it is asked for
 const MAKERS = {
   // dressed stone in courses, each block a little different
-  stone(px, r, n) {
+  stone(px, r, n, v) {
     const f = new Float32Array(px * px),
-      rows = 6;
+      rows = [6, 4, 8][v],
+      cols = [3, 2, 4][v];
     for (let y = 0; y < px; y++) {
       const row = Math.floor((y / px) * rows),
         off = row % 2 ? 0.5 : 0;
       for (let x = 0; x < px; x++) {
-        const u = (x / px) * 3 + off,
+        const u = (x / px) * cols + off,
           col = Math.floor(u),
           fy = ((y / px) * rows) % 1,
           fx = u % 1,
           edge = Math.min(fy, 1 - fy, fx * 2, (1 - fx) * 2),
-          block = rnd(row * 31 + ((col % 3) + 3) * 7)();
+          block = rnd(row * 31 + ((col % cols) + 3) * 7 + v * 1000)();
         f[y * px + x] = 0.5 + (block - 0.5) * 0.14 + (n[y * px + x] - 0.5) * 0.18 - (edge < 0.08 ? 0.14 : 0);
       }
     }
     return f;
   },
   // small bricks
-  brick(px, r, n) {
+  brick(px, r, n, v) {
     const f = new Float32Array(px * px),
-      rows = 12;
+      rows = [12, 10, 16][v],
+      bc = [6, 5, 8][v];
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
         const row = Math.floor((y / px) * rows),
-          u = (x / px) * 6 + (row % 2 ? 0.5 : 0),
+          u = (x / px) * bc + (row % 2 ? 0.5 : 0),
           fy = ((y / px) * rows) % 1,
           fx = u % 1,
-          b = rnd(row * 13 + Math.floor(u))();
+          b = rnd(row * 13 + Math.floor(u) + v * 977)();
         f[y * px + x] = 0.5 + (b - 0.5) * 0.3 + (n[y * px + x] - 0.5) * 0.15 - (fy < 0.12 || fx < 0.06 ? 0.32 : 0);
       }
     return f;
   },
   // planks running across, with grain
-  wood(px, r, n) {
+  wood(px, r, n, v) {
     const f = new Float32Array(px * px),
-      planks = 5;
+      planks = [5, 4, 7][v];
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
         const p = Math.floor((y / px) * planks),
           fy = ((y / px) * planks) % 1,
-          b = rnd(p * 17 + 3)();
+          b = rnd(p * 17 + 3 + v * 51)();
         f[y * px + x] =
           0.5 + (b - 0.5) * 0.3 + 0.08 * Math.sin((x / px) * 40 + n[y * px + x] * 9 + p * 3) - (fy < 0.07 ? 0.3 : 0);
       }
     return f;
   },
   // thatch: long downward strokes, crowded
-  thatch(px, r, n) {
+  thatch(px, r, n, v) {
     const f = new Float32Array(px * px);
     for (let i = 0; i < px * px; i++) f[i] = 0.45 + (n[i] - 0.5) * 0.3;
-    for (let k = 0; k < 700; k++)
+    for (let k = 0, m = [700, 480, 950][v]; k < m; k++)
       stroke(f, px, r() * px, r() * px, (r() - 0.5) * 0.2, 1, 8 + r() * 10, 0, r() < 0.5 ? -0.2 : 0.22);
     for (let y = 0; y < px; y += px / 4) for (let x = 0; x < px; x++) f[Math.floor(y) * px + x] -= 0.15;
     return f;
   },
   // roof tiles: overlapping rows of rounded scales
-  tiles(px, r, n) {
+  tiles(px, r, n, v) {
     const f = new Float32Array(px * px),
-      rows = 8,
-      cols = 8;
+      rows = [8, 6, 10][v],
+      cols = [8, 6, 9][v];
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
         const row = Math.floor((y / px) * rows),
@@ -250,7 +252,7 @@ const MAKERS = {
     return f;
   },
   // woven cloth: a fine check and a soft fold
-  cloth(px, r, n) {
+  cloth(px, r, n, v) {
     const f = new Float32Array(px * px);
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++)
@@ -258,28 +260,103 @@ const MAKERS = {
     return f;
   },
   // plaster or daub: soft patches, a few cracks
-  plaster(px, r, n) {
+  // rubble: rough stones of every size packed in mortar (cells round scattered points)
+  rubble(px, r, n, v) {
+    const f = new Float32Array(px * px),
+      pts = [];
+    for (let i = 0, m = [16, 10, 24][v]; i < m; i++) pts.push([r() * px, r() * px, r()]);
+    for (let y = 0; y < px; y++)
+      for (let x = 0; x < px; x++) {
+        let d1 = 1e9,
+          d2 = 1e9,
+          b = 0;
+        for (const [qx, qy, qb] of pts)
+          for (const [ox, oy] of [
+            [0, 0],
+            [px, 0],
+            [-px, 0],
+            [0, px],
+            [0, -px],
+          ]) {
+            const d = Math.hypot(x - qx - ox, y - qy - oy);
+            if (d < d1) (d2 = d1), (d1 = d), (b = qb);
+            else if (d < d2) d2 = d;
+          }
+        f[y * px + x] =
+          0.5 + (b - 0.5) * 0.3 + (n[y * px + x] - 0.5) * 0.15 - (d2 - d1 < 1.6 ? 0.3 : 0) + Math.min(0.1, (d2 - d1) * 0.01);
+      }
+    return f;
+  },
+  // logs laid one on another: each a rounded band, dark where they meet, with a streak of grain
+  logs(px, r, n, v) {
+    const f = new Float32Array(px * px),
+      rows = [5, 4, 6][v];
+    for (let y = 0; y < px; y++)
+      for (let x = 0; x < px; x++) {
+        const row = Math.floor((y / px) * rows),
+          fy = ((y / px) * rows) % 1,
+          b = rnd(row * 29 + v * 7)();
+        f[y * px + x] =
+          0.42 + Math.sin(fy * Math.PI) * 0.22 + (b - 0.5) * 0.12 + 0.05 * Math.sin((x / px) * 30 + n[y * px + x] * 6);
+      }
+    return f;
+  },
+  // wooden shingles: short boards in staggered rows
+  shingle(px, r, n, v) {
+    const f = new Float32Array(px * px),
+      rows = [10, 8, 12][v],
+      cols = [6, 5, 8][v];
+    for (let y = 0; y < px; y++)
+      for (let x = 0; x < px; x++) {
+        const row = Math.floor((y / px) * rows),
+          u = (x / px) * cols + (row % 2 ? 0.5 : 0),
+          fy = ((y / px) * rows) % 1,
+          b = rnd(row * 41 + Math.floor(u) + v * 3)();
+        f[y * px + x] = 0.42 + fy * 0.2 + (b - 0.5) * 0.25 + (n[y * px + x] - 0.5) * 0.1 - (u % 1 < 0.06 || fy > 0.9 ? 0.25 : 0);
+      }
+    return f;
+  },
+  // adobe: smoothed mud over big bricks, flecked with straw
+  adobe(px, r, n, v) {
+    const f = new Float32Array(px * px),
+      rows = [4, 3, 5][v];
+    for (let y = 0; y < px; y++)
+      for (let x = 0; x < px; x++) {
+        const row = Math.floor((y / px) * rows),
+          u = (x / px) * 2 + (row % 2 ? 0.5 : 0),
+          fy = ((y / px) * rows) % 1;
+        f[y * px + x] = 0.52 + (n[y * px + x] - 0.5) * 0.25 - (fy < 0.04 || u % 1 < 0.02 ? 0.08 : 0);
+      }
+    for (let k = 0; k < 120; k++) stroke(f, px, r() * px, r() * px, r() - 0.5, r() - 0.5, 3, 0, r() < 0.5 ? 0.15 : -0.12);
+    return f;
+  },
+  plaster(px, r, n, v) {
     const f = new Float32Array(px * px);
     for (let i = 0; i < px * px; i++) f[i] = 0.52 + (n[i] - 0.5) * 0.3;
-    for (let k = 0; k < 5; k++) stroke(f, px, r() * px, r() * px, r() - 0.5, r() - 0.5, 10, 0, -0.06);
+    for (let k = 0, m = [5, 12, 2][v || 0]; k < m; k++) stroke(f, px, r() * px, r() * px, r() - 0.5, r() - 0.5, 10, 0, -0.06);
     return f;
   },
 };
 // A surface's texture, by name (stone, brick, wood, thatch, tiles, cloth, plaster), or null when the look is plain.
-function surface(name) {
+// A surface's texture by name (stone, brick, rubble, wood, logs, thatch, tiles, shingle, cloth, plaster, adobe), in one
+// of three variants (v: 0, 1, 2: other sizes of block, plank or tile, another seed), or null when the look is plain.
+function surface(name, v) {
   if (!lookOn('paint') || !MAKERS[name]) return null;
-  if (SURF[name]) return SURF[name];
+  v = Math.abs(v | 0) % 3;
+  const key = name + ':' + v;
+  if (SURF[key]) return SURF[key];
   const px = 64,
-    n = noiseField(px, 8, name.length * 7 + 1),
-    f = MAKERS[name](px, rnd(name.charCodeAt(0) * 101), n),
+    n = noiseField(px, [8, 6, 11][v], name.length * 7 + 1 + v * 13),
+    f = MAKERS[name](px, rnd(name.charCodeAt(0) * 101 + v * 7919), n, v),
     d = new Uint8Array(px * px * 4);
   for (let i = 0; i < px * px; i++) {
-    const v = toByte(Math.min(1, f[i] * 1.6)); // centred near 0.8 so a texture darkens a colour only a little
-    d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v;
+    const c = toByte(Math.min(1, f[i] * 1.6)); // centred near 0.8 so a texture darkens a colour only a little
+    d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = c;
     d[i * 4 + 3] = 255;
   }
   const t = dataTexture(d, px);
   t.dispose = () => {}; // shared by every build
-  return (SURF[name] = t);
+  return (SURF[key] = t);
 }
-export { groundMaterial, groundTexture, surfaceOf, surface, paintOn };
+const SURFACES = Object.keys(MAKERS);
+export { groundMaterial, groundTexture, surfaceOf, surface, paintOn, SURFACES };

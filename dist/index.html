@@ -4356,6 +4356,8 @@
       biomeClimate: { salt: "hot", moor: "wet", taiga: "cold" },
       climates: {
         hot: {
+          wallMix: ["plaster", "plaster", "adobe", "brick"],
+          roofMix: ["plaster", "adobe"],
           walls: "plaster",
           wall: ["#dcbc8c", "#d0a878", "#e4cca4", "#c89870"],
           plinth: "#a88a64",
@@ -4369,6 +4371,8 @@
           trim: "#6e4e30"
         },
         temperate: {
+          wallMix: ["plaster", "plaster", "brick", "stone"],
+          roofMix: ["thatch", "thatch", "tiles"],
           walls: "plaster",
           wall: ["#ece2c8", "#e0d4b4", "#f0e8d8"],
           timber: "#4a3424",
@@ -4383,6 +4387,8 @@
           trim: "#5a4030"
         },
         wet: {
+          wallMix: ["stone", "rubble", "stone"],
+          roofMix: ["thatch", "shingle"],
           walls: "stone",
           wall: ["#9a968a", "#8a887e", "#a8a294"],
           plinth: "#6a6860",
@@ -4396,6 +4402,8 @@
           trim: "#4a3a2c"
         },
         cold: {
+          wallMix: ["logs", "wood", "logs"],
+          roofMix: ["shingle", "tiles", "shingle"],
           walls: "wood",
           wall: ["#7c5c3c", "#6c4e32", "#86643e"],
           plinth: "#6a6a66",
@@ -4410,6 +4418,8 @@
           trim: "#3e2c1e"
         },
         ashen: {
+          wallMix: ["stone", "rubble", "brick"],
+          roofMix: ["tiles", "shingle"],
           walls: "stone",
           wall: ["#5c5854", "#4e4a48", "#646058"],
           plinth: "#3a3836",
@@ -4423,6 +4433,8 @@
           trim: "#2e2622"
         },
         steppe: {
+          wallMix: ["cloth"],
+          roofMix: ["cloth"],
           walls: "cloth",
           wall: ["#d8c8a4", "#c8b48c", "#e0d0b0"],
           plinth: "#8a7a5a",
@@ -13530,49 +13542,49 @@
   var SURF = {};
   var MAKERS = {
     // dressed stone in courses, each block a little different
-    stone(px, r, n) {
-      const f = new Float32Array(px * px), rows = 6;
+    stone(px, r, n, v) {
+      const f = new Float32Array(px * px), rows = [6, 4, 8][v], cols = [3, 2, 4][v];
       for (let y = 0; y < px; y++) {
         const row = Math.floor(y / px * rows), off = row % 2 ? 0.5 : 0;
         for (let x = 0; x < px; x++) {
-          const u = x / px * 3 + off, col = Math.floor(u), fy = y / px * rows % 1, fx = u % 1, edge = Math.min(fy, 1 - fy, fx * 2, (1 - fx) * 2), block = rnd(row * 31 + (col % 3 + 3) * 7)();
+          const u = x / px * cols + off, col = Math.floor(u), fy = y / px * rows % 1, fx = u % 1, edge = Math.min(fy, 1 - fy, fx * 2, (1 - fx) * 2), block = rnd(row * 31 + (col % cols + 3) * 7 + v * 1e3)();
           f[y * px + x] = 0.5 + (block - 0.5) * 0.14 + (n[y * px + x] - 0.5) * 0.18 - (edge < 0.08 ? 0.14 : 0);
         }
       }
       return f;
     },
     // small bricks
-    brick(px, r, n) {
-      const f = new Float32Array(px * px), rows = 12;
+    brick(px, r, n, v) {
+      const f = new Float32Array(px * px), rows = [12, 10, 16][v], bc = [6, 5, 8][v];
       for (let y = 0; y < px; y++)
         for (let x = 0; x < px; x++) {
-          const row = Math.floor(y / px * rows), u = x / px * 6 + (row % 2 ? 0.5 : 0), fy = y / px * rows % 1, fx = u % 1, b = rnd(row * 13 + Math.floor(u))();
+          const row = Math.floor(y / px * rows), u = x / px * bc + (row % 2 ? 0.5 : 0), fy = y / px * rows % 1, fx = u % 1, b = rnd(row * 13 + Math.floor(u) + v * 977)();
           f[y * px + x] = 0.5 + (b - 0.5) * 0.3 + (n[y * px + x] - 0.5) * 0.15 - (fy < 0.12 || fx < 0.06 ? 0.32 : 0);
         }
       return f;
     },
     // planks running across, with grain
-    wood(px, r, n) {
-      const f = new Float32Array(px * px), planks = 5;
+    wood(px, r, n, v) {
+      const f = new Float32Array(px * px), planks = [5, 4, 7][v];
       for (let y = 0; y < px; y++)
         for (let x = 0; x < px; x++) {
-          const p = Math.floor(y / px * planks), fy = y / px * planks % 1, b = rnd(p * 17 + 3)();
+          const p = Math.floor(y / px * planks), fy = y / px * planks % 1, b = rnd(p * 17 + 3 + v * 51)();
           f[y * px + x] = 0.5 + (b - 0.5) * 0.3 + 0.08 * Math.sin(x / px * 40 + n[y * px + x] * 9 + p * 3) - (fy < 0.07 ? 0.3 : 0);
         }
       return f;
     },
     // thatch: long downward strokes, crowded
-    thatch(px, r, n) {
+    thatch(px, r, n, v) {
       const f = new Float32Array(px * px);
       for (let i = 0; i < px * px; i++) f[i] = 0.45 + (n[i] - 0.5) * 0.3;
-      for (let k = 0; k < 700; k++)
+      for (let k = 0, m = [700, 480, 950][v]; k < m; k++)
         stroke(f, px, r() * px, r() * px, (r() - 0.5) * 0.2, 1, 8 + r() * 10, 0, r() < 0.5 ? -0.2 : 0.22);
       for (let y = 0; y < px; y += px / 4) for (let x = 0; x < px; x++) f[Math.floor(y) * px + x] -= 0.15;
       return f;
     },
     // roof tiles: overlapping rows of rounded scales
-    tiles(px, r, n) {
-      const f = new Float32Array(px * px), rows = 8, cols = 8;
+    tiles(px, r, n, v) {
+      const f = new Float32Array(px * px), rows = [8, 6, 10][v], cols = [8, 6, 9][v];
       for (let y = 0; y < px; y++)
         for (let x = 0; x < px; x++) {
           const row = Math.floor(y / px * rows), u = x / px * cols + (row % 2 ? 0.5 : 0), fx = u % 1 - 0.5, fy = y / px * rows % 1;
@@ -13581,7 +13593,7 @@
       return f;
     },
     // woven cloth: a fine check and a soft fold
-    cloth(px, r, n) {
+    cloth(px, r, n, v) {
       const f = new Float32Array(px * px);
       for (let y = 0; y < px; y++)
         for (let x = 0; x < px; x++)
@@ -13589,27 +13601,84 @@
       return f;
     },
     // plaster or daub: soft patches, a few cracks
-    plaster(px, r, n) {
+    // rubble: rough stones of every size packed in mortar (cells round scattered points)
+    rubble(px, r, n, v) {
+      const f = new Float32Array(px * px), pts = [];
+      for (let i = 0, m = [16, 10, 24][v]; i < m; i++) pts.push([r() * px, r() * px, r()]);
+      for (let y = 0; y < px; y++)
+        for (let x = 0; x < px; x++) {
+          let d1 = 1e9, d2 = 1e9, b = 0;
+          for (const [qx, qy, qb] of pts)
+            for (const [ox2, oy2] of [
+              [0, 0],
+              [px, 0],
+              [-px, 0],
+              [0, px],
+              [0, -px]
+            ]) {
+              const d = Math.hypot(x - qx - ox2, y - qy - oy2);
+              if (d < d1) d2 = d1, d1 = d, b = qb;
+              else if (d < d2) d2 = d;
+            }
+          f[y * px + x] = 0.5 + (b - 0.5) * 0.3 + (n[y * px + x] - 0.5) * 0.15 - (d2 - d1 < 1.6 ? 0.3 : 0) + Math.min(0.1, (d2 - d1) * 0.01);
+        }
+      return f;
+    },
+    // logs laid one on another: each a rounded band, dark where they meet, with a streak of grain
+    logs(px, r, n, v) {
+      const f = new Float32Array(px * px), rows = [5, 4, 6][v];
+      for (let y = 0; y < px; y++)
+        for (let x = 0; x < px; x++) {
+          const row = Math.floor(y / px * rows), fy = y / px * rows % 1, b = rnd(row * 29 + v * 7)();
+          f[y * px + x] = 0.42 + Math.sin(fy * Math.PI) * 0.22 + (b - 0.5) * 0.12 + 0.05 * Math.sin(x / px * 30 + n[y * px + x] * 6);
+        }
+      return f;
+    },
+    // wooden shingles: short boards in staggered rows
+    shingle(px, r, n, v) {
+      const f = new Float32Array(px * px), rows = [10, 8, 12][v], cols = [6, 5, 8][v];
+      for (let y = 0; y < px; y++)
+        for (let x = 0; x < px; x++) {
+          const row = Math.floor(y / px * rows), u = x / px * cols + (row % 2 ? 0.5 : 0), fy = y / px * rows % 1, b = rnd(row * 41 + Math.floor(u) + v * 3)();
+          f[y * px + x] = 0.42 + fy * 0.2 + (b - 0.5) * 0.25 + (n[y * px + x] - 0.5) * 0.1 - (u % 1 < 0.06 || fy > 0.9 ? 0.25 : 0);
+        }
+      return f;
+    },
+    // adobe: smoothed mud over big bricks, flecked with straw
+    adobe(px, r, n, v) {
+      const f = new Float32Array(px * px), rows = [4, 3, 5][v];
+      for (let y = 0; y < px; y++)
+        for (let x = 0; x < px; x++) {
+          const row = Math.floor(y / px * rows), u = x / px * 2 + (row % 2 ? 0.5 : 0), fy = y / px * rows % 1;
+          f[y * px + x] = 0.52 + (n[y * px + x] - 0.5) * 0.25 - (fy < 0.04 || u % 1 < 0.02 ? 0.08 : 0);
+        }
+      for (let k = 0; k < 120; k++) stroke(f, px, r() * px, r() * px, r() - 0.5, r() - 0.5, 3, 0, r() < 0.5 ? 0.15 : -0.12);
+      return f;
+    },
+    plaster(px, r, n, v) {
       const f = new Float32Array(px * px);
       for (let i = 0; i < px * px; i++) f[i] = 0.52 + (n[i] - 0.5) * 0.3;
-      for (let k = 0; k < 5; k++) stroke(f, px, r() * px, r() * px, r() - 0.5, r() - 0.5, 10, 0, -0.06);
+      for (let k = 0, m = [5, 12, 2][v || 0]; k < m; k++) stroke(f, px, r() * px, r() * px, r() - 0.5, r() - 0.5, 10, 0, -0.06);
       return f;
     }
   };
-  function surface(name) {
+  function surface(name, v) {
     if (!lookOn("paint") || !MAKERS[name]) return null;
-    if (SURF[name]) return SURF[name];
-    const px = 64, n = noiseField(px, 8, name.length * 7 + 1), f = MAKERS[name](px, rnd(name.charCodeAt(0) * 101), n), d = new Uint8Array(px * px * 4);
+    v = Math.abs(v | 0) % 3;
+    const key = name + ":" + v;
+    if (SURF[key]) return SURF[key];
+    const px = 64, n = noiseField(px, [8, 6, 11][v], name.length * 7 + 1 + v * 13), f = MAKERS[name](px, rnd(name.charCodeAt(0) * 101 + v * 7919), n, v), d = new Uint8Array(px * px * 4);
     for (let i = 0; i < px * px; i++) {
-      const v = toByte(Math.min(1, f[i] * 1.6));
-      d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v;
+      const c = toByte(Math.min(1, f[i] * 1.6));
+      d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = c;
       d[i * 4 + 3] = 255;
     }
     const t2 = dataTexture(d, px);
     t2.dispose = () => {
     };
-    return SURF[name] = t2;
+    return SURF[key] = t2;
   }
+  var SURFACES = Object.keys(MAKERS);
 
   // src/view/kit.js
   var PREP = /* @__PURE__ */ new Map();
@@ -13830,6 +13899,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
       stones: !!cu.stones
     });
     for (const k in ra) st[k] = ra[k];
+    if (ra.walls) st.wallMix = [ra.walls];
     if (ra.lost) {
       const stone = R.trait(S2, "style").stone;
       st.walls = "stone";
@@ -13876,16 +13946,43 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
   }
   var FH = 3.1;
   var turn2 = (lx2, lz, ry) => [lx2 * Math.cos(ry) + lz * Math.sin(ry), -lx2 * Math.sin(ry) + lz * Math.cos(ry)];
-  function kits() {
-    return { ground: kit(), wall: kit(), roof: kit(), wood: kit(), stone: kit(), cloth: kit(), glow: kit(), lamps: [] };
+  function switchKit(table, cur) {
+    const self = {
+      cur,
+      add(...a) {
+        (table[self.cur] = table[self.cur] || kit()).add(...a);
+        return self;
+      }
+    };
+    return self;
+  }
+  function kits(st) {
+    const walls = {}, roofs = {};
+    return {
+      ground: kit(),
+      walls,
+      roofs,
+      wall: switchKit(walls, st.walls + ":0"),
+      roof: switchKit(roofs, st.roofTex + ":0"),
+      wood: kit(),
+      stone: kit(),
+      cloth: kit(),
+      glow: kit(),
+      lamps: []
+    };
+  }
+  function choose(K2, st, r) {
+    const mix = st.wallMix || [st.walls], rmix = st.roofMix || [st.roofTex];
+    K2.wall.cur = r.pick(mix) + ":" + Math.floor(r() * 3);
+    K2.roof.cur = r.pick(rmix) + ":" + Math.floor(r() * 3);
   }
   function finish(K2, st, group) {
     const add = (k, mat) => {
       if (!k.empty) group.add(new THREE.Mesh(k.build(), mat));
     };
-    add(K2.ground, kitMat({ map: surface("plaster") }));
-    add(K2.wall, kitMat({ map: surface(st.walls) }));
-    add(K2.roof, kitMat({ map: surface(st.roofTex) }));
+    add(K2.ground, kitMat({ map: surface("plaster", 1) }));
+    for (const key in K2.walls) add(K2.walls[key], kitMat({ map: surface(key.split(":")[0], +key.split(":")[1]) }));
+    for (const key in K2.roofs) add(K2.roofs[key], kitMat({ map: surface(key.split(":")[0], +key.split(":")[1]) }));
     add(K2.wood, kitMat({ map: surface("wood") }));
     add(K2.stone, kitMat({ map: surface("stone") }));
     add(K2.cloth, kitMat({ map: surface("cloth"), side: THREE.DoubleSide }));
@@ -13903,9 +14000,16 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     const { cx, cz, kind: kind2 } = b;
     let { w, d } = b;
     if (st.roof === "dome") return tents(K2, st, r, b);
+    choose(K2, st, r);
     const storeys = kind2 === "elder" ? 2 : kind2 ? Math.max(1, r.pick(st.storeys)) : r.pick(st.storeys), wallH = storeys * FH + 0.4, wcol = r.pick(st.wall), trim = st.trim;
     K2.stone.add(P4.box(w + 0.3, 0.6, d + 0.3), st.plinth, { x: cx, y: 0.3, z: cz }, { uv: 2 });
-    K2.wall.add(P4.box(w, wallH, d), wcol, { x: cx, y: wallH / 2, z: cz }, { uv: 3, jitter: 0.04 });
+    const grime = 0.2 + r() * 0.15;
+    K2.wall.add(
+      P4.box(w, wallH, d),
+      wcol,
+      { x: cx, y: wallH / 2, z: cz },
+      { uv: 3, jitter: 0.05, shade: (y) => 1 - grime * Math.max(0, 1 - y * 3) }
+    );
     if (st.timber) {
       for (const [sx, sz] of [
         [-1, -1],
@@ -14054,6 +14158,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     K2.wood.add(P4.box(0.3, 0.3, len + 0.1), st.trim, { x: cx, y: wallH + h + 0.18, z: cz, ry }, { uv: 2 });
   }
   function tents(K2, st, r, b) {
+    choose(K2, st, r);
     const { cx, cz, w, d } = b, along = w >= d, span = Math.min(w, d), n = Math.max(1, Math.round((along ? w : d) / span));
     for (let i = 0; i < n; i++) {
       const o = -((along ? w : d) / 2) + (i + 0.5) * (along ? w : d) / n, x = cx + (along ? o : 0), z = cz + (along ? 0 : o), rad = span / 2 - 0.3, h = 2.6 + (b.kind ? 1 : 0), col = r.pick(st.wall);
@@ -14260,7 +14365,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     return out;
   }
   function townGroup(S2, townId2, map, ts) {
-    const st = styleOf(S2, townId2), r = dice(hash((townId2 || "town") + ":" + S2.seed)), K2 = kits(), group = new THREE.Group(), W2 = R.W, size = W2 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T2 = map.terrain, walled = !!(S2.areas[townId2] && S2.areas[townId2].walled), c = 18;
+    const st = styleOf(S2, townId2), r = dice(hash((townId2 || "town") + ":" + S2.seed)), K2 = kits(st), group = new THREE.Group(), W2 = R.W, size = W2 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T2 = map.terrain, walled = !!(S2.areas[townId2] && S2.areas[townId2].walled), c = 18;
     K2.ground.add(P4.box(size, 0.1, size), st.ground, { y: 0.03 }, { uv: 5, jitter: 0.04 });
     K2.stone.add(P4.box(13 * ts, 0.1, 13 * ts), st.plinth, { y: 0.06 }, { uv: 1.1, jitter: 0.03 });
     const kindAt = {};
@@ -14340,6 +14445,8 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     return finish(K2, st, group);
   }
   function outerWall(K2, st, r, map, ts, at) {
+    K2.wall.cur = (st.outer === "mud" ? "adobe" : st.walls) + ":0";
+    K2.roof.cur = st.roofTex + ":0";
     const W2 = R.W, T2 = map.terrain;
     for (let i = 0; i < W2 * W2; i++) {
       const x = i % W2, y = Math.floor(i / W2);
@@ -14390,7 +14497,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     }
   }
   function hamletGroup(S2, biome, seed) {
-    const st = styleOf(S2, null, biome), r = dice(seed), K2 = kits(), group = new THREE.Group();
+    const st = styleOf(S2, null, biome), r = dice(seed), K2 = kits(st), group = new THREE.Group();
     st.props = ["woodpile", "barrel"];
     st.banners = [];
     for (const [x, z, a] of [
@@ -14702,7 +14809,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     if (dh > 1 && civ.habit !== "cistern")
       for (const [dx, dz] of doors) Z2.dark.add(P4.box(1.7, dh, 0.3), 723982, { x: dx, y: dh / 2, z: dz - 0.2 });
     const g = new THREE.Group(), add = (k, mat) => !k.empty && g.add(new THREE.Mesh(k.build(), mat));
-    add(Z2.stone, kitMat({ map: surface(st.tex) }));
+    add(Z2.stone, kitMat({ map: surface(st.tex, seed >>> 3) }));
     add(Z2.wood, kitMat({ map: surface("wood") }));
     add(Z2.cloth, kitMat({ side: THREE.DoubleSide }));
     add(Z2.dark, new THREE.MeshBasicMaterial({ vertexColors: true }));
@@ -18515,7 +18622,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var lastSet = {};
   function openNewWorld() {
     const M3 = R.C.worldSet.menus, D3 = R.C.worldSet.defaults, cur = (k) => lastSet[k] !== void 0 ? lastSet[k] : D3[k], seedIn = el("input", { type: "number", id: "nw-seed", value: randomSeed(), inputmode: "numeric", "aria-label": "Seed" }), fields = {};
-    const choose = (key, label, list, val) => {
+    const choose2 = (key, label, list, val) => {
       const sel = el(
         "select",
         { id: "nw-" + key },
@@ -18548,19 +18655,19 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       el("summary", { text: "World settings" }),
       el("p", { cls: "note", text: "Leave these alone for an ordinary world. Hold Ctrl (or long-press) to pick several peoples." }),
       el("ul", { cls: "items" }, [
-        choose("size", "Size", M3.size, lastSet.size || ""),
+        choose2("size", "Size", M3.size, lastSet.size || ""),
         many("races", "Races that may appear (none picked: any)", R.C.races),
         count("nRaces", "How many races (0: rolled)"),
         many("classes", "Classes that may appear (none picked: any)", R.C.classes),
         count("nClasses", "How many classes (0: rolled)"),
-        choose("towns", "Other towns", M3.towns, cur("towns")),
-        choose("dungeons", "Dungeons", M3.dungeons, cur("dungeons")),
-        choose("depth", "How deep they go", M3.depth, cur("depth")),
-        choose("sky", "Places in the sky", M3.sky, cur("sky")),
-        choose("sea", "A sea", M3.sea, cur("sea")),
-        choose("doors", "Doors to other worlds", M3.doors, cur("doors")),
-        choose("maxDoors", "How many doors", M3.maxDoors, cur("maxDoors")),
-        choose("trouble", "The great trouble", troubles, cur("trouble"))
+        choose2("towns", "Other towns", M3.towns, cur("towns")),
+        choose2("dungeons", "Dungeons", M3.dungeons, cur("dungeons")),
+        choose2("depth", "How deep they go", M3.depth, cur("depth")),
+        choose2("sky", "Places in the sky", M3.sky, cur("sky")),
+        choose2("sea", "A sea", M3.sea, cur("sea")),
+        choose2("doors", "Doors to other worlds", M3.doors, cur("doors")),
+        choose2("maxDoors", "How many doors", M3.maxDoors, cur("maxDoors")),
+        choose2("trouble", "The great trouble", troubles, cur("trouble"))
       ])
     ]);
     openModal("A new world", [

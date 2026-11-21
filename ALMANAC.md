@@ -512,11 +512,11 @@ For the view only (commission 5): a town is built of what its land's climate off
 
 | Climate | Walls | Roof | Storeys | Town wall |
 | --- | --- | --- | --- | --- |
-| hot | plaster | flat of plaster | 1/1/2 | mud |
-| temperate | plaster, timber-framed | gable of thatch | 1/2/2 | palisade |
-| wet | stone | steep of thatch | 1/1/2 | stone |
-| cold | wood | steep of tiles, snow | 1/1/2 | palisade |
-| ashen | stone | hip of tiles | 1/2 | stone |
+| hot | plaster/plaster/adobe/brick | flat of plaster/adobe | 1/1/2 | mud |
+| temperate | plaster/plaster/brick/stone, timber-framed | gable of thatch/thatch/tiles | 1/2/2 | palisade |
+| wet | stone/rubble/stone | steep of thatch/shingle | 1/1/2 | stone |
+| cold | logs/wood/logs | steep of shingle/tiles/shingle, snow | 1/1/2 | palisade |
+| ashen | stone/rubble/brick | hip of tiles/shingle | 1/2 | stone |
 | steppe | cloth | dome of cloth | 1 | palisade |
 
 | Trade | In the streets | Chimneys | Awnings |

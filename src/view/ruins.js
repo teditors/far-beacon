@@ -287,7 +287,7 @@ function ruinGroup(S, seed) {
     for (const [dx, dz] of doors) Z.dark.add(P.box(1.7, dh, 0.3), 0x0b0c0e, { x: dx, y: dh / 2, z: dz - 0.2 });
   const g = new THREE.Group(),
     add = (k, mat) => !k.empty && g.add(new THREE.Mesh(k.build(), mat));
-  add(Z.stone, kitMat({ map: surface(st.tex) }));
+  add(Z.stone, kitMat({ map: surface(st.tex, seed >>> 3) })); // each ruin's stone a variant of its people's
   add(Z.wood, kitMat({ map: surface('wood') }));
   add(Z.cloth, kitMat({ side: THREE.DoubleSide }));
   add(Z.dark, new THREE.MeshBasicMaterial({ vertexColors: true }));
