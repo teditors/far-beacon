@@ -30,6 +30,7 @@ import {
 import { gainXp, roll } from './progress.js';
 import { stat } from './stats.js';
 import { advance } from './systems.js';
+import { LEVELS, OBJECTIVES } from './hooks.js';
 
 /* Quest, town and vault */
 const hasItem = (s, base) => s.player.items.some((i) => i.base === base);
@@ -52,7 +53,8 @@ function mark(s, x, y, area) {
 function findSite(s, kind) {
   const ids = [HOME, ...Object.keys(s.areas).filter((id) => id !== HOME && s.areas[id].kind === 'region')];
   for (const id of ids) {
-    const m = mapOf(s, id);
+    // only the sites are read, so a map packed away (far from the traveller) is left packed
+    const m = id === s.area ? s : s.areas[id].map;
     if (!m || !m.sites) continue;
     for (const k in m.sites) if (m.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: m.sites[k], area: id };
   }
@@ -197,6 +199,15 @@ function findLoose(s, base) {
 function objective(s) {
   const po = PLOT_HOOKS.objective && PLOT_HOOKS.objective(s);
   if (po) return po;
+  for (const f of OBJECTIVES) {
+    // the old story's places are all in the home world: from another world, the way back is first
+    const o = f(s, null);
+    if (o)
+      return {
+        text: o.text,
+        dir: o.at ? dirFrom(worldPos(s), homePos(s, o.at.area, o.at.x, o.at.y).x, homePos(s, o.at.area, o.at.x, o.at.y).y) : null,
+      };
+  }
   const q = s.quest,
     t = s.town,
     v = findSite(s, 'vault'),
@@ -449,7 +460,7 @@ function inn(s) {
 function unlock(s) {
   const st = siteHere(s);
   if (s.over || !st || st.kind !== 'vault' || st.open) return false;
-  if (!hasItem(s, 'key')) {
+  if (!hasItem(s, 'key') && !s.godMode) {
     say(s, 'The door of the ' + s.quest.vault.name + ' is locked, and will not be forced.');
     return false;
   }
@@ -507,6 +518,7 @@ function goToLevel(s, n, floors) {
 function goDown(s) {
   const st = siteHere(s),
     rec = areaRec(s);
+  if (rec.kind !== 'vault') return LEVELS[rec.kind] ? LEVELS[rec.kind](s) : false; // a level some piece owns (a dungeon)
   if (s.over || !st || st.kind !== 'stairsDown') return false;
   if (stat(s, 'nightSight', 0) <= 0) {
     say(s, 'You will not find the next stair without a light.', 'bad');

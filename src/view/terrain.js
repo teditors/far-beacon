@@ -148,7 +148,7 @@ function* makeTerrainG(s) {
   const level = field(lv, true);
   const mask = (type) => {
     const g = new Float32Array(EW * EW);
-    for (let i = 0; i < EW * EW; i++) g[i] = land.terrain[i] === type ? 1 : 0;
+    for (let i = 0; i < EW * EW; i++) g[i] = land.terrain[i] === type || (type === 4 && land.terrain[i] === R.DEEP) ? 1 : 0; // deep water is drawn as water
     const f = field(g, false);
     return (x, z) => clamp((f(x, z) - 0.3) / 0.4, 0, 1);
   };

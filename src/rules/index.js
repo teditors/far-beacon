@@ -39,7 +39,25 @@ import {
 } from './character.js';
 import { AXES, civOf, civTraits, trait, traitText } from './civ.js';
 import { attack, firebolt, flee, foe, formOf, identify, mend, power, smite, spOf } from './combat.js';
-import { C, FLOOR, H, TERR, VERSION, W, WALL, biomeOf, byId, clock, emit, godOf, on, siteHereKind, stormOf } from './core.js';
+import {
+  C,
+  DEEP,
+  FLOOR,
+  H,
+  TERR,
+  VERSION,
+  VOID,
+  W,
+  WALL,
+  biomeOf,
+  byId,
+  clock,
+  emit,
+  godOf,
+  on,
+  siteHereKind,
+  stormOf,
+} from './core.js';
 import { aOrAn } from './core.js';
 import { active, equip, slotOf, unequip } from './equipment.js';
 import { describeItem, genItem, isCursed, itemAffixes, itemName, itemWeight, weight } from './items.js';
@@ -122,7 +140,16 @@ import './tiers.js';
 import './worldsize.js';
 import './plot.js'; // it moves quest places that earlier pieces may have changed
 import './moretowns.js'; // after the plot: other towns go where the story's places are not
+import { deepById, deepsOf, enterDeep, levelLook, levelTitle } from './deeps.js'; // after the towns: a town may have a cellar
+import { aloft, canFly, flyDown, flyUp, land, skiesOf, skyOn, takeOff } from './sky.js'; // after the dungeons: a way to fly may lie in one
+import { breathes, enterWater, hasBoat, seaPlacesOf } from './sea.js';
+import { doorsOf, realmName, realmsOf, stepThrough } from './realms.js'; // before the plots: they use the doors
+import { chainOf, route } from './route.js';
+import './kin.js'; // after the sky and the sea: the kin come with them
+import { nearestUnknown } from './wayfarers.js';
+import './deepen.js';
 import {
+  goalMark,
   choosePlot,
   mainPlot,
   plotAct,
@@ -136,8 +163,43 @@ import {
 } from './plots.js'; // after the towns: troubles need towns
 import { craft, recipes } from './crafting.js';
 import { bestMarket, buyGood, market, sellGood, sellMat } from './trade.js';
+import { jumpMap, jumpTo, places, rescue, setGodMode } from './godmode.js';
+import { genOf, parseSet, settings } from './worldset.js';
 
 const api = {
+  setGodMode,
+  nearestUnknown,
+  rescue,
+  chainOf,
+  route,
+  doorsOf,
+  realmName,
+  realmsOf,
+  stepThrough,
+  breathes,
+  enterWater,
+  hasBoat,
+  seaPlacesOf,
+  aloft,
+  canFly,
+  flyDown,
+  flyUp,
+  land,
+  skiesOf,
+  skyOn,
+  takeOff,
+  deepById,
+  deepsOf,
+  enterDeep,
+  levelLook,
+  levelTitle,
+  isLevel: (s) => !!levelLook(s),
+  genOf,
+  parseSet,
+  settings,
+  jumpTo,
+  jumpMap,
+  places,
   bestMarket,
   buyGood,
   market,
@@ -153,6 +215,7 @@ const api = {
   plotObjective,
   plotsOf,
   stepOf,
+  goalMark,
   trackPlot,
   tracked,
   // for tests and tinkering: put the traveller on a tile of any outdoor region (from outdoors)
@@ -190,6 +253,8 @@ const api = {
   worldPos,
   WALL,
   FLOOR,
+  VOID,
+  DEEP,
   aOrAn,
   serialize,
   deserialize,
@@ -359,6 +424,14 @@ const ACTIONS = [
   'askErrand',
   'claimErrand',
   'useService',
+  'enterDeep',
+  'takeOff',
+  'land',
+  'flyUp',
+  'skyOn',
+  'flyDown',
+  'enterWater',
+  'stepThrough',
 ];
 for (const k of ACTIONS) {
   const fn = api[k];

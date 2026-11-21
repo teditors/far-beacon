@@ -26,46 +26,61 @@ on('worldBorn', (s, d) => {
   }
 });
 
+// An odd level's effects on a level map as it is built (the locked place's levels and any dungeon's).
+function applyQuirk(s, rec, m, r, cid) {
+  const k = kindOf(rec.floor);
+  if (!k) return m;
+  r = r || stream(s.seed, 'floor:' + rec.level);
+  cid = cid || 260 + rec.level * 10;
+  const free = [];
+  for (let i = 0; i < m.terrain.length; i++)
+    if (m.terrain[i] === 7 && !m.sites[i] && !m.depots[i] && !m.creatures.some((c) => idx(c.x, c.y) === i)) free.push(i);
+  const take = () => free.splice(Math.floor(r() * free.length), 1)[0];
+  for (let n = 0; n < (k.pools || 0) && free.length; n++) m.depots[take()] = { water: 3, fuel: 0, items: [] };
+  for (let n = 0; n < (k.items || 0) && free.length; n++) {
+    const it = genItem(s, { relic: true, noConsumables: true });
+    m.depots[take()] = { water: 0, fuel: 0, items: [it] };
+  }
+  for (let n = 0; n < (k.guards || 0) && free.length; n++) {
+    const i = take(),
+      sp = rec.kind === 'vault' ? s.quest.guardSp : m.creatures.length ? m.creatures[0].sp : s.quest.guardSp;
+    m.creatures.push(makeCreature(s, cid + 30 + n, sp, i % 36, Math.floor(i / 36), 1));
+  }
+  if (k.sleep) for (const c of m.creatures) if (!c.warden) c.cool = 1e9;
+  if (k.reveal) m.seen = m.terrain.map((t) => (t === 7 ? 1 : 0));
+  return m;
+}
+// Whether a dungeon's level is an odd one: an id from content/floors.js, or null. Never the bottom level.
+function rollQuirk(s, name, last) {
+  if (s.off.floors || last) return null;
+  const r = stream(s.seed, name),
+    roll = r(),
+    pick = r();
+  if (roll < F().rareChance) return F().rare.id;
+  if (roll < (C.deeps ? C.deeps.quirkChance : F().chance)) return F().list[Math.floor(pick * F().list.length)].id;
+  return null;
+}
 {
   const vault = GENERATORS.vault;
-  GENERATORS.vault = (s, rec) => {
-    const m = vault(s, rec),
-      k = kindOf(rec.floor);
-    if (!k) return m;
-    const r = stream(s.seed, 'floor:' + rec.level),
-      free = [];
-    for (let i = 0; i < m.terrain.length; i++)
-      if (m.terrain[i] === 7 && !m.sites[i] && !m.depots[i] && !m.creatures.some((c) => idx(c.x, c.y) === i)) free.push(i);
-    const take = () => free.splice(Math.floor(r() * free.length), 1)[0];
-    for (let n = 0; n < (k.pools || 0) && free.length; n++) m.depots[take()] = { water: 3, fuel: 0, items: [] };
-    for (let n = 0; n < (k.items || 0) && free.length; n++) {
-      const it = genItem(s, { relic: true, noConsumables: true });
-      m.depots[take()] = { water: 0, fuel: 0, items: [it] };
-    }
-    for (let n = 0; n < (k.guards || 0) && free.length; n++) {
-      const i = take();
-      m.creatures.push(makeCreature(s, 260 + rec.level * 10 + n, s.quest.guardSp, i % 36, Math.floor(i / 36), 1));
-    }
-    if (k.sleep) for (const c of m.creatures) if (!c.warden) c.cool = 1e9;
-    if (k.reveal) m.seen = m.terrain.map((t) => (t === 7 ? 1 : 0));
-    return m;
-  };
+  GENERATORS.vault = (s, rec) => applyQuirk(s, rec, vault(s, rec));
 }
+const levelKind = (rec) => rec.kind === 'vault' || rec.kind === 'deep';
 
 SOURCES.push({
   id: 'floors',
   fn(s, out) {
-    const k = areaRec(s).kind === 'vault' ? kindOf(areaRec(s).floor) : null;
+    const k = levelKind(areaRec(s)) ? kindOf(areaRec(s).floor) : null;
     if (k) for (const m of k.mods || []) out.push(m);
   },
 });
 on('did', (s, d) => {
-  if (d.id !== 'goDown' && d.id !== 'enterVault') return;
+  if (d.id !== 'goDown' && d.id !== 'enterVault' && d.id !== 'enterDeep') return;
   const rec = areaRec(s),
-    k = rec.kind === 'vault' ? kindOf(rec.floor) : null;
+    k = levelKind(rec) ? kindOf(rec.floor) : null;
   if (!k || rec.told) return;
   rec.told = true;
   if (k.reveal) for (const i in s.sites) s.sites[i].seen = true;
   say(s, k.text, k.guards ? 'bad' : 'good');
 });
 SWITCHES.push(['floors', 'Odd levels below']);
+export { applyQuirk, rollQuirk, kindOf as quirkOf };

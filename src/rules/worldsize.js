@@ -22,7 +22,11 @@ function rollSize(seed) {
   while (cols * rows > Z().most) cols > rows ? cols-- : rows--;
   return { shape: sh.id, cols, rows };
 }
-TUNERS.push((seed, tun, off, year) => {
+TUNERS.push((seed, tun, off, year, set) => {
+  if (set && set.cols && set.rows) {
+    tun.world = { cols: set.cols, rows: set.rows }; // chosen on the new world screen
+    return;
+  }
   if (off.worldsize || (year && year.tun && year.tun.world)) return;
   const z = rollSize(seed);
   tun.world = { cols: z.cols, rows: z.rows, shape: z.shape };

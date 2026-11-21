@@ -33,7 +33,9 @@ for (const st of C.civ.style) for (const f of st.favors) need(bases.has(f), 'sty
 for (const k of C.town.staples) need(bases.has(k), 'town staple ' + k + ' is not a base');
 need(C.creature.speciesPerWorld <= C.creature.forms.length * C.creature.prefix.salt.length, 'too few forms and prefixes for speciesPerWorld');
 // every stat a modifier names should be one the rules read (a typo here silently does nothing)
-const known = new Set(['waterCap', 'cold', 'stormCold', 'staminaCost', 'nightSight', 'surveyRadius', 'carryCap', 'moveTime', 'moveTime.hill', 'moveTime.mountain', 'moveTime.plain', 'moveTime.forest', 'goalDistance', 'leak', 'waterDrain', 'fuelUse', 'restGain', 'wellfinder', 'hit', 'dmg', 'ac', 'studyTime', 'searchTime', 'luck', 'tasteWater', 'gatherYield', 'trapSafe', 'shrineSense', 'warm', 'quiet', 'wetSafe', 'foulSafe', 'moveTime.river', 'town.innPrice', 'town.fuelPrice', 'town.appraisePrice', 'town.sellRate', 'town.buy', 'town.buy.weapon', 'town.buy.armor', 'town.buy.consumable', 'town.buy.gear']);
+const known = new Set(['waterCap', 'cold', 'stormCold', 'staminaCost', 'nightSight', 'surveyRadius', 'carryCap', 'moveTime', 'moveTime.hill', 'moveTime.mountain', 'moveTime.plain', 'moveTime.forest', 'goalDistance', 'leak', 'waterDrain', 'fuelUse', 'restGain', 'wellfinder', 'hit', 'dmg', 'ac', 'studyTime', 'searchTime', 'luck', 'tasteWater', 'gatherYield', 'trapSafe', 'shrineSense', 'warm', 'quiet', 'wetSafe', 'foulSafe', 'moveTime.river', 'town.innPrice', 'town.fuelPrice', 'town.appraisePrice', 'town.sellRate', 'town.buy', 'town.buy.weapon', 'town.buy.armor', 'town.buy.consumable', 'town.buy.gear',
+  // commission 4: flying and breathing water
+  'fly', 'flyEffort', 'breathe', 'swim']);
 const mods = [];
 for (const b of C.bases) (b.mods || []).forEach((m) => mods.push(['base ' + b.id, m]));
 for (const a of C.affixes) a.mods.forEach((m) => mods.push(['affix ' + a.id, m]));
@@ -52,6 +54,8 @@ for (const k in C.relicNatures) C.relicNatures[k].mods.forEach((m) => mods.push(
 for (const r of C.quest.relics) need(C.relicNatures[r], 'relic ' + r + ' has no nature');
 for (const x of [...C.townLife.lessons, C.townLife.blessing, C.townLife.mule]) x.mods.forEach((m) => mods.push(['town life ' + (x.id || 'blessing'), m]));
 for (const a of C.abilities) a.mods(12).forEach((m) => mods.push(['ability ' + a.id, m]));
+for (const k of C.sky.kinds) (k.mods || []).forEach((m) => mods.push(['sky place ' + k.id, m]));
+for (const t of C.deeps.themes) (t.mods || []).forEach((m) => mods.push(['dungeon ' + t.id, m]));
 for (const [who, m] of mods) { need(known.has(m.stat), who + ' modifies unknown stat ' + m.stat); need(['add', 'mul', 'max'].includes(m.op), who + ' has unknown op ' + m.op); }
 if (errs.length) { console.log('content problems:\n  ' + errs.join('\n  ')); process.exit(1); }
 console.log('content ok: ' + C.bases.length + ' item bases, ' + C.affixes.length + ' affixes, ' + mods.length + ' modifiers checked');

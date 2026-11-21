@@ -83,6 +83,89 @@ const GRAIN = (() => {
   return t;
 })();
 const BUILD = {
+  // the shadow of a place in the sky, and the place itself hanging high above it, seen from far off
+  shadow(S, st) {
+    const g = new THREE.Group(),
+      k = (S.skies || []).find((x) => x.id === st.sky),
+      kind = k ? k.kind : 'isle',
+      d = new THREE.Mesh(new THREE.CircleGeometry(16, 20).rotateX(-Math.PI / 2), glow(0x1d2430, 0.35));
+    d.position.y = 0.4;
+    g.add(d);
+    // seen from far off, through any haze: drawn without fog, a little faded, like a mountain on the skyline
+    const up = new THREE.Group(),
+      far = (c) => std(c, { fog: false, transparent: true, opacity: 0.85 });
+    if (kind === 'moon') {
+      up.add(new THREE.Mesh(new THREE.SphereGeometry(55, 18, 12), glow(0xdcdce4, 0.9)));
+      up.position.y = 420;
+    } else {
+      const rock = new THREE.Mesh(new THREE.ConeGeometry(34, 46, 9).rotateX(Math.PI), far(0x6e6458));
+      rock.position.y = -23;
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(34, 34, 2, 9), far(kind === 'city' ? 0xe8ecf2 : 0x6f8f52));
+      up.add(rock, top);
+      if (kind === 'castle')
+        for (const [x, z, h] of [
+          [0, 0, 30],
+          [12, 8, 18],
+          [-12, 8, 18],
+          [0, -12, 22],
+        ])
+          up.add(box(7, h, 7, far(0xd2cfc7), x, h / 2, z));
+      if (kind === 'city')
+        for (let i = 0; i < 9; i++)
+          up.add(box(6, 5 + (i % 3) * 3, 6, far(0xf4f4f6), Math.cos(i) * 20, 4, Math.sin(i * 1.7) * 20));
+      if (kind === 'isle') up.add(box(5, 9, 3, far(0xb9b4a6), 6, 4.5, -4), box(3, 6, 6, far(0xb9b4a6), -8, 3, 6));
+      up.position.y = 130;
+    }
+    g.add(up);
+    return g;
+  },
+  // someone at a small fire in the wilds (only the ashes, once they have gone on)
+  wayfarer(S, st) {
+    const g = new THREE.Group();
+    g.add(box(1.4, 0.3, 1.4, std(0x3a3027), 0, 0.15, 0));
+    if (!st.gone) {
+      const f = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.4, 6), glow(0xffa040, 0.9));
+      f.position.y = 0.9;
+      const who = new THREE.Group(),
+        body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 2.2, 8), std(0x6a5a40)),
+        head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 8), std(0xd9b896));
+      body.position.y = 1.1;
+      head.position.y = 2.5;
+      who.add(body, head);
+      who.position.set(2.2, 0, 0.6);
+      g.add(f, who);
+    }
+    return g;
+  },
+  // a door of old stone, alone in the land, with another sky showing through it
+  door(S, st) {
+    const g = new THREE.Group(),
+      stone = std(0x77736a);
+    g.add(box(1.2, 7, 1.2, stone, -2.6, 3.5, 0), box(1.2, 7, 1.2, stone, 2.6, 3.5, 0), box(6.6, 1.2, 1.4, stone, 0, 7.4, 0));
+    const sky = new THREE.Mesh(new THREE.PlaneGeometry(4, 6.8), glow(st.back ? 0xbfd8f0 : 0xb48ce0, 0.85));
+    sky.material.side = THREE.DoubleSide;
+    sky.position.y = 3.4;
+    g.add(sky);
+    return g;
+  },
+  // a place in the water: a mast for a wreck, a cluster of hulls for a floating town, a ring of standing stones for
+  // the merfolk's halls or a drowned shrine, and a dark cave mouth on the shore
+  seaplace(S, st) {
+    const g = new THREE.Group(),
+      p = (S.seaPlaces || []).find((x) => x.id === st.place),
+      kind = p ? p.kind : 'wreck';
+    if (kind === 'wreck') g.add(box(0.5, 9, 0.5, std(0x4a3a2a), 0, 2.5, 0), box(4, 0.3, 0.3, std(0x4a3a2a), 0, 5.5, 0));
+    else if (kind === 'raft') {
+      for (let i = 0; i < 7; i++) g.add(box(3, 1.2, 7, std(0x6a4a30), Math.cos(i * 0.9) * 7, 0.2, Math.sin(i * 0.9) * 7));
+      g.add(box(0.3, 7, 0.3, std(0x4a3a2a), 0, 3.5, 0), box(3, 2, 0.1, std(0xe8e0c8), 1.6, 5, 0));
+    } else if (kind === 'seacave') {
+      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(6, 1), std(0x3a3a38));
+      m.scale.set(1, 0.6, 1);
+      g.add(m, box(3, 2.5, 1, std(0x050608), 0, 1.2, 5.6));
+    } else
+      for (let i = 0; i < 6; i++) g.add(box(0.8, 3, 0.8, std(0x7a8a80), Math.cos(i * 1.05) * 4, 0.5, Math.sin(i * 1.05) * 4));
+    return g;
+  },
   well() {
     const g = new THREE.Group(),
       m = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 1, 10), std(0x5d5a55));
@@ -336,7 +419,6 @@ const BUILD = {
   },
 };
 const FLAT = { height: () => 0 };
-const VAULT_STONE = { castle: 0x6a6660, barrow: 0x5d6a4a, temple: 0x4f6e6c };
 // The town or a level of the locked place, as a group centred on its own middle: a floor, and a block for every wall
 // tile that borders open floor. The town has no ceiling, so it can stand out of doors and be seen from far off.
 function interiorGroup(map, rec, ts) {
@@ -346,10 +428,14 @@ function interiorGroup(map, rec, ts) {
     T = map.terrain,
     at = (t) => (t + 0.5) * ts - size / 2,
     isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 0x8f8a80 : 0x3e3a35));
-  floor.position.y = town ? 0.08 : 0;
-  group.add(floor);
-  const stone = town ? 0xc9bba0 : VAULT_STONE[V.S.quest.vault.id],
+  const look = town ? null : R.levelLook(V.S) || { stone: 0x6a6660, floor: 0x3e3a35 };
+  if (look && look.void) group.add(skyGround(map, ts, at, look));
+  else {
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 0x8f8a80 : look.floor));
+    floor.position.y = town ? 0.08 : 0;
+    group.add(floor);
+  }
+  const stone = town ? 0xc9bba0 : look.stone,
     tiles = [];
   for (let y = 0; y < R.H; y++)
     for (let x = 0; x < R.W; x++) {
@@ -410,12 +496,46 @@ function interiorGroup(map, rec, ts) {
       );
       group.add(sm);
     }
-  } else {
-    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(0x1c1a18));
+  } else if (look.ceiling !== false) {
+    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(look.roof || 0x1c1a18));
     ceiling.position.y = 5;
     group.add(ceiling);
   }
   return group;
+}
+// A place in the sky: a slab of ground under every tile you can stand on, and rock hanging below it, with the open air
+// all round (VOID tiles are not drawn at all).
+function skyGround(map, ts, at, look) {
+  const g = new THREE.Group(),
+    T = map.terrain,
+    tiles = [];
+  for (let i = 0; i < T.length; i++) if (T[i] !== R.VOID) tiles.push(i);
+  const slab = new THREE.InstancedMesh(new THREE.BoxGeometry(ts, 1.2, ts), std(look.floor), Math.max(1, tiles.length)),
+    under = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(ts * 0.75, ts * 3, 5).rotateX(Math.PI),
+      std(look.stone),
+      Math.max(1, tiles.length),
+    ),
+    m = new THREE.Matrix4();
+  tiles.forEach((i, n) => {
+    const x = at(i % R.W),
+      z = at(Math.floor(i / R.W));
+    m.makeTranslation(x, -0.6, z);
+    slab.setMatrixAt(n, m);
+    m.makeTranslation(x, -1.2 - ts * 1.5 - ((i * 7) % 5), z);
+    under.setMatrixAt(n, m);
+  });
+  slab.count = under.count = tiles.length;
+  slab.frustumCulled = under.frustumCulled = false;
+  g.add(slab, under);
+  if (look.water) {
+    // a town that floats: the sea all round, a little below the decks
+    const sea = new THREE.Mesh(new THREE.PlaneGeometry(R.W * ts * 6, R.W * ts * 6).rotateX(-Math.PI / 2), std(0x2f6f9a));
+    sea.position.y = -0.9;
+    under.visible = false;
+    g.add(sea);
+  }
+  return g;
 }
 // Things inside that can change: people, stairs, traps, and anything lying on the floor.
 function person(color, hat) {
@@ -480,6 +600,49 @@ function interiorSite(st, ts, inTown) {
     g.add(marker);
   } else if (st.kind === 'trap' && (st.sprung || st.seen))
     g.add(box(ts * 0.6, 0.06, ts * 0.6, std(st.sprung ? 0x2a2522 : 0x9a2a22), 0, 0.03, 0));
+  else if (st.kind === 'landing' || st.kind === 'skyway') {
+    // a post with a pennant where you came in; a stair is a ring of gold, as below
+    if (st.kind === 'landing')
+      g.add(box(0.15, 3, 0.15, std(0x5a4632), 0, 1.5, 0), box(1, 0.6, 0.05, glow(0xe0a84a, 0.9), 0.55, 2.7, 0));
+    const marker = new THREE.Mesh(new THREE.TorusGeometry(ts * 0.42, 0.06, 6, 24).rotateX(Math.PI / 2), glow(0xe0a84a, 0.6));
+    marker.position.y = 0.05;
+    g.add(marker);
+  } else if (st.kind === 'trader') g.add(person(0x3a6a9a, 0xd8dde4));
+  // a plot's places, when a plot puts them down below, up above or under the water
+  else if (st.kind === 'throne')
+    g.add(
+      box(1.6, 0.6, 1.4, std(0x5a1c1c), 0, 0.3, 0),
+      box(1.6, 2.6, 0.3, std(0x5a1c1c), 0, 1.3, -0.6),
+      box(2.2, 0.15, 2, std(0x8a7a50), 0, 0.05, 0),
+    );
+  else if (st.kind === 'stone') g.add(box(0.9, 3.4, 0.7, std(0x111111), 0, 1.7, 0));
+  else if (st.kind === 'herbs')
+    for (let i = 0; i < 6; i++) {
+      const c = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 5), std(0x6fae4f));
+      c.position.set(Math.cos(i) * 0.7, 0.3, Math.sin(i * 1.3) * 0.7);
+      g.add(c);
+    }
+  else if (st.kind === 'den')
+    for (let i = 0; i < 5; i++) g.add(box(0.7, 0.12, 0.12, std(0xe8e0d0), Math.cos(i * 2) * 0.6, 0.06, Math.sin(i * 2) * 0.6));
+  else if (st.kind === 'camp' || st.kind === 'lost') {
+    const tent = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.8, 4), std(st.kind === 'camp' ? 0x7a5a3a : 0x8a9a6a));
+    tent.position.y = 0.9;
+    g.add(tent);
+  } else if (st.kind === 'cellar') {
+    g.add(box(ts * 0.8, 0.04, ts * 0.8, new THREE.MeshBasicMaterial({ color: 0x050505 }), 0, 0.02, 0));
+    const marker = new THREE.Mesh(new THREE.TorusGeometry(ts * 0.42, 0.06, 6, 24).rotateX(Math.PI / 2), glow(0xe0a84a, 0.5));
+    marker.position.y = 0.05;
+    g.add(marker);
+  } else if (st.kind === 'ruin')
+    g.add(box(1.4, 2.2, 1.4, std(0xa49f92), 0, 1.1, 0), box(2.6, 0.5, 0.6, std(0xa49f92), 0.6, 0.25, 1));
+  else if (st.kind === 'spring' || st.kind === 'pool') {
+    const w = new THREE.Mesh(
+      new THREE.CircleGeometry(ts * 0.4, 12).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: 0x3f8fc0 }),
+    );
+    w.position.y = 0.05;
+    g.add(w);
+  }
   return g;
 }
 // Which frame the player is in: the region's own, or (inside the town) one centred on the town. Nothing is rebuilt
@@ -487,7 +650,7 @@ function interiorSite(st, ts, inTown) {
 function applyFrame() {
   const kind = R.areaRec(V.S).kind,
     inTown = kind === 'town' && V.townAt;
-  if (kind === 'vault') return;
+  if (R.isLevel(V.S)) return;
   FR.x = inTown ? V.townAt.x : 0;
   FR.y = inTown ? V.townAt.y : 0;
   FR.z = inTown ? V.townAt.z : 0;
@@ -505,7 +668,7 @@ function buildStaticInner() {
   pending = null;
   V.raw = null;
   V.shift = { x: 0, z: 0 };
-  if (R.areaRec(V.S).kind === 'vault') {
+  if (R.isLevel(V.S)) {
     dispose(staticGroup);
     staticGroup = new THREE.Group();
     scene.add(staticGroup);
@@ -547,7 +710,7 @@ function townsHere() {
    from the frame loop); then the two are swapped. rx, rz: how many regions across and down the player moved. */
 let pending = null;
 function buildStaticSoon(rx, rz) {
-  if (R.areaRec(V.S).kind === 'vault' || !V.base || V.base === FLAT) return buildStatic();
+  if (R.isLevel(V.S) || !V.base || V.base === FLAT) return buildStatic();
   if (!V.raw) V.raw = V.base; // the land the old group was built with, and its frame
   const d = { x: V.shift.x + rx * 2 * HALF, z: V.shift.z + rz * 2 * HALF },
     o = V.raw;
@@ -851,7 +1014,7 @@ function* buildLand(S, timed) {
       continue;
     }
     if (!BUILD[st.kind]) continue; // a kind of place with no model yet is still on the map
-    const g = BUILD[st.kind](S);
+    const g = BUILD[st.kind](S, st);
     g.position.set(x, T.height(x, z), z);
     if (st.kind !== 'beacon') g.rotation.y = (site.k % 7) * 0.9;
     group.add(g);
@@ -864,8 +1027,7 @@ function buildDynamic() {
   dispose(dynGroup);
   dynGroup = new THREE.Group();
   scene.add(dynGroup);
-  const kind = R.areaRec(V.S).kind;
-  if (kind === 'vault') return drawArea(V.S.area, 'vault');
+  if (R.isLevel(V.S)) return drawArea(V.S.area, 'vault'); // any level below (or, later, above) the world
   drawArea(R.outdoorRec(V.S).id, 'region');
   if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, 'town');
 }

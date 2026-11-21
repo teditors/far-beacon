@@ -593,6 +593,67 @@ section('The size of the world', ['worldSize'], () => {
   table(['Shape', 'Weight', 'Across', 'Down', 'On its side', 'Told'], X.shapes.map((e) => [e.name, e.w, e.cols.join(' to '), e.rows.join(' to '), e.swap ? 'yes' : '', e.text]));
 });
 
+section('World settings', ['worldSet'], () => {
+  const X = C.worldSet;
+  line('The choices on the new world screen (folded away: an ordinary world uses the defaults). They are plain settings passed into `newGame(seed, off, set)`, and the playtest takes them as `SET=key=value,...`.');
+  line();
+  const label = { size: 'cols, rows' };
+  table(['Setting', 'Default', 'Offered'], Object.keys(X.menus).map((k) => [label[k] || k, k === 'size' ? 'rolled' : JSON.stringify(X.defaults[k]), X.menus[k].map((o) => o[1]).join('; ')]));
+  line();
+});
+
+section('Dungeons', ['deeps'], () => {
+  const X = C.deeps;
+  line('Places below the world, rolled when the world is made: about ' + X.perRegion + ' a region at the usual setting, and a cellar under ' + Math.round(X.townChance * 100) + '% of towns. Each goes ' + X.depth.join(' to ') + ' levels down (the world setting caps it; a dungeon the plot uses goes ' + X.plotDepth.join(' to ') + '). A level is built the first time you reach it. ' + Math.round(X.quirkChance * 100) + '% of levels above the bottom are odd levels (see Odd levels below). The bottom holds a store-room and a Heart, an elder of the theme; the deepest dungeon of a world also holds a named artifact.');
+  line();
+  table(['Theme', 'Entered from', 'Layout', 'Dark', 'Creatures', 'Tier (level 1, per level)', 'Per level', 'Traps', 'Pools', 'Told'], X.themes.map((t) => [t.name, t.entry.join(', '), t.layout, t.dark === false ? 'no (it glows)' : 'yes', t.creature.join(' / ') + ' ' + t.forms.join(', '), t.tier.join(', '), t.per, t.traps, t.pools, t.text]));
+  line();
+});
+
+section('The sky', ['sky'], () => {
+  const X = C.sky;
+  line('Places in the sky come in about 1 world in ' + Math.round(1 / X.chance) + ' (the world setting), ' + X.places.join(' to ') + ' of them, over the far country, each marked on the ground by a shadow with no cloud to cast it. Flying: aloft, every kind of ground costs the same short time, nothing on the ground can reach you, and you can fly up to a sky place from its shadow; but each tile costs stamina (times the item\'s flyEffort), you are ' + X.cold + ' colder an hour and use ' + X.thirst + ' times the water, a storm throws you down (' + X.fall.join(' to ') + ' damage), below ' + X.lowStamina + ' stamina you must land, and you must land to drink, search, gather, make a fire or sleep. A world with sky places always has a way to fly within reach: Boots of the Updraft in a town\'s shop, or with the deepest dungeon\'s prize.');
+  line();
+  table(['Flying item', 'Slot', 'Weight', 'Does'], X.items.map((b) => [b.name, b.slot, b.wt, b.mods.map((m) => m.stat + ' ' + (m.op === 'mul' ? 'x' : '+') + m.value).join(', ')]));
+  line();
+  table(['Place', 'Levels', 'Weight', 'Creatures', 'Tier', 'Told'], X.kinds.map((k) => [k.name + (k.rare ? ' (rare)' : ''), k.levels, k.weight, k.creature.join(' / ') + (k.forms.length ? ' ' + k.forms.join(', ') : 'people'), k.tier || '', k.text]));
+  line();
+});
+
+section('The sea', ['sea'], () => {
+  const X = C.sea;
+  line('In about ' + Math.round(X.chance * 100) + '% of worlds big enough to have country far from home (the world setting), ' + X.regions.join(' to ') + ' neighbouring far regions are open sea, with islands where the land stands high. ' + Math.round(X.lakeChance * 100) + '% of other regions with sweet water have a lake: deep in the middle, a wadeable margin. Deep water needs a boat (a coracle, carried), a way to breathe water (a diving helm, or a draught of gills for ' + X.breathHours + ' hours) or wings; walking along the bottom is twice as slow. Under water with no way to breathe you lose ' + X.drown + ' health an hour. The town nearest the sea sells ' + X.shop.join(', ') + '.');
+  line();
+  table(['Item', 'Weight', 'Price', 'Does'], X.items.map((b) => [b.name, b.wt, X.value[b.id], b.boat ? 'crosses deep water' : b.use ? 'breathe water for ' + b.use.breathe + ' hours' : b.mods.map((m) => m.stat).join(', ')]));
+  line();
+  table(['Place', 'Where', 'Levels', 'Creatures', 'Told'], X.kinds.map((k) => [k.name, (k.lake ? 'a lake' : k.coast ? 'a sea shore' : 'the sea') + (k.under ? ', under the water' : ', on the water'), k.levels, k.forms.length ? k.creature.join(' / ') + ' ' + k.forms.join(', ') : k.trader ? 'people: ' + k.trader.name : '', k.text]));
+  line();
+});
+
+section('Other worlds', ['realms'], () => {
+  const X = C.realms;
+  line('Rarely (the doors world setting) a world has a door of old stone in one of its regions, and through it lies another world: made from a seed of its own, ' + X.sizes.map((z) => z.join(' x ')).join(', ') + ' regions, its countries its own ' + Math.round(X.genChance * 100) + '% of the time and something strange in ' + Math.round(X.rareChance * 100) + '% of its regions, with one town of its own. A second door (and a third) comes ' + Math.round(X.moreDoors * 100) + '% of the time. Only the regions you or the plot touch are made. The plot always uses a door.');
+  line();
+  line('Names: ' + X.names.join(', ') + '.');
+  line();
+});
+
+section('Kin of the new places', ['kin'], () => {
+  const X = C.kin;
+  line('Two rare races, offered beside the usual ones (each ' + Math.round(X.chance * 100) + '% of the time) only in a world that has what they were born to.');
+  line();
+  table(['Race', 'In a world with', 'Abilities', 'Does'], X.races.map((r) => [r.name, r.kin === 'sky' ? 'places in the sky' : 'a sea', Object.keys(r.adj).map((k) => (r.adj[k] > 0 ? '+' : '') + r.adj[k] + ' ' + k).join(', '), r.text]));
+  line();
+});
+
+section('Wayfarers', ['wayfarers'], () => {
+  const X = C.wayfarers;
+  line('People at a small fire in the wilds, in ' + Math.round(X.chance * 100) + '% of regions away from home, put there when the region is first built. Once dealt with, each moves on.');
+  line();
+  table(['Wayfarer', 'Weight', 'Offers', 'Says'], X.kinds.map((k) => [k.name, k.weight, Object.keys(k.offers).join(', '), k.talk]));
+  line();
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

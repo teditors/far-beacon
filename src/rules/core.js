@@ -5,10 +5,12 @@ const C = CONTENT,
   H = 36,
   VERSION = 9,
   START = 6 * 60;
-const TERR = ['plain', 'hill', 'mountain', 'forest', 'river', 'special', 'wall', 'floor'];
+const TERR = ['plain', 'hill', 'mountain', 'forest', 'river', 'special', 'wall', 'floor', 'void', 'deep'];
 // Indoor ground: walls cannot be walked through; floor is the inside of towns and the locked place.
 const WALL = 6,
-  FLOOR = 7;
+  FLOOR = 7,
+  VOID = 8, // the open air round a place in the sky: nothing walks on it, and nothing is drawn there
+  DEEP = 9; // deep water, outdoors: crossed by boat, along the bottom by those who breathe water, or over it on wings
 // Look an entry up by id. Lists are indexed on first use (and again if they grow), since some lookups run very often.
 const idIndex = new WeakMap();
 const byId = (list, id) => {
@@ -60,7 +62,10 @@ on('log', (s, d) => {
 const say = (s, msg, tone) => emit(s, 'log', { msg, tone });
 
 // 'a' or 'an' before a word, for generated names: aOrAn('Elder Brute') gives 'an Elder Brute'.
-const aOrAn = (word, cap) => ((/^[aeiou]/i.test(word) ? 'an ' : 'a ') + word).replace(/^a/, cap ? 'A' : 'a');
+const aOrAn = (word, cap) =>
+  /^the /i.test(word) // a named one ('the Mole Lord') takes no article of ours
+    ? (cap ? 'T' : 't') + word.slice(1)
+    : ((/^[aeiou]/i.test(word) ? 'an ' : 'a ') + word).replace(/^a/, cap ? 'A' : 'a');
 function clock(s) {
   const m = START + s.time;
   const mod = m % 1440;
@@ -116,4 +121,4 @@ export {
   godOf,
 };
 export { aOrAn, godMakers, siteHereKind, stormMakers, stormOf };
-export { WALL, FLOOR };
+export { WALL, FLOOR, VOID, DEEP };

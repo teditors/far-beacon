@@ -137,3 +137,4 @@ NOTES.push((s) =>
 );
 
 export { powerOf };
+export { makeArtifact };

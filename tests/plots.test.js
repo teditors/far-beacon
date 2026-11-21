@@ -123,6 +123,11 @@ for (let seed = 1; seed <= 120; seed++) {
   // side troubles first, the great trouble last (it ends the world)
   for (const p of plots.filter((q) => !q.main).concat(plots.filter((q) => q.main))) {
     if (p.kind === 'relic') continue; // tests/quest.js plays the relic
+    // below, above, under the water or beyond a door: tests/c4.test.js follows those routes
+    if (p.realm || Object.values(p.roles || {}).some((r) => r && r.where && r.where !== 'land')) {
+      seen.away = (seen.away || 0) + 1;
+      continue;
+    }
     seen[p.kind] = (seen[p.kind] || 0) + 1;
     if (p.linked) links++;
     play(s, p);
@@ -147,7 +152,8 @@ for (let seed = 1; seed <= 120; seed++) {
 }
 // switching plots off gives the old story alone
 if (R.plotsOf(R.newGame(7, { plots: true })).length) problems.push('NO=plots still made plots');
-const kinds = R.C.plots.kinds.filter((k) => k.id !== 'relic').map((k) => k.id);
+const away = ['deepking', 'tyrant', 'drowned', 'beyond']; // always below, above, under or beyond: tests/c4.test.js
+const kinds = R.C.plots.kinds.filter((k) => k.id !== 'relic' && !away.includes(k.id)).map((k) => k.id);
 for (const k of kinds) if (!done[k]) problems.push('no ' + k + ' plot was finished in 120 worlds (seen ' + (seen[k] || 0) + ')');
 if (!links) problems.push('no cure in a beast\'s hoard in 120 worlds');
 if (!hostile) problems.push('no feud chose a side in 120 worlds');

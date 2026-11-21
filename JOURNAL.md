@@ -1,3 +1,470 @@
+# Commission 4
+
+## Summary
+
+Nine entries, in the order the brief asked: the testing tools first, then dungeons, the sky, the sea, other worlds,
+and the plot using them all; then fixtures, the door's model and the benchmark of the new places. Every check passes,
+old saves load (no `VERSION` bump: every new field is optional; saves from v0.14 and from inside each new place are
+now fixtures), and the bot wins as often as before.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C4.1 | God mode (unseen, unhurt, through walls, any door, flying, breathing water) with a jump list and a tap on the map; world settings folded under "New world" | (tools) | pearl, for testing |
+| C4.2 | Dungeons: six themes, 1 to 4 levels, deeper is harder and richer, a Heart and a prize, an artifact in the deepest; the locked place and the odd levels fit in; far maps packed in memory | `deeps` | pearl |
+| C4.3 | The sky: ways to fly and what flying costs; drifting isles, floating castles, cloud cities, a low moon over their shadows | `sky` | pearl |
+| C4.4 | The sea: whole sea regions with islands, lakes, deep water, coracles and gills; floating towns, wrecks, merfolk halls, sea caves, drowned shrines | `sea` | pearl |
+| C4.5 | Other worlds: rare doors to worlds of their own seed, stranger, made only where touched | `realms` | pearl, rare |
+| C4.6 | The plot goes below, above, under and beyond; four new troubles; routes to anywhere; every door used; the bot follows routes | `plots` | pearl |
+| C4.7 | Fixtures from v0.14 and from inside the new places; the door drawn; how to play; `bench.py places` | (tests, view) | small |
+| C4.8 | Kin: the windborn fly by nature, the merrow breathe water; offered only where the sky or the sea is | `kin` | maybe-to-pearl |
+| C4.9 | Other worlds have dungeons of their own; the plot's places inside levels are drawn | `realms`, (view) | small |
+| C4.10 | Fix: a floating town's trader froze the screen (Andrew) | | fix |
+| C4.11 | No more black screens (errors shown, the game runs on, a rescue); an explorer fuzz through every kind of place | (view, tests) | pearl |
+| C4.12 | Wayfarers: water-carriers, mapmakers, pilgrims, trappers and the lost, at fires in the wilds | `wayfarers` | pearl |
+| C4.13 | Old worlds deepen: a world made before gains its dungeons and sky places once | `deepen` | small, for Andrew's game |
+| C4.14 | A gold ring on the map where the goal leads next | (view) | pearl, on a phone |
+
+**The limits** (node, `--expose-gc`; god mode walking every place):
+- **How deep a dungeon can go**: as deep as you like, as far as the rules go. Each walked level adds about **2.1 KB to
+  the save** and **34 KB to the heap** (far levels packed) and takes 0.4 to 2 ms to build. A 200-level dungeon walked
+  to the bottom: 483 KB save, 7 MB heap, 44 ms to load; 500 levels: 1.1 MB, 17 MB, 128 ms. Browser storage (about
+  5 MB) bites first: **about 1000 walked levels in a world** before a save is at risk. Ordinary dungeons are 1 to 4
+  levels and the plot's 2 to 4, for play, not memory; the depth setting goes to 16.
+- **How many places a world can hold**: the largest world the settings allow (7 x 7, four times the dungeons, 16
+  deep, sky, sea, doors, five more towns) held **323 places in 321 areas** (49 regions, 8 towns, 241 dungeon levels,
+  sky, water and another world). A fresh one saves in **128 KB** and takes 109 ms to make; with **every place walked
+  it saves in 662 KB**, holds **8.5 MB of heap** and loads in 70 ms. An ordinary 7 x 7 world fully walked: 108 areas,
+  266 KB, 5.9 MB. Unwalked places cost a few numbers each: a level is built only when reached, another world only
+  where touched.
+- **How big a save gets**: a fresh ordinary world 64 KB (59 before this commission: the stairs, shadows and doors);
+  a fully walked ordinary 7 x 7 world 266 KB; the largest possible world fully walked 662 KB. All well inside 5 MB.
+- **Memory**: packing far maps cuts the heap by about two fifths (a 7 x 7 world with every dungeon walked: 6.5 MB
+  packed, 9.4 MB if everything were kept as lists; four times the dungeons: 11.3 MB against 19.7). A door to another
+  world costs 15 KB of save fresh and nothing more until walked.
+
+**Performance, before and after** (`tools/bench.py`, software renderer at 412 x 915, seeds 11 / 222 / 3333; slow in
+absolute terms, comparable across rows):
+
+| | build ms | draw calls | triangles | frame ms | save, fresh world |
+| --- | --- | --- | --- | --- | --- |
+| before, Low | 39 | 70 | 80,974 | 61.1 | 59 KB |
+| after, Low | 50 | 67 | 81,806 | 60.7 | 64 KB |
+| before, Medium (default) | 61 | 83 | 150,419 | 101.4 | 59 KB |
+| after, Medium | 71 | 80 | 151,161 | 100.0 | 64 KB |
+| before, High | 118 | 89 | 282,865 | 151.5 | 59 KB |
+| after, High | 118 | 90 | 283,930 | 141.6 | 64 KB |
+
+Outdoors nothing measurable changed (a shadow's floating place is one or two draw calls, in the regions that have
+one). The builds are a few ms slower, within the noise of the software renderer. **Inside the new places, on Medium**
+(`python3 tools/bench.py places`): a dungeon level 18 draw calls / 3k triangles / 30 ms a frame; a floating castle 11
+/ 17k / 85 ms (the whole sky is drawn behind it); the open sea 50 / 142k / 106 ms (as land); under the sea 2 / 4k /
+22 ms; another world 24 / 139k / 72 ms. None costs more than ordinary land. **Andrew: with the meter on, visit a
+floating castle in god mode on the Pixel and send the numbers**: it is the one place whose cost is fill rate (a lot
+of open sky), which the software renderer cannot judge.
+
+**Bot win rate** (`node tests/playtest.js 150`, every piece on, default settings), sets 5 / 1000 / 2000: **32, 28, 21
+(81 / 450, 18%)** at the end (30, 29, 23 before the kin), against 86 / 450 (19%) at the start. The floor is 8%. With a new trouble forced (40 worlds each):
+the tyrant 2, the king under the hill 2, the drowned cure 1, lost beyond the door 2: the bot can do them all, but
+they are long, hard journeys, so they are rare as great troubles.
+
+**My three best.**
+1. **Routes (C4.6)**: one function that knows the way from anywhere to anything, through stairs, shadows, sea caves
+   and doors. The goal line, the bot and the tests all use it, and every new kind of place only has to say how it is
+   entered. It is what makes the new places part of the game rather than side rooms.
+2. **Levels built when reached, and far maps packed (C4.2)**: the reason a world can hold hundreds of places and stay
+   under 10 MB, and why a 500-level dungeon is possible at all.
+3. **Other worlds by swapping the world (C4.5)**: a whole second world for one small module, because every region rule
+   already read `s.world` and `s.seed`; it cost no rewrite of the land, the view or the map.
+
+**What I would do next.**
+1. Measure a floating castle and the open sea on the Pixel (above), and if the sky is costly, draw less of it.
+2. Give other worlds sky places and a stranger year (two moons, long nights) of their own (dungeons: done in C4.9).
+3. Done in C4.8: a flying race and a merfolk race.
+4. Teach the bot to cross deep water by boat and to trade for a coracle, so the playtest measures the sea; and to
+   prepare better for long journeys (it dies of thirst on the way to most of the new troubles).
+5. Models for the plot's sites inside levels (a throne, a cage), and textures for dungeon walls.
+6. When merging to main as v0.15, a CHANGELOG row (I left CHANGELOG.md alone, as the earlier commissions did): "The
+   fourth commission. God mode and world settings; dungeons below the world in six kinds; ways to fly and places in
+   the sky; seas, lakes, boats and places under the water; rare doors to other worlds; troubles that go below, above,
+   under and beyond, with a goal line that finds the way. See `JOURNAL.md`."
+
+**Parallel sessions.** I did not use them: every piece leaned on the one before (the plot on all four kinds of
+place, routes on every level), so they would have waited on each other.
+
+---
+
+Newest entry first. Performance numbers are from `tools/bench.py` (a real browser on a software renderer at 412 x 915,
+seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after. Bot win rates from
+`node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
+`tests/c4.test.js` (part of `node tools/check.js`).
+
+## C4.14: a ring on the map where the goal leads
+
+**Why.** On a phone the goal line's compass word ("north-east") is all there is to steer by, and with stairs,
+shadows, doors and other regions in the way it is easy to lose the thread.
+
+**What it is.** The map screen (outdoors and inside any level or town) draws a **gold ring** at the next place the goal
+leads: the town to find, the stair down, the shadow to fly up from, the door, the den. Off the edge of the map window,
+the ring sits on the edge, on the line toward it. `R.goalMark(s)` gives it, from the route (C4.6) for any trouble and
+from the old story's own steps for the relic. The map's key says so.
+
+**Also fixed.** `findSite` (asked every time the goal line is drawn) unpacked every region map it looked through, which
+could have undone the packing of far maps (C4.2); it now reads only their sites. In a test walk it made no difference
+(the locked place was found early), but a far-off locked place would have unpacked every map before it.
+
+**Commits.** "A gold ring on the map where the goal leads next".
+
+## C4.13: old worlds deepen
+
+**Why.** Andrew's game in progress was made before commission 4, so it would never have a dungeon or a sky place in it.
+
+**What it is** (`deepen` piece, `rules/deepen.js`). When a save from a world made before commission 4 loads, it rolls
+its dungeons and its places in the sky once, exactly as a new world would, from its own seed (so the same save always
+gains the same): stairs are put in caves and ruins of regions already walked as well as those to come, shadows on the
+ground, and a way to fly in a shop or the deepest dungeon. The log says "This land is deeper than you knew: 3 stairs go
+down into the dark somewhere in it, and something hangs in its sky." Seas and doors cannot be added (a sea is chosen
+before any land is made, and a door belongs to the plot) and its troubles stay as they were; wayfarers come by
+themselves in every region built from now on. Worlds made now are marked (`s.deep`), so it happens once. A new hook,
+`AFTER_LOAD` (save.js), runs after a save is loaded and upgraded. Every old fixture (v6 to v9) gains 3 to 16
+dungeons and loads twice the same.
+
+**Commits.** "Old worlds deepen: a world made before gains its dungeons and sky places once". Switch: `deepen`.
+
+## C4.12: wayfarers
+
+**Why.** Half of all deaths are thirst on the long legs between towns, and the land between towns has no people in
+it; the new places are found only by stumbling on them. So: chance meetings that help with both.
+
+**What it is** (`wayfarers` piece, `content/wayfarers.js`, `rules/wayfarers.js`). About one region in three away from
+home has someone at a small fire (seen from a way off by its flame), put there when the region is first built:
+- a **water-carrier**: water at 2 coin the measure, six measures, then gone;
+- a **wandering mapmaker**: for 12 coin, this region and the eight round it drawn on your map, every spring marked
+  sweet or foul;
+- a **pilgrim**: free, tells you where the nearest thing you have not found lies (a dungeon's stair, a shadow in the
+  sky, a place in the water, a door) and marks it;
+- a **trapper**: buys hides (3) and bone (2), sells bandages (5);
+- rarely, a **lost traveller** who needs two of your water and pays it back in coin and experience.
+Once dealt with (all but the trapper) they move on and leave their ashes.
+
+**In play.** A reason to walk toward a distant flame; a way to buy your way across a dry leg; the pilgrim makes the
+places of commission 4 findable. The bot buys water from carriers it passes. Bot win rate 30, 27, 20 (77 / 450) with
+them, 32, 28, 21 (81) with `NO=wayfarers`: within the noise; the bot rarely passes a fire.
+
+**Commits.** "Wayfarers in the wilds". Switch: `wayfarers` (as regions are built).
+
+## C4.11: no more black screens, and a fuzz that goes everywhere
+
+After Andrew's freeze at Saltholm (C4.10), two things so that a fault like it can neither hide nor strand anyone.
+- **A safety net in the view** (`src/view/oops.js`). The frame loop asks for the next frame first, and walking,
+  building and drawing each run guarded; so do actions and the panels, and errors anywhere else on the page are
+  caught too. Whatever goes wrong, the game keeps running and a note at the top says what happened, with **Copy the
+  error** (to send on) and Close. After an error (or in god mode) Menu offers **Rescue: back to the well**, which
+  brings the traveller out of wherever they are, any world, to the well at home, at no cost (`R.rescue`). Tested by
+  putting the Saltholm fault back: the note appeared, the game ran on, and the rescue brought the traveller home.
+- **An explorer fuzz** (`tests/explore.js`, in `node tools/check.js`). Twelve worlds made to have everything; in each,
+  eighteen places reached by god mode, one kind at a time (regions, towns, dungeons, the sky, the water, other
+  worlds), then 60 steps of random play there as a mortal: every button offered is pressed, every dialog opened and
+  one of its options taken, everything the screen asks for each frame is asked for, and the world is saved and
+  loaded. About 9,000 steps in 11 seconds; it finds the Saltholm fault at once when it is put back, and found nothing
+  else.
+
+**Commits.** "No more black screens: errors are shown and the game runs on; a fuzz that goes everywhere".
+
+## C4.10: fix: talking to a floating town's trader froze the screen
+
+**From Andrew** (god mode, Saltholm): talking to the figure on the floating town froze the screen, and teleporting
+anywhere after left it black until the browser was reopened. The talk button looked its trader up among the sky's
+places first, and a sea place is not one of them, so drawing the buttons threw an error on every frame. Fixed in
+`traderOf` (sky.js): a sky place's trader, else the sea's. The merfolk halls had the same fault. `tests/c4.test.js`
+now talks to the raft-master.
+
+**Commits.** "Talking to a floating town's trader no longer freezes the screen".
+
+## C4.9: dungeons in other worlds
+
+**What it is.** Each other world rolls one or two dungeons of its own (any theme, 2 to 4 levels), their stairs in
+caves of that world, so another world is worth exploring for itself and not only for the plot's errand. They are
+ordinary dungeons in `s.deeps` (with `realm`), built only when reached; god mode jumps into them across the door, and
+the goal line from the bottom of one says "Go back through the door, home" and points up the stair.
+
+**Commits.** "Other worlds have dungeons of their own". Switch: `realms` (and `deeps`).
+
+## C4.8: kin of the new places
+
+**What it is.** The two races the brief half-suggested (`kin` piece, `content/kin.js`, `rules/kin.js`):
+- **Windborn**: light-boned and feathered at the arms; they **fly by nature** (no wings to borrow, so a world's sky is
+  open to them from the start), at 1.6 times the effort of boots, and carry 4 less. +2 DEX, -2 STR.
+- **Merrow**: of the sea-people; they **breathe water** (deep water and the places under it are open to them from the
+  first step) and need a fifth less to drink, but walk slowly on dry ground. +2 CON, -1 DEX.
+- Each is offered, beside the usual races, in about half the worlds that have places in the sky (windborn) or a sea
+  (merrow), and never otherwise (32 of 150 test worlds offer one); the first log line says so.
+
+**In play.** A way in to the new places without waiting for the shop or the dungeon, at a price on the ground. Bot
+win rate 32, 28, 21 (81 / 450, 18%; it plays them like anyone else).
+
+**Commits.** "Windborn and merrow: kin of the sky and the sea". Switch: `kin` (at creation).
+
+## C4.7: saves kept, a door to see, and the new places measured
+
+**What it is.** Housekeeping after the pieces.
+- **Fixtures**: four saves made by v0.14 (the game on main: walked about, in another town, in the locked place, a
+  trouble told) and five made inside the new places (down a dungeon, in the sky, flying, under the sea, beyond a
+  door) are now in `tests/fixtures/`, so the state test proves Andrew's current game keeps loading, and any later
+  format change must keep these loading too. `tools/once/make-fixtures.js` makes the new places' ones.
+- **The door** has a model: two stone posts and a lintel, with another sky glowing through (violet going out, pale
+  blue coming home). The map marks doors, thrones and cellars.
+- **How to play** (Menu) tells of dungeons, the sky, deep water and doors in one paragraph.
+- The plot's places inside levels are drawn: a throne for a villain, a black stone, an herb patch, bones at a den, a
+  tent for a camp or the lost, and a town's cellar stair.
+- `python3 tools/bench.py places` measures a dungeon level, a floating castle, the open sea, a place under it and
+  another world; the browser smoke test now visits one of each kind of new place.
+
+**Commits.** "Saves from v0.14 ... kept as fixtures", "Doors you can see, how to play tells of the new places, and the
+benchmark measures them".
+
+## C4.6: the plot goes below, above, under the water and beyond
+
+**What it is.** The troubles of commission 3 now use the new places, four new troubles only make sense with them,
+and there is one way of finding the way to anywhere.
+- **A place role can lie anywhere**: `where` on a plot's place is the land, the bottom of a **dungeon**, the top of a
+  **sky place**, the far end of a place **under the water**, or a region **beyond a door**, with weights; only what
+  the world has is chosen. The great beast's den is sometimes at the bottom of a dungeon or beyond a door; raiders
+  camp in a dungeon or another world; the lost wander beyond a door; the black stone of a curse may stand on a
+  floating isle or in another world (its curse falls on the region below, or there); the sickness's herb may grow in
+  another world or up in the sky.
+- **Four new troubles**:
+  - **The king under the hill**: a dungeon of the plot's own (2 to 4 levels), and at its bottom, on a throne,
+    something that calls itself king. The elder gives torches and a salve.
+  - **The tyrant in the sky**: a floating castle (made for the plot if the world has none), whose lord takes the
+    harvest. The elder gives the Cloak of the West Wind: fly up, climb the keep, kill the tyrant, bring its seal.
+  - **The drowned cure**: pearl-moss grows only at the back of a sea cave, under the water (only in worlds with a
+    sea). The elder gives three draughts of gills and a torch.
+  - **Lost beyond the door**: a child went through the old door. Only in worlds with a door, and **every door is
+    used**: a door no other trouble reached gets this one, from a town without a trouble of its own.
+- **Things promised to maps not yet built** (`rules/route.js`): a plot's site, item or villain at the bottom of a
+  dungeon is held (`s.held`) until that level is first built, then put at its far end, with its guard beside it
+  (`'mapBuilt'` from areas.js, `'heldPlaced'` back to the plot). Nothing is built early, so the memory budget holds.
+- **Routes**: `route(s, goal)` says where to go next from wherever you stand to any place: down a dungeon's stairs, up
+  a castle's (flying up from its shadow first), into a sea cave (gills first), through a door, or back out the way you
+  came. Each kind of level says how it is entered (`ENTRANCES`). The goal line's direction follows it, so it points to
+  the stair, the shadow or the door, never off into the earth.
+- **The elder re-equips**: a new traveller who comes back to the giver is given again what the last one was given
+  (it lies with the body); otherwise one death in the sky would end the world.
+- Places the plot sends you to are a tier gentler than the late-game places you find for yourself, and the plot's
+  dungeon has its villain at the bottom instead of the theme's Heart: you are sent there, not drawn there late.
+- Water on the way: as for any trouble, sure springs are put along the leg to the place's way in (the stair, the
+  shadow, the door) and the elder marks them.
+
+**The bot** now follows routes: to the way in, taking off for a shadow (and flying toward it when rested), drinking
+gills before diving, lighting a torch for the dark, following the stairs down and the way back out, drinking from
+pools and springs inside, and going back to the giver for wings it has lost. With the trouble forced (`SET=trouble=`,
+40 worlds): the tyrant 2, the king 2, the drowned cure 1, lost beyond the door 2. These are much harder journeys than
+the land's troubles (the bot mostly dies of thirst on the way, or to the tier 3 and 4 creatures at the top), so
+they are rarer as great troubles (weight 1 each against 12 for the rest).
+
+**Tests.** `tests/c4.test.js` follows each new trouble's route leg by leg (teleporting along each leg and taking each
+step's action) to its end and checks it wins; `tests/plots.test.js` leaves troubles that are away from the land to it.
+
+**Commits.** "The plot goes below, above, under and beyond". Switch: `plots` (as before).
+
+## C4.5: other worlds
+
+**What it is.** Doors to other worlds (`realms` piece, `content/realms.js`, `rules/realms.js`).
+- Rarely (the `doors` setting, 8% by default; 16 of 300 test worlds) a **door of old stone** stands alone in a region
+  of the world, and through it lies **another world**: a grid of 2 x 3 to 3 x 4 regions made from **a seed of its
+  own**, like home but stranger: about two in three of its regions are countries of its own (generated biomes), and
+  half hold something strange (rare regions; home has 15%). It has **one town of its own** (its own people, elder,
+  inn and shop). Now and then a world has a second or third door, each to a world of its own.
+- Step through and you come out of the other world's door, under another sky. Its map, its directions and its
+  dangers are its own; the goal line says "Go back through the door, home" when what you need is at home. Step back
+  through to come home. A traveller who dies there leaves their body there; the next one sets out from the well at
+  home as always. Saves made on the far side load on the far side.
+- **How it works**: while you are in another world its sketch and seed stand in `s.world` and `s.seed`, and its
+  regions are named after it (`o1:r2_0`), so every rule about regions (land, borders, rivers, roads, creatures,
+  towns, the view, the map) works there unchanged and nothing collides with home. `setRealm`, `withRealm` and
+  `enterRealm` in areas.js swap the two; nothing else knows. The plot uses every door (next entry).
+
+**Memory.** Only what is touched is made: a fresh world with a door saves in 76 KB instead of 61 (the far side's
+arrival region, its neighbours and its town); walking every region of the other world brings it to 116 KB, and far
+maps there are packed like any others, so the heap stays near where it was (1.4 MB for the new world either way).
+The other world never doubles the cost of the game.
+
+**Shared bricks.** `OBJECTIVES` in hooks.js (a goal in another world goes by its door; the plots and the old story
+both ask it), `realmOf(s, area)`, `regionRec`; `sketchOf` now answers safely for a region of another world.
+
+**Choices made without asking.** Other worlds share home's year, god and lost people (each is one per state and
+swapping them would reach into many pieces); they are stranger through their countries and rare regions. They have
+no dungeons, sky places or doors of their own yet: easy to add, since those pieces only need to run for the far
+side's regions. Another world's town has no trouble of its own (the plot decides what happens there). The jump list
+has every region of every other world and each door.
+
+**Commits.** "Doors to other worlds". Switch: `realms` (at creation).
+
+## C4.4: the sea, lakes, and under the water
+
+**What it is.** Real water, and places on it and under it (`sea` piece, `content/sea.js`, `rules/sea.js`).
+- **How seas fit the region grid**: a sea is whole regions. Before any land is made, a world that has a sea (the
+  `sea` setting, 40% by default) turns a patch of 2 to 4 neighbouring regions in the far country into the new biome
+  **Open Sea**. Because biomes already blend within six tiles of a border, the land next to a sea turns to shallows
+  and marsh at the coast on its own. When a sea region is built, everything two tiles or more from high ground becomes
+  **deep water**, so hills and mountains stand out of it as islands; the outermost ring stays shallow, so a
+  neighbour's river or road is never cut off. A sea region that would have no fresh water gets a rock with a
+  rain-pool in the middle. Small worlds (all regions next to home) have no sea, so the story's places never fall in
+  it. **Lakes** come anyway: about one region in four with sweet water has one, deep in the middle with a wadeable
+  margin of sweet water.
+- **Deep water** is a ground of its own (`DEEP`), drawn as water: no one walks on it without a **coracle** (a round
+  hide boat you carry, weight 5: the cost is hauling it over land), a way to **breathe water** (a **Diving Helm**, worn
+  as a tool, or a **Draught of Gills**, 12 hours), or wings. Walking along the bottom is twice as slow as paddling.
+  With no way to breathe, under the water or swimming in deep water, you lose 3 health an hour and can drown (a new
+  cause of death). The town nearest the sea sells a coracle and two draughts of gills; the Journal says so.
+- **Places**: on the water a **floating town** (one per sea: boats lashed together, a raft-master who sells helms,
+  gills and boats, and a bed) and the masts of **wrecks**; under it **merfolk halls** (they trade, and lend a bed),
+  **sea caves** (their mouths on the shore, two dark levels of eels, a prize at the bottom), sunken **wrecks** (the
+  captain's strongbox) and, in some lakes, a **drowned shrine**. Under-water levels have their own look (blue or green
+  water instead of a ceiling); the floating town is drawn on the sea.
+
+**In play.** Nothing sends you to sea yet (the plot will). Bot win rates: see the end of the commission (the bot
+never needs deep water, and no story place stands in a sea).
+
+**Shared bricks.** `DEEP` and `s.player.swims` (kept up to date on every action, so `passable` stays cheap); `LEVELS`
+is now keyed by the kind of level (`LEVELS.deep`, `LEVELS.sea`); SKETCHERS now get the world settings; the dungeons'
+layouts are exported and reused under the sea; the cloud city's trader code serves any trader site.
+
+**Choices made without asking.** The floating town is a level reached from the water, with a trader, not a full town
+with an elder: towns stand on a block of land, and a sea town of that kind can come later. No merfolk race yet (it
+needs a place in the roster, and is best added with a plot that wants it). Creatures never step onto deep water, so
+a boat is safe from all but what lives in the places.
+
+**Commits.** With the sky: "The sky and the sea". Switch: `sea` (at creation).
+
+## C4.3: the sky
+
+**What it is.** Flying, and places that float above the world (`sky` piece, `content/sky.js`, `rules/sky.js`).
+- **Ways to fly**, never rolled as ordinary finds: **Boots of the Updraft** (hard work), the **Cloak of the West
+  Wind** (and warmer), a **Flying Carpet** (easier, and carries more) and a **Griffin's Bridle** (a tame griffin does
+  the work: the easiest). Anything with the new stat `fly` works, so a race or a god could give it later.
+- **Flying** ("Take to the air", outdoors): every kind of ground, river, marsh or mountain, costs the same short time,
+  and nothing on the ground can reach you; you see further and survey wider. But each tile costs stamina (times the
+  item's `flyEffort`), it is 4 colder an hour and 1.2 times as thirsty up there, a storm throws you down (2 to 6
+  damage), below 8 stamina you must land, and aloft you can do nothing but look about: drinking, searching, gathering,
+  fires, sleep and towns all need the ground. Water, shelter and every place worth finding stay on the ground, so
+  flying is a fast, expensive way between them, not a way round the game. The view lifts you 28 metres while aloft.
+- **Places in the sky**, in about one world in four (the world setting), one to three of them over the far country:
+  a **drifting isle** (ruins to search, a rain-pool), a **floating castle** (three levels: the bailey, then up the
+  keep to its lord, a tier 4 elder, and its treasure, with a Griffin's Bridle), a **cloud city** (people: the
+  windwright trades and has a bed for the night) and, now and then, a **low moon** (two levels down into its craters,
+  very cold, everything weighs less, tier 4 and 5 creatures, and an artifact of its own at the bottom).
+  Each hangs high over a **shadow** on the ground "though there is no cloud to cast it", and is drawn up there, seen
+  from far off. Fly over the shadow and up. On the place, the edge of the island is open air (a new ground,
+  `VOID`, that nothing walks on and the view does not draw); its creatures start at tier 3. You leave from the landing:
+  fly down, or, if you have lost your way of flying, jump (a long fall: six tenths of your health).
+- **A world with sky places always has a way to fly within reach**: Boots of the Updraft in one town's shop (half
+  the time; the Journal says so), or with the deepest dungeon's prize. So the sky is late-game: money or a dungeon
+  first.
+
+**In play.** Nothing sends you up yet (the plot will). Bot win rate unchanged (see the numbers at the end of the
+commission). The floating places cost one draw call each outdoors, only in the regions that have them.
+
+**Shared bricks.** `COSTS` (a piece changes what a step costs: flying), `LOOKS` (a piece's levels' looks for the
+view, including a title), the terrain `VOID` (open air), `traderOf` / a `trader` site any piece's level can hold
+(the sea's will use it), and the view now draws any level with `look.void` as an island: slabs where you can stand,
+rock hanging under them, sky all round.
+
+**Choices made without asking.** No flying race yet (a race needs names, a text and its place in the roster; it can
+come with the plot that needs it). Flying is not allowed in storms, and a storm that starts while you are aloft
+throws you down, which is the main brake on it. Sky places are areas reached from a site, like dungeons, rather than
+regions of their own: a floating island is smaller than a region and needs no borders.
+
+**Commits.** With the sea: "The sky and the sea". Switch: `sky` (at creation).
+
+## C4.2: dungeons, and the memory to hold them
+
+**What it is.** Angband-style dungeons below the world (`deeps` piece, `content/deeps.js`, `rules/deeps.js`).
+- A world rolls its dungeons when it is made: about one region in two has one (a few have two, the world setting
+  scales it), and about a third of towns have a **cellar stair**. Each has a **theme**, a name and a depth of 1 to 4
+  levels (the setting caps it). Six themes, each with its own layout, creatures and dangers:
+  **old mine** (long timbered drifts, brutes and hounds, traps), **crypt** (rooms and corridors, wights, many traps,
+  bone), **flooded cistern** (pillared halls in black water: slow and cold, serpents, pools to drink),
+  **fungus cavern** (open caverns that glow, so no light is needed; herbs, and water drains slower),
+  **dwarf-hold** (square halls cut true, tier 2 from the start, the most traps and coin), and **warren** (gnawed
+  caves crowded with hounds).
+- The stair is put in a cave or a ruin (or a new cave of its own) when that region is first built, or against a house
+  wall in a town. Standing on it: "Go down into the Gnawed Ways". A dark dungeon needs a light, as the locked place
+  does.
+- **Deeper is harder and richer**: creatures gain about a tier every level and a half (to tier 8 at most), each level
+  has a store-room or two whose items are finer the deeper they lie, and the bottom has the **Heart** (an elder of the
+  theme, guarding its prize) and a prize room: coin, a superb item and, in the deepest dungeon of the world, a
+  **named artifact of its own** (a fourth, made for the deep).
+- **The locked place fits in**: it keeps its own generator and story, but its levels share the rest: the jump list,
+  the odd levels, the look, the stair actions. The **odd levels** of commission 1 (flooded, ossuary, archive,
+  sleepers) now turn up on any dungeon's levels too (30% of levels above the bottom).
+- **Memory.** Levels are built the first time you reach them, from their own stream, so an unwalked dungeon costs a
+  few numbers. And maps away from the traveller are kept **packed** in memory, as saves already pack them: only the
+  map you are in, the regions round it, their towns and the level above you are kept as plain lists
+  (`coolDown` in areas.js, `rules/grids.js`); anything that asks for a far map through `mapOf`, `buildArea` or
+  `ensureRegion` gets it unpacked.
+
+**Numbers** (node, `--expose-gc`; a 7 x 7 world, every region visited and every dungeon level walked by god mode):
+
+| | areas | levels | heap, far maps packed | heap, all unpacked | save |
+| --- | --- | --- | --- | --- | --- |
+| usual dungeons | 116 | 61 | 6.5 MB | 9.4 MB | 334 KB |
+| four times as many, 16 deep | 277 | 222 | 11.3 MB | 19.7 MB | 617 KB |
+
+**How deep can a dungeon go?** One dungeon walked to the bottom: each level takes 0.4 to 2 ms to build, adds about
+2.1 KB to the save and 34 KB to the heap (packed). 200 levels: 483 KB save, 7 MB heap, 44 ms to load; 500 levels:
+1.1 MB save, 17 MB heap, 128 ms to load. The save is the limit that bites first (browser storage holds about 5 MB),
+so about 1000 walked levels in all; I keep ordinary dungeons to 1 to 4 and plot dungeons to 4 to 7, for play, not
+memory. Two scaling bugs found by measuring: creatures per level and their tier grew without end (now capped at four
+extra and tier 8), and creature ids could collide between dungeons past level 10.
+
+**In play.** Dungeons are optional: nothing sends you down yet (the plot will, in a later entry). Bot win rate with
+every piece on, sets 5 / 1000 / 2000: 30, 27, 30 (87 / 450, 19%), unchanged. **Frame cost**: none outdoors (one
+more cave in some regions); a level is drawn like the locked place, about the same draw calls.
+
+**Shared bricks.** `LEVELS` in hooks.js (the stair actions for levels a piece owns); `levelLook(s)` and `isLevel(s)`
+(the view draws any level from its look: stone, floor, glow, background); `levelTitle(s)`; `applyQuirk` and
+`rollQuirk` exported from floors.js; `makeArtifact` from artifacts.js; `freezeMap`/`thawMap`/`coolDown`; each held
+thing a plot leaves in a dungeon goes in `d.held` and is placed when its level is built (used in a later entry).
+
+**Choices made without asking.** No new creature forms (the view would need models): each theme names the four
+forms its own way (Tunnel Brute, Crypt Wight, Spore Hound), with an elder Heart at the bottom. The locked place is
+not moved into `s.deeps`: its story and its old saves depend on its ids; it is listed beside the dungeons instead.
+Levels alternate where you arrive (an end on odd levels, anywhere on even), so a level is crossed, not just entered.
+
+**Commits.** "Dungeons below the world: six kinds, deeper and richer, and far maps packed away". Switch: `deeps`
+(at creation).
+
+## C4.1: god mode and world settings
+
+**What it is.** The two testing tools the brief asked for first.
+- **God mode**, a checkbox at the top of the Tinker panel (Menu). The traveller is unseen by creatures (they never
+  start a fight), never thirsts, freezes, tires or bleeds, walks through walls, carries anything, sees in the dark,
+  steps over traps, opens any locked door, and counts as flying and breathing water for the pieces still to come.
+  While it is on, the Tinker panel has a **jump list** (every region by country and position, every town, and every
+  place later pieces add: dungeon levels, sky places, sea places, other worlds), and **a tap on the world map** jumps
+  to the tapped tile. The clock line says "God mode" while it is on. A world that has ever used it is marked for good
+  (`s.cheated`, saved): the end screen says the win or loss does not count, and the Journal notes it.
+- **World settings**: "New world" now opens a small screen with the seed and a folded-away "World settings" (closed by
+  default, so an ordinary new world is one more tap): size, which races and classes may appear and how many, how many
+  other towns, dungeons (none, few, usual, many) and how deep, how often sky places, a sea and doors to other worlds
+  appear (and how many doors), and which great trouble. They are plain settings, `newGame(seed, off, set)`, kept in
+  `s.gen` only where they differ from the defaults (`content/worldset.js`), so ordinary worlds store nothing and are
+  unchanged. The playtest takes them too: `SET=sky=1,doors=1,size=3x3 node tests/playtest.js 50`.
+
+**Shared bricks.** `PLACES` in hooks.js (a piece adds the places god mode can jump to); `settings`, `genOf(s)` and
+`parseSet` in `rules/worldset.js`; TUNERS and `'worldBorn'` now receive the settings. A test file of its own for this
+commission, `tests/c4.test.js`.
+
+**Choices made without asking.** God mode is a state flag, not a Tinker switch in `s.off`, because it must be marked
+on the world when used and switches are not. Settings the later pieces read (dungeons, depth, sky, sea, doors) are in
+the screen from the start; each piece honours its own as it arrives. The size setting keeps a world at least 2 x 3,
+so the story's places fit. The new world screen remembers its choices until the page is reloaded.
+
+**Commits.** "God mode and world settings: test any place, make any world". Switch: none (testing tools).
+
+---
+
 # Commission 3
 
 ## Summary

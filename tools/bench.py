@@ -8,7 +8,16 @@ from playwright.async_api import async_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 THREE = os.path.join(ROOT, 'node_modules/three/build/three.min.js')
 SEEDS = [11, 222, 3333]
-QUALS = [a for a in sys.argv[1:] if not a.startswith('-')] or ['default']
+QUALS = [a for a in sys.argv[1:] if not a.startswith('-') and a != 'places'] or ['default']
+# `places`: also measure the new kinds of place (commission 4), each reached by god mode on Medium:
+# a dungeon level, a floating castle, the open sea, a place under it, and another world
+PLACES = [
+    ('dungeon level', 31, {}, "S.deeps[0] && 'deep:' + S.deeps[0].id + ':1'"),
+    ('sky castle', 32, {'sky': 1, 'trouble': 'tyrant'}, "'sky:' + S.skies.find(k => k.kind === 'castle').id + ':1'"),
+    ('open sea', 34, {'sea': 1, 'size': '5x5'}, "'region:' + Rules.places(S).find(p => p.group === 'Water').label && 'region:' + S.seaPlaces[0].area"),
+    ('under the sea', 34, {'sea': 1, 'size': '5x5'}, "Rules.places(S).find(p => p.group === 'Water').id"),
+    ('other world', 35, {'doors': 1}, "'realm:' + S.doors[0].realm + ':' + S.doors[0].back.area.split(':r')[1]"),
+]
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], **({'executable_path': os.environ['CHROME']} if os.environ.get('CHROME') else {}))
@@ -49,6 +58,23 @@ async def main():
             out[q] = rows
             avg = lambda k: round(sum(r[k] for r in rows) / len(rows), 1)
             print('%-8s build %6.0f ms  calls %5.0f  triangles %8.0f  frame %6.1f ms (p95 %6.1f)  save %6.0f KB' % (q, avg('build'), avg('calls'), avg('tris'), avg('frame'), avg('p95'), avg('save') / 1024))
+        if 'places' in sys.argv:
+            for (label, seed, setting, where) in PLACES:
+                r = await pg.evaluate("""async ([seed, set, where]) => {
+                  const g = window.__g, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+                  g.setQuality('medium'); g.newWorld(seed, set);
+                  document.querySelectorAll('#modal-close').forEach((b) => b.click());
+                  const S = g.S; S.time = 6 * 60; S.weather.storm = false; S.weather.changeAt = 1e9;
+                  Rules.setGodMode(S, true); const id = eval(where); Rules.jumpTo(S, id);
+                  const t0 = performance.now(); g.buildStatic(); g.refresh(); const build = performance.now() - t0;
+                  g.P.pitch = -0.05; await wait(500);
+                  const info = g.renderer.info.render, calls = info.calls, tris = info.triangles;
+                  const dts = []; let last = performance.now();
+                  await new Promise((res) => { const f = (now) => { dts.push(now - last); last = now; g.P.yaw += 0.01; if (dts.length < 90) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+                  dts.shift(); dts.sort((a, b) => a - b);
+                  return { area: S.area, build: Math.round(build), calls, tris, frame: +(dts.reduce((a, b) => a + b, 0) / dts.length).toFixed(1), save: Rules.serialize(S).length };
+                }""", [seed, setting, where])
+                print('%-14s %-14s build %4d ms  calls %4d  triangles %7d  frame %6.1f ms  save %4.0f KB' % (label, r['area'][:14], r['build'], r['calls'], r['tris'], r['frame'], r['save'] / 1024))
         if '--json' in sys.argv: print(json.dumps(out))
         if errs: print('page errors:', errs[:3]); sys.exit(1)
         await b.close()

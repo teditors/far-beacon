@@ -14,6 +14,7 @@ import {
   curTown,
   ensureRegion,
   homePos,
+  localPos,
   mapOf,
   outdoorRec,
   regionId,
@@ -22,6 +23,7 @@ import {
   townById,
   townId,
   townInRegion,
+  townDoor,
   wrap,
   wrapDelta,
   worldPos,
@@ -29,11 +31,17 @@ import {
 import { makeCreature } from './combat.js';
 import { makeItem } from './items.js';
 import { SITE_NAME, dirFrom, siteHere } from './map.js';
-import { ELDER_TALK, PLOT_HOOKS, findHere, mark } from './quest.js';
+import { ELDER_TALK, PLOT_HOOKS, beastOf, findHere, findSite, hasItem, keyRuin, mark } from './quest.js';
 import { gainXp } from './progress.js';
 import { road, spot, waterAt } from './plot.js';
 import { SOURCES } from './stats.js';
-import { ACTIONS, NOTES, RUMOURS, SWITCHES } from './hooks.js';
+import { ACTIONS, NOTES, OBJECTIVES, RUMOURS, SWITCHES } from './hooks.js';
+import { chainOf, hold, route } from './route.js';
+import { deepsOf, levelId, levelRec, placeStairs } from './deeps.js';
+import { addSky, skiesOf, skyLevelId, skyLevelRec } from './sky.js';
+import { seaIds, seaLevelRec, seaPlacesOf } from './sea.js';
+import { doorsOf } from './realms.js';
+import { withRealm, realmOf } from './areas.js';
 
 const P = () => C.plots;
 const kindOf = (p) => byId(P().kinds, p.kind);
@@ -97,6 +105,123 @@ const dist = (s, a, b) => {
   return Math.max(Math.abs(wrapDelta(A.cx, B.cx, s.world.cols)), Math.abs(wrapDelta(A.cy, B.cy, s.world.rows)));
 };
 
+/* ---------- where a plot's places lie: the land, below, above, under the water, or beyond a door ---------- */
+// A place role's `where` is one kind or [[kind, weight]...]: land, deep, sky, sea or realm. Only kinds this world has
+// are chosen (a door for realm, a sea for sea, places in the sky for sky unless the role makes its own).
+const canWhere = (s, w, R) =>
+  w === 'land' ||
+  (w === 'deep' && !s.off.deeps) ||
+  (w === 'sky' && !s.off.sky && (skiesOf(s).some((k) => !k.plot && k.kind !== 'city') || R.make)) ||
+  (w === 'sea' && !s.off.sea && !!s.world.sea) ||
+  (w === 'realm' && doorsOf(s).length > 0);
+function whereOf(s, p, R, r) {
+  if (!R.where) return 'land';
+  if (p.forceWhere && canWhere(s, p.forceWhere, R)) return p.forceWhere;
+  const opts = (typeof R.where === 'string' ? [[R.where, 1]] : R.where).filter(([w]) => canWhere(s, w, R));
+  let t = opts.reduce((a, o) => a + o[1], 0) * r();
+  for (const [w, n] of opts) if ((t -= n) < 0) return w;
+  return 'land';
+}
+// The bottom of a dungeon, the top of a sky place, the far end of a place under the water: { area } (its level, with
+// records for every level on the way, so routes can be found before anything is built), or null.
+function levelPlace(s, where, R, r, giverArea, regionAt) {
+  const rec = (n, id, make) => {
+    if (!s.areas[id]) s.areas[id] = Object.assign({ id }, make(n));
+  };
+  if (where === 'deep') {
+    let d = null;
+    if (!R.fresh) {
+      const opts = deepsOf(s).filter((x) => x.at !== 'town' && x.depth >= 2 && !x.plot);
+      if (opts.length) d = opts[Math.floor(r() * opts.length)];
+    }
+    if (!d) {
+      // a dungeon of the plot's own, deeper than most
+      const c = regionAt(R.dist || [1, 2], R.far),
+        reg = ensureRegion(s, c.cx, c.cy),
+        th = C.deeps.themes.filter((t) => t.entry.includes('cave') || t.entry.includes('ruin')),
+        t = th[Math.floor(r() * th.length)],
+        [lo, hi] = R.depth || C.deeps.plotDepth,
+        used = deepsOf(s).map((x) => x.name),
+        free = t.names.filter((nm) => !used.includes(nm));
+      d = {
+        id: 'd' + deepsOf(s).length,
+        theme: t.id,
+        name: free.length ? free[Math.floor(r() * free.length)] : 'the Lower ' + t.names[0].slice(4),
+        area: reg.id,
+        at: t.entry.includes('cave') ? 'cave' : 'ruin',
+        depth: lo + Math.floor(r() * (hi - lo + 1)),
+      };
+      (s.deeps = s.deeps || []).push(d);
+      placeStairs(s, reg.id, mapOf(s, reg.id));
+    } else if (d.x === undefined) {
+      const c = d.area.match(/^r(\d+)_(\d+)$/);
+      if (c) placeStairs(s, d.area, ensureRegion(s, +c[1], +c[2]).map || mapOf(s, d.area));
+    }
+    if (d.x === undefined) return null;
+    d.plot = true;
+    for (let n = 1; n <= d.depth; n++) rec(n, levelId(d, n), (k) => levelRec(s, d, k));
+    return { area: levelId(d, d.depth) };
+  }
+  if (where === 'sky') {
+    let k =
+      skiesOf(s).find((x) => !x.plot && x.kind === (R.skyKind || 'castle')) ||
+      (R.skyKind ? null : skiesOf(s).find((x) => !x.plot && x.kind !== 'city'));
+    if (!k && R.make) {
+      const c = regionAt(R.dist || [2, 2], R.far);
+      k = addSky(s, R.skyKind || 'castle', ensureRegion(s, c.cx, c.cy), r);
+    }
+    if (!k) return null;
+    const kc = k.area.match(/^r(\d+)_(\d+)$/);
+    if (kc) ensureRegion(s, +kc[1], +kc[2]); // its shadow is put down now, so the way up is known
+    k.plot = true;
+    for (let n = 1; n <= k.levels; n++) rec(n, skyLevelId(k, n), (j) => skyLevelRec(k, j));
+    return { area: skyLevelId(k, k.levels) };
+  }
+  if (where === 'sea') {
+    for (const id of seaIds(s)) {
+      const c = id.match(/^r(\d+)_(\d+)$/);
+      if (c) ensureRegion(s, +c[1], +c[2]);
+    }
+    const opts = seaPlacesOf(s).filter((q) => !q.plot && ['seacave', 'wreck'].includes(q.kind)),
+      want = opts.filter((q) => q.kind === R.seaKind),
+      q = (want.length ? want : opts)[Math.floor(r() * (want.length || opts.length))];
+    if (!q) return null;
+    q.plot = true;
+    for (let n = 1; n <= q.levels; n++) rec(n, q.id + '.' + n, (j) => seaLevelRec(q, j));
+    return { area: q.id + '.' + q.levels };
+  }
+  return null;
+}
+// A place in another world (run inside withRealm): a site on clear ground in one of its regions.
+function realmPlace(s, p, R, key, r) {
+  const w = s.world;
+  for (let t = 0; t < 8; t++) {
+    const cx = Math.floor(r() * w.cols),
+      cy = Math.floor(r() * w.rows),
+      reg = ensureRegion(s, cx, cy),
+      m = mapOf(s, reg.id);
+    if (sketchOf(s, cx, cy).sea || townInRegion(s, reg.id)) continue;
+    const q = spot(m, r, 1, 1, null);
+    if (!q) continue;
+    m.sites[idx(q.x, q.y)] = { kind: R.site, plot: p.id, role: key };
+    m.creatures = m.creatures.filter((c) => c.plot || Math.max(Math.abs(c.x - q.x), Math.abs(c.y - q.y)) > 3);
+    return { area: reg.id, x: q.x, y: q.y };
+  }
+  return null;
+}
+// The outdoor place where a held place is entered (a dungeon's stair, a castle's shadow, a sea cave's mouth).
+function entranceOfRole(s, R) {
+  const c = chainOf(s, R.area).steps[0];
+  return c && c.x !== undefined ? { area: c.area, x: c.x, y: c.y } : null;
+}
+// A held place's site is put down when its level is made: the plot learns where.
+on('heldPlaced', (s, ev) => {
+  const t = ev.thing;
+  if (!t.site || !t.plot) return;
+  const p = plotById(s, t.plot);
+  if (p && p.roles[t.role]) Object.assign(p.roles[t.role], { x: ev.x, y: ev.y });
+});
+
 /* ---------- placing a plot's roles ---------- */
 function placeRoles(s, p, r, link) {
   const k = kindOf(p),
@@ -136,13 +261,32 @@ function placeRoles(s, p, r, link) {
   for (const key in k.roles || {}) {
     const R = k.roles[key];
     if (R.town) {
-      const others = [s.town].concat(s.towns || []).filter((t) => townId(t) !== p.giver);
+      const others = [s.town].concat(s.towns || []).filter((t) => townId(t) !== p.giver && !t.realm);
       if (!others.length) return false;
       roles[key] = townId(pick(others));
     } else if (R.place) {
       if (link && link.place && key === link.place) {
         roles[key] = Object.assign({}, link.at);
         continue;
+      }
+      // below, above, under or beyond: a level that may not exist yet, where the site is promised (route.js)
+      const where = whereOf(s, p, R, r);
+      if (where === 'deep' || where === 'sky' || where === 'sea') {
+        const lv = levelPlace(s, where, R, r, giverArea, regionAt);
+        if (lv) {
+          roles[key] = { site: R.site, area: lv.area, where, held: true };
+          hold(s, lv.area, { site: { kind: R.site, plot: p.id, role: key }, where: 'far', plot: p.id, role: key });
+          continue;
+        }
+      }
+      if (where === 'realm') {
+        const rid = p.realm || pick(doorsOf(s)).realm;
+        const at = withRealm(s, rid, () => realmPlace(s, p, R, key, r));
+        if (at) {
+          p.realm = rid;
+          roles[key] = Object.assign({ site: R.site, where }, at);
+          continue;
+        }
       }
       let at = null;
       for (let tries = 0; tries < 6 && !at; tries++) {
@@ -181,15 +325,39 @@ function placeRoles(s, p, r, link) {
     } else if (R.person) {
       roles[key] = { name: pick(P().people), freed: false };
     } else if (R.curse) {
-      const at = roles[R.at];
-      if (at) (s.curses = s.curses || {})[at.area] = p.id;
-      roles[key] = { area: at && at.area };
+      const at = roles[R.at],
+        area = at && (at.held ? (entranceOfRole(s, at) || {}).area : at.area);
+      if (area) (s.curses = s.curses || {})[area] = p.id;
+      roles[key] = { area };
     }
   }
   // creatures and items once the places are known
   for (const key in k.roles || {}) {
     const R = k.roles[key];
-    if (R.creature) {
+    if (R.creature && roles[R.at] && roles[R.at].held) {
+      // its guardian goes down (or up) with it, to stand by it when that level is made
+      const at = roles[R.at],
+        f = pick(C.creature.forms.filter((x) => x.id !== 'hound')),
+        ids = [];
+      let name = '';
+      for (let n = 0; n < (R.n || 1); n++) {
+        name = R.names ? pick(R.names) : pick(P().beastNames) + ' ' + f.name;
+        s.species.push({
+          name,
+          form: R.kind === 'guards' ? 'brute' : f.id,
+          temper: 'territorial',
+          rare: R.kind === 'beast' ? 'elder' : null,
+          met: false,
+          named: true,
+        });
+        const c = makeCreature(s, cid++, s.species.length - 1, 0, 0, (R.tier || 2) + 1); // a tier more, down there
+        Object.assign(c, { plot: p.id, role: key });
+        if (R.carries) c.carries = R.carries;
+        hold(s, at.area, { creature: c, where: 'near', plot: p.id });
+        ids.push(c.id);
+      }
+      roles[key] = { area: at.area, name: R.kind === 'guards' ? name.toLowerCase() + 's' : name, left: ids.length };
+    } else if (R.creature) {
       const at = roles[R.at],
         m = mapOf(s, at.area),
         biome = s.areas[at.area] ? s.areas[at.area].biome : s.biome,
@@ -228,7 +396,10 @@ function placeRoles(s, p, r, link) {
     } else if (R.item) {
       roles[key] = { label: fill(s, p, R.label), base: R.base };
       const at = R.at && (link && link.item === key ? link.at : roles[R.at]);
-      if (at) {
+      if (at && at.held) {
+        hold(s, at.area, { item: plotItem(s, p, key), where: 'far', plot: p.id });
+        roles[key].at = { area: at.area };
+      } else if (at) {
         const m = mapOf(s, at.area),
           d = (m.depots[idx(at.x, at.y)] = m.depots[idx(at.x, at.y)] || { water: 0, fuel: 0, items: [] });
         d.items.push(plotItem(s, p, key));
@@ -250,9 +421,13 @@ function placeRoles(s, p, r, link) {
               const o = townById(s, R);
               return o && { area: townArea(s, o), x: o.x, y: o.y + 3 };
             })()
-          : R && R.x !== undefined && R.area
+          : R && R.x !== undefined && R.area && !R.where
             ? R
-            : null;
+            : R && R.held
+              ? entranceOfRole(s, R)
+              : R && R.where === 'realm' && p.realm
+                ? doorsOf(s).find((d) => d.realm === p.realm) // beyond a door: water on the way to the door
+                : null;
     if (!to || to.area === undefined) continue;
     const pa = homePos(s, door.area, door.x, door.y),
       pb = homePos(s, to.area, to.x, to.y),
@@ -280,6 +455,10 @@ function plotItem(s, p, key) {
 }
 const carrying = (s, p, key) => s.player.items.find((i) => i.plot === p.id && i.role === key);
 
+// Can this world hold a plot that needs one of the new kinds of place?
+const canNeed = (s, need) =>
+  need === 'sky' ? !s.off.sky : need === 'sea' ? !!s.world.sea && !s.off.sea : need === 'realm' ? doorsOf(s).length > 0 : true;
+
 /* ---------- at world creation ---------- */
 on('worldBorn', (s, d) => {
   if (d.off.plots) return;
@@ -292,7 +471,9 @@ on('worldBorn', (s, d) => {
     };
   s.plots = [];
   // the great trouble, told in the story's town
-  const main = pickW(X.kinds, 'main');
+  const fits = X.kinds.filter((k) => !k.needs || k.needs === 'other' || canNeed(s, k.needs)),
+    rolled = pickW(fits, 'main'),
+    main = (d.set && d.set.trouble && byId(X.kinds, d.set.trouble)) || rolled; // the new world screen may choose
   let n = 0;
   const add = (kind, giver, isMain, link) => {
     const p = { id: 'p' + n++, kind: kind.id, giver, main: !!isMain, known: false, step: 0 };
@@ -304,12 +485,12 @@ on('worldBorn', (s, d) => {
   if (!mp) mp = add(byId(X.kinds, 'relic'), 'town', true);
   if (mp.kind !== 'relic') add(byId(X.kinds, 'relic'), 'town', false); // the old story is still there, for whoever hears it
   // a trouble for some of the other towns
-  const towns = (s.towns || []).slice(),
+  const towns = (s.towns || []).filter((t) => !t.realm), // another world's town has no trouble to tell
     want = Math.min(towns.length, X.side[0] + Math.floor(r() * (X.side[1] - X.side[0] + 1)));
   for (let i = 0; i < want && towns.length; i++) {
     const t = towns.splice(Math.floor(r() * towns.length), 1)[0];
     for (let tries = 0; tries < 4; tries++) {
-      const kind = pickW(X.kinds, 'side');
+      const kind = pickW(fits, 'side');
       if (kind.needs === 'other' && !(s.towns || []).length) continue;
       if (s.plots.some((q) => q.kind === kind.id)) continue;
       // a sickness and a beast in one world: the cure may be in the beast's hoard
@@ -322,6 +503,23 @@ on('worldBorn', (s, d) => {
         break;
       }
     }
+  }
+  // every door leads somewhere the story needs: a door no trouble uses gets one of its own
+  for (const d of doorsOf(s)) {
+    if (s.plots.some((q) => q.realm === d.realm)) continue;
+    const free = [s.town].concat(s.towns || []).filter((t) => !t.realm && !s.plots.some((q) => q.giver === townId(t) && !q.main)),
+      t = free[Math.floor(r() * free.length)] || s.town,
+      p = {
+        id: 'p' + n++,
+        kind: 'beyond',
+        giver: townId(t),
+        main: false,
+        known: false,
+        step: 0,
+        realm: d.realm,
+        forceWhere: 'realm',
+      };
+    if (placeRoles(s, p, r, null)) s.plots.push(p);
   }
   // finishing one side trouble tells you of the next
   const sides = s.plots.filter((q) => !q.main && q.kind !== 'relic');
@@ -356,7 +554,9 @@ function creaturePlace(s, p, key) {
     const c = m.creatures.find((x) => x.plot === p.id && x.role === key);
     if (c) return { area, x: c.x, y: c.y, cid: c.id };
   }
-  return null;
+  // not made yet: it waits on a level no one has reached
+  const r = p.roles[key];
+  return r && r.area && s.held && s.held[r.area] ? { area: r.area } : null;
 }
 // Where a plot item is: carried, lying in a depot, or still on a creature.
 function takePlace(s, p, key) {
@@ -364,7 +564,8 @@ function takePlace(s, p, key) {
     for (const k in m.depots)
       if (m.depots[k].items.some((i) => i.plot === p.id && i.role === key)) return { area, x: k % W, y: Math.floor(k / W) };
   for (const ck in kindOf(p).roles) if (kindOf(p).roles[ck].carries === key) return creaturePlace(s, p, ck);
-  return null;
+  const r = p.roles[key];
+  return r && r.at && r.at.area ? { area: r.at.area, x: r.at.x, y: r.at.y } : null; // on a level not made yet
 }
 // For the bot and the tests: where the tracked plot wants you now, as { area, x, y, cid } outdoors or { town }.
 function plotGoal(s, p) {
@@ -372,8 +573,27 @@ function plotGoal(s, p) {
   if (!p || p.kind === 'relic') return null;
   return stepPlace(s, p, stepOf(p));
 }
-// The top panel's goal for a plot other than the relic's.
+// The top panel's goal for a plot other than the relic's. A goal in another world (or, from another world, at home)
+// goes by the door first (OBJECTIVES, from the realms piece).
 function plotObjective(s, p) {
+  const o = plotObjectiveHere(s, p),
+    st = stepOf(p),
+    at = st && p.known ? stepPlace(s, p, st) : st ? { town: p.giver } : null,
+    area = at ? (at.town ? townArea(s, townById(s, at.town) || s.town) : at.area) : null;
+  if (at)
+    for (const f of OBJECTIVES) {
+      const w = f(s, area);
+      if (w)
+        return {
+          text: w.text + ': ' + o.text.charAt(0).toLowerCase() + o.text.slice(1),
+          dir: w.at
+            ? dirFrom(worldPos(s), homePos(s, w.at.area, w.at.x, w.at.y).x, homePos(s, w.at.area, w.at.x, w.at.y).y)
+            : null,
+        };
+    }
+  return o;
+}
+function plotObjectiveHere(s, p) {
   const st = stepOf(p);
   if (!st) return { text: p.done ? 'Done: ' + kindOf(p).name : kindOf(p).name + ': failed', dir: null };
   if (!p.known) return { text: 'Find ' + townName(s, p.giver), dir: dirToTown(s, p.giver) };
@@ -387,7 +607,12 @@ function plotObjective(s, p) {
     }
     return { text, dir: dirToTown(s, at.town) };
   }
-  if (at.area === s.area) return { text, dir: dirLocal(s, at) };
+  if (at.area === s.area && at.x !== undefined) return { text, dir: dirLocal(s, at) };
+  // somewhere below, above, under the water or beyond: the next step of the way (route.js)
+  const rt = route(s, at);
+  if (rt && rt.x !== undefined && !rt.town)
+    return { text, dir: rt.x === s.player.x && rt.y === s.player.y ? 'here' : dirFrom(s.player, rt.x, rt.y) };
+  if (at.x === undefined) return { text, dir: null };
   const h = homePos(s, at.area, at.x, at.y);
   return { text, dir: dirFrom(worldPos(s), h.x, h.y) };
 }
@@ -472,11 +697,39 @@ function plotTalk(s, t, sp) {
       gainXp(s, 15);
     }
     if (!p.known) continue;
+    // a new traveller who comes back to the giver is given again what the last one was given (it lies with them)
+    if (p.giver === id && p.gearFor !== undefined && p.gearFor !== s.travellers && !p.done && !p.failed) {
+      const st0 = stepsOf(p).find((x) => x.gear);
+      p.gearFor = s.travellers;
+      for (const b of st0.gear) {
+        const it = makeItem(s, b, null, null, true),
+          sl = byId(C.bases, b).slot;
+        if (sl) for (const o of s.player.items) if (o.eq === sl) delete o.eq;
+        if (sl) it.eq = sl;
+        s.player.items.push(it);
+      }
+      sp.push(
+        '"You are not the one we sent. Take these, as they did: ' + fill(s, p, st0.gearText || 'you will need them.') + '"',
+      );
+    }
     // steps that end here, as many as are ready
     for (let guard = 0; guard < 4; guard++) {
       const st = stepOf(p);
       if (!st) break;
       if (st.do === 'talk' && roleTown(s, p, st.to) === id) {
+        if (st.gear) {
+          p.gearFor = s.travellers;
+          // what you will need where they are sending you
+          for (const b of st.gear) {
+            const it = makeItem(s, b, null, null, true);
+            // worn at once if it is worn at all, in place of what was there (a cloak that flies beats a cloak)
+            const sl = byId(C.bases, b).slot;
+            if (sl) for (const o of s.player.items) if (o.eq === sl) delete o.eq;
+            if (sl) it.eq = sl;
+            s.player.items.push(it);
+          }
+          sp.push('"' + fill(s, p, st.gearText || 'Take these. You will need them.') + '"');
+        }
         if (st.give) {
           s.player.items.push(plotItem(s, p, st.give));
           sp.push('"Here: ' + p.roles[st.give].label.toLowerCase() + '. Go carefully."');
@@ -713,6 +966,37 @@ NOTES.push((s) =>
           : plotObjective(s, p).text + '. Asked by ' + townName(s, p.giver) + '.',
     })),
 );
+/* Where the goal line points, as a place on the map you are in: the next stair, shadow, door or town, or the place
+   itself ({ x, y }, in the frame of the area you are in; outdoors a place in another region lies off its edges), or
+   null when it is not known. The map screen draws a ring there. */
+function relicGoal(s) {
+  const q = s.quest;
+  if (!q || !q.told) return { town: 'town' };
+  if (hasItem(s, 'relic')) return q.dest === 'beacon' ? Object.assign({ area: HOME }, s.goal) : findSite(s, 'shrine');
+  const v = findSite(s, 'vault');
+  if (v && (v.st.open || hasItem(s, 'key'))) return v;
+  if (q.key === 'ruin') return keyRuin(s);
+  if (q.key === 'beast') {
+    const b = beastOf(s);
+    return b ? { area: b.area, x: b.c.x, y: b.c.y } : null;
+  }
+  return null;
+}
+function goalMark(s) {
+  if (s.over || areaRec(s).kind === 'vault') return null;
+  const p = tracked(s),
+    g = p && p.kind !== 'relic' ? (p.known ? plotGoal(s, p) : { town: p.giver }) : relicGoal(s);
+  if (!g) return null;
+  const rt = route(s, g.area || g.town ? g : null);
+  if (!rt) return null;
+  if (rt.town) {
+    if (areaRec(s).kind === 'town') return null;
+    const t = townById(s, rt.town) || s.town,
+      d = townDoor(s, t);
+    return localPos(s, townArea(s, t), d.x, d.y - 1);
+  }
+  return rt.x === undefined ? null : { x: rt.x, y: rt.y };
+}
 // Which plot's next step is on the top panel.
 function trackPlot(s, id) {
   const p = plotById(s, id);
@@ -738,5 +1022,6 @@ export {
   plotHere,
   relicSideDone,
   trackPlot,
+  goalMark,
   fill as fillPlot,
 };

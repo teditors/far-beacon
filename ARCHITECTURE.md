@@ -57,7 +57,7 @@ tools/check.js  runs every test
 
 ## Areas
 
-The overworld, the town and each level of the locked place are separate maps on the same 36 x 36 grid. The map the
+The overworld, the town and each level (of the locked place, a dungeon, a sky place or a place in the water: see below) are separate maps on the same 36 x 36 grid. The map the
 player is in sits at the top of the state (`s.terrain`, `s.sites`, `s.depots`, `s.creatures`, `s.seen`...), so most
 rules never need to know where they are. Every other area is parked in `s.areas[id].map` until the player goes back.
 `enterArea` and `leaveArea` in areas.js do the swapping; an interior's map is generated the first time it is entered.
@@ -105,6 +105,42 @@ first time the player arrives.
 - `s.camp` is `{ area, i }`; use `campHere(s)`. `s.biome` is the biome of the region the player is in.
 - `inOverworld(s)` means "outdoors, in any region".
 
+## Below, above, under the water and beyond (commission 4)
+
+Every place you walk into is an area; commission 4 added four kinds of level and a second kind of world.
+
+- **Levels** are areas of kind `deep` (dungeons, `deeps.js`, ids `d<n>.<level>`), `sky` (places in the sky, `sky.js`,
+  `s<n>.<level>`), `sea` (places on and under the water, `sea.js`, `w_<region>_<n>.<level>`), and the old `vault`
+  (the locked place, `vault<level>`). Each is built the first time it is reached, by its `GENERATORS[kind]`, from its
+  own stream. `R.isLevel(s)` / `R.levelLook(s)` (from `LOOKS`) are all the view needs: it draws any level from its look
+  (stone, floor, glow, background, `void` for an island in the air, `water` for a floating town). A piece's levels
+  take the stair actions through `LEVELS[kind]` (goDown) and say how they are entered through `ENTRANCES`.
+- **Ground values**: `WALL` 6 and `FLOOR` 7 inside, `VOID` 8 (open air round a sky place: nothing walks or is drawn
+  there), `DEEP` 9 (deep water outdoors, drawn as water: crossed only with `s.player.swims` or aloft). `passable`
+  stays cheap: it reads `s.player.swims`, which the sea piece keeps up to date on every action.
+- **Other worlds** (`realms.js`): `s.realms` holds each world beyond a door ({ id, seed, world, name }); while the
+  traveller is there, its sketch and seed stand in `s.world` and `s.seed` (`setRealm`, `withRealm`, `enterRealm` in
+  areas.js) and its regions are named `<realm>:r<cx>_<cy>`, so every region rule works there unchanged. `realmOf(s,
+  area)` says which world an area is in. A goal in another world is reached through its door (`OBJECTIVES`).
+- **Held things and routes** (`route.js`): `hold(s, areaId, thing)` promises a site, item or creature to a map not yet
+  built; it is put there when the map is built (`'mapBuilt'` from areas.js) and announced (`'heldPlaced'`). `route(s,
+  goal)` gives the next place to stand and the action to take there to reach any goal from anywhere; the goal line,
+  the bot and the tests all use it. A plot's place can be `where` the land, a dungeon's bottom, a sky place's top, a
+  place under the water, or a region beyond a door.
+- **Memory** (`grids.js`, `coolDown` in areas.js): maps away from the traveller keep their grids packed, as saves do;
+  `mapOf`, `buildArea` and `ensureRegion` unpack a map for whoever asks. Read far maps through them, never
+  `s.areas[id].map` directly.
+- **Testing tools** (`godmode.js`, `worldset.js`): god mode (`s.godMode`, and `s.cheated` once used) and the jump
+  list, which every piece fills through `PLACES`; world settings are plain options, `newGame(seed, off, set)`, kept
+  in `s.gen` where they differ from `content/worldset.js`, and read with `genOf(s)` (the playtest takes `SET=`).
+
+## When something goes wrong
+
+`src/view/oops.js` is the safety net: the frame loop asks for its next frame before anything else, and walking,
+building, drawing, actions and panels each run through `guard()`, so an error never freezes the page or leaves it
+black. It is shown in a note with a button to copy it, and Menu then offers `R.rescue` (back to the well). Errors
+the player sends on are worth a test in `tests/explore.js` or `tests/c4.test.js`.
+
 ## The phone budget
 
 The game must run on a phone. `src/view/quality.js` holds the graphics presets (Low / Medium / High) and the device's
@@ -138,6 +174,13 @@ More hooks, added by later pieces on the commission/1 branch:
 | `TALK` | hooks.js | people a piece puts in the world, shown by the one dialog `serviceInfo` / `useService` |
 | `ITEM_HOOKS` | hooks.js | finish an item `genItem` has just made (tiers by distance) |
 | `emit(s, 'killed', ...)` | combat.js | react to a kill (gains on a kill) |
+| `PLACES` | hooks.js | places god mode can jump to |
+| `COSTS` | hooks.js | change what a step costs (flying, deep water) |
+| `LOOKS` | hooks.js | how a level a piece owns is drawn, and its title |
+| `LEVELS`, `ENTRANCES` | hooks.js | the stair down for a kind of level; how a level is entered from its parent |
+| `OBJECTIVES` | hooks.js | turn a goal into the way to it first (another world's door) |
+| `emit(s, 'mapBuilt' / 'heldPlaced')` | areas.js, route.js | add to a map as it is built; learn where a held thing went |
+| `AFTER_LOAD` | hooks.js | change a save once it has loaded and been upgraded (old worlds deepen) |
 
 Each piece's checks are a block in `tests/pieces.test.js`, and its menus a section in `tools/almanac.js`.
 
@@ -194,6 +237,8 @@ node tools/check.js          everything, including a 40-world playtest and the b
 | state.test.js | non-deterministic worlds, saves that load differently, broken world invariants; warns when world generation changes for existing seeds (accept with `--update`) |
 | fuzz.js | crashes and impossible values under random play, with save and reload along the way |
 | quest.js | every rolled quest shape can actually be completed |
+| explore.js | random play in every kind of place (reached by god mode) in worlds made to have everything, pressing every button and opening every dialog, saving and loading: catches anything the screen could trip over |
+| c4.test.js | commission 4: god mode, world settings, dungeons, packed maps, the sky, the sea, other worlds, and each trouble that goes below, above, under or beyond followed by its route to the end |
 | playtest.js | a bot plays honestly and reports win rate and causes of death; a balance thermometer, not a pass or fail |
 | smoke.py | the built page in a real browser: create, walk, panels, town, a fight, reload, with no page errors |
 

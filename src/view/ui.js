@@ -1,5 +1,6 @@
 /* HUD, panels and screens, input and start-up. */
 import { $, G, P, R, V, VIEW, clamp, el, f1 } from './ctx.js';
+import { guard, showError, errors } from './oops.js';
 import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSeed, save, start, sync } from './run.js';
 import { box, buildDynamic, buildStatic, renderer, resize, scene } from './scene.js';
 import { Q, QUALITY, SET, saveSettings, setQuality } from './quality.js';
@@ -19,7 +20,14 @@ function render() {
     wt = R.weight(V.S),
     cc = R.carryCap(V.S),
     fc = R.isDark(V.S) ? 'Underground' : R.indoors(V.S) ? R.forecast(V.S) + ' outside the walls' : R.forecast(V.S);
-  $('when').textContent = 'Day ' + c.day + ', ' + String(c.hour).padStart(2, '0') + ':' + String(c.min).padStart(2, '0');
+  $('when').textContent =
+    'Day ' +
+    c.day +
+    ', ' +
+    String(c.hour).padStart(2, '0') +
+    ':' +
+    String(c.min).padStart(2, '0') +
+    (V.S.godMode ? ' · God mode' : '');
   $('sky').textContent = fc;
   $('sky').className = 'chip' + (R.indoors(V.S) ? '' : V.S.weather.storm ? ' bad' : fc === 'Storm close' ? ' warn' : '');
   const ob = R.objective(V.S);
@@ -605,7 +613,8 @@ function showEnd() {
       R.civOf(V.S).name +
       '. Seed ' +
       V.S.seed +
-      '.',
+      '.' +
+      (V.S.cheated ? ' Walked in god mode: this ' + (won ? 'win' : 'run') + ' does not count.' : ''),
   });
   if (won && V.S.over.ending)
     openModal(R.byId(R.C.plots.kinds, V.S.over.plot).name + ': the end', [
@@ -613,7 +622,7 @@ function showEnd() {
       el('p', { text: who + ', on day ' + c.day + ', traveller ' + V.S.travellers + ' of this world.' }),
       world,
       el('div', { cls: 'row' }, [
-        btn('New world', () => start(randomSeed()), 'primary'),
+        btn('New world', () => openNewWorld(), 'primary'),
         btn('Same world again', () => start(V.S.seed)),
       ]),
     ]);
@@ -625,7 +634,7 @@ function showEnd() {
       }),
       world,
       el('div', { cls: 'row' }, [
-        btn('New world', () => start(randomSeed()), 'primary'),
+        btn('New world', () => openNewWorld(), 'primary'),
         btn('Same world again', () => start(V.S.seed)),
       ]),
     ]);
@@ -654,11 +663,20 @@ function showEnd() {
     openModal('The beacon goes dark', [
       el('p', { text: who + ' died on day ' + c.day + ', ' + dist + '. No one is left to send, and this world is lost.' }),
       world,
-      el('div', { cls: 'row' }, [btn('New world', () => start(randomSeed()), 'primary')]),
+      el('div', { cls: 'row' }, [btn('New world', () => openNewWorld(), 'primary')]),
     ]);
   lock(true);
 }
 const MAPC = {
+  shadow: '#1d2430',
+  landing: '#e0a84a',
+  skyway: '#e0a84a',
+  trader: '#3a6a9a',
+  seaplace: '#7fd0e0',
+  wayfarer: '#f0a040',
+  door: '#b48ce0',
+  throne: '#c0612f',
+  cellar: '#3b332c',
   spring: '#2f7fb5',
   cave: '#3b332c',
   ruin: '#7b4a8c',
@@ -684,7 +702,7 @@ const MAPC = {
   siege: '#c0612f',
   shelter: '#a07a4a',
 };
-const INDOOR_COLS = { 6: '#3a3631', 7: '#9a948a' };
+const INDOOR_COLS = { 6: '#3a3631', 7: '#9a948a', 8: '#9cc4ec' };
 // The map screen. Indoors: the town or the level you are on. Outdoors: the whole world as one continuous map, drawn from
 // every region you have seen, centred on you; it wraps around like the world. Drag to pan, + and - to zoom.
 const mapView = { zoom: 54, dx: 0, dy: 0 }; // tiles across the canvas, and how far it has been panned from you
@@ -693,14 +711,14 @@ function openMap() {
     indoor = R.indoors(V.S);
   if (!indoor) return openWorldMap();
   const cv = el('canvas', { id: 'mapcv', 'aria-label': 'Your map so far' });
-  openModal(rec.kind === 'town' ? V.S.town.name : 'The ' + V.S.quest.vault.name + ', level ' + rec.level + ' of ' + rec.levels, [
+  openModal(rec.kind === 'town' ? R.curTown(V.S).name : R.levelTitle(V.S), [
     cv,
     el('p', {
       cls: 'note',
       text:
         rec.kind === 'town'
           ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: a gate."
-          : 'Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see.',
+          : 'Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see. Gold ring: where your goal leads next.',
     }),
   ]);
   const css = cv.clientWidth,
@@ -736,7 +754,22 @@ function openMap() {
       g.arc((c.x + 0.5) * ts, (c.y + 0.5) * ts, 4, 0, 7);
       g.fill();
     }
+  const gm = R.goalMark(V.S);
+  if (gm) goalAt(g, (gm.x + 0.5) * ts, (gm.y + 0.5) * ts);
   youAt(g, ((P.x + G.half) / G.ts) * ts, ((P.z + G.half) / G.ts) * ts);
+}
+// The next place the goal line points to: a gold ring.
+function goalAt(g, px, py) {
+  g.beginPath();
+  g.arc(px, py, 9, 0, 7);
+  g.lineWidth = 3;
+  g.strokeStyle = '#ffd24a';
+  g.stroke();
+  g.lineWidth = 1;
+  g.strokeStyle = '#141a22';
+  g.beginPath();
+  g.arc(px, py, 11, 0, 7);
+  g.stroke();
 }
 function youAt(g, px, py) {
   g.beginPath();
@@ -771,7 +804,9 @@ function openWorldMap() {
     ]),
     el('p', {
       cls: 'note',
-      text: 'The world as you have seen it. Drag to look around; it wraps around, like the world. White dot: you. Gold: camp and the well. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: something left lying. Red dot: a creature you can see.',
+      text:
+        (V.S.godMode ? 'God mode: tap anywhere to go there. ' : '') +
+        'The world as you have seen it. Drag to look around; it wraps around, like the world. White dot: you. Gold: camp and the well. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: something left lying. Red dot: a creature you can see. Gold ring: where your goal leads next.',
     }),
   ]);
   // drag to pan
@@ -787,7 +822,16 @@ function openWorldMap() {
     mapView.dy = drag.dy - (e.clientY - drag.y) / ts;
     drawWorldMap(cv);
   });
-  cv.addEventListener('pointerup', () => (drag = null));
+  cv.addEventListener('pointerup', (e) => {
+    // in god mode a tap (not a drag) jumps to the tapped place
+    const tap = drag && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6;
+    drag = null;
+    if (!tap || !V.S.godMode || !mapView.last) return;
+    const r = cv.getBoundingClientRect(),
+      L = mapView.last;
+    act(() => R.jumpMap(V.S, L.x0 + (e.clientX - r.left) / L.ts, L.y0 + (e.clientY - r.top) / L.ts));
+    closeModal();
+  });
   drawWorldMap(cv);
 }
 function drawWorldMap(cv) {
@@ -816,6 +860,7 @@ function drawWorldMap(cv) {
     youY = wp.y + fy,
     x0 = youX + mapView.dx - n / 2,
     y0 = youY + mapView.dy - n / 2;
+  mapView.last = { x0, y0, ts };
   const regions = {};
   const regionAt = (gx, gy) => {
     const rx = Math.floor(gx / R.W),
@@ -839,7 +884,7 @@ function drawWorldMap(cv) {
       if (!m.seen[i]) continue;
       const px = (sx - x0) * ts,
         py = (sy - y0) * ts;
-      g.fillStyle = r.cols[m.terrain[i]] || '#555';
+      g.fillStyle = m.terrain[i] === R.DEEP ? '#1d4e78' : r.cols[m.terrain[i]] || '#555';
       g.fillRect(px, py, ts + 0.6, ts + 0.6);
       if (m.road[i]) {
         g.fillStyle = '#8c8a86';
@@ -876,12 +921,168 @@ function drawWorldMap(cv) {
         g.arc((wp.x + c.x - S.player.x + 0.5 - x0) * ts, (wp.y + c.y - S.player.y + 0.5 - y0) * ts, 4, 0, 7);
         g.fill();
       }
+  // where the goal line points, a ring (it may be in another region: in your region's frame it lies off its edges)
+  const gm = R.inOverworld(S) ? R.goalMark(S) : null;
+  if (gm) {
+    let gx = wrapN(wp.x + gm.x - S.player.x + 0.5 - x0, WW),
+      gy = wrapN(wp.y + gm.y - S.player.y + 0.5 - y0, HH);
+    if (gx > n + 1) gx -= WW;
+    if (gy > n + 1) gy -= HH;
+    // off the window: pinned to its edge, on the line from you toward it, so it still shows the way
+    const cx = n / 2 - mapView.dx,
+      cy = n / 2 - mapView.dy,
+      m = 1.2;
+    if (gx < m || gy < m || gx > n - m || gy > n - m) {
+      const dx = gx - cx,
+        dy = gy - cy,
+        k = Math.min(
+          Math.abs((dx > 0 ? n - m - cx : m - cx) / (dx || 1e-9)),
+          Math.abs((dy > 0 ? n - m - cy : m - cy) / (dy || 1e-9)),
+          1,
+        );
+      gx = cx + dx * k;
+      gy = cy + dy * k;
+    }
+    goalAt(g, gx * ts, gy * ts);
+  }
   // you, wherever the window has been panned to (the world wraps, so find the copy of you that is in view)
   let ux = wrapN(youX - x0, WW),
     uy = wrapN(youY - y0, HH);
   if (ux > n + 1) ux -= WW;
   if (uy > n + 1) uy -= HH;
   youAt(g, ux * ts, uy * ts);
+}
+// God mode and the list of places it can jump to (Tinker panel). A world that has used it is marked for good.
+function godPanel() {
+  const cb = el('input', { type: 'checkbox', id: 'god-mode' });
+  cb.checked = !!V.S.godMode;
+  cb.addEventListener('change', () => {
+    act(() => R.setGodMode(V.S, cb.checked));
+    openMenu();
+  });
+  const out = [
+    el('ul', { cls: 'items' }, [
+      el('li', { cls: 'item' }, [
+        el('label', {
+          for: 'god-mode',
+          text: 'God mode: unseen, unhurt, tireless; walk through anything, fly, breathe water, open any door',
+        }),
+        cb,
+      ]),
+    ]),
+  ];
+  if (V.S.cheated && !V.S.godMode)
+    out.push(el('p', { cls: 'note', text: 'This world has used god mode, and says so at the end.' }));
+  if (V.S.godMode) {
+    const list = R.places(V.S),
+      groups = [...new Set(list.map((p) => p.group))],
+      sel = el(
+        'select',
+        { id: 'jump-to', 'aria-label': 'Place to jump to' },
+        groups.map((g) =>
+          el(
+            'optgroup',
+            { label: g },
+            list.filter((p) => p.group === g).map((p) => el('option', { value: p.id, text: p.label })),
+          ),
+        ),
+      );
+    out.push(
+      el('div', { cls: 'row' }, [
+        sel,
+        btn(
+          'Go there',
+          () => {
+            act(() => R.jumpTo(V.S, sel.value));
+            closeModal();
+          },
+          'primary',
+        ),
+      ]),
+      el('p', { cls: 'note', text: 'Or open the map and tap anywhere.' }),
+    );
+  }
+  return el('div', null, out);
+}
+/* The new world screen: a seed, and the world settings folded away underneath (content/worldset.js), so an ordinary
+   new world is one tap. The choices are remembered for the next new world on this page. */
+let lastSet = {};
+function openNewWorld() {
+  const M = R.C.worldSet.menus,
+    D = R.C.worldSet.defaults,
+    cur = (k) => (lastSet[k] !== undefined ? lastSet[k] : D[k]),
+    seedIn = el('input', { type: 'number', id: 'nw-seed', value: randomSeed(), inputmode: 'numeric', 'aria-label': 'Seed' }),
+    fields = {};
+  const choose = (key, label, list, val) => {
+    const sel = el(
+      'select',
+      { id: 'nw-' + key },
+      list.map(([v, txt]) => {
+        const o = el('option', { value: String(v), text: txt });
+        if (String(v) === String(val)) o.setAttribute('selected', 'selected');
+        return o;
+      }),
+    );
+    fields[key] = sel;
+    return el('li', { cls: 'item' }, [el('label', { for: 'nw-' + key, text: label }), sel]);
+  };
+  const many = (key, label, list) => {
+    const sel = el(
+      'select',
+      { id: 'nw-' + key, multiple: 'multiple', size: '5' },
+      list.map((e) => el('option', { value: e.id, text: e.name })),
+    );
+    for (const o of sel.options) if ((lastSet[key] || []).includes(o.value)) o.selected = true;
+    fields[key] = sel;
+    return el('li', { cls: 'item' }, [el('label', { for: 'nw-' + key, text: label }), sel]);
+  };
+  const count = (key, label) => {
+    const inp = el('input', { type: 'number', id: 'nw-' + key, min: '0', max: '40', value: String(cur(key) || 0) });
+    fields[key] = inp;
+    return el('li', { cls: 'item' }, [el('label', { for: 'nw-' + key, text: label }), inp]);
+  };
+  const troubles = [['', 'Rolled']].concat(R.C.plots.kinds.filter((k) => k.main).map((k) => [k.id, k.name]));
+  const details = el('details', { id: 'nw-more' }, [
+    el('summary', { text: 'World settings' }),
+    el('p', { cls: 'note', text: 'Leave these alone for an ordinary world. Hold Ctrl (or long-press) to pick several peoples.' }),
+    el('ul', { cls: 'items' }, [
+      choose('size', 'Size', M.size, lastSet.size || ''),
+      many('races', 'Races that may appear (none picked: any)', R.C.races),
+      count('nRaces', 'How many races (0: rolled)'),
+      many('classes', 'Classes that may appear (none picked: any)', R.C.classes),
+      count('nClasses', 'How many classes (0: rolled)'),
+      choose('towns', 'Other towns', M.towns, cur('towns')),
+      choose('dungeons', 'Dungeons', M.dungeons, cur('dungeons')),
+      choose('depth', 'How deep they go', M.depth, cur('depth')),
+      choose('sky', 'Places in the sky', M.sky, cur('sky')),
+      choose('sea', 'A sea', M.sea, cur('sea')),
+      choose('doors', 'Doors to other worlds', M.doors, cur('doors')),
+      choose('maxDoors', 'How many doors', M.maxDoors, cur('maxDoors')),
+      choose('trouble', 'The great trouble', troubles, cur('trouble')),
+    ]),
+  ]);
+  openModal('A new world', [
+    el('div', { cls: 'row' }, [el('label', { for: 'nw-seed', text: 'Seed' }), seedIn]),
+    details,
+    el('div', { cls: 'row' }, [
+      btn(
+        'Make this world',
+        () => {
+          const set = {};
+          for (const k in fields) {
+            const f = fields[k];
+            if (f.multiple) set[k] = [...f.options].filter((o) => o.selected).map((o) => o.value);
+            else if (k === 'size' || k === 'trouble') set[k] = f.value;
+            else set[k] = parseFloat(f.value);
+          }
+          lastSet = set;
+          start(parseInt(seedIn.value, 10) || 1, set);
+        },
+        'primary',
+      ),
+      V.S && !V.S.over ? btn('Back', () => openMenu()) : null,
+    ]),
+  ]);
 }
 function openMenu() {
   const sw = el(
@@ -923,6 +1124,9 @@ function openMenu() {
     }),
     el('p', {
       text: 'The ground matters. Each land has its own woods, watercourses and odd terrain: some shelter you, some give water or fuel, some are fast and some are punishing. The line under the meters says what you are standing on.',
+    }),
+    el('p', {
+      text: 'There is more than the land. Stairs in caves, ruins and town cellars go down into dungeons, harder and richer the deeper you go; they are dark, so bring a light. Something may float in the sky over a shadow with no cloud to cast it: you need a way to fly, and flying is quick but tiring, cold and grounded by storms. Deep water needs a boat or a way to breathe it. And rarely a door of old stone leads to another world. The goal line always points the next step of the way: a stair, a shadow, a door.',
     }),
     el('h3', { text: 'Goal' }),
     el('p', {
@@ -1089,7 +1293,7 @@ function openMenu() {
         }),
     ),
     el('div', { cls: 'row' }, [
-      btn('New world', () => start(randomSeed()), 'primary'),
+      btn('New world', () => openNewWorld(), 'primary'),
       seedIn,
       btn('Play this seed', () => start(parseInt(seedIn.value, 10) || 1)),
     ]),
@@ -1174,6 +1378,17 @@ function openMenu() {
     })(),
     el('h3', { text: 'Tinker' }),
     el('p', { cls: 'note', text: 'Switch whole systems off, or change the numbers while you play.' }),
+    godPanel(),
+    errors.length || V.S.godMode
+      ? el('div', { cls: 'row' }, [
+          btn('Rescue: back to the well', () => {
+            act(() => R.rescue(V.S));
+            buildStatic();
+            placePlayer();
+            closeModal();
+          }),
+        ])
+      : null,
     sw,
     el('ul', { cls: 'items' }, [
       tune(VIEW, 'speed', 'Walking speed (m/s)', 3, 16, 0.5),
@@ -1336,8 +1551,8 @@ window.__g = {
     resize();
   },
   // a fresh world on this seed, without the character screen (for the benchmark)
-  newWorld(seed) {
-    enter(R.newGame(seed));
+  newWorld(seed, set) {
+    enter(R.newGame(seed, {}, set));
   },
   // for tests and tinkering from the console: redraw everything after changing the state by hand
   refresh() {
@@ -1347,6 +1562,9 @@ window.__g = {
     render();
   },
 };
+// nothing that goes wrong anywhere may leave a black screen: errors outside the frame are caught and shown too
+window.addEventListener('error', (e) => showError('the page', e.error || e.message));
+window.addEventListener('unhandledrejection', (e) => showError('the page', e.reason));
 requestAnimationFrame(loop);
 
 export {

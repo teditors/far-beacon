@@ -31,6 +31,13 @@ import moreTowns from './moretowns.js';
 import plots from './plots.js';
 import crafting from './crafting.js';
 import trade from './trade.js';
+import worldSet from './worldset.js';
+import deeps from './deeps.js';
+import sky from './sky.js';
+import sea from './sea.js';
+import realms from './realms.js';
+import kin from './kin.js';
+import wayfarers from './wayfarers.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -65,4 +72,11 @@ export const CONTENT = Object.assign(
   plots,
   crafting,
   trade,
+  worldSet,
+  deeps,
+  sky,
+  sea,
+  realms,
+  kin,
+  wayfarers,
 );

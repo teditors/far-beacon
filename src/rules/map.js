@@ -1,6 +1,6 @@
 /* Questions about the map: where you are, what stands here, directions, and what you can see. */
 import { civOf } from './civ.js';
-import { H, TERR, W, WALL, biomeOf, clock, idx, say } from './core.js';
+import { DEEP, FLOOR, H, TERR, W, WALL, biomeOf, clock, idx, say } from './core.js';
 import { campHere, homePos, inTownBlock, indoors, inOverworld, isDark, worldPos } from './areas.js';
 import { stat } from './stats.js';
 
@@ -10,6 +10,8 @@ const here = (s) => idx(s.player.x, s.player.y);
 const INDOOR_GROUND = {
   6: { name: 'wall', wall: true, moveMin: 0, moveSta: 0, mods: [] },
   7: { name: 'stone floor', moveMin: 0.5, moveSta: 0.15, mods: [] },
+  8: { name: 'open air', wall: true, moveMin: 0, moveSta: 0, mods: [] },
+  9: { name: 'deep water', deep: true, moveMin: 12, moveSta: 1.4, wet: 6, mods: [] },
 };
 function terrainInfo(s, t) {
   if (t >= WALL) return INDOOR_GROUND[t];
@@ -36,7 +38,17 @@ const isShelter = (site) =>
     site.kind === 'shelter');
 const inShelter = (s) => indoors(s) || isShelter(siteHere(s));
 const atCamp = (s) => campHere(s) === here(s);
-const passable = (s, x, y) => x >= 0 && y >= 0 && x < W && y < H && s.terrain[idx(x, y)] !== WALL && !inTownBlock(s, x, y);
+// In god mode nothing stops you but the edge of a level and a town's block (walking into it enters the town).
+const passable = (s, x, y) =>
+  x >= 0 &&
+  y >= 0 &&
+  x < W &&
+  y < H &&
+  (s.godMode ||
+    s.terrain[idx(x, y)] < WALL ||
+    s.terrain[idx(x, y)] === FLOOR ||
+    (s.terrain[idx(x, y)] === DEEP && !!s.player && (s.player.swims || s.player.aloft))) &&
+  !inTownBlock(s, x, y);
 
 const DIRS = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east'];
 function dirTo(s, x, y) {

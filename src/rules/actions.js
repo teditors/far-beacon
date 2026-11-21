@@ -39,7 +39,7 @@ import {
 } from './areas.js';
 import { carryCap, stat, waterCap } from './stats.js';
 import { advance } from './systems.js';
-import { ACTIONS as ACTION_HOOKS } from './hooks.js';
+import { ACTIONS as ACTION_HOOKS, COSTS } from './hooks.js';
 
 /* Actions */
 // How much foul water hurts you: not at all if something makes you safe from it.
@@ -55,7 +55,9 @@ function moveCost(s, x, y) {
     mins = s.tun.moveMin.plain * 0.55 * stat(s, 'moveTime', 1) * (!clock(s).isDay && stat(s, 'nightSight', 0) <= 0 ? 2 : 1);
     sta = s.tun.moveSta.plain * 0.7;
   }
-  return { mins, cost: sta * s.tun.staminaScale * stat(s, 'staminaCost', 1), base: s.tun.moveMin.plain };
+  let mc = { mins, cost: sta * s.tun.staminaScale * stat(s, 'staminaCost', 1), base: s.tun.moveMin.plain };
+  for (const f of COSTS) mc = f(s, x, y, mc); // flying, and whatever else changes what a step costs
+  return mc;
 }
 function move(s, dx, dy, at) {
   if (s.over) return false;
@@ -65,13 +67,16 @@ function move(s, dx, dy, at) {
     was = s.lastGround,
     leftCamp = atCamp(s);
   if (out && !inOverworld(s) && areaRec(s).kind !== 'town') return false;
-  if (weight(s) > carryCap(s) + 1e-9) {
+  if (weight(s) > carryCap(s) + 1e-9 && !s.godMode) {
     say(s, 'You are carrying too much to move. Leave something here.', 'bad');
     return false;
   }
   // The town: walk into its block from any side and you are in it, unless a wall stands there; walk off any edge of
   // it and you are back outside. `at` is where the view says you arrive, so its picture and the rules agree.
-  if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) return enterTown(s, nx, ny, at);
+  if (!out && inTownBlock(s, nx, ny) && !inTownBlock(s, s.player.x, s.player.y)) {
+    if (s.player.aloft) s.player.aloft = false; // you come down at the edge of town to walk in
+    return enterTown(s, nx, ny, at);
+  }
   if (out && areaRec(s).kind === 'town') return leaveTown(s, dx, dy);
   // Walking off the edge of a region brings you onto the facing edge of its neighbour; the world wraps around.
   // This is the one place a border is crossed, so that borders can be made seamless later.
@@ -641,6 +646,7 @@ function useItem(s, id) {
   if (use.water) p.water = Math.min(Math.max(waterCap(s), p.water), p.water + use.water);
   if (use.hp) p.hp = Math.min(p.hpMax, p.hp + use.hp);
   if (use.light) s.lightUntil = s.time + use.light * 60; // a torch
+  if (use.breathe) s.breatheUntil = Math.max(s.breatheUntil || 0, s.time) + use.breathe * 60; // a draught of gills
   say(
     s,
     (use.light
@@ -795,7 +801,8 @@ function actions(s) {
   if (atCamp(s)) a.push({ id: 'packCamp', label: 'Strike camp', hint: '1 h' });
   else if (!s.camp && inOverworld(s) && inShelter(s) && p.items.some((i) => i.base === 'campkit'))
     a.push({ id: 'makeCamp', label: 'Pitch camp here', hint: '2 h' });
-  return a;
+  // aloft, there is nothing to do but look about, and what flying itself offers
+  return p.aloft ? a.filter((x) => x.air || x.id === 'survey' || x.id === 'mend') : a;
 }
 function forecast(s) {
   const n = stormOf(s).name;

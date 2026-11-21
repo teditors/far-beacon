@@ -148,6 +148,37 @@ async def main():
         await pg.click('#btn-map'); await pg.wait_for_timeout(200); await shot('8-world-map')
         assert await pg.evaluate("()=>document.getElementById('worldcv').width>0"), 'no world map'
         await pg.click('#modal-close'); steps.append('world map')
+        # god mode from the Tinker panel, a jump from the list, and a tap on the map
+        await pg.click('#btn-menu'); await pg.wait_for_timeout(150)
+        await pg.check('#god-mode'); await pg.wait_for_timeout(200)
+        n = await pg.evaluate("()=>document.querySelectorAll('#jump-to option').length")
+        assert n > 5, 'the jump list is nearly empty: %d' % n
+        await pg.select_option('#jump-to', index=1)
+        await pg.locator('#modal-body button', has_text='Go there').click(); await pg.wait_for_timeout(400)
+        await shot('9-god-jump'); steps.append('god mode jump (%d places)' % n)
+        await pg.click('#btn-map'); await pg.wait_for_timeout(200)
+        box = await pg.locator('#worldcv').bounding_box()
+        await pg.mouse.click(box['x'] + box['width'] * 0.2, box['y'] + box['height'] * 0.2); await pg.wait_for_timeout(400)
+        assert await pg.evaluate("()=>document.getElementById('modal').hidden && Rules.inOverworld(window.__g.S)"), 'a tap on the map did not jump'
+        steps.append('map tap jump')
+        # every new kind of place, in a world that has them all, reached by god mode and drawn without an error
+        await pg.evaluate("()=>{const g=window.__g;g.newWorld(34,{sky:1,sea:1,doors:1,size:'5x5'});document.querySelectorAll('#modal-close').forEach(b=>b.click());Rules.setGodMode(g.S,true);}")
+        for group in ['Below', 'Above', 'Water', 'Other worlds']:
+            got = await pg.evaluate("(gr)=>{const g=window.__g,S=g.S,p=Rules.places(S).find(p=>p.group===gr);if(!p)return null;Rules.jumpTo(S,p.id);g.refresh();g.buildStatic();g.refresh();return p.label}", group)
+            assert got, 'no %s place in a world made to have them all' % group
+            await pg.wait_for_timeout(500); await shot('11-' + group.replace(' ', '-').lower())
+            steps.append(group.lower() + ': ' + got)
+        await pg.evaluate("()=>{const S=window.__g.S;Rules.setGodMode(S,false);}")
+        # the new world screen, with its settings opened
+        await pg.click('#btn-menu'); await pg.wait_for_timeout(150)
+        await pg.locator('#modal-body button', has_text='New world').first.click(); await pg.wait_for_timeout(150)
+        await pg.click('#nw-more summary'); await pg.select_option('#nw-size', '3x3'); await pg.select_option('#nw-towns', '0')
+        await shot('10-new-world')
+        await pg.locator('#modal-body button', has_text='Make this world').click(); await pg.wait_for_timeout(600)
+        await pg.locator('#modal-body button', has_text='Begin').click(); await pg.wait_for_timeout(300)
+        w = await pg.evaluate("()=>{const S=window.__g.S;return [S.world.cols,S.world.rows,(S.towns||[]).length,!!S.cheated]}")
+        assert w == [3, 3, 0, False], 'the new world did not follow its settings: %r' % w
+        steps.append('new world with settings')
         await pg.reload(); await pg.wait_for_timeout(1200); steps.append('reload')
         await b.close()
         print('smoke steps:', ', '.join(steps))

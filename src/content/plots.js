@@ -9,12 +9,18 @@
 
    Roles:
      town      { town: 'other' }                         another town than the giver (a feud, a caravan's end)
-     place     { site, dist: [least, most] regions from the giver, far: true for the farthest country }
+     place     { site, dist: [least, most] regions from the giver, far: true for the farthest country,
+                 where: 'land' | 'deep' | 'sky' | 'sea' | 'realm', or [[where, weight], ...] }
+                 deep: the bottom of a dungeon (fresh: a dungeon of its own, depth: [least, most] levels)
+                 sky: the top of a place in the sky (skyKind, make: made if the world has none)
+                 sea: the far end of a place under the water (seaKind); realm: a region beyond a door
+                 Only what the world has is chosen; anything else falls back to the land.
      creature  { at: place role, kind: 'beast'|'guards', n, tier, names, forms, carries: item role }
      item      { base: 'token'|'goods', label, at: place role | carried by a creature role | given at a step }
      curse     { at: place role }                         the place's region is cursed until the plot is done
    Steps (do):
-     talk  { to }            talk to the elder of a town role ('giver' is the town that asks)
+     talk  { to, gear }      talk to the elder of a town role ('giver' is the town that asks); gear: items given
+   A kind with needs: 'sky' | 'sea' | 'realm' is only rolled in a world that can hold it.
      kill  { what }          kill every creature of a creature role
      take  { what }          carry the item (found in a place, dropped by a creature, or gathered)
      bring { what, to }      carry the item to a town's elder; it is handed over
@@ -43,7 +49,16 @@ export default {
         main: 2,
         side: 2,
         roles: {
-          lair: { place: true, site: 'den', dist: [1, 2] },
+          lair: {
+            place: true,
+            site: 'den',
+            dist: [1, 2],
+            where: [
+              ['land', 5],
+              ['deep', 1],
+              ['realm', 2],
+            ],
+          },
           beast: { creature: true, at: 'lair', kind: 'beast', tier: 2, carries: 'horn' },
           horn: { item: true, base: 'token', label: 'Horn of the {beast}' },
         },
@@ -59,7 +74,16 @@ export default {
         name: 'Held captive',
         side: 3,
         roles: {
-          camp: { place: true, site: 'camp', dist: [1, 2] },
+          camp: {
+            place: true,
+            site: 'camp',
+            dist: [1, 2],
+            where: [
+              ['land', 4],
+              ['deep', 1],
+              ['realm', 2],
+            ],
+          },
           guards: {
             creature: true,
             at: 'camp',
@@ -81,7 +105,18 @@ export default {
         id: 'lost',
         name: 'Lost in the wild',
         side: 3,
-        roles: { lost: { place: true, site: 'lost', dist: [1, 2] }, wanderer: { person: true, at: 'lost' } },
+        roles: {
+          lost: {
+            place: true,
+            site: 'lost',
+            dist: [1, 2],
+            where: [
+              ['land', 3],
+              ['realm', 2],
+            ],
+          },
+          wanderer: { person: true, at: 'lost' },
+        },
         tell: '"{wanderer} went out to the {land} for herbs four days ago and has not come back. Somewhere about here, on your map. Take water: they will have none."',
         steps: [
           { do: 'free', who: 'wanderer', water: 2, text: 'Find {wanderer} in the {land}, and share your water' },
@@ -95,7 +130,16 @@ export default {
         main: 2,
         side: 1,
         roles: {
-          stone: { place: true, site: 'stone', dist: [1, 2] },
+          stone: {
+            place: true,
+            site: 'stone',
+            dist: [1, 2],
+            where: [
+              ['land', 5],
+              ['realm', 2],
+              ['sky', 1],
+            ],
+          },
           blight: { curse: true, at: 'stone' },
           salt: { item: true, base: 'token', label: 'Blessed salt', given: 1 },
         },
@@ -113,7 +157,17 @@ export default {
         main: 2,
         side: 2,
         roles: {
-          patch: { place: true, site: 'herbs', dist: [1, 2], far: true },
+          patch: {
+            place: true,
+            site: 'herbs',
+            dist: [1, 2],
+            far: true,
+            where: [
+              ['land', 5],
+              ['realm', 2],
+              ['sky', 1],
+            ],
+          },
           cure: { item: true, base: 'token', label: 'Feverwort', at: 'patch' },
         },
         tell: '"The sweating sickness is in {giver}. Our healer says one herb will break it, feverwort, and it grows only in the {land}, far from here. The place is on your map. Be quick: every day we bury someone."',
@@ -124,6 +178,109 @@ export default {
           { do: 'bring', what: 'cure', to: 'giver', text: 'Bring the feverwort to {giver}' },
         ],
         end: 'The feverwort is boiled in every pot in {giver}. In three days the bell for the dead stops ringing.',
+      },
+      {
+        id: 'deepking',
+        name: 'The king under the hill',
+        main: 1,
+        side: 1,
+        roles: {
+          hall: { place: true, site: 'throne', dist: [1, 2], where: 'deep', fresh: true, depth: [2, 4] },
+          king: {
+            creature: true,
+            at: 'hall',
+            kind: 'beast',
+            tier: 2,
+            names: ['the Deep King', 'the Pale Warden', 'the Old Thing Below', 'the Mole Lord'],
+            carries: 'crown',
+          },
+          crown: { item: true, base: 'token', label: 'The iron crown of {king}' },
+        },
+        tell: '"There is a dungeon in the {land}, and at the bottom of it something sits on a throne and calls itself king. Its creatures come up at night. Go down, all the way down. Bring me its crown."',
+        steps: [
+          {
+            do: 'talk',
+            to: 'giver',
+            gear: ['torch', 'torch', 'salve'],
+            gearText: 'Torches, and a salve. It is dark down there, and long.',
+            text: 'Hear {elder} out',
+          },
+          { do: 'kill', what: 'king', text: 'Go down to the bottom of the dungeon in the {land} and kill {king}' },
+          { do: 'bring', what: 'crown', to: 'giver', text: 'Bring the iron crown to {giver}' },
+        ],
+        end: 'You set the iron crown on the table in {giver}. Nothing comes up out of the ground at night any more.',
+      },
+      {
+        id: 'tyrant',
+        name: 'The tyrant in the sky',
+        main: 1,
+        side: 1,
+        roles: {
+          keep: { place: true, site: 'throne', dist: [1, 2], where: 'sky', skyKind: 'castle', make: true },
+          tyrant: {
+            creature: true,
+            at: 'keep',
+            kind: 'beast',
+            tier: 2,
+            names: ['the Storm Tyrant', 'the Lord of Gales', 'the Wind-King', 'the Thunder Duke'],
+            carries: 'seal',
+          },
+          seal: { item: true, base: 'token', label: 'The seal of {tyrant}' },
+        },
+        tell: '"Look up. That castle in the sky is the hold of {tyrant}, who takes our harvest in tithe and our children for its guard. No one can reach it. But my grandfather could fly, once, in this."',
+        steps: [
+          {
+            do: 'talk',
+            to: 'giver',
+            gear: ['windcloak'],
+            gearText: 'The Cloak of the West Wind. Put it on, and the wind will carry you.',
+            text: 'Hear {elder} out',
+          },
+          { do: 'kill', what: 'tyrant', text: 'Fly up to the castle in the sky and kill {tyrant}' },
+          { do: 'bring', what: 'seal', to: 'giver', text: 'Bring the seal of {tyrant} to {giver}' },
+        ],
+        end: 'The castle in the sky drifts away on the wind, empty. In {giver} they bring in the harvest, and keep all of it.',
+      },
+      {
+        id: 'drowned',
+        name: 'The drowned cure',
+        main: 1,
+        side: 2,
+        needs: 'sea',
+        roles: {
+          grotto: { place: true, site: 'herbs', dist: [1, 2], where: 'sea', seaKind: 'seacave' },
+          cure: { item: true, base: 'token', label: 'Pearl-moss', at: 'grotto' },
+        },
+        tell: '"The coughing sickness is in {giver}. Only pearl-moss eases it, and it grows only at the back of the sea caves, under the water. Take these: they let you breathe the sea for a while."',
+        steps: [
+          {
+            do: 'talk',
+            to: 'giver',
+            gear: ['gills', 'gills', 'gills', 'torch'],
+            gearText: 'Draughts of gills, and a torch. Drink one before you go under.',
+            text: 'Hear {elder} out',
+          },
+          { do: 'take', what: 'cure', text: 'Gather pearl-moss at the back of the sea cave' },
+          { do: 'bring', what: 'cure', to: 'giver', text: 'Bring the pearl-moss to {giver}' },
+        ],
+        end: 'The pearl-moss is steeped in every kettle in {giver}. The coughing stops.',
+      },
+      {
+        id: 'beyond',
+        name: 'Lost beyond the door',
+        main: 1,
+        side: 2,
+        needs: 'realm',
+        roles: {
+          lost: { place: true, site: 'lost', where: 'realm' },
+          child: { person: true, at: 'lost' },
+        },
+        tell: '"{child} found the old door, and went through it, and has not come back. Nobody here will follow. You are a traveller: go through, find {child}, bring {child} home. Take water: who knows what they drink there."',
+        steps: [
+          { do: 'free', who: 'child', water: 2, text: 'Find {child} beyond the door, and share your water' },
+          { do: 'lead', who: 'child', to: 'giver', text: 'Bring {child} home to {giver}' },
+        ],
+        end: '{child} is home, and will not stop talking about the other sky. {giver} bricks up the door.',
       },
       {
         id: 'feud',
@@ -261,6 +418,7 @@ export default {
       stone: { name: 'black stone', text: 'A black standing stone. The ground round it is grey and cold.' },
       herbs: { name: 'herb patch', text: 'A patch of low grey-leaved herbs, in a sheltered hollow.' },
       siege: { name: 'siege camp', text: "The warband's camp, close under the town." },
+      throne: { name: 'throne', text: 'A throne, and bones round it, and something sitting on it.' },
     },
     curse: {
       text: 'A curse lies on this country: the cold bites harder and water runs out faster.',
