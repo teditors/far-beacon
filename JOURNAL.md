@@ -2,7 +2,8 @@
 
 ## Summary
 
-Eleven entries, newest last in the table: light first (the brief's "matters most"), then textures, trees, towns and
+Fifteen entries, newest last in the table (C5.12 to C5.15 are a second pass Andrew asked for: movement, variety of
+textures, water): light first (the brief's "matters most"), then textures, trees, towns and
 levels, ruins, people and creatures, sound, fire and water, landmarks and shadows. Every check passes; the rules are
 untouched apart from content: a `kit` name on each level's look and a new `content/townlooks.js`, both read only by
 the view. No save changes. The page went from 621 KB to 730 KB.
@@ -20,6 +21,10 @@ the view. No save changes. The page went from 621 KB to 730 KB.
 | C5.9 | Landmarks: a beacon tower, a stone ring, rock caves, castles, barrows, temples, wells, doors | `landmarks` | small pearl |
 | C5.10 | Real-time sun shadows, High only | `shadows` | maybe |
 | C5.11 | Lantern light on dark floors again; the browser test photographs the new look | (fix, tests) | fix |
+| C5.12 | (second pass) Nobody teleports: catch-up walking, feet on the ground, idle wandering, rising in, falling when killed, creatures across borders | `actors` | pearl |
+| C5.13 | Every house of its own stuff: three variants of each texture, rubble, logs, shingle, adobe, picked per building, weathered | `towns`, `paint` | pearl |
+| C5.14 | Real water: levelled, in carved beds, rippling, mirroring the sky, glinting, foaming; ice; dry washes stay dry | `water` | pearl |
+| C5.15 | Smoke from every chimney, worked on the graphics card | `towns` | small pearl |
 
 **The style**, in short: a painted storybook of about 2005. Chunky readable shapes, smooth soft shading on land and
 living things, cut facets on stone and roofs, colours a little richer than life, warm sun and cool shade, fog in the
@@ -57,10 +62,10 @@ compare High with and without "Real-time shadows", and send the numbers for a fl
 
 **What I would do next.**
 1. Measure on the Pixel (above), and if High's shadows are dear there, default them off.
-2. Water that moves: rivers and the open sea are still coloured ground; a gently waving water surface with the
-   sky's colour in it would lift the sea places most.
-3. More life in towns: townsfolk walk between tiles but do not yet go anywhere; carts, smoke from chimneys, washing
-   that moves in the wind (the sway is there to use).
+2. Water: done in C5.14. Next would be rivers that visibly flow downstream (their direction is known from the
+   levels) and a cheaper water shader on Medium if the open sea stutters on the Pixel.
+3. More life in towns: townsfolk wander about their spot but do not yet go anywhere (that wants a little of the
+   rules: a destination); carts; washing that moves in the wind (the sway is there to use).
 4. The music: a second instrument family per biome and short themes for finding a place, a town's welcome and a win.
 5. The sky places (isles, cloud cities) seen from below are still the old shapes; give them the kit too.
 

@@ -150,8 +150,9 @@ a few shared bricks. Every piece of the look has a switch of its own, a setting 
 | `levels.js` | the walls and floors of levels, by the `kit` their look names in content |
 | `ruins.js` | ruins from the lost people's five traits, laid course by course and aged |
 | `landmarks.js` | the beacon, shrine, caves, the locked place, wells, doors |
-| `actors.js` | people and creatures as jointed models worked in the vertex shader; walking from where they were drawn, idling, fighting |
+| `actors.js` | people and creatures as jointed models worked in the vertex shader; they walk from where they were drawn (never jump), wander, rise in, fall when killed; `shiftActors` when the frame moves |
 | `fx.js` | fires, pools of water and blob shadows |
+| `water.js` | rivers, lakes and the sea: a surface over beds carved by terrain.js (`T.water`, `waterAt`), rippling and mirroring the sky in its shader |
 | `sound.js` | the generative score (`MOODS`) and the sounds of the world, Web Audio only, started by the first tap |
 
 Rules for the look: generate, never ship files (textures, models and sounds are all code); anything costly reads `Q`
