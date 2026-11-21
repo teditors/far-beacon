@@ -29,6 +29,7 @@ import { setWaterSky } from './water.js';
 import { warmSurfaces } from './paint.js';
 import { draw as drawFrame } from './post.js';
 import { updateLook } from './mood.js';
+import { fogBandsOn, setBands } from './toon.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -330,6 +331,9 @@ function frame() {
   shown.far = lerp(shown.far, far, 0.05);
   scene.fog.far = shown.far;
   scene.fog.near = Math.min(40, shown.far * 0.2);
+  if (lk && fogBandsOn()) scene.fog.near = -Math.max(0.01, scene.fog.near); // in steps (toon.js)
+  if (lk) setBands(lk.bands, lk.soft);
+  else setBands(3, 0.45);
   lightOutdoors(h, day, dusk, skyC, !!storm, sight, lk);
   // the sun shines the same way from wherever the player is, so its shadows follow them
   sun.position.x += P.x;

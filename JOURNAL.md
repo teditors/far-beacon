@@ -17,6 +17,37 @@ there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session
 
 The page was 774 KB.
 
+## C6.3: soft bands of light, and distance in steps
+
+**What it is** (`toon.js`).
+- **Soft bands.** From Low up, people, creatures, buildings, ruins, landmarks, trees and the plain props are drawn with a
+  toon material: the sun's light on them falls in bands (three by default: shade, half-lit, full sun; two in other
+  worlds), with soft edges, while the sky's fill light stays smooth beneath, so the shade side of a house or a person is
+  the colour of the sky's light rather than a ramp to black. Form reads at a glance on a small screen; nothing looks
+  like a cartoon for small children. The bands are one 64-pixel texture, rewritten when the look's `bands` or `soft`
+  change (another world's are two and almost hard). The land and the levels' walls keep their smooth light.
+- **Distance in steps.** The fog no longer fades far things in one smooth ramp but in five soft steps, so ridges at
+  different distances sit in distinct bands of haze, the way hills stack in a painting. Every material's fog goes
+  through one shared piece of shader (`fog_fragment`, patched once at start); the frame turns the steps on by giving
+  the fog a negative near distance, which nothing else reads, so it costs no new uniform and nothing is recompiled when
+  it changes. Outdoors and with the look on only.
+- The browser pictures gain a street close up and a creature close up (`tools/look.py`), and the meter and the pictures
+  name the look's layers (`__g.look()`).
+- Wet lands' sky is a softer grey-blue (it read as green).
+
+**Switches.** `toon` ("Soft bands of light on people, creatures and things"), `fogbands` ("Distance fading in steps").
+
+**Numbers.** Per-pixel light on things instead of per-vertex: within the noise on this renderer.
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 102 | 77 | 106,492 | 116.4 |
+| Low | 374 | 117 | 571,746 | 394.9 |
+| Medium | 356 | 116 | 571,744 | 397.5 |
+| High | 394 | 121 | 648,133 | 464.4 |
+
+**Verdict.** Pearl, small: the change is felt more than seen, a house's shaded wall a cool flat blue-grey.
+
 ## C6.2: the look in data: palettes rolled from the land, the hour and the world
 
 **What it is.** How a place looks is now content (`src/content/looks.js`), resolved by a small pure module

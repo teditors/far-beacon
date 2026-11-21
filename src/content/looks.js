@@ -68,9 +68,9 @@ export default {
       },
       wet: {
         name: 'Grey-green and soft',
-        zenith: '#6c8898',
-        horizon: '#c2cec8',
-        fog: '#b6c4bc',
+        zenith: '#6e86a6',
+        horizon: '#c4ceca',
+        fog: '#b8c4be',
         sun: '#f2ecd4',
         shade: '#7e9a9a',
         bounce: '#5c684a',

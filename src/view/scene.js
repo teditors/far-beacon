@@ -16,6 +16,7 @@ import { blob, fire, water } from './fx.js';
 import { actorsOn, clearActors, creatureActor, markKilled, personActor, settleActors, shiftActors, track } from './actors.js';
 R.on('killed', (s, d) => d && d.c && markKilled(d.c.id));
 import { kitMat } from './kit.js';
+import { toonMat } from './toon.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 
 /* ---------- scene ---------- */
@@ -55,7 +56,8 @@ let staticGroup = null,
 // the cheapest light there is. Faceted shapes (roofs, rocks) get their facets from their geometry instead (facet()).
 const std = (color, extra) =>
   lookOn('light')
-    ? new THREE.MeshLambertMaterial(Object.assign({ color }, extra || {}))
+    ? toonMat(Object.assign({ color, vertexColors: false }, extra || {})) ||
+      new THREE.MeshLambertMaterial(Object.assign({ color }, extra || {}))
     : new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
 // Shapes with few sides (a four-sided roof, a six-sided tower, a rock) read as cut faces, not as a blur: each face gets
 // its own normals. Run over a finished group; shared geometry (marked kept) is left alone.

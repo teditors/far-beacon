@@ -47,6 +47,8 @@ SHOTS = [
     ('town-3', 3333, {}, town(2, 'S.time = 18.6 * 60 - 360;')),
     ('town-night', 11, {}, town(0, NIGHT)),
     ('ruin', 11, {}, RUIN % DAY),
+    ('street', 11, {}, town(0, 'S.time = 16 * 60 - 360;') + "g.P.z -= 46; g.P.x += 3; g.P.yaw = -0.5; g.P.pitch = 0.05;"),
+    ('creature', 11, {}, "Rules.travelTo(S, 'overworld', 18, 18); " + DAY + " g.refresh(); const c = S.creatures.find((c) => !c.bound); if (!c) return false; c.cool = 999; S.player.x = c.x; S.player.y = Math.min(35, c.y + 1); g.refresh(); const cx = (c.x + 0.5) * 28 - 504 - 4, cz = (c.y + 0.5) * 28 - 504 - 5; g.P.x = cx + 1.2; g.P.z = cz + 3.6; g.P.yaw = Math.atan2(-(cx - g.P.x), -(cz - g.P.z)); g.P.pitch = -0.28;"),
     ('storm', 222, {}, region('(1, 1)', DAY + 'S.weather.storm = Rules.stormOfNow ? true : true;')),
     ('dungeon', 31, {}, place('Below', '')),
     ('sky', 32, {'sky': 1, 'trouble': 'tyrant'}, place('Above', DAY)),
@@ -85,7 +87,8 @@ async def main():
             path = os.path.join(OUT, name + '.jpg')
             await pg.screenshot(path=path, type='jpeg', quality=55)
             total += os.path.getsize(path)
-            print('  %-14s %3d KB' % (name, os.path.getsize(path) // 1024))
+            lk = await pg.evaluate("() => window.__g.look ? window.__g.look() : null")
+            print('  %-14s %3d KB  %s' % (name, os.path.getsize(path) // 1024, lk and ', '.join(lk['names']) + ' ' + lk['zenith'] + ' ' + lk['horizon'] or ''))
         print('%d KB in all, in %s' % (total // 1024, os.path.relpath(OUT, ROOT)))
         if errs: print('page errors:', errs[:3]); sys.exit(1)
         await b.close()

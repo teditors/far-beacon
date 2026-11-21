@@ -5,6 +5,8 @@ import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSe
 import { box, buildDynamic, buildStatic, renderer, resize, scene } from './scene.js';
 import { LOOK_SWITCHES, ORDER, Q, QUALITY, SET, lookChanged, lookOn, saveSettings, setQuality } from './quality.js';
 import { PF, autoQuality } from './perf.js';
+import { NOW } from './mood.js';
+import { toHex } from './look.js';
 import { setVolume, soundState } from './sound.js';
 
 /* ---------- HUD and panels ---------- */
@@ -1616,6 +1618,21 @@ window.__g = {
     autoQuality(null, on);
   },
   stepDown,
+  // the look in force (C6): its layers and its main colours
+  look() {
+    const l = NOW.look;
+    return (
+      l && {
+        names: l.names,
+        turned: l.turned,
+        zenith: toHex(l.zenith),
+        horizon: toHex(l.horizon),
+        fog: toHex(l.fog),
+        sun: toHex(l.sun),
+        shade: toHex(l.shade),
+      }
+    );
+  },
   // a fresh world on this seed, without the character screen (for the benchmark)
   newWorld(seed, set) {
     enter(R.newGame(seed, {}, set));

@@ -10,6 +10,7 @@
    the arms, 5 the head, 6 a tail, 7 a serpent's body, 8 the eyes (on the head, and always bright). */
 import { P as PT, kit } from './kit.js';
 import { LOOK_SWITCHES, lookOn } from './quality.js';
+import { toonMat } from './toon.js';
 
 LOOK_SWITCHES.push(['actors', 'People and creatures that move']);
 const actorsOn = () => lookOn('actors') && lookOn('light');
@@ -39,7 +40,7 @@ vec3 joint(vec3 p, float b) {
 }
 `;
 function actorMat(opts) {
-  const m = new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, opts || {})),
+  const m = toonMat(opts) || new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, opts || {})),
     u = { aPhase: { value: 0 }, aSwing: { value: 0 }, aHead: { value: 0 }, aArm: { value: 0 }, aTail: { value: 0 } };
   m.userData.u = u;
   m.onBeforeCompile = (sh) => {
@@ -59,7 +60,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`,
       .replace('#include <common>', '#include <common>\nvarying float vGlow;')
       .replace('#include <fog_fragment>', '#include <fog_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, vColor, vGlow);');
   };
-  m.customProgramCacheKey = () => 'actor' + (opts && opts.transparent ? 't' : '');
+  m.customProgramCacheKey = () => 'actor' + (opts && opts.transparent ? 't' : '') + (m.isMeshToonMaterial ? 'b' : '');
   return m;
 }
 

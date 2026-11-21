@@ -2,6 +2,7 @@
    colour and place, merged into one geometry with the colours in its vertices. One merged model is one draw call, and
    with instancing a whole forest of them is one draw call too. Trees, buildings, people and creatures are all built
    with it. Parts with few sides keep cut faces; round parts are smooth. */
+import { toonMat } from './toon.js';
 
 const PREP = new Map(); // parts already made non-indexed, by shape and size
 const _m = new THREE.Matrix4(),
@@ -185,8 +186,9 @@ function prism(w, h, d) {
   g.computeVertexNormals();
   return g;
 }
-// A material for kit models: white Lambert reading the vertex colours (and, if given, a painted texture).
-const kitMat = (extra) => new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, extra || {}));
+// A material for kit models: white Lambert reading the vertex colours (and, if given, a painted texture); toon bands
+// from Low up (C6, toon.js).
+const kitMat = (extra) => toonMat(extra) || new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, extra || {}));
 
 /* Wind: a shared clock, and a material change that sways the top of an instanced model (trees, grass, banners) while
    its foot stays put. Each instance sways in its own time, from where it stands. */

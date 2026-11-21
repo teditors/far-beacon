@@ -547,7 +547,7 @@ For the view only (commission 6): the palette and style a place is seen in, buil
 | Climate | Mood | Varies by world | Colours |
 | --- | --- | --- | --- |
 | temperate | Clear and green | hue -6° to +18°, saturation ±10% | zenith #5a8cc8, horizon #cddce4, sun #fff0d0, shade #8ea8cc, lift #1b2a3a, gain #fff3df |
-| wet | Grey-green and soft | hue -12° to +20°, saturation ±12% | zenith #6c8898, horizon #c2cec8, sun #f2ecd4, shade #7e9a9a, lift #1c2a28, gain #f0f2e2 |
+| wet | Grey-green and soft | hue -12° to +20°, saturation ±12% | zenith #6e86a6, horizon #c4ceca, sun #f2ecd4, shade #7e9a9a, lift #1c2a28, gain #f0f2e2 |
 | hot | Bleached gold, lilac shade | hue -22° to +6°, saturation ±12% | zenith #6c9cc6, horizon #efdcb6, sun #ffe2a6, shade #b0a4be, lift #3a2a30, gain #fff0d0 |
 | cold | Steel blue | hue -8° to +38°, saturation ±14% | zenith #5876a0, horizon #d2deea, sun #fdf2e2, shade #8aa0ca, lift #18243c, gain #eef4ff |
 | ashen | Ash and ember | hue -15° to +15°, saturation ±10% | zenith #6a6470, horizon #c8b6a6, sun #ffc68c, shade #8a7e8a, lift #2a1a1a, gain #ffe6cc |

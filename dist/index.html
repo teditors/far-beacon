@@ -4513,9 +4513,9 @@
         },
         wet: {
           name: "Grey-green and soft",
-          zenith: "#6c8898",
-          horizon: "#c2cec8",
-          fog: "#b6c4bc",
+          zenith: "#6e86a6",
+          horizon: "#c4ceca",
+          fog: "#b8c4be",
           sun: "#f2ecd4",
           shade: "#7e9a9a",
           bounce: "#5c684a",
@@ -8235,16 +8235,16 @@
     // 8 -> 9: the town now stands on the 5 x 5 tiles around its site, which can no longer be walked on outdoors.
     // Anything left on those tiles, a camp, or the traveller, is moved to the tile south of the gate.
     8: (s) => {
-      const home = s.area === "overworld" ? s : s.areas.overworld.map, W2 = 36, inBlock = (x, y) => Math.abs(x - s.town.x) <= 2 && Math.abs(y - s.town.y) <= 2, door = (s.town.y + 3) * W2 + s.town.x;
+      const home = s.area === "overworld" ? s : s.areas.overworld.map, W3 = 36, inBlock = (x, y) => Math.abs(x - s.town.x) <= 2 && Math.abs(y - s.town.y) <= 2, door = (s.town.y + 3) * W3 + s.town.x;
       for (const k of Object.keys(home.depots)) {
-        if (!inBlock(k % W2, Math.floor(k / W2))) continue;
+        if (!inBlock(k % W3, Math.floor(k / W3))) continue;
         const d = home.depots[k], to = home.depots[door] || (home.depots[door] = { water: 0, fuel: 0, items: [] });
         to.water += d.water || 0;
         to.fuel += d.fuel || 0;
         to.items.push(...d.items || []);
         delete home.depots[k];
       }
-      if (s.camp && s.camp.area === "overworld" && inBlock(s.camp.i % W2, Math.floor(s.camp.i / W2))) s.camp.i = door;
+      if (s.camp && s.camp.area === "overworld" && inBlock(s.camp.i % W3, Math.floor(s.camp.i / W3))) s.camp.i = door;
       if (s.area === "overworld" && inBlock(s.player.x, s.player.y)) {
         s.player.x = s.town.x;
         s.player.y = s.town.y + 3;
@@ -13665,7 +13665,7 @@
   }
   setDetail();
   function landAround(s) {
-    const rec = R.outdoorRec(s), w = s.world, W2 = R.W, got = {}, biomes = [], region = (dx, dy) => {
+    const rec = R.outdoorRec(s), w = s.world, W3 = R.W, got = {}, biomes = [], region = (dx, dy) => {
       const k = dx + "," + dy;
       if (!got[k]) {
         const id = R.regionId(s, R.wrap(rec.cx + dx, w.cols), R.wrap(rec.cy + dy, w.rows)), biome = s.areas[id].biome;
@@ -13689,7 +13689,7 @@
     };
     for (let ey = 0; ey < EW; ey++)
       for (let ex = 0; ex < EW; ex++) {
-        const x = ex - MARGIN, y = ey - MARGIN, dx = Math.floor(x / W2), dy = Math.floor(y / W2), g = region(dx, dy), i = (y - dy * W2) * W2 + (x - dx * W2), e = ey * EW + ex;
+        const x = ex - MARGIN, y = ey - MARGIN, dx = Math.floor(x / W3), dy = Math.floor(y / W3), g = region(dx, dy), i = (y - dy * W3) * W3 + (x - dx * W3), e = ey * EW + ex;
         land2.terrain[e] = g.map.terrain[i];
         land2.elev[e] = g.map.elev[i];
         land2.road[e] = g.map.road[i] ? 1 : 0;
@@ -13875,6 +13875,9 @@
     const n = typeof h === "number" ? h : parseInt(String(h).replace("#", ""), 16);
     return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255];
   };
+  var toHex = (c) => "#" + c.map(
+    (v) => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, "0")
+  ).join("");
   var mix = (a, b, t2) => [a[0] + (b[0] - a[0]) * t2, a[1] + (b[1] - a[1]) * t2, a[2] + (b[2] - a[2]) * t2];
   function roll2(seed, name) {
     const fmix = (h2) => {
@@ -14490,6 +14493,52 @@
   }
   if (typeof window !== "undefined") window.__paint = { surface, SURFACES, SURF };
 
+  // src/view/toon.js
+  LOOK_SWITCHES.push(["toon", "Soft bands of light on people, creatures and things"]);
+  LOOK_SWITCHES.push(["fogbands", "Distance fading in steps"]);
+  var toonOn = () => !!Q.toon && lookOn("toon") && lookOn("light");
+  var fogBandsOn = () => !!Q.fogBands && lookOn("fogbands") && lookOn("look") && lookOn("light");
+  var W2 = 64;
+  var BANDS = new THREE.DataTexture(new Uint8Array(W2 * 4), W2, 1, THREE.RGBAFormat);
+  BANDS.minFilter = BANDS.magFilter = THREE.LinearFilter;
+  BANDS.generateMipmaps = false;
+  var bandKey = "";
+  function setBands(bands, soft) {
+    bands = Math.max(2, Math.min(4, Math.round(bands || 3)));
+    soft = Math.max(0, Math.min(1, soft === void 0 ? 0.45 : soft));
+    const key = bands + ":" + soft.toFixed(2);
+    if (key === bandKey) return;
+    bandKey = key;
+    const d = BANDS.image.data, w = 0.02 + soft * 0.16, level2 = (i) => i === 0 ? 0 : bands === 2 ? 1 : 0.5 + 0.5 * (i - 1) / (bands - 2), edge = (i) => 0.06 + (i - 1) * 0.88 / (bands - 1);
+    for (let p = 0; p < W2; p++) {
+      const lam = Math.max(0, p / (W2 - 1) * 2 - 1);
+      let v = level2(0);
+      for (let i = 1; i < bands; i++) {
+        const e = edge(i), t2 = Math.max(0, Math.min(1, (lam - (e - w)) / (2 * w)));
+        v += (level2(i) - level2(i - 1)) * t2 * t2 * (3 - 2 * t2);
+      }
+      const b = Math.round(Math.max(0, Math.min(1, v)) * 255);
+      d.set([b, b, b, 255], p * 4);
+    }
+    BANDS.needsUpdate = true;
+  }
+  setBands(3, 0.45);
+  var toonMat = (extra) => toonOn() ? new THREE.MeshToonMaterial(Object.assign({ vertexColors: true, gradientMap: BANDS }, extra || {})) : null;
+  var STEPS = 5;
+  THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
+  #ifdef FOG_EXP2
+    float fogFactor = 1.0 - exp( - fogDensity * fogDensity * fogDepth * fogDepth );
+  #else
+    float fogFactor = smoothstep( abs( fogNear ), fogFar, fogDepth );
+    if ( fogNear < 0.0 ) {
+      // in soft steps (C6): far things fade toward the air in bands, as hills do in a painting
+      float fb = fogFactor * ${STEPS}.0, fi = floor( fb );
+      fogFactor = mix( fogFactor, ( fi + smoothstep( 0.3, 0.7, fb - fi ) ) / ${STEPS}.0, 0.85 );
+    }
+  #endif
+  gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );
+#endif`;
+
   // src/view/kit.js
   var PREP = /* @__PURE__ */ new Map();
   var _m = new THREE.Matrix4();
@@ -14644,7 +14693,7 @@
     g.computeVertexNormals();
     return g;
   }
-  var kitMat = (extra) => new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, extra || {}));
+  var kitMat = (extra) => toonMat(extra) || new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, extra || {}));
   var WIND = { time: { value: 0 }, strength: { value: 1 } };
   function swaying(mat, amount) {
     mat.onBeforeCompile = (sh) => {
@@ -15198,14 +15247,14 @@ vFade = sin(ph * 3.14159);`
     K2.lamps.push(x + 0.6, 2.85, z);
   }
   function blocks(map, walled) {
-    const W2 = R.W, H2 = R.H, T3 = map.terrain, seen3 = new Uint8Array(W2 * H2), out = [], ring = (x, y) => walled && (x === 0 || y === 0 || x === W2 - 1 || y === H2 - 1);
-    for (let i = 0; i < W2 * H2; i++) {
-      const x0 = i % W2, y0 = Math.floor(i / W2);
+    const W3 = R.W, H2 = R.H, T3 = map.terrain, seen3 = new Uint8Array(W3 * H2), out = [], ring = (x, y) => walled && (x === 0 || y === 0 || x === W3 - 1 || y === H2 - 1);
+    for (let i = 0; i < W3 * H2; i++) {
+      const x0 = i % W3, y0 = Math.floor(i / W3);
       if (seen3[i] || T3[i] !== R.WALL || ring(x0, y0)) continue;
       const b = { x0, y0, x1: x0, y1: y0 }, stack = [i];
       seen3[i] = 1;
       while (stack.length) {
-        const k = stack.pop(), x = k % W2, y = Math.floor(k / W2);
+        const k = stack.pop(), x = k % W3, y = Math.floor(k / W3);
         b.x0 = Math.min(b.x0, x);
         b.x1 = Math.max(b.x1, x);
         b.y0 = Math.min(b.y0, y);
@@ -15216,8 +15265,8 @@ vFade = sin(ph * 3.14159);`
           [0, 1],
           [0, -1]
         ]) {
-          const nx = x + dx, ny = y + dy, n = ny * W2 + nx;
-          if (nx < 0 || ny < 0 || nx >= W2 || ny >= H2 || seen3[n] || T3[n] !== R.WALL || ring(nx, ny)) continue;
+          const nx = x + dx, ny = y + dy, n = ny * W3 + nx;
+          if (nx < 0 || ny < 0 || nx >= W3 || ny >= H2 || seen3[n] || T3[n] !== R.WALL || ring(nx, ny)) continue;
           seen3[n] = 1;
           stack.push(n);
         }
@@ -15227,7 +15276,7 @@ vFade = sin(ph * 3.14159);`
     return out;
   }
   function townGroup(S2, townId2, map, ts) {
-    const st = styleOf(S2, townId2), r = dice(hash((townId2 || "town") + ":" + S2.seed)), K2 = kits(st), group = new THREE.Group(), W2 = R.W, size = W2 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T3 = map.terrain, walled = !!(S2.areas[townId2] && S2.areas[townId2].walled), c = 18;
+    const st = styleOf(S2, townId2), r = dice(hash((townId2 || "town") + ":" + S2.seed)), K2 = kits(st), group = new THREE.Group(), W3 = R.W, size = W3 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T3 = map.terrain, walled = !!(S2.areas[townId2] && S2.areas[townId2].walled), c = 18;
     K2.ground.add(P4.box(size, 0.1, size), st.ground, { y: 0.03 }, { uv: 2.5, jitter: 0.04 });
     K2.cobble.add(P4.box(13 * ts, 0.1, 13 * ts), st.plinth, { y: 0.06 }, { uv: 3, jitter: 0.03 });
     const kindAt = {};
@@ -15239,7 +15288,7 @@ vFade = sin(ph * 3.14159);`
       let kind2 = null, door = null;
       for (let x = b.x0 - 1; x <= b.x1 + 1 && !kind2; x++)
         for (let y = b.y0 - 1; y <= b.y1 + 1 && !kind2; y++) {
-          const k = kindAt[y * W2 + x];
+          const k = kindAt[y * W3 + x];
           if (!k) continue;
           kind2 = k;
           door = y > b.y1 ? "s" : y < b.y0 ? "n" : x > b.x1 ? "e" : "w";
@@ -15252,9 +15301,9 @@ vFade = sin(ph * 3.14159);`
       building(K2, st, r, { cx, cz, w: (b.x1 - b.x0 + 1) * ts - 0.5, d: (b.y1 - b.y0 + 1) * ts - 0.5, kind: kind2, door });
     }
     if (walled) outerWall(K2, st, r, map, ts, at);
-    const open = (x, y) => x >= 0 && y >= 0 && x < W2 && y < W2 && T3[y * W2 + x] !== R.WALL && !map.sites[y * W2 + x];
+    const open = (x, y) => x >= 0 && y >= 0 && x < W3 && y < W3 && T3[y * W3 + x] !== R.WALL && !map.sites[y * W3 + x];
     const step2 = Math.max(2, Math.round(5 / Math.max(0.3, st.lanterns)));
-    for (let i = 3; i < W2 - 3; i += step2)
+    for (let i = 3; i < W3 - 3; i += step2)
       for (const [x, y] of [
         [c - 2, i],
         [c + 2, i],
@@ -15271,14 +15320,14 @@ vFade = sin(ph * 3.14159);`
       if (open(x, y)) lamp(K2, st, at(x), at(y));
     let placed = 0;
     for (let tries = 0; tries < 300 && placed < (Q.lite ? 0 : 14); tries++) {
-      const x = 2 + Math.floor(r() * (W2 - 4)), y = 2 + Math.floor(r() * (W2 - 4));
+      const x = 2 + Math.floor(r() * (W3 - 4)), y = 2 + Math.floor(r() * (W3 - 4));
       if (!open(x, y) || Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || Math.abs(x - c) <= 6 && Math.abs(y - c) <= 6) continue;
       const by = [
         [1, 0],
         [-1, 0],
         [0, 1],
         [0, -1]
-      ].find(([dx, dy]) => T3[(y + dy) * W2 + x + dx] === R.WALL);
+      ].find(([dx, dy]) => T3[(y + dy) * W3 + x + dx] === R.WALL);
       if (!by) continue;
       const name = st.props[placed % st.props.length];
       PROPS[name](K2, st, r, at(x), at(y), by[0] ? Math.PI / 2 : 0);
@@ -15309,10 +15358,10 @@ vFade = sin(ph * 3.14159);`
   function outerWall(K2, st, r, map, ts, at) {
     K2.wall.cur = (st.outer === "mud" ? "adobe" : st.walls) + ":0";
     K2.roof.cur = st.roofTex + ":0";
-    const W2 = R.W, T3 = map.terrain;
-    for (let i = 0; i < W2 * W2; i++) {
-      const x = i % W2, y = Math.floor(i / W2);
-      if (!(x === 0 || y === 0 || x === W2 - 1 || y === W2 - 1)) continue;
+    const W3 = R.W, T3 = map.terrain;
+    for (let i = 0; i < W3 * W3; i++) {
+      const x = i % W3, y = Math.floor(i / W3);
+      if (!(x === 0 || y === 0 || x === W3 - 1 || y === W3 - 1)) continue;
       const px = at(x), pz = at(y), gate = T3[i] !== R.WALL, nearGate = !gate && [
         [1, 0],
         [-1, 0],
@@ -15320,12 +15369,12 @@ vFade = sin(ph * 3.14159);`
         [0, -1]
       ].some(([dx, dy]) => {
         const nx = x + dx, ny = y + dy;
-        return nx >= 0 && ny >= 0 && nx < W2 && ny < W2 && (nx === 0 || ny === 0 || nx === W2 - 1 || ny === W2 - 1) && T3[ny * W2 + nx] !== R.WALL;
+        return nx >= 0 && ny >= 0 && nx < W3 && ny < W3 && (nx === 0 || ny === 0 || nx === W3 - 1 || ny === W3 - 1) && T3[ny * W3 + nx] !== R.WALL;
       });
       if (gate) continue;
       if (st.outer === "palisade") {
         for (let k = 0; k < 3; k++) {
-          const o = -ts / 3 + k * ts / 3, ox2 = y === 0 || y === W2 - 1 ? o : 0, oz = y === 0 || y === W2 - 1 ? 0 : o, h = 5.6 + (x * 7 + y * 3 + k) % 3 * 0.3;
+          const o = -ts / 3 + k * ts / 3, ox2 = y === 0 || y === W3 - 1 ? o : 0, oz = y === 0 || y === W3 - 1 ? 0 : o, h = 5.6 + (x * 7 + y * 3 + k) % 3 * 0.3;
           K2.wood.add(P4.cyl(0.62, 0.62, h + 3, 6), "#6a4c30", { x: px + ox2, y: (h - 3) / 2, z: pz + oz }, { uv: 1.5 });
           K2.wood.add(P4.cone(0.62, 0.9, 6), "#6a4c30", { x: px + ox2, y: h + 0.45, z: pz + oz }, { uv: 1.5 });
         }
@@ -15394,35 +15443,35 @@ vFade = sin(ph * 3.14159);`
     coral: { wall: "plaster", floor: "plaster", floorRep: 3 }
   };
   function tileModel(name, ts, h) {
-    const k = kit(), W2 = 16777215;
+    const k = kit(), W3 = 16777215;
     if (name === "castle") {
-      k.add(P4.box(ts, h, ts), W2, { y: h / 2 }, { uv: 2.5 });
-      k.add(P4.box(ts * 0.45, 0.9, ts * 0.45), W2, { y: h + 0.45, x: -ts * 0.22, z: -ts * 0.22 }, { uv: 2.5 });
-      k.add(P4.box(ts * 0.45, 0.9, ts * 0.45), W2, { y: h + 0.45, x: ts * 0.22, z: ts * 0.22 }, { uv: 2.5 });
+      k.add(P4.box(ts, h, ts), W3, { y: h / 2 }, { uv: 2.5 });
+      k.add(P4.box(ts * 0.45, 0.9, ts * 0.45), W3, { y: h + 0.45, x: -ts * 0.22, z: -ts * 0.22 }, { uv: 2.5 });
+      k.add(P4.box(ts * 0.45, 0.9, ts * 0.45), W3, { y: h + 0.45, x: ts * 0.22, z: ts * 0.22 }, { uv: 2.5 });
     } else if (name === "rock" || name === "mine") {
       k.add(P4.box(ts * 0.9, h, ts * 0.9), 13421772, { y: h / 2 }, { uv: 3 });
-      k.add(P4.blob(ts * 0.62, 0), W2, { y: h * 0.3, sy: h * 0.45 / (ts * 0.62), ry: 0.7 }, { flat: true, uv: 3 });
+      k.add(P4.blob(ts * 0.62, 0), W3, { y: h * 0.3, sy: h * 0.45 / (ts * 0.62), ry: 0.7 }, { flat: true, uv: 3 });
       k.add(P4.blob(ts * 0.55, 0), 14737632, { y: h * 0.75, sy: h * 0.4 / (ts * 0.55), ry: 2.1 }, { flat: true, uv: 3 });
       if (name === "mine") {
         k.add(P4.box(0.35, h, 0.35), 10123866, { x: ts * 0.48, y: h / 2, z: ts * 0.48 }, { uv: 1 });
         k.add(P4.box(ts, 0.35, 0.35), 10123866, { y: h - 0.2, z: ts * 0.48 }, { uv: 1 });
       }
     } else if (name === "marble") {
-      k.add(P4.box(ts, h, ts), W2, { y: h / 2 }, { uv: 3 });
+      k.add(P4.box(ts, h, ts), W3, { y: h / 2 }, { uv: 3 });
       k.add(P4.box(ts * 1.04, 0.4, ts * 1.04), 15259816, { y: h + 0.2 }, { uv: 2 });
       k.add(new THREE.SphereGeometry(ts * 0.36, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), 15779936, { y: h + 0.4 }, { uv: 2 });
     } else if (name === "planks") {
-      k.add(P4.box(ts * 0.86, h, ts * 0.86), W2, { y: h / 2 }, { uv: 2 });
+      k.add(P4.box(ts * 0.86, h, ts * 0.86), W3, { y: h / 2 }, { uv: 2 });
       for (const [x, z] of [
         [-1, -1],
         [1, 1]
       ])
         k.add(P4.box(0.4, h + 0.6, 0.4), 9072728, { x: x * ts / 2.3, y: (h + 0.6) / 2, z: z * ts / 2.3 }, { uv: 1 });
     } else if (name === "coral") {
-      k.add(P4.cyl(ts * 0.36, ts * 0.5, h, 9), W2, { y: h / 2 }, { uv: 2 });
+      k.add(P4.cyl(ts * 0.36, ts * 0.5, h, 9), W3, { y: h / 2 }, { uv: 2 });
       k.add(P4.blob(ts * 0.42, 0), 15775920, { y: h + 0.1, sy: 0.6 }, { uv: 2 });
       k.add(P4.blob(ts * 0.18, 0), 15261904, { x: ts * 0.3, y: h * 0.55, z: ts * 0.25 }, { flat: true, uv: 1 });
-    } else k.add(P4.box(ts, h, ts), W2, { y: h / 2 }, { uv: name === "brick" ? 1.5 : 2.5 });
+    } else k.add(P4.box(ts, h, ts), W3, { y: h / 2 }, { uv: name === "brick" ? 1.5 : 2.5 });
     return k.build();
   }
   var levelMat = (o) => new THREE.MeshLambertMaterial(o);
@@ -15750,17 +15799,17 @@ ${rich ? `{
     SKY.value.copy(c);
   }
   function* waterMesh(T3, g, sink, hollow, keep, colourAt) {
-    const W2 = T3.water, n = g.n, N1 = n + 1, idx2 = new Int32Array(N1 * N1).fill(-1), m = new Float32Array(N1 * N1), pos = [], wa = [], col = [], tri = [], c = new THREE.Color(), inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+    const W3 = T3.water, n = g.n, N1 = n + 1, idx2 = new Int32Array(N1 * N1).fill(-1), m = new Float32Array(N1 * N1), pos = [], wa = [], col = [], tri = [], c = new THREE.Color(), inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
     for (let iz = 0; iz <= n; iz++) {
-      for (let ix = 0; ix <= n; ix++) m[iz * N1 + ix] = W2.mask(-g.half + ix * g.cell, -g.half + iz * g.cell);
+      for (let ix = 0; ix <= n; ix++) m[iz * N1 + ix] = W3.mask(-g.half + ix * g.cell, -g.half + iz * g.cell);
       if ((iz & 15) === 15) yield;
     }
     const vert = (ix, iz) => {
       const k = iz * N1 + ix;
       if (idx2[k] >= 0) return idx2[k];
-      const x = -g.half + ix * g.cell, z = -g.half + iz * g.cell, deep = W2.deep(x, z), ice = W2.ice(x, z);
+      const x = -g.half + ix * g.cell, z = -g.half + iz * g.cell, deep = W3.deep(x, z), ice = W3.ice(x, z);
       idx2[k] = pos.length / 3;
-      pos.push(x, W2.level(x, z) - sink, z);
+      pos.push(x, W3.level(x, z) - sink, z);
       wa.push(Math.min(1, m[k] * 1.6), deep, ice);
       colourAt(x, z, c);
       if (ice > 0) c.lerp(new THREE.Color(15003380), ice);
@@ -16339,7 +16388,7 @@ vec3 joint(vec3 p, float b) {
 }
 `;
   function actorMat(opts) {
-    const m = new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, opts || {})), u = { aPhase: { value: 0 }, aSwing: { value: 0 }, aHead: { value: 0 }, aArm: { value: 0 }, aTail: { value: 0 } };
+    const m = toonMat(opts) || new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, opts || {})), u = { aPhase: { value: 0 }, aSwing: { value: 0 }, aHead: { value: 0 }, aArm: { value: 0 }, aTail: { value: 0 } };
     m.userData.u = u;
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, u);
@@ -16353,7 +16402,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       );
       sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vGlow;").replace("#include <fog_fragment>", "#include <fog_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, vColor, vGlow);");
     };
-    m.customProgramCacheKey = () => "actor" + (opts && opts.transparent ? "t" : "");
+    m.customProgramCacheKey = () => "actor" + (opts && opts.transparent ? "t" : "") + (m.isMeshToonMaterial ? "b" : "");
     return m;
   }
   var MODELS = {};
@@ -16434,12 +16483,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   function creatureModel(form, eye) {
     const key = ["c", form, eye].join();
     if (MODELS[key]) return MODELS[key];
-    const k = kit(), W2 = 16777215, D3 = 12105912, H2 = [0, 0, 0];
+    const k = kit(), W3 = 16777215, D3 = 12105912, H2 = [0, 0, 0];
     if (form === "hound") {
-      k.add(P4.blob(0.5, 1), W2, { y: 0.85, sx: 0.62, sy: 0.6, sz: 1.5 }, { bone: 0 });
-      k.add(P4.blob(0.36, 1), W2, { y: 0.95, z: 0.55, sx: 1.05, sy: 1.05 }, { bone: 0 });
+      k.add(P4.blob(0.5, 1), W3, { y: 0.85, sx: 0.62, sy: 0.6, sz: 1.5 }, { bone: 0 });
+      k.add(P4.blob(0.36, 1), W3, { y: 0.95, z: 0.55, sx: 1.05, sy: 1.05 }, { bone: 0 });
       const hp = [0, 1.05, 0.75];
-      k.add(P4.box(0.36, 0.34, 0.42), W2, { y: 1.2, z: 0.98 }, { bone: 5, pivot: hp });
+      k.add(P4.box(0.36, 0.34, 0.42), W3, { y: 1.2, z: 0.98 }, { bone: 5, pivot: hp });
       k.add(P4.box(0.24, 0.2, 0.32), D3, { y: 1.1, z: 1.3 }, { bone: 5, pivot: hp });
       k.add(P4.cone(0.08, 0.22, 4), D3, { x: -0.13, y: 1.45, z: 0.9 }, { bone: 5, pivot: hp, flat: true });
       k.add(P4.cone(0.08, 0.22, 4), D3, { x: 0.13, y: 1.45, z: 0.9 }, { bone: 5, pivot: hp, flat: true });
@@ -16451,18 +16500,18 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         [-0.2, -0.55, 2],
         [0.2, -0.55, 1]
       ])
-        k.add(P4.cyl(0.07, 0.09, 0.75, 5), W2, { x, y: 0.4, z }, { bone: b, pivot: [x, 0.8, z] });
-      k.add(P4.cyl(0.03, 0.07, 0.7, 5), W2, { y: 1.05, z: -0.95, rx: -0.9 }, { bone: 6, pivot: [0, 1, -0.75] });
+        k.add(P4.cyl(0.07, 0.09, 0.75, 5), W3, { x, y: 0.4, z }, { bone: b, pivot: [x, 0.8, z] });
+      k.add(P4.cyl(0.03, 0.07, 0.7, 5), W3, { y: 1.05, z: -0.95, rx: -0.9 }, { bone: 6, pivot: [0, 1, -0.75] });
     } else if (form === "brute") {
       for (const [x, b] of [
         [-0.45, 1],
         [0.45, 2]
       ])
-        k.add(P4.cyl(0.24, 0.3, 1, 6), W2, { x, y: 0.5 }, { bone: b, pivot: [x, 1, 0] });
-      k.add(P4.blob(0.9, 1), W2, { y: 1.9, z: 0.1, sx: 1.05, sy: 0.9, sz: 0.75, rx: 0.25 }, { bone: 0 });
+        k.add(P4.cyl(0.24, 0.3, 1, 6), W3, { x, y: 0.5 }, { bone: b, pivot: [x, 1, 0] });
+      k.add(P4.blob(0.9, 1), W3, { y: 1.9, z: 0.1, sx: 1.05, sy: 0.9, sz: 0.75, rx: 0.25 }, { bone: 0 });
       k.add(P4.blob(0.5, 0), D3, { y: 2.55, z: -0.3, sx: 1.3 }, { bone: 0, flat: true });
       const hp = [0, 2.5, 0.4];
-      k.add(P4.blob(0.36, 1), W2, { y: 2.7, z: 0.62 }, { bone: 5, pivot: hp });
+      k.add(P4.blob(0.36, 1), W3, { y: 2.7, z: 0.62 }, { bone: 5, pivot: hp });
       k.add(P4.box(0.4, 0.12, 0.2), 15261896, { y: 2.55, z: 0.9 }, { bone: 5, pivot: hp });
       k.add(P4.box(0.11, 0.07, 0.03), eye, { x: -0.13, y: 2.8, z: 0.95 }, { bone: 8, pivot: hp });
       k.add(P4.box(0.11, 0.07, 0.03), eye, { x: 0.13, y: 2.8, z: 0.95 }, { bone: 8, pivot: hp });
@@ -16470,14 +16519,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         [-1.05, 3],
         [1.05, 4]
       ]) {
-        k.add(P4.cyl(0.2, 0.26, 1.6, 6), W2, { x, y: 1.65, z: 0.2 }, { bone: b, pivot: [x, 2.4, 0.2] });
+        k.add(P4.cyl(0.2, 0.26, 1.6, 6), W3, { x, y: 1.65, z: 0.2 }, { bone: b, pivot: [x, 2.4, 0.2] });
         k.add(P4.blob(0.3, 0), D3, { x, y: 0.85, z: 0.2 }, { bone: b, pivot: [x, 2.4, 0.2], flat: true });
       }
     } else if (form === "wight") {
-      k.add(P4.cone(0.55, 2.1, 9), W2, { y: 1.35, rx: Math.PI }, { bone: 0 });
-      k.add(P4.cyl(0.3, 0.55, 0.6, 9), W2, { y: 2.3 }, { bone: 0 });
+      k.add(P4.cone(0.55, 2.1, 9), W3, { y: 1.35, rx: Math.PI }, { bone: 0 });
+      k.add(P4.cyl(0.3, 0.55, 0.6, 9), W3, { y: 2.3 }, { bone: 0 });
       const hp = [0, 2.5, 0];
-      k.add(P4.cone(0.33, 0.75, 9), W2, { y: 2.85 }, { bone: 5, pivot: hp });
+      k.add(P4.cone(0.33, 0.75, 9), W3, { y: 2.85 }, { bone: 5, pivot: hp });
       k.add(P4.ball(0.24, 8, 6), 1053720, { y: 2.68, z: 0.12 }, { bone: 5, pivot: hp });
       k.add(P4.box(0.08, 0.04, 0.02), eye, { x: -0.08, y: 2.72, z: 0.35 }, { bone: 8, pivot: hp });
       k.add(P4.box(0.08, 0.04, 0.02), eye, { x: 0.08, y: 2.72, z: 0.35 }, { bone: 8, pivot: hp });
@@ -16485,14 +16534,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         [-0.5, 3],
         [0.5, 4]
       ])
-        k.add(P4.cyl(0.05, 0.1, 1.4, 5), W2, { x, y: 1.7, z: 0.15 }, { bone: b, pivot: [x, 2.35, 0.1] });
+        k.add(P4.cyl(0.05, 0.1, 1.4, 5), W3, { x, y: 1.7, z: 0.15 }, { bone: b, pivot: [x, 2.35, 0.1] });
     } else {
       for (let i = 0; i < 8; i++) {
         const z = 1.1 - i * 0.5, r = 0.32 - i * 0.025;
-        k.add(P4.blob(r, 1), i % 2 ? D3 : W2, { y: r * 0.9, z, sz: 1.5 }, { bone: 7, pivot: [0, 0, i] });
+        k.add(P4.blob(r, 1), i % 2 ? D3 : W3, { y: r * 0.9, z, sz: 1.5 }, { bone: 7, pivot: [0, 0, i] });
       }
       const hp = [0, 0.7, 1.2];
-      k.add(P4.blob(0.3, 1), W2, { y: 0.75, z: 1.5, sx: 1.1, sy: 0.75, sz: 1.4 }, { bone: 5, pivot: hp });
+      k.add(P4.blob(0.3, 1), W3, { y: 0.75, z: 1.5, sx: 1.1, sy: 0.75, sz: 1.4 }, { bone: 5, pivot: hp });
       k.add(P4.box(0.07, 0.05, 0.03), eye, { x: -0.13, y: 0.85, z: 1.8 }, { bone: 8, pivot: hp });
       k.add(P4.box(0.07, 0.05, 0.03), eye, { x: 0.13, y: 0.85, z: 1.8 }, { bone: 8, pivot: hp });
     }
@@ -16922,7 +16971,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   scene.background = new THREE.Color(12175313);
   var staticGroup = null;
   var dynGroup = null;
-  var std = (color, extra) => lookOn("light") ? new THREE.MeshLambertMaterial(Object.assign({ color }, extra || {})) : new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
+  var std = (color, extra) => lookOn("light") ? toonMat(Object.assign({ color, vertexColors: false }, extra || {})) || new THREE.MeshLambertMaterial(Object.assign({ color }, extra || {})) : new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
   var FACETED = {
     ConeGeometry: 8,
     CylinderGeometry: 8,
@@ -19219,6 +19268,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     shown.far = lerp(shown.far, far, 0.05);
     scene.fog.far = shown.far;
     scene.fog.near = Math.min(40, shown.far * 0.2);
+    if (lk && fogBandsOn()) scene.fog.near = -Math.max(0.01, scene.fog.near);
+    if (lk) setBands(lk.bands, lk.soft);
+    else setBands(3, 0.45);
     lightOutdoors(h, day, dusk, skyC, !!storm, sight, lk);
     sun.position.x += P3.x;
     sun.position.z += P3.z;
@@ -20635,6 +20687,19 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       autoQuality(null, on3);
     },
     stepDown,
+    // the look in force (C6): its layers and its main colours
+    look() {
+      const l = NOW.look;
+      return l && {
+        names: l.names,
+        turned: l.turned,
+        zenith: toHex(l.zenith),
+        horizon: toHex(l.horizon),
+        fog: toHex(l.fog),
+        sun: toHex(l.sun),
+        shade: toHex(l.shade)
+      };
+    },
     // a fresh world on this seed, without the character screen (for the benchmark)
     newWorld(seed, set) {
       enter(R.newGame(seed, {}, set));
