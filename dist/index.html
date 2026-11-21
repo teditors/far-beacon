@@ -9380,27 +9380,27 @@
       return { id: regionId(s, cx, cy), cx, cy };
     });
     const chain = [];
-    let prev = s.world.home;
+    let prev2 = s.world.home;
     for (let n = 0; n < 4; n++) {
       const fresh = (list) => list.filter((o) => o.id !== HOME && !chain.some((c) => c.id === o.id));
-      let opts = fresh(side(prev)).filter((o) => near.some((n2) => n2.id === o.id));
-      if (!opts.length) opts = fresh(side(prev));
+      let opts = fresh(side(prev2)).filter((o) => near.some((n2) => n2.id === o.id));
+      if (!opts.length) opts = fresh(side(prev2));
       if (!opts.length) opts = fresh(near);
       if (!opts.length) opts = near;
       const pick = opts[Math.floor(r() * opts.length)];
       chain.push(pick);
-      prev = pick;
+      prev2 = pick;
     }
     const take = (n) => chain[n === 0 ? 0 : n === 3 ? 1 : n === 1 ? 2 : 3], home = s;
     const inFrame = (pl, n) => {
       const a = s.areas[take(n).id], b = s.areas[pl.area];
       return { x: pl.x + wrapDelta(b.cx, a.cx, s.world.cols) * W, y: pl.y + wrapDelta(b.cy, a.cy, s.world.rows) * H };
     };
-    const move2 = (kind2, n, hw, hd, prev2) => {
+    const move2 = (kind2, n, hw, hd, prev3) => {
       const k = Object.keys(home.sites).find((key) => home.sites[key].kind === kind2);
       if (k === void 0) return null;
       for (let tryN = 0; tryN < 4; tryN++) {
-        const nn = (n + tryN) % 4, m = regionMap(s, take(nn)), p = spot(m, r, hw, hd, prev2 ? inFrame(prev2, nn) : null);
+        const nn = (n + tryN) % 4, m = regionMap(s, take(nn)), p = spot(m, r, hw, hd, prev3 ? inFrame(prev3, nn) : null);
         if (!p) continue;
         flatten(m, p.x, p.y, hw, hd);
         m.sites[idx(p.x, p.y)] = home.sites[k];
@@ -15243,7 +15243,11 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var LAST = /* @__PURE__ */ new Map();
   var live2 = [];
   var clock2 = 0;
+  var prev = [];
+  var killed = /* @__PURE__ */ new Set();
+  var dying = [];
   function clearActors() {
+    prev = live2.slice();
     live2.length = 0;
   }
   function track(g, mesh2, o) {
@@ -15251,7 +15255,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     let from = null;
     if (o.key && LAST.has(o.key)) {
       const l = LAST.get(o.key);
-      if (l.pos.distanceTo(to) < (o.near || 40)) from = l;
+      if (l.pos.distanceTo(to) < (o.near || 400)) from = l;
     } else if (o.pool) {
       let best = null, bd = o.near || 10;
       for (const [k, l] of LAST)
@@ -15261,13 +15265,18 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         }
       if (best) best.claimed = true, from = best;
     }
-    const a = {
+    const dist = from ? Math.hypot(from.pos.x - to.x, from.pos.z - to.z) : 0, a = {
       g,
       mesh: mesh2,
       u: mesh2.material.userData.u,
       key: o.key || (o.pool ? o.pool + "#" + live2.length : null),
-      to,
-      speed: o.speed || 3,
+      anchor: to.clone(),
+      to: to.clone(),
+      ground: o.ground || null,
+      roam: o.fight ? 0 : o.roam || 0,
+      // far to go: hurry, so as to be there within a few seconds
+      speed: Math.max(o.speed || 3, dist / 3),
+      base: o.speed || 3,
       fight: !!o.fight,
       hurt: o.hurt ? 1 : 0,
       phase: from && from.phase || Math.random() * 6,
@@ -15275,12 +15284,38 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       yaw: from ? from.yaw : g.rotation.y,
       face: g.rotation.y,
       seed: Math.random() * 100,
-      lunge: 0
+      rest: 1 + Math.random() * 3,
+      // seconds before it next wanders
+      rise: from || !o.key ? 0 : 1
+      // a newcomer rises out of the ground
     };
-    if (from && from.pos.distanceTo(to) > 0.05) g.position.copy(from.pos);
+    if (from) {
+      g.position.copy(from.pos);
+    }
     g.rotation.y = a.yaw;
     live2.push(a);
     return a;
+  }
+  function settleActors(group) {
+    const now = new Set(live2.map((a) => a.key));
+    for (const a of prev) {
+      if (!a.key || now.has(a.key) || a.key.startsWith("folk:") || a.key.startsWith("site:")) continue;
+      if (group) {
+        if (a.g.parent) a.g.parent.remove(a.g);
+        group.add(a.g);
+        dying.push({ g: a.g, mesh: a.mesh, t: 0, fall: killed.has(a.key) });
+      }
+    }
+    prev = [];
+    killed.clear();
+  }
+  var markKilled = (id) => killed.add("c:" + id);
+  function shiftActors(dx, dz) {
+    for (const [, l] of LAST) l.pos.x += dx, l.pos.z += dz;
+    for (const a of live2) {
+      a.g.position.x += dx;
+      a.g.position.z += dz;
+    }
   }
   var angDiff = (a, b) => {
     let d = (b - a) % (Math.PI * 2);
@@ -15290,39 +15325,68 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   };
   function animateActors(dt, px, pz, still2) {
     clock2 += dt;
+    for (let i = dying.length - 1; i >= 0; i--) {
+      const d = dying[i];
+      d.t += dt;
+      if (d.fall) d.mesh.rotation.z = Math.min(Math.PI / 2, d.t * 2.2);
+      d.g.position.y -= dt * (d.fall ? d.t > 1.2 ? 1.2 : 0 : 1.6);
+      if (d.t > (d.fall ? 2.6 : 1.4)) {
+        if (d.g.parent) d.g.parent.remove(d.g);
+        dying.splice(i, 1);
+      }
+    }
     if (!live2.length) return;
     for (const [, l] of LAST) l.claimed = false;
     const keep = /* @__PURE__ */ new Map();
     for (const a of live2) {
-      const g = a.g, dx = a.to.x - g.position.x, dz = a.to.z - g.position.z, d = Math.hypot(dx, dz);
+      const g = a.g;
+      if (a.roam && !still2) {
+        const atGoal = Math.hypot(a.to.x - g.position.x, a.to.z - g.position.z) < 0.1;
+        if (atGoal && (a.rest -= dt) <= 0) {
+          const ang = Math.random() * Math.PI * 2, r = a.roam * Math.sqrt(Math.random());
+          a.to.set(a.anchor.x + Math.cos(ang) * r, a.anchor.y, a.anchor.z + Math.sin(ang) * r);
+          a.speed = a.base * 0.4;
+          a.rest = 2 + Math.random() * 5;
+        }
+      }
+      const dx = a.to.x - g.position.x, dz = a.to.z - g.position.z, d = Math.hypot(dx, dz);
       let moving = false;
       if (d > 0.08 && !still2) {
         const step2 = Math.min(d, a.speed * dt);
         g.position.x += dx / d * step2;
         g.position.z += dz / d * step2;
-        g.position.y += (a.to.y - g.position.y) * Math.min(1, step2 / d * 1.5);
+        if (a.ground) g.position.y = a.ground(g.position.x, g.position.z);
+        else g.position.y += (a.to.y - g.position.y) * Math.min(1, step2 / d * 1.5);
         moving = true;
-        a.yaw += angDiff(a.yaw, Math.atan2(dx, dz)) * Math.min(1, dt * 8);
+        a.yaw += angDiff(a.yaw, Math.atan2(dx, dz)) * Math.min(1, dt * 6);
       } else {
-        g.position.copy(a.to);
-        a.yaw += angDiff(a.yaw, a.face) * Math.min(1, dt * 3);
+        if (d > 0) g.position.copy(a.to);
+        if (a.ground && d > 0) g.position.y = a.ground(g.position.x, g.position.z);
+        if (!a.roam || a.fight || Math.hypot(px - g.position.x, pz - g.position.z) < 12)
+          a.yaw += angDiff(a.yaw, a.roam ? Math.atan2(px - g.position.x, pz - g.position.z) : a.face) * Math.min(1, dt * 3);
+        a.speed = Math.max(a.base * 0.4, a.speed * 0.98);
       }
       g.rotation.y = a.yaw;
-      a.swing += ((moving ? 0.65 : a.fight ? 0.18 : 0) - a.swing) * Math.min(1, dt * 6);
-      a.phase += dt * (moving ? a.speed * 2.4 : a.fight ? 5 : 1.2);
+      const pace = Math.min(1.6, a.speed / a.base);
+      a.swing += ((moving ? 0.45 + 0.25 * pace : a.fight ? 0.18 : 0) - a.swing) * Math.min(1, dt * 6);
+      a.phase += dt * (moving ? Math.min(a.speed, a.base * 1.8) * 2.4 : a.fight ? 5 : 1.2);
       const u = a.u, t2 = clock2 + a.seed;
       u.aPhase.value = a.phase;
       u.aSwing.value = still2 ? 0 : a.swing;
       const tx = px - g.position.x, tz = pz - g.position.z, near = Math.hypot(tx, tz) < 18, look2 = near ? Math.max(-1, Math.min(1, angDiff(a.yaw, Math.atan2(tx, tz)))) : Math.sin(t2 * 0.37) * Math.sin(t2 * 0.21) * 0.8;
       u.aHead.value += (look2 - u.aHead.value) * Math.min(1, dt * 4);
-      u.aTail.value = Math.sin(t2 * (a.fight ? 9 : 4)) * 0.35;
+      u.aTail.value = Math.sin(t2 * (a.fight || moving ? 9 : 4)) * 0.35;
       let bob = moving ? Math.abs(Math.sin(a.phase)) * 0.07 : Math.sin(t2 * 1.8) * 0.012;
       if (a.mesh.userData.actor.kind === "wight") bob += 0.25 + Math.sin(t2 * 1.3) * 0.12;
-      let fwd = 0, lean = 0;
+      if (a.rise > 0) {
+        a.rise = Math.max(0, a.rise - dt * 1.5);
+        bob -= a.rise * a.rise * 2.5;
+      }
+      let fwd = 0, lean = moving ? Math.min(0.15, (a.speed / a.base - 1) * 0.08) : 0;
       if (a.fight && !still2) {
         const cyc = t2 * 0.55 % 1, l = cyc > 0.8 ? Math.sin((cyc - 0.8) / 0.2 * Math.PI) : 0;
         fwd = l * 1.2;
-        lean = l * 0.25;
+        lean += l * 0.25;
         u.aArm.value = 0.6 + l * 1.2;
       } else u.aArm.value += (0 - u.aArm.value) * Math.min(1, dt * 4);
       if (a.hurt > 0) {
@@ -15335,7 +15399,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       if (a.key) keep.set(a.key, { pos: g.position.clone(), yaw: a.yaw, phase: a.phase });
     }
     for (const [k, v] of keep) LAST.set(k, v);
-    if (LAST.size > 200) for (const k of [...LAST.keys()].slice(0, LAST.size - 200)) LAST.delete(k);
+    if (LAST.size > 300) for (const k of [...LAST.keys()].slice(0, LAST.size - 300)) LAST.delete(k);
   }
 
   // src/view/plants.js
@@ -15529,6 +15593,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
 
   // src/view/scene.js
   var clampI = (i, n) => i < 0 ? 0 : i > n ? n : i;
+  R.on("killed", (s, d) => d && d.c && markKilled(d.c.id));
   var renderer = new THREE.WebGLRenderer({ canvas: $("c"), antialias: Q.aa, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
   var scene = new THREE.Scene();
@@ -16570,15 +16635,25 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (R.isLevel(V.S))
       drawArea(V.S.area, "vault");
     else {
-      drawArea(R.outdoorRec(V.S).id, "region");
+      const rec = R.outdoorRec(V.S);
+      drawArea(rec.id, "region");
       if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, "town");
+      if (actorsOn())
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            if (!dx && !dy) continue;
+            const nid = R.regionId(V.S, R.wrap(rec.cx + dx, V.S.world.cols), R.wrap(rec.cy + dy, V.S.world.rows));
+            if (nid !== rec.id && V.S.areas[nid] && V.S.areas[nid].map !== void 0 && R.mapOf(V.S, nid))
+              drawArea(nid, "region", { x: dx * 2 * HALF, z: dy * 2 * HALF });
+          }
     }
     facet(dynGroup);
+    settleActors(dynGroup);
   }
-  function drawArea(id, kind2) {
+  function drawArea(id, kind2, nb) {
     const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind2 !== "region", ts = kind2 === "town" ? TOWN_TS : kind2 === "vault" ? G2.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
     const at = (k, dx, dz) => {
-      let x = (k % R.W + 0.5) * ts - half + (dx || 0), z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0), y = 0;
+      let x = (k % R.W + 0.5) * ts - half + (dx || 0) + (nb ? nb.x : 0), z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0) + (nb ? nb.z : 0), y = 0;
       if (kind2 === "town") {
         x += V.townAt.x;
         z += V.townAt.z;
@@ -16587,7 +16662,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       return [x - FR.x, y - FR.y, z - FR.z];
     };
     const ground = (x, z) => V.terrain.height(x, z);
-    if (!indoor)
+    if (!indoor && !nb)
       for (const k in map.sites) {
         const st = map.sites[k];
         if (st.kind !== "spring") continue;
@@ -16615,10 +16690,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         dynGroup.add(g);
         const who = actorsOn() && g.children.find((o) => o.userData.actor);
         if (who)
-          track(g, who, st.kind === "folk" ? { pool: "folk:" + id, near: ts * 3, speed: 1.4 } : { key: "site:" + id + ":" + k });
+          track(
+            g,
+            who,
+            st.kind === "folk" ? { pool: "folk:" + id, near: ts * 3, speed: 1.4, roam: ts * 0.3 } : { key: "site:" + id + ":" + k }
+          );
       }
-    const camp = V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
-    for (const k in map.depots) {
+    const camp = !nb && V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
+    for (const k in nb ? {} : map.depots) {
       if (+k === camp) continue;
       const d = map.depots[k], relic = d.items.some((i) => i.base === "relic"), [x, y, z] = at(+k, 3.5 * off, 2.5 * off);
       if (relic) {
@@ -16631,6 +16710,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     for (const c of map.creatures) {
       const fighting = current && V.S.combat && V.S.combat.cid === c.id;
       if (c.bound && !fighting) continue;
+      if (nb) {
+        const [cx, , cz] = at(c.y * R.W + c.x);
+        if (Math.hypot(cx - P3.x, cz - P3.z) > 360) continue;
+      }
       const sp = R.spOf(V.S, c), g = new THREE.Group(), col = sp.rare === "gilded" ? 14263584 : sp.rare === "docile" ? 8367738 : R.biomeOf(V.S).creatureTint, mat = std(col), k = (sp.rare === "elder" ? 1.45 : 1) * (0.9 + c.tier * 0.12), eye = new THREE.MeshBasicMaterial({
         color: sp.rare === "docile" ? 10478495 : sp.temper === "hunter" ? 16726831 : sp.temper === "skittish" ? 16769130 : 16751146,
         fog: false
@@ -16697,7 +16780,15 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       if (actorsOn()) {
         const hurt3 = HP.has(c.id) && c.hp < HP.get(c.id);
         HP.set(c.id, c.hp);
-        track(g, g.children[0], { key: "c:" + c.id, speed: 4.5, fight: fighting, hurt: hurt3, near: indoor ? 30 : 120 });
+        track(g, g.children[0], {
+          key: "c:" + c.id,
+          speed: 4.5,
+          fight: fighting,
+          hurt: hurt3,
+          roam: indoor ? 0.8 : 7,
+          // outdoors its feet keep to the ground as it goes (the lowest point under its body, as when it stands)
+          ground: indoor ? null : (gx, gz) => Math.min(ground(gx + 1.2, gz), ground(gx - 1.2, gz), ground(gx, gz + 1.2), ground(gx, gz - 1.2))
+        });
       }
     }
     if (camp !== null) {
@@ -17466,6 +17557,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         applyFrame();
         nx += was.x - FR.x;
         nz += was.z - FR.z;
+        shiftActors(was.x - FR.x, was.z - FR.z);
         P3.y += was.y - FR.y;
         shown.area = V.S.area;
       } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {
@@ -17474,6 +17566,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         shown.land = landKey();
         nx -= Math.floor(tx / R.W) * 2 * G2.half;
         nz -= Math.floor(tz / R.H) * 2 * G2.half;
+        shiftActors(-Math.floor(tx / R.W) * 2 * G2.half, -Math.floor(tz / R.H) * 2 * G2.half);
       }
       sync();
       buildDynamic();

@@ -11,7 +11,8 @@ import { ruinGroup, ruinsOn } from './ruins.js';
 import * as FX from './fx.js';
 import { landmark } from './landmarks.js';
 import { blob, fire, water } from './fx.js';
-import { actorsOn, clearActors, creatureActor, personActor, track } from './actors.js';
+import { actorsOn, clearActors, creatureActor, markKilled, personActor, settleActors, track } from './actors.js';
+R.on('killed', (s, d) => d && d.c && markKilled(d.c.id));
 import { kitMat } from './kit.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 
@@ -1280,12 +1281,25 @@ function buildDynamic() {
   if (R.isLevel(V.S))
     drawArea(V.S.area, 'vault'); // any level below or above the world
   else {
-    drawArea(R.outdoorRec(V.S).id, 'region');
+    const rec = R.outdoorRec(V.S);
+    drawArea(rec.id, 'region');
     if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, 'town');
+    // the creatures of the regions round about, near the borders (built ahead by the rules; never built here)
+    if (actorsOn())
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          if (!dx && !dy) continue;
+          const nid = R.regionId(V.S, R.wrap(rec.cx + dx, V.S.world.cols), R.wrap(rec.cy + dy, V.S.world.rows));
+          if (nid !== rec.id && V.S.areas[nid] && V.S.areas[nid].map !== undefined && R.mapOf(V.S, nid))
+            drawArea(nid, 'region', { x: dx * 2 * HALF, z: dy * 2 * HALF });
+        }
   }
   facet(dynGroup);
+  settleActors(dynGroup);
 }
-function drawArea(id, kind) {
+// nb: for a neighbouring region, its offset in metres; only its creatures near the border are drawn, so that they are
+// already there, and walking, when the border is crossed.
+function drawArea(id, kind, nb) {
   const map = R.mapOf(V.S, id),
     current = id === V.S.area,
     indoor = kind !== 'region',
@@ -1294,8 +1308,8 @@ function drawArea(id, kind) {
     off = indoor ? ts / 28 : 1;
   // a tile of this area, plus an offset in metres, as a point in the frame the player is in
   const at = (k, dx, dz) => {
-    let x = ((k % R.W) + 0.5) * ts - half + (dx || 0),
-      z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0),
+    let x = ((k % R.W) + 0.5) * ts - half + (dx || 0) + (nb ? nb.x : 0),
+      z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0) + (nb ? nb.z : 0),
       y = 0;
     if (kind === 'town') {
       x += V.townAt.x;
@@ -1305,7 +1319,7 @@ function drawArea(id, kind) {
     return [x - FR.x, y - FR.y, z - FR.z];
   };
   const ground = (x, z) => V.terrain.height(x, z);
-  if (!indoor)
+  if (!indoor && !nb)
     for (const k in map.sites) {
       const st = map.sites[k];
       if (st.kind !== 'spring') continue;
@@ -1344,10 +1358,14 @@ function drawArea(id, kind) {
       dynGroup.add(g);
       const who = actorsOn() && g.children.find((o) => o.userData.actor);
       if (who)
-        track(g, who, st.kind === 'folk' ? { pool: 'folk:' + id, near: ts * 3, speed: 1.4 } : { key: 'site:' + id + ':' + k });
+        track(
+          g,
+          who,
+          st.kind === 'folk' ? { pool: 'folk:' + id, near: ts * 3, speed: 1.4, roam: ts * 0.3 } : { key: 'site:' + id + ':' + k },
+        );
     }
-  const camp = V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
-  for (const k in map.depots) {
+  const camp = !nb && V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
+  for (const k in nb ? {} : map.depots) {
     if (+k === camp) continue;
     const d = map.depots[k],
       relic = d.items.some((i) => i.base === 'relic'),
@@ -1362,6 +1380,11 @@ function drawArea(id, kind) {
   for (const c of map.creatures) {
     const fighting = current && V.S.combat && V.S.combat.cid === c.id;
     if (c.bound && !fighting) continue;
+    if (nb) {
+      // a neighbour's creature: only those near enough to see
+      const [cx, , cz] = at(c.y * R.W + c.x);
+      if (Math.hypot(cx - P.x, cz - P.z) > 360) continue;
+    }
     const sp = R.spOf(V.S, c),
       g = new THREE.Group(),
       col = sp.rare === 'gilded' ? 0xd9a520 : sp.rare === 'docile' ? 0x7fae7a : R.biomeOf(V.S).creatureTint,
@@ -1437,7 +1460,17 @@ function drawArea(id, kind) {
       // walks from where it was drawn; in a fight it lunges, and flinches when hurt
       const hurt = HP.has(c.id) && c.hp < HP.get(c.id);
       HP.set(c.id, c.hp);
-      track(g, g.children[0], { key: 'c:' + c.id, speed: 4.5, fight: fighting, hurt, near: indoor ? 30 : 120 });
+      track(g, g.children[0], {
+        key: 'c:' + c.id,
+        speed: 4.5,
+        fight: fighting,
+        hurt,
+        roam: indoor ? 0.8 : 7,
+        // outdoors its feet keep to the ground as it goes (the lowest point under its body, as when it stands)
+        ground: indoor
+          ? null
+          : (gx, gz) => Math.min(ground(gx + 1.2, gz), ground(gx - 1.2, gz), ground(gx, gz + 1.2), ground(gx, gz - 1.2)),
+      });
     }
   }
   if (camp !== null) {

@@ -68,6 +68,32 @@ compare High with and without "Real-time shadows", and send the numbers for a fl
 
 | v0.16 | Commission 5: how the game looks and sounds. A painted storybook style: smooth land in warm sun and cool shade, a deepening sky and blue moonlight; textures made in code; trees with shapes that sway; towns built by their climate, trade and custom, glowing at night; levels with walls of their own; ruins in their people's style, aged and marked by their doom; landmarks; people and creatures that walk, breathe, look round, lunge and flinch; campfires, springs and shadows; real-time shadows on High; a generative score that follows where you are and the sounds of the world. Every piece has a switch in Menu, Settings; Low and Medium are cheaper a frame than before. |
 
+## C5.12: nobody teleports
+
+**Asked by Andrew** after the first pass: natural movement for townsfolk and monsters, never a jump.
+
+**What it is.** The tracking of people and creatures (`actors.js`, C5.6) now covers every way someone could pop:
+
+- **Far moves.** Someone moved several tiles by the rules (while you rested, say) used to snap if more than 120 m
+  away. Now they always walk from where they were drawn, faster the further they have to go (there in about three
+  seconds), leaning into the hurry, their stride quickening.
+- **The ground.** Outdoors their feet follow the ground on the way, over hills rather than through them.
+- **Between your actions** everyone used to stand frozen until you did something. Now creatures amble about their
+  spot (up to 7 m outdoors, under a metre indoors) and townsfolk shuffle about theirs, pausing a few seconds, turning to
+  watch you when you come near. This is the view only: the rules' positions do not change.
+- **Comings and goings.** Someone new rises into view instead of appearing; a creature that leaves sinks away; a
+  creature you kill topples over and sinks (the rules' 'killed' event).
+- **Borders and gates.** Creatures in the eight regions round about are drawn now too, within 360 m of you, so they
+  are there before you cross; and when the scene's frame moves (a border crossed, a town gate passed), what is
+  remembered of everyone moves with it, so they walk on across it instead of jumping.
+
+**Switch.** Part of `actors`.
+
+**Numbers.** Medium 126 ms build, 83 calls, 203,217 triangles, 137.9 ms a frame (this machine's runs swing about 8%;
+the same page measured 130 to 146 today). A few more creatures in view; nothing else.
+
+**Verdict.** Pearl: the land is never still and nobody blinks from place to place.
+
 ## The style
 
 **A painted storybook, about 2005.** Chunky, readable shapes with a little exaggeration (round crowns, steep roofs,

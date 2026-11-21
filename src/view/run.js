@@ -22,7 +22,7 @@ import { guard } from './oops.js';
 import { lightIndoors, lightOutdoors } from './light.js';
 import { WIND } from './kit.js';
 import { setNight } from './buildings.js';
-import { animateActors } from './actors.js';
+import { animateActors, shiftActors } from './actors.js';
 import { updateSound } from './sound.js';
 import { updateFx } from './fx.js';
 
@@ -236,6 +236,7 @@ function tick(dt, now) {
       applyFrame();
       nx += was.x - FR.x;
       nz += was.z - FR.z;
+      shiftActors(was.x - FR.x, was.z - FR.z);
       P.y += was.y - FR.y;
       shown.area = V.S.area;
     } else if (V.S.area !== wasArea && R.inOverworld(V.S)) {
@@ -246,6 +247,7 @@ function tick(dt, now) {
       shown.land = landKey();
       nx -= Math.floor(tx / R.W) * 2 * G.half;
       nz -= Math.floor(tz / R.H) * 2 * G.half;
+      shiftActors(-Math.floor(tx / R.W) * 2 * G.half, -Math.floor(tz / R.H) * 2 * G.half); // the creatures walk on
     }
     sync();
     buildDynamic();

@@ -204,20 +204,35 @@ function creatureActor(form, color, eye) {
 }
 
 /* Where each tracked actor was last drawn, so a rebuild of the scene can walk it on from there. key: a creature's id,
-   or for townsfolk (who have no lasting id) 'folk:<area>' with the nearest one taken. */
+   or for townsfolk (who have no lasting id) 'folk:<area>' with the nearest one taken.
+
+   Nothing teleports:
+   - an actor moved by the rules walks from where it was drawn to where it now is; the further it has to go (several
+     tiles while you rested), the faster it goes, so it always arrives within a few seconds;
+   - its feet follow the ground on the way (o.ground), over hills rather than through them;
+   - between your actions everyone wanders a little about their spot (o.roam metres), pausing, looking about;
+   - someone new rises into view rather than popping in; a creature that is killed topples and sinks away, one that
+     leaves sinks away;
+   - when the frame of the scene moves (a border crossed, a town gate passed), what is remembered moves with it
+     (shiftActors), so the walk carries on across it. */
 const LAST = new Map(),
   live = [];
-let clock = 0;
+let clock = 0,
+  prev = [], // last build's actors, to see who has gone
+  killed = new Set(),
+  dying = [];
 function clearActors() {
+  prev = live.slice();
   live.length = 0;
 }
-// Track g (the group standing at the actor's place) with its animated mesh. o: { key, near, speed, fight, hurt }.
+// Track g (the group standing at the actor's place) with its animated mesh.
+// o: { key, pool, near, speed, fight, hurt, roam, ground(x, z) }
 function track(g, mesh, o) {
   const to = g.position.clone();
   let from = null;
   if (o.key && LAST.has(o.key)) {
     const l = LAST.get(o.key);
-    if (l.pos.distanceTo(to) < (o.near || 40)) from = l;
+    if (l.pos.distanceTo(to) < (o.near || 400)) from = l;
   } else if (o.pool) {
     // the nearest of the pool's last places not yet claimed
     let best = null,
@@ -229,26 +244,61 @@ function track(g, mesh, o) {
       }
     if (best) (best.claimed = true), (from = best);
   }
-  const a = {
-    g,
-    mesh,
-    u: mesh.material.userData.u,
-    key: o.key || (o.pool ? o.pool + '#' + live.length : null),
-    to,
-    speed: o.speed || 3,
-    fight: !!o.fight,
-    hurt: o.hurt ? 1 : 0,
-    phase: (from && from.phase) || Math.random() * 6,
-    swing: 0,
-    yaw: from ? from.yaw : g.rotation.y,
-    face: g.rotation.y,
-    seed: Math.random() * 100,
-    lunge: 0,
-  };
-  if (from && from.pos.distanceTo(to) > 0.05) g.position.copy(from.pos);
+  const dist = from ? Math.hypot(from.pos.x - to.x, from.pos.z - to.z) : 0,
+    a = {
+      g,
+      mesh,
+      u: mesh.material.userData.u,
+      key: o.key || (o.pool ? o.pool + '#' + live.length : null),
+      anchor: to.clone(),
+      to: to.clone(),
+      ground: o.ground || null,
+      roam: o.fight ? 0 : o.roam || 0,
+      // far to go: hurry, so as to be there within a few seconds
+      speed: Math.max(o.speed || 3, dist / 3),
+      base: o.speed || 3,
+      fight: !!o.fight,
+      hurt: o.hurt ? 1 : 0,
+      phase: (from && from.phase) || Math.random() * 6,
+      swing: 0,
+      yaw: from ? from.yaw : g.rotation.y,
+      face: g.rotation.y,
+      seed: Math.random() * 100,
+      rest: 1 + Math.random() * 3, // seconds before it next wanders
+      rise: from || !o.key ? 0 : 1, // a newcomer rises out of the ground
+    };
+  if (from) {
+    g.position.copy(from.pos);
+    // walking somewhere new: it turns that way and goes, rather than gliding backwards
+  }
   g.rotation.y = a.yaw;
   live.push(a);
   return a;
+}
+// After a build: everyone who was drawn before and is not now goes away gently, a killed creature falling over.
+function settleActors(group) {
+  const now = new Set(live.map((a) => a.key));
+  for (const a of prev) {
+    if (!a.key || now.has(a.key) || a.key.startsWith('folk:') || a.key.startsWith('site:')) continue;
+    if (group) {
+      // the old group, put back for a moment (its model is kept; its material is remade)
+      if (a.g.parent) a.g.parent.remove(a.g);
+      group.add(a.g);
+      dying.push({ g: a.g, mesh: a.mesh, t: 0, fall: killed.has(a.key) });
+    }
+  }
+  prev = [];
+  killed.clear();
+}
+// A creature's id, told by the rules' 'killed' event (see scene.js), so its going is a fall.
+const markKilled = (id) => killed.add('c:' + id);
+// The frame of the scene moved by (dx, dz): move what is remembered with it.
+function shiftActors(dx, dz) {
+  for (const [, l] of LAST) (l.pos.x += dx), (l.pos.z += dz);
+  for (const a of live) {
+    a.g.position.x += dx;
+    a.g.position.z += dz;
+  }
 }
 const angDiff = (a, b) => {
   let d = (b - a) % (Math.PI * 2);
@@ -256,15 +306,36 @@ const angDiff = (a, b) => {
   if (d < -Math.PI) d += Math.PI * 2;
   return d;
 };
-// Every frame: walk each actor toward where it stands now, swing its limbs, turn its head; px, pz: the traveller.
+// Every frame: walk each actor toward where it is going, swing its limbs, turn its head; px, pz: the traveller.
 function animateActors(dt, px, pz, still) {
   clock += dt;
+  for (let i = dying.length - 1; i >= 0; i--) {
+    const d = dying[i];
+    d.t += dt;
+    if (d.fall) d.mesh.rotation.z = Math.min(Math.PI / 2, d.t * 2.2);
+    d.g.position.y -= dt * (d.fall ? (d.t > 1.2 ? 1.2 : 0) : 1.6);
+    if (d.t > (d.fall ? 2.6 : 1.4)) {
+      if (d.g.parent) d.g.parent.remove(d.g);
+      dying.splice(i, 1);
+    }
+  }
   if (!live.length) return;
   for (const [, l] of LAST) l.claimed = false;
   const keep = new Map();
   for (const a of live) {
-    const g = a.g,
-      dx = a.to.x - g.position.x,
+    const g = a.g;
+    // idling: now and then wander to a new spot near where the rules have it, unhurried
+    if (a.roam && !still) {
+      const atGoal = Math.hypot(a.to.x - g.position.x, a.to.z - g.position.z) < 0.1;
+      if (atGoal && (a.rest -= dt) <= 0) {
+        const ang = Math.random() * Math.PI * 2,
+          r = a.roam * Math.sqrt(Math.random());
+        a.to.set(a.anchor.x + Math.cos(ang) * r, a.anchor.y, a.anchor.z + Math.sin(ang) * r);
+        a.speed = a.base * 0.4;
+        a.rest = 2 + Math.random() * 5;
+      }
+    }
+    const dx = a.to.x - g.position.x,
       dz = a.to.z - g.position.z,
       d = Math.hypot(dx, dz);
     let moving = false;
@@ -272,16 +343,21 @@ function animateActors(dt, px, pz, still) {
       const step = Math.min(d, a.speed * dt);
       g.position.x += (dx / d) * step;
       g.position.z += (dz / d) * step;
-      g.position.y += (a.to.y - g.position.y) * Math.min(1, (step / d) * 1.5);
+      if (a.ground) g.position.y = a.ground(g.position.x, g.position.z);
+      else g.position.y += (a.to.y - g.position.y) * Math.min(1, (step / d) * 1.5);
       moving = true;
-      a.yaw += angDiff(a.yaw, Math.atan2(dx, dz)) * Math.min(1, dt * 8);
+      a.yaw += angDiff(a.yaw, Math.atan2(dx, dz)) * Math.min(1, dt * 6);
     } else {
-      g.position.copy(a.to);
-      a.yaw += angDiff(a.yaw, a.face) * Math.min(1, dt * 3);
+      if (d > 0) g.position.copy(a.to);
+      if (a.ground && d > 0) g.position.y = a.ground(g.position.x, g.position.z);
+      if (!a.roam || a.fight || Math.hypot(px - g.position.x, pz - g.position.z) < 12)
+        a.yaw += angDiff(a.yaw, a.roam ? Math.atan2(px - g.position.x, pz - g.position.z) : a.face) * Math.min(1, dt * 3);
+      a.speed = Math.max(a.base * 0.4, a.speed * 0.98);
     }
     g.rotation.y = a.yaw;
-    a.swing += ((moving ? 0.65 : a.fight ? 0.18 : 0) - a.swing) * Math.min(1, dt * 6);
-    a.phase += dt * (moving ? a.speed * 2.4 : a.fight ? 5 : 1.2);
+    const pace = Math.min(1.6, a.speed / a.base);
+    a.swing += ((moving ? 0.45 + 0.25 * pace : a.fight ? 0.18 : 0) - a.swing) * Math.min(1, dt * 6);
+    a.phase += dt * (moving ? Math.min(a.speed, a.base * 1.8) * 2.4 : a.fight ? 5 : 1.2);
     const u = a.u,
       t = clock + a.seed;
     u.aPhase.value = a.phase;
@@ -292,17 +368,21 @@ function animateActors(dt, px, pz, still) {
       near = Math.hypot(tx, tz) < 18,
       look = near ? Math.max(-1, Math.min(1, angDiff(a.yaw, Math.atan2(tx, tz)))) : Math.sin(t * 0.37) * Math.sin(t * 0.21) * 0.8;
     u.aHead.value += (look - u.aHead.value) * Math.min(1, dt * 4);
-    u.aTail.value = Math.sin(t * (a.fight ? 9 : 4)) * 0.35;
+    u.aTail.value = Math.sin(t * (a.fight || moving ? 9 : 4)) * 0.35;
     // breath when standing; a bob in the stride when walking; a crouch and lunge in a fight; a flinch when hurt
     let bob = moving ? Math.abs(Math.sin(a.phase)) * 0.07 : Math.sin(t * 1.8) * 0.012;
     if (a.mesh.userData.actor.kind === 'wight') bob += 0.25 + Math.sin(t * 1.3) * 0.12;
+    if (a.rise > 0) {
+      a.rise = Math.max(0, a.rise - dt * 1.5);
+      bob -= a.rise * a.rise * 2.5;
+    }
     let fwd = 0,
-      lean = 0;
+      lean = moving ? Math.min(0.15, (a.speed / a.base - 1) * 0.08) : 0; // leaning into a hurry
     if (a.fight && !still) {
       const cyc = (t * 0.55) % 1,
         l = cyc > 0.8 ? Math.sin(((cyc - 0.8) / 0.2) * Math.PI) : 0;
       fwd = l * 1.2;
-      lean = l * 0.25;
+      lean += l * 0.25;
       u.aArm.value = 0.6 + l * 1.2;
     } else u.aArm.value += (0 - u.aArm.value) * Math.min(1, dt * 4);
     if (a.hurt > 0) {
@@ -315,6 +395,18 @@ function animateActors(dt, px, pz, still) {
     if (a.key) keep.set(a.key, { pos: g.position.clone(), yaw: a.yaw, phase: a.phase });
   }
   for (const [k, v] of keep) LAST.set(k, v);
-  if (LAST.size > 200) for (const k of [...LAST.keys()].slice(0, LAST.size - 200)) LAST.delete(k);
+  if (LAST.size > 300) for (const k of [...LAST.keys()].slice(0, LAST.size - 300)) LAST.delete(k);
 }
-export { actorsOn, personActor, creatureActor, track, animateActors, clearActors, personModel, creatureModel };
+export {
+  actorsOn,
+  personActor,
+  creatureActor,
+  track,
+  animateActors,
+  clearActors,
+  settleActors,
+  shiftActors,
+  markKilled,
+  personModel,
+  creatureModel,
+};
