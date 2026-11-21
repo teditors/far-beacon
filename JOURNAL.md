@@ -24,6 +24,39 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.7: sound and a generative score
+
+**What it is.** The game has sound (`src/view/sound.js`), all made in the browser with the Web Audio API: no files.
+
+- **The score** is generative: a slow random walk over a mode, mostly by step with the odd leap and many rests, over
+  a drone and a soft pad that moves through a few chords a phrase. It never repeats and is original by construction.
+  Where you are sets its mood (`MOODS`): open land by day is a bell over a pentatonic; night a sparser, lower aeolian;
+  a town a brighter major with a plucked string and a gentle pulse; below ground a deep phrygian drone with rare bells;
+  the sky a high lydian; the sea a swelling mixolydian; a storm a dark drone; a fight a quick phrygian pluck over drums.
+  Each land has its own key, so crossing into another shifts the music a little. Moods crossfade over a few seconds.
+  Everything sits in a small hall of reverb made from decaying noise.
+- **The world**: wind that gusts, stronger high up and in storms and almost gone below ground; rain on the land in a
+  wet storm (softer inside a town); running water near a river, spring or well; the murmur of a town with a hammer or a
+  snatch of a tune now and then; a fire crackling at your camp; footsteps a stride apart that sound like the ground
+  (grass, sand, snow, stone, wooden decks, splashing water); creatures' voices when near (a hound's howl, a brute's
+  grunt, a wight's moan, a serpent's hiss), and a cry when a fight starts; the swish of a blow, a thud when it lands, a
+  grunt when you are hurt, three bells for a kill; a soft click on every button.
+
+**For the phone.** Sound starts only after the first tap or key, as phones require, and stops while the page is
+hidden. Menu, Settings has Music and Sounds volumes and a Mute; they are settings of the device. The score schedules a
+bar at a time and the world is looked at ten times a second, so at any moment there are a handful of oscillators and
+four looping filtered noises: a small fraction of a phone's processor.
+
+**Switch.** `sound` ("Sound and music"); also Mute. The browser test checks that sound starts after the first tap.
+
+**Choices.** No tunes from anywhere: the music is only modes, a random walk and phrase lengths. The footsteps read the
+ground from the climate (snow in the cold, sand in hot, ashen and steppe lands) and the tile (water, mountain stone);
+inside a level from its kit (wooden decks, stone).
+
+**Numbers.** Graphics unchanged. Page 713 KB.
+
+**Verdict.** Pearl: the land is no longer silent, and a town is heard before it is seen.
+
 ## C5.6: people and creatures that move
 
 **What it is.** Everyone you meet is a jointed model now (`src/view/actors.js`), and moves:

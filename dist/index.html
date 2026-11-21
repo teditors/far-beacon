@@ -5368,7 +5368,7 @@
   var amod = (v) => Math.floor((v - 10) / 2);
   var clsOf = (s) => byId(C.classes, s.char.cls);
   var prof = (s) => 1 + Math.floor(s.player.level / 2);
-  var xpFor = (level) => 50 * level * (level + 1);
+  var xpFor = (level2) => 50 * level2 * (level2 + 1);
   function manaMax(s) {
     const c = clsOf(s);
     return c.caster ? s.player.level * (c.manaPer + Math.max(0, amod(scores(s.char)[c.caster]))) : 0;
@@ -5984,10 +5984,10 @@
   function advance(s, minutes, activity) {
     let left = minutes;
     while (left > 0 && !s.over) {
-      const step = Math.min(15, left);
-      left -= step;
-      s.time += step;
-      for (const sys of SYSTEMS) if (!s.off[sys.id]) sys.fn(s, step / 60, { activity });
+      const step2 = Math.min(15, left);
+      left -= step2;
+      s.time += step2;
+      for (const sys of SYSTEMS) if (!s.off[sys.id]) sys.fn(s, step2 / 60, { activity });
     }
   }
 
@@ -7234,7 +7234,7 @@
         while (x !== b.cx) dig2(x += Math.sign(b.cx - x), y);
       }
     }
-    const start2 = rooms[0], entry = { x: start2.cx, y: start2.cy };
+    const start3 = rooms[0], entry = { x: start3.cx, y: start3.cy };
     const dist = blank(-1), q = [idx(entry.x, entry.y)];
     dist[q[0]] = 0;
     while (q.length) {
@@ -7252,10 +7252,10 @@
         }
       }
     }
-    const far = rooms.slice(1).sort((a, b) => dist[idx(b.cx, b.cy)] - dist[idx(a.cx, a.cy)])[0] || start2;
-    sites[idx(entry.x, entry.y - 1 >= start2.y ? entry.y - 1 : entry.y)] = { kind: lvl === 1 ? "exit" : "stairsUp" };
+    const far = rooms.slice(1).sort((a, b) => dist[idx(b.cx, b.cy)] - dist[idx(a.cx, a.cy)])[0] || start3;
+    sites[idx(entry.x, entry.y - 1 >= start3.y ? entry.y - 1 : entry.y)] = { kind: lvl === 1 ? "exit" : "stairsUp" };
     rec.entry = { x: entry.x, y: entry.y };
-    const tier = Math.min(3, lvl), others = rooms.filter((o) => o !== start2 && o !== far), pickRoom = () => others[Math.floor(r() * others.length)] || far, spot2 = (o) => {
+    const tier = Math.min(3, lvl), others = rooms.filter((o) => o !== start3 && o !== far), pickRoom = () => others[Math.floor(r() * others.length)] || far, spot2 = (o) => {
       for (let t = 0; t < 30; t++) {
         const x = o.x + Math.floor(r() * o.w), y = o.y + Math.floor(r() * o.h), i = idx(x, y);
         if (!sites[i] && !depots[i] && !creatures.some((c) => c.x === x && c.y === y)) return { x, y };
@@ -7309,8 +7309,8 @@
     h ^= h >>> 16;
     return (h >>> 0) / 4294967296;
   }
-  function worldNoise(seed, world, cellsPerRegion, salt) {
-    const NX = world.cols * cellsPerRegion, NY = world.rows * cellsPerRegion, sd2 = seed ^ Math.imul(salt, 2654435761) | 0, v = (i, j) => hash2(sd2, wrap(i, NX), wrap(j, NY));
+  function worldNoise(seed, world2, cellsPerRegion, salt) {
+    const NX = world2.cols * cellsPerRegion, NY = world2.rows * cellsPerRegion, sd2 = seed ^ Math.imul(salt, 2654435761) | 0, v = (i, j) => hash2(sd2, wrap(i, NX), wrap(j, NY));
     return (gx, gy) => {
       const fx = gx / W * cellsPerRegion, fy = gy / H * cellsPerRegion, x0 = Math.floor(fx), y0 = Math.floor(fy);
       let tx = fx - x0, ty = fy - y0;
@@ -7325,8 +7325,8 @@
     if (Math.abs(roadAt - at) < 2) roadAt = at >= 18 ? at - 3 : at + 3;
     return { river, at, forward, road: road2, roadAt };
   }
-  function crossings(seed, world, cx, cy) {
-    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world.cols) + ":" + cy), S2 = edgeRoll(seed, "h:" + cx + ":" + cy), N3 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world.rows));
+  function crossings(seed, world2, cx, cy) {
+    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world2.cols) + ":" + cy), S2 = edgeRoll(seed, "h:" + cx + ":" + cy), N3 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world2.rows));
     return [
       { side: "east", river: E2.river, road: E2.road, inflow: !E2.forward, x: W - 1, y: E2.at, x2: W - 1, y2: E2.roadAt },
       { side: "west", river: Wst.river, road: Wst.road, inflow: Wst.forward, x: 0, y: Wst.at, x2: 0, y2: Wst.roadAt },
@@ -7435,17 +7435,17 @@
 
   // src/rules/worldgen.js
   var heightCache = {};
-  function genTerrain(seed, world, cx, cy, biome, rT) {
-    const n1 = worldNoise(seed, world, 5, 1), n2 = worldNoise(seed, world, 11, 2), n3 = worldNoise(seed, world, 8, 3), jit = worldNoise(seed, world, W, 4), ht = (gx, gy) => n1(gx, gy) * 0.65 + n2(gx, gy) * 0.3 + jit(gx, gy) * 0.05, gx0 = cx * W, gy0 = cy * H, hts = [];
+  function genTerrain(seed, world2, cx, cy, biome, rT) {
+    const n1 = worldNoise(seed, world2, 5, 1), n2 = worldNoise(seed, world2, 11, 2), n3 = worldNoise(seed, world2, 8, 3), jit = worldNoise(seed, world2, W, 4), ht = (gx, gy) => n1(gx, gy) * 0.65 + n2(gx, gy) * 0.3 + jit(gx, gy) * 0.05, gx0 = cx * W, gy0 = cy * H, hts = [];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) hts.push(ht(gx0 + x, gy0 + y));
-    const key = seed + ":" + world.cols + "x" + world.rows;
+    const key = seed + ":" + world2.cols + "x" + world2.rows;
     if (!heightCache[key]) {
       const all = [];
-      for (let gy = 0; gy < world.rows * H; gy += 2) for (let gx = 0; gx < world.cols * W; gx += 2) all.push(ht(gx, gy));
+      for (let gy = 0; gy < world2.rows * H; gy += 2) for (let gx = 0; gx < world2.cols * W; gx += 2) all.push(ht(gx, gy));
       heightCache[key] = all.sort((a, b) => a - b);
     }
     const sorted = heightCache[key], q = (f) => sorted[clamp(Math.floor(f * sorted.length), 0, sorted.length - 1)];
-    const M2 = 6, bio = (dx, dy) => byId(C.biomes, world.sketch[wrap(cy + dy, world.rows) * world.cols + wrap(cx + dx, world.cols)].biome), lean = (v, n) => v < M2 ? [-1, 0.5 * (1 - (v + 0.5) / M2)] : v >= n - M2 ? [1, 0.5 * (1 - (n - v - 0.5) / M2)] : [0, 0], mix = (x, y, f) => {
+    const M3 = 6, bio = (dx, dy) => byId(C.biomes, world2.sketch[wrap(cy + dy, world2.rows) * world2.cols + wrap(cx + dx, world2.cols)].biome), lean = (v, n) => v < M3 ? [-1, 0.5 * (1 - (v + 0.5) / M3)] : v >= n - M3 ? [1, 0.5 * (1 - (n - v - 0.5) / M3)] : [0, 0], mix = (x, y, f) => {
       const [sx, wx] = lean(x, W), [sy, wy] = lean(y, H);
       if (!wx && !wy) return f(biome);
       return f(biome) * (1 - wx) * (1 - wy) + f(bio(sx, 0)) * wx * (1 - wy) + f(bio(0, sy)) * (1 - wx) * wy + f(bio(sx, sy)) * wx * wy;
@@ -7466,13 +7466,13 @@
       terrain[i] = 4;
       elev[i] = -0.5;
     }, run = (x, y, uphill, steps) => {
-      for (let step = 0; step < steps; step++) {
+      for (let step2 = 0; step2 < steps; step2++) {
         const i = idx(x, y);
         seenR[i] = 1;
-        if (step > 0) {
+        if (step2 > 0) {
           if (uphill && terrain[i] === 2) break;
-          if (!uphill && terrain[i] === 5 && step > 6) break;
-          if (terrain[i] === 4 && step > 1) break;
+          if (!uphill && terrain[i] === 5 && step2 > 6) break;
+          if (terrain[i] === 4 && step2 > 1) break;
           carve(i);
         }
         let nb = null, nh = uphill ? -9 : 9;
@@ -7495,7 +7495,7 @@
         y = nb[1];
       }
     };
-    for (const p of crossings(seed, world, cx, cy)) {
+    for (const p of crossings(seed, world2, cx, cy)) {
       if (!p.river) continue;
       carve(idx(p.x, p.y), true);
       run(p.x, p.y, !p.inflow, p.inflow ? 36 : 24);
@@ -7629,11 +7629,11 @@
     }
     const habit = byId(C.civ.habit, civ.habit), age = byId(C.civ.age, civ.age), doom = byId(C.civ.doom, civ.doom);
     for (const f of TUNERS) f(seed, tun, off, year, set);
-    const world = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
-    if (tun.world.shape) world.shape = tun.world.shape;
-    for (const f of SKETCHERS) f(seed, world, off, set);
-    biome = byId(C.biomes, world.sketch[world.home.cy * world.cols + world.home.cx].biome);
-    const { terrain, elev } = genTerrain(seed, world, world.home.cx, world.home.cy, biome, rT);
+    const world2 = makeSketch(seed, tun.world.cols, tun.world.rows, biome.id);
+    if (tun.world.shape) world2.shape = tun.world.shape;
+    for (const f of SKETCHERS) f(seed, world2, off, set);
+    biome = byId(C.biomes, world2.sketch[world2.home.cy * world2.cols + world2.home.cx].biome);
+    const { terrain, elev } = genTerrain(seed, world2, world2.home.cx, world2.home.cy, biome, rT);
     const sx = 17 + Math.floor(rL() * 3), sy = 17 + Math.floor(rL() * 3), a0 = rL() * 6.283;
     const polar = (ang, rad) => ({
       x: clamp(Math.round(sx + Math.cos(ang) * rad), 2, W - 3),
@@ -7681,7 +7681,7 @@
     place(4, () => ({ kind: "cave", searched: false, loot: rS() < 0.4 }), 1);
     place(4, cacheSite(rS));
     place(1, () => ({ kind: "shrine" }));
-    const road2 = finishSites(sites, habit, doom, rR, crossings(seed, world, world.home.cx, world.home.cy));
+    const road2 = finishSites(sites, habit, doom, rR, crossings(seed, world2, world2.home.cx, world2.home.cy));
     const s = {
       v: VERSION,
       seed,
@@ -7708,9 +7708,9 @@
       char: null,
       travellers: 1,
       lostMaps: {},
-      world,
+      world: world2,
       area: HOME,
-      areas: { [HOME]: { id: HOME, kind: "region", cx: world.home.cx, cy: world.home.cy, biome: biome.id, visited: true } },
+      areas: { [HOME]: { id: HOME, kind: "region", cx: world2.home.cx, cy: world2.home.cy, biome: biome.id, visited: true } },
       offer: null,
       time: 0,
       weather: { storm: false, changeAt: 0 },
@@ -8434,15 +8434,15 @@
       C.creature.prefix[id] = b.prefix;
     }
   }
-  SKETCHERS.push((seed, world, off) => {
+  SKETCHERS.push((seed, world2, off) => {
     if (off.biomegen) return;
     ensureBiomes(seed);
     const r = stream(seed, "biomegen:sketch"), X8 = G();
-    for (let cy = 0; cy < world.rows; cy++)
-      for (let cx = 0; cx < world.cols; cx++) {
-        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X8.perWorld);
+    for (let cy = 0; cy < world2.rows; cy++)
+      for (let cx = 0; cx < world2.cols; cx++) {
+        const home = cx === world2.home.cx && cy === world2.home.cy, roll2 = r(), which = Math.floor(r() * X8.perWorld);
         if (roll2 < (home ? X8.homeChance : X8.regionChance))
-          world.sketch[cy * world.cols + cx].biome = ofSeed(seed) + (home ? 0 : which);
+          world2.sketch[cy * world2.cols + cx].biome = ofSeed(seed) + (home ? 0 : which);
       }
   });
   LOADERS.push((s) => {
@@ -9593,14 +9593,14 @@
       s.cause = null;
     }
   });
-  function setGodMode(s, on2) {
-    s.godMode = !!on2;
-    if (on2) s.cheated = true;
-    if (s.combat && on2) s.combat = null;
+  function setGodMode(s, on3) {
+    s.godMode = !!on3;
+    if (on3) s.cheated = true;
+    if (s.combat && on3) s.combat = null;
     say(
       s,
-      on2 ? "God mode: nothing can see you, hurt you or stop you." : "God mode is off. You are mortal again.",
-      on2 ? "good" : ""
+      on3 ? "God mode: nothing can see you, hurt you or stop you." : "God mode is off. You are mortal again.",
+      on3 ? "good" : ""
     );
     return true;
   }
@@ -9822,7 +9822,7 @@
         [-1, 0],
         [0, -1]
       ];
-      for (let step = 0; step < 4e3 && dug < W * H * 0.3; step++) {
+      for (let step2 = 0; step2 < 4e3 && dug < W * H * 0.3; step2++) {
         if (t[idx(x, y)] === WALL) dug++;
         t[idx(x, y)] = FLOOR;
         if (r() < 0.12) dir = (dir + (r() < 0.5 ? 1 : 3)) % 4;
@@ -9856,9 +9856,9 @@
       while (x !== b.cx) x += Math.sign(b.cx - x), dig2();
     }
   }
-  function distFrom(t, start2) {
-    const dist = blank2(-1), q = [start2];
-    dist[start2] = 0;
+  function distFrom(t, start3) {
+    const dist = blank2(-1), q = [start3];
+    dist[start3] = 0;
     for (let h = 0; h < q.length; h++) {
       const i = q[h], x = i % W, y = Math.floor(i / W);
       for (const j of [i + 1, i - 1, i + W, i - W]) {
@@ -9904,25 +9904,25 @@
   GENERATORS.deep = (s, rec) => {
     const d = deepById(s, rec.deep), th = byId(D2().themes, rec.theme), r = stream(s.seed, "area:" + rec.id), lvl = rec.level, last2 = lvl === rec.levels;
     let terrain = LAYOUTS[th.layout](r);
-    let start2 = -1;
-    for (let rad = 0; rad < W && start2 < 0; rad++)
-      for (let j = -rad; j <= rad && start2 < 0; j++)
-        for (let i = -rad; i <= rad && start2 < 0; i++) {
+    let start3 = -1;
+    for (let rad = 0; rad < W && start3 < 0; rad++)
+      for (let j = -rad; j <= rad && start3 < 0; j++)
+        for (let i = -rad; i <= rad && start3 < 0; i++) {
           const x = 18 + i + Math.floor((r() - 0.5) * 8 * (rad > 3 ? 0 : 1)), y = 18 + j;
-          if (inner(x, y) && terrain[idx(x, y)] === FLOOR) start2 = idx(x, y);
+          if (inner(x, y) && terrain[idx(x, y)] === FLOOR) start3 = idx(x, y);
         }
-    if (start2 < 0) {
-      start2 = idx(18, 18);
-      terrain[start2] = FLOOR;
+    if (start3 < 0) {
+      start3 = idx(18, 18);
+      terrain[start3] = FLOOR;
     }
-    let dist = distFrom(terrain, start2);
+    let dist = distFrom(terrain, start3);
     const floors = [];
     for (let i = 0; i < W * H; i++) if (dist[i] >= 0) floors.push(i);
-    start2 = floors.reduce((a, b) => dist[b] > dist[a] ? b : a, start2);
-    if (lvl % 2 === 0) start2 = floors[Math.floor(r() * floors.length)];
-    dist = distFrom(terrain, start2);
+    start3 = floors.reduce((a, b) => dist[b] > dist[a] ? b : a, start3);
+    if (lvl % 2 === 0) start3 = floors[Math.floor(r() * floors.length)];
+    dist = distFrom(terrain, start3);
     for (let i = 0; i < W * H; i++) if (dist[i] < 0) terrain[i] = WALL;
-    const far = floors.filter((i) => dist[i] >= 0).reduce((a, b) => dist[b] > dist[a] ? b : a, start2), sites = {}, depots = {}, creatures = [], taken = (i) => sites[i] || depots[i] || creatures.some((c) => idx(c.x, c.y) === i) || i === start2;
+    const far = floors.filter((i) => dist[i] >= 0).reduce((a, b) => dist[b] > dist[a] ? b : a, start3), sites = {}, depots = {}, creatures = [], taken = (i) => sites[i] || depots[i] || creatures.some((c) => idx(c.x, c.y) === i) || i === start3;
     const open = floors.filter((i) => dist[i] >= 0), spot2 = (minD) => {
       for (let t = 0; t < 60; t++) {
         const i = open[Math.floor(r() * open.length)];
@@ -9930,9 +9930,9 @@
       }
       return null;
     };
-    const up = [start2 - W, start2 + W, start2 - 1, start2 + 1].find((i) => terrain[i] === FLOOR) || start2;
+    const up = [start3 - W, start3 + W, start3 - 1, start3 + 1].find((i) => terrain[i] === FLOOR) || start3;
     sites[up] = { kind: lvl === 1 ? "exit" : "stairsUp" };
-    rec.entry = { x: start2 % W, y: Math.floor(start2 / W) };
+    rec.entry = { x: start3 % W, y: Math.floor(start3 / W) };
     const sp = themeSpecies(s, th, r);
     let cid = D2().idBase + (+d.id.slice(1) || 0) * 4e4 + lvl * 40;
     const tierAt = Math.min(D2().maxTier, Math.round(th.tier[0] + th.tier[1] * (lvl - 1))), put = (spi, i, tier) => {
@@ -10435,9 +10435,9 @@
     }
     return all[kd.id] || [];
   }
-  function reach(t, start2) {
-    const d = blank3(-1), q = [start2];
-    d[start2] = 0;
+  function reach(t, start3) {
+    const d = blank3(-1), q = [start3];
+    d[start3] = 0;
     for (let h = 0; h < q.length; h++) {
       const i = q[h];
       for (const j of [i + 1, i - 1, i + W, i - W]) {
@@ -10452,22 +10452,22 @@
   }
   GENERATORS.sky = (s, rec) => {
     const k = skyById(s, rec.sky), kd = byId(K().kinds, rec.place), r = stream(s.seed, "area:" + rec.id), lvl = rec.level, top = lvl === rec.levels, terrain = LAYOUTS2[kd.layout](r, lvl), sites = {}, depots = {}, creatures = [];
-    let start2 = -1;
-    for (let y = H - 2; y > 0 && start2 < 0; y--)
-      for (let x = 14; x <= 22 && start2 < 0; x++) if (terrain[idx(x, y)] === FLOOR) start2 = idx(x, y);
-    const dist = reach(terrain, start2);
+    let start3 = -1;
+    for (let y = H - 2; y > 0 && start3 < 0; y--)
+      for (let x = 14; x <= 22 && start3 < 0; x++) if (terrain[idx(x, y)] === FLOOR) start3 = idx(x, y);
+    const dist = reach(terrain, start3);
     for (let i = 0; i < W * H; i++) if (terrain[i] === FLOOR && dist[i] < 0) terrain[i] = VOID;
     const open = [];
     for (let i = 0; i < W * H; i++) if (dist[i] >= 0) open.push(i);
-    const far = open.reduce((a, b) => dist[b] > dist[a] ? b : a, start2), taken = (i) => sites[i] || depots[i] || i === start2 || creatures.some((c) => idx(c.x, c.y) === i), spot2 = (minD) => {
+    const far = open.reduce((a, b) => dist[b] > dist[a] ? b : a, start3), taken = (i) => sites[i] || depots[i] || i === start3 || creatures.some((c) => idx(c.x, c.y) === i), spot2 = (minD) => {
       for (let t = 0; t < 80; t++) {
         const i = open[Math.floor(r() * open.length)];
         if (!taken(i) && dist[i] >= minD) return i;
       }
       return null;
     };
-    sites[start2] = lvl === 1 ? { kind: "landing", seen: true } : { kind: "skyway", back: true, seen: true };
-    rec.entry = { x: start2 % W, y: Math.floor(start2 / W) };
+    sites[start3] = lvl === 1 ? { kind: "landing", seen: true } : { kind: "skyway", back: true, seen: true };
+    rec.entry = { x: start3 % W, y: Math.floor(start3 / W) };
     if (!top) sites[far] = { kind: "skyway", seen: true };
     const sp = placeSpecies(s, kd, r);
     let cid = 3e4 + (+k.id.slice(1) || 0) * 400 + lvl * 40;
@@ -10685,11 +10685,11 @@
   NOTES.push((s) => {
     const ks = skiesOf(s);
     if (!ks.length) return [];
-    const seen2 = ks.filter((k) => k.reached);
+    const seen3 = ks.filter((k) => k.reached);
     return [
       {
         label: "The sky",
-        text: (seen2.length ? "You have walked on " + seen2.map((k) => k.name).join(", ") + ". " : "") + "Something floats above this world: look for a shadow with no cloud to cast it." + (s.skyShop ? " A shop in one of the towns sells a way to fly." : "")
+        text: (seen3.length ? "You have walked on " + seen3.map((k) => k.name).join(", ") + ". " : "") + "Something floats above this world: look for a shadow with no cloud to cast it." + (s.skyShop ? " A shop in one of the towns sells a way to fly." : "")
       }
     ];
   });
@@ -10738,29 +10738,29 @@
       if ((s.breatheUntil || 0) > s.time) out.push({ stat: "breathe", op: "add", value: 1 });
     }
   });
-  SKETCHERS.push((seed, world, off, set) => {
+  SKETCHERS.push((seed, world2, off, set) => {
     if (off.sea) return;
     const r = stream(seed, "sea"), chance = set ? set.sea : S().chance;
     if (!(r() < (chance === void 0 ? 0.4 : chance))) return;
-    const at = (cx, cy) => world.sketch[cy * world.cols + cx], far = [];
-    for (let cy = 0; cy < world.rows; cy++)
-      for (let cx = 0; cx < world.cols; cx++) if (at(cx, cy).danger >= 2) far.push({ cx, cy });
+    const at = (cx, cy) => world2.sketch[cy * world2.cols + cx], far = [];
+    for (let cy = 0; cy < world2.rows; cy++)
+      for (let cx = 0; cx < world2.cols; cx++) if (at(cx, cy).danger >= 2) far.push({ cx, cy });
     if (!far.length) return;
-    const [lo, hi] = S().regions, want = lo + Math.floor(r() * (hi - lo + 1)), start2 = far[Math.floor(r() * far.length)], patch = [start2];
+    const [lo, hi] = S().regions, want = lo + Math.floor(r() * (hi - lo + 1)), start3 = far[Math.floor(r() * far.length)], patch = [start3];
     for (let t = 0; t < 40 && patch.length < want; t++) {
       const p = patch[Math.floor(r() * patch.length)], d = [
         [1, 0],
         [-1, 0],
         [0, 1],
         [0, -1]
-      ][Math.floor(r() * 4)], q = { cx: wrap(p.cx + d[0], world.cols), cy: wrap(p.cy + d[1], world.rows) };
+      ][Math.floor(r() * 4)], q = { cx: wrap(p.cx + d[0], world2.cols), cy: wrap(p.cy + d[1], world2.rows) };
       if (at(q.cx, q.cy).danger >= 2 && !patch.some((o) => o.cx === q.cx && o.cy === q.cy)) patch.push(q);
     }
     for (const p of patch) {
       at(p.cx, p.cy).biome = "sea";
       at(p.cx, p.cy).sea = true;
     }
-    world.sea = patch.length;
+    world2.sea = patch.length;
   });
   function distTo(terrain, isLand, most) {
     const d = new Array(W * H).fill(most);
@@ -10951,9 +10951,9 @@
     rooms: LAYOUTS.rooms,
     caves: LAYOUTS.caves
   };
-  function reach2(t, start2) {
-    const d = blank4(-1), q = [start2];
-    d[start2] = 0;
+  function reach2(t, start3) {
+    const d = blank4(-1), q = [start3];
+    d[start3] = 0;
     for (let h = 0; h < q.length; h++) {
       const i = q[h];
       for (const j of [i + 1, i - 1, i + W, i - W]) {
@@ -10985,30 +10985,30 @@
   GENERATORS.sea = (s, rec) => {
     const p = placeById(s, rec.water), kd = kindOf2(p.kind), r = stream(s.seed, "area:" + rec.id), lvl = rec.level, last2 = lvl === rec.levels;
     const terrain = LAYOUTS3[kd.layout](r);
-    let start2 = -1;
-    for (let rad = 0; rad < W && start2 < 0; rad++)
-      for (let j = -rad; j <= rad && start2 < 0; j++)
-        for (let i = -rad; i <= rad && start2 < 0; i++)
+    let start3 = -1;
+    for (let rad = 0; rad < W && start3 < 0; rad++)
+      for (let j = -rad; j <= rad && start3 < 0; j++)
+        for (let i = -rad; i <= rad && start3 < 0; i++)
           if (terrain[idx(18 + i, 26 + j - (kd.layout === "raft" ? 0 : 8))] === FLOOR)
-            start2 = idx(18 + i, 26 + j - (kd.layout === "raft" ? 0 : 8));
-    if (start2 < 0) {
-      start2 = idx(18, 18);
-      terrain[start2] = FLOOR;
+            start3 = idx(18 + i, 26 + j - (kd.layout === "raft" ? 0 : 8));
+    if (start3 < 0) {
+      start3 = idx(18, 18);
+      terrain[start3] = FLOOR;
     }
-    const dist = reach2(terrain, start2), gap = kd.layout === "raft" ? VOID : WALL;
+    const dist = reach2(terrain, start3), gap = kd.layout === "raft" ? VOID : WALL;
     for (let i = 0; i < W * H; i++) if (terrain[i] === FLOOR && dist[i] < 0) terrain[i] = gap;
     const open = [];
     for (let i = 0; i < W * H; i++) if (dist[i] >= 0) open.push(i);
-    const far = open.reduce((a, b) => dist[b] > dist[a] ? b : a, start2), sites = {}, depots = {}, creatures = [], taken = (i) => sites[i] || depots[i] || i === start2 || creatures.some((c) => idx(c.x, c.y) === i), spot2 = (minD) => {
+    const far = open.reduce((a, b) => dist[b] > dist[a] ? b : a, start3), sites = {}, depots = {}, creatures = [], taken = (i) => sites[i] || depots[i] || i === start3 || creatures.some((c) => idx(c.x, c.y) === i), spot2 = (minD) => {
       for (let t = 0; t < 80; t++) {
         const i = open[Math.floor(r() * open.length)];
         if (!taken(i) && dist[i] >= minD) return i;
       }
       return null;
     };
-    const up = [start2 - W, start2 + W, start2 - 1, start2 + 1].find((i) => terrain[i] === FLOOR) || start2;
+    const up = [start3 - W, start3 + W, start3 - 1, start3 + 1].find((i) => terrain[i] === FLOOR) || start3;
     sites[up] = { kind: lvl === 1 ? "exit" : "stairsUp" };
-    rec.entry = { x: start2 % W, y: Math.floor(start2 / W) };
+    rec.entry = { x: start3 % W, y: Math.floor(start3 / W) };
     if (!last2) sites[far] = { kind: "stairsDown" };
     const sp = seaSpecies(s, kd, r);
     let cid = 4e4 + Math.abs(hashId(p.id)) % 500 * 40 + lvl * 8;
@@ -11174,14 +11174,14 @@
     return null;
   }
   function makeRealm(s, n, off, set) {
-    const r = stream(s.seed, "realm:" + n), id = "o" + (n + 1), seed = Math.floor(r() * 4294967295) >>> 0 || 7, [cols, rows] = X4().sizes[Math.floor(r() * X4().sizes.length)], usual = C.biomes.filter((b) => !b.gen && !b.sea), world = makeSketch(seed, cols, rows, usual[Math.floor(r() * usual.length)].id);
-    for (const f of SKETCHERS) f(seed, world, off, set);
+    const r = stream(s.seed, "realm:" + n), id = "o" + (n + 1), seed = Math.floor(r() * 4294967295) >>> 0 || 7, [cols, rows] = X4().sizes[Math.floor(r() * X4().sizes.length)], usual = C.biomes.filter((b) => !b.gen && !b.sea), world2 = makeSketch(seed, cols, rows, usual[Math.floor(r() * usual.length)].id);
+    for (const f of SKETCHERS) f(seed, world2, off, set);
     if (!off.biomegen && C.biomeGen) {
       ensureBiomes(seed);
-      for (const e of world.sketch)
+      for (const e of world2.sketch)
         if (!e.sea && r() < X4().genChance) e.biome = "g" + (seed >>> 0) + "_" + Math.floor(r() * C.biomeGen.perWorld);
     }
-    const used = realmsOf(s).map((o) => o.name), names = X4().names.filter((nm) => !used.includes(nm)), realm = { id, seed, world, name: names[Math.floor(r() * names.length)] || "Elsewhere" };
+    const used = realmsOf(s).map((o) => o.name), names = X4().names.filter((nm) => !used.includes(nm)), realm = { id, seed, world: world2, name: names[Math.floor(r() * names.length)] || "Elsewhere" };
     s.realms = s.realms || {};
     s.realms[id] = realm;
     if (!off.regionrares && C.regionRares) {
@@ -11353,9 +11353,9 @@
     (h[areaId] = h[areaId] || []).push(thing);
   }
   var heldIn = (s, areaId) => s.held && s.held[areaId] || [];
-  function reachFrom(m, start2) {
-    const d = new Array(W * H).fill(-1), open = (t) => t === FLOOR || t < WALL, q = [start2];
-    d[start2] = 0;
+  function reachFrom(m, start3) {
+    const d = new Array(W * H).fill(-1), open = (t) => t === FLOOR || t < WALL, q = [start3];
+    d[start3] = 0;
     for (let h = 0; h < q.length; h++) {
       const i = q[h];
       for (const j of [i + 1, i - 1, i + W, i - W]) {
@@ -12444,12 +12444,12 @@
   });
   ACTIONS.push((s, st, a) => {
     if (s.combat || s.off.plots) return;
-    for (const { p, st: step } of plotHere(s)) {
-      const who = step.who && p.roles[step.who];
+    for (const { p, st: step2 } of plotHere(s)) {
+      const who = step2.who && p.roles[step2.who];
       a.push({
         id: "plotAct",
         arg: p.id,
-        label: step.do === "free" ? (step.water ? "Share water with " : "Free ") + who.name : "Use the " + carrying2(s, p, step.what).label.toLowerCase(),
+        label: step2.do === "free" ? (step2.water ? "Share water with " : "Free ") + who.name : "Use the " + carrying2(s, p, step2.what).label.toLowerCase(),
         hint: kindOf4(p).name.toLowerCase()
       });
     }
@@ -13265,7 +13265,7 @@
           }
         lv[y * EW + x] = 0.55 * land2.elev[y * EW + x] + 0.45 * a / n;
       }
-    const level = field(lv, true);
+    const level2 = field(lv, true);
     const mask = (type) => {
       const g = new Float32Array(EW * EW);
       for (let i = 0; i < EW * EW; i++) g[i] = land2.terrain[i] === type || type === 4 && land2.terrain[i] === R.DEEP ? 1 : 0;
@@ -13294,7 +13294,7 @@
     });
     yield;
     const raw = (x, z) => {
-      const l = level(x, z);
+      const l = level2(x, z);
       return (l <= 1 ? l * 15 : 15 + (l - 1) * 34) + 14 * nBig(x, z) + 7 * nMid(x, z) * Math.max(0.15, 0.4 + l * 0.6) + 1.6 * nFine(x, z);
     };
     const grid = function* (n, half, cell, hole) {
@@ -13334,7 +13334,7 @@
       const gx = R.wrap(land2.cx * R.W + x, s.world.cols * R.W), gy = R.wrap(land2.cy * R.H + y, s.world.rows * R.H);
       return mulberry2(s.seed ^ Math.imul(gx + 1, 374761393) ^ Math.imul(gy + 1, 668265263) ^ Math.imul(salt, 2246822519) | 0);
     };
-    return { land: land2, fine, coarse, height, level, tint, masks, roadAt, share, tileRand, etile, tileOf, inside: inside2 };
+    return { land: land2, fine, coarse, height, level: level2, tint, masks, roadAt, share, tileRand, etile, tileOf, inside: inside2 };
   }
 
   // src/view/perf.js
@@ -14229,12 +14229,12 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     K2.lamps.push(x + 0.6, 2.85, z);
   }
   function blocks(map, walled) {
-    const W2 = R.W, H2 = R.H, T2 = map.terrain, seen2 = new Uint8Array(W2 * H2), out = [], ring = (x, y) => walled && (x === 0 || y === 0 || x === W2 - 1 || y === H2 - 1);
+    const W2 = R.W, H2 = R.H, T2 = map.terrain, seen3 = new Uint8Array(W2 * H2), out = [], ring = (x, y) => walled && (x === 0 || y === 0 || x === W2 - 1 || y === H2 - 1);
     for (let i = 0; i < W2 * H2; i++) {
       const x0 = i % W2, y0 = Math.floor(i / W2);
-      if (seen2[i] || T2[i] !== R.WALL || ring(x0, y0)) continue;
+      if (seen3[i] || T2[i] !== R.WALL || ring(x0, y0)) continue;
       const b = { x0, y0, x1: x0, y1: y0 }, stack = [i];
-      seen2[i] = 1;
+      seen3[i] = 1;
       while (stack.length) {
         const k = stack.pop(), x = k % W2, y = Math.floor(k / W2);
         b.x0 = Math.min(b.x0, x);
@@ -14248,8 +14248,8 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
           [0, -1]
         ]) {
           const nx = x + dx, ny = y + dy, n = ny * W2 + nx;
-          if (nx < 0 || ny < 0 || nx >= W2 || ny >= H2 || seen2[n] || T2[n] !== R.WALL || ring(nx, ny)) continue;
-          seen2[n] = 1;
+          if (nx < 0 || ny < 0 || nx >= W2 || ny >= H2 || seen3[n] || T2[n] !== R.WALL || ring(nx, ny)) continue;
+          seen3[n] = 1;
           stack.push(n);
         }
       }
@@ -14284,8 +14284,8 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     }
     if (walled) outerWall(K2, st, r, map, ts, at);
     const open = (x, y) => x >= 0 && y >= 0 && x < W2 && y < W2 && T2[y * W2 + x] !== R.WALL && !map.sites[y * W2 + x];
-    const step = Math.max(2, Math.round(5 / Math.max(0.3, st.lanterns)));
-    for (let i = 3; i < W2 - 3; i += step)
+    const step2 = Math.max(2, Math.round(5 / Math.max(0.3, st.lanterns)));
+    for (let i = 3; i < W2 - 3; i += step2)
       for (const [x, y] of [
         [c - 2, i],
         [c + 2, i],
@@ -14930,10 +14930,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       const g = a.g, dx = a.to.x - g.position.x, dz = a.to.z - g.position.z, d = Math.hypot(dx, dz);
       let moving = false;
       if (d > 0.08 && !still2) {
-        const step = Math.min(d, a.speed * dt);
-        g.position.x += dx / d * step;
-        g.position.z += dz / d * step;
-        g.position.y += (a.to.y - g.position.y) * Math.min(1, step / d * 1.5);
+        const step2 = Math.min(d, a.speed * dt);
+        g.position.x += dx / d * step2;
+        g.position.z += dz / d * step2;
+        g.position.y += (a.to.y - g.position.y) * Math.min(1, step2 / d * 1.5);
         moving = true;
         a.yaw += angDiff(a.yaw, Math.atan2(dx, dz)) * Math.min(1, dt * 8);
       } else {
@@ -16279,9 +16279,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       g.position.set(x, y, z);
       dynGroup.add(g);
       if (actorsOn()) {
-        const hurt2 = HP.has(c.id) && c.hp < HP.get(c.id);
+        const hurt3 = HP.has(c.id) && c.hp < HP.get(c.id);
         HP.set(c.id, c.hp);
-        track(g, g.children[0], { key: "c:" + c.id, speed: 4.5, fight: fighting, hurt: hurt2, near: indoor ? 30 : 120 });
+        track(g, g.children[0], { key: "c:" + c.id, speed: 4.5, fight: fighting, hurt: hurt3, near: indoor ? 30 : 120 });
       }
     }
     if (camp !== null) {
@@ -16394,16 +16394,16 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     return m;
   }
   function updateSky(skyColor, sunPos, day, storm, dt) {
-    const on2 = Q.sky && !R.isDark(V.S);
-    if (on2 && !dome) {
+    const on3 = Q.sky && !R.isDark(V.S);
+    if (on3 && !dome) {
       dome = makeDome();
       sunDisc = disc(70, 16773832);
       moonDisc = disc(40, 14673648);
       scene.add(dome, sunDisc, moonDisc);
     }
     if (dome) {
-      dome.visible = sunDisc.visible = moonDisc.visible = on2;
-      if (on2) {
+      dome.visible = sunDisc.visible = moonDisc.visible = on3;
+      if (on3) {
         dome.position.copy(camera.position);
         paintDome(skyColor, sunPos, day, storm);
         const d = sunPos.clone().normalize().multiplyScalar(SKY_R * 0.95);
@@ -16501,6 +16501,371 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     hemi.groundColor.setHex(lookOn("light") ? 2761760 : 5920076);
   }
 
+  // src/view/sound.js
+  LOOK_SWITCHES.push(["sound", "Sound and music"]);
+  if (SET.music === void 0) SET.music = 0.55;
+  if (SET.sfx === void 0) SET.sfx = 0.8;
+  var A2 = null;
+  var master;
+  var musicBus;
+  var sfxBus;
+  var verb;
+  var NOISE;
+  var on2 = () => lookOn("sound") && !SET.mute;
+  function start() {
+    if (A2) {
+      if (A2.state === "suspended" && !document.hidden) A2.resume();
+      return;
+    }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC || !on2()) return;
+    A2 = new AC();
+    master = A2.createGain();
+    master.gain.value = 0.9;
+    master.connect(A2.destination);
+    musicBus = A2.createGain();
+    sfxBus = A2.createGain();
+    musicBus.connect(master);
+    sfxBus.connect(master);
+    verb = A2.createConvolver();
+    const len = Math.floor(A2.sampleRate * 2.6), ir = A2.createBuffer(2, len, A2.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+    }
+    verb.buffer = ir;
+    const wet = A2.createGain();
+    wet.gain.value = 0.55;
+    verb.connect(wet);
+    wet.connect(musicBus);
+    NOISE = A2.createBuffer(1, A2.sampleRate * 2, A2.sampleRate);
+    const nd = NOISE.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    makeAmbience();
+    volumes();
+  }
+  function volumes() {
+    if (!A2) return;
+    const t = A2.currentTime;
+    musicBus.gain.setTargetAtTime(on2() ? SET.music * 0.5 : 0, t, 0.3);
+    sfxBus.gain.setTargetAtTime(on2() ? SET.sfx : 0, t, 0.1);
+  }
+  ["pointerdown", "keydown", "touchstart"].forEach((e) => document.addEventListener(e, start, { passive: true }));
+  document.addEventListener("visibilitychange", () => {
+    if (!A2) return;
+    if (document.hidden) A2.suspend();
+    else if (on2()) A2.resume();
+  });
+  LOOK_CHANGED.push((id) => {
+    if (id !== "sound") return;
+    if (on2()) start();
+    volumes();
+  });
+  function setVolume(kind2, v) {
+    if (kind2 === "mute") SET.mute = !!v;
+    else SET[kind2] = v;
+    saveSettings();
+    if (on2()) start();
+    volumes();
+  }
+  var env = (g, t, a, peak, d) => {
+    g.gain.setValueAtTime(1e-4, t);
+    g.gain.linearRampToValueAtTime(peak, t + a);
+    g.gain.exponentialRampToValueAtTime(1e-4, t + a + d);
+  };
+  var mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  function bell(t, m, vel, out) {
+    for (const [mul, k] of [
+      [1, 1],
+      [2.76, 0.3],
+      [5.4, 0.08]
+    ]) {
+      const o = A2.createOscillator(), g = A2.createGain();
+      o.frequency.value = mtof(m) * mul;
+      env(g, t, 5e-3, vel * k, 2.8 / mul);
+      o.connect(g).connect(out);
+      o.start(t);
+      o.stop(t + 3.2);
+    }
+  }
+  function pluck(t, m, vel, out) {
+    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain();
+    o.type = "triangle";
+    o.frequency.value = mtof(m);
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(mtof(m) * 6, t);
+    f.frequency.exponentialRampToValueAtTime(mtof(m) * 1.2, t + 0.6);
+    env(g, t, 4e-3, vel, 1.1);
+    o.connect(f).connect(g).connect(out);
+    o.start(t);
+    o.stop(t + 1.3);
+  }
+  function pad(t, m, vel, dur, out, wave) {
+    const f = A2.createBiquadFilter(), g = A2.createGain();
+    f.type = "lowpass";
+    f.frequency.value = Math.min(2400, mtof(m) * 3);
+    g.gain.setValueAtTime(1e-4, t);
+    g.gain.linearRampToValueAtTime(vel, t + dur * 0.4);
+    g.gain.linearRampToValueAtTime(1e-4, t + dur);
+    for (const det of [-7, 6]) {
+      const o = A2.createOscillator();
+      o.type = wave || "triangle";
+      o.frequency.value = mtof(m);
+      o.detune.value = det;
+      o.connect(f);
+      o.start(t);
+      o.stop(t + dur + 0.1);
+    }
+    f.connect(g).connect(out);
+  }
+  function drum(t, vel, out, pitch) {
+    const o = A2.createOscillator(), g = A2.createGain();
+    o.frequency.setValueAtTime(pitch || 110, t);
+    o.frequency.exponentialRampToValueAtTime((pitch || 110) * 0.45, t + 0.25);
+    env(g, t, 3e-3, vel, 0.35);
+    o.connect(g).connect(out);
+    o.start(t);
+    o.stop(t + 0.5);
+    noiseHit(t, vel * 0.25, 900, 0.08, out);
+  }
+  function noiseHit(t, vel, freq, dur, out, type, q) {
+    const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
+    s.buffer = NOISE;
+    f.type = type || "bandpass";
+    f.frequency.value = freq;
+    f.Q.value = q || 1;
+    env(g, t, 4e-3, vel, dur);
+    s.connect(f).connect(g).connect(out);
+    s.start(t, Math.random() * 1.5);
+    s.stop(t + dur + 0.05);
+  }
+  var MODES = {
+    dorian: [0, 2, 3, 5, 7, 9, 10],
+    aeolian: [0, 2, 3, 5, 7, 8, 10],
+    ionian: [0, 2, 4, 5, 7, 9, 11],
+    lydian: [0, 2, 4, 6, 7, 9, 11],
+    phrygian: [0, 1, 3, 5, 7, 8, 10],
+    mixolydian: [0, 2, 4, 5, 7, 9, 10],
+    penta: [0, 2, 4, 7, 9],
+    minpenta: [0, 3, 5, 7, 10]
+  };
+  var MOODS = {
+    day: { mode: "penta", root: 62, bar: 4.2, density: 0.45, lead: "bell", padWave: "triangle", drone: true },
+    night: { mode: "aeolian", root: 57, bar: 5.5, density: 0.25, lead: "bell", padWave: "sine", drone: true },
+    town: { mode: "ionian", root: 64, bar: 2.6, density: 0.7, lead: "pluck", padWave: "triangle", pulse: true },
+    deep: { mode: "phrygian", root: 50, bar: 6.5, density: 0.18, lead: "bell", padWave: "sine", drone: true, low: true },
+    sky: { mode: "lydian", root: 69, bar: 4.8, density: 0.4, lead: "bell", padWave: "sine" },
+    sea: { mode: "mixolydian", root: 60, bar: 5, density: 0.3, lead: "pluck", padWave: "sine", drone: true, swell: true },
+    storm: { mode: "minpenta", root: 55, bar: 5, density: 0.2, lead: "bell", padWave: "sawtooth", drone: true, low: true },
+    fight: { mode: "phrygian", root: 52, bar: 1.8, density: 0.6, lead: "pluck", padWave: "sawtooth", drums: true, low: true }
+  };
+  var BIOME_KEY = { salt: 2, moor: 0, taiga: -3 };
+  var M2 = { mood: null, root: 62, next: 0, deg: 0, bar: 0, gain: null, phrase: 0 };
+  function moodNow() {
+    const S2 = V.S;
+    if (!S2) return "day";
+    if (S2.combat) return "fight";
+    const look2 = R.levelLook(S2), rec = R.areaRec(S2);
+    if (look2) return look2.void && !look2.water ? "sky" : look2.water || rec.kind === "sea" ? "sea" : "deep";
+    if (rec.kind === "town") return "town";
+    if (R.aloft && R.aloft(S2)) return "sky";
+    if (S2.weather.storm) return "storm";
+    if (S2.player.swims || S2.terrain[S2.player.y * R.W + S2.player.x] === R.DEEP) return "sea";
+    const h = R.clock(S2).hour;
+    return h >= 20 || h < 5 ? "night" : "day";
+  }
+  function music(now) {
+    const mood = moodNow(), S2 = V.S;
+    if (mood !== M2.mood) {
+      const old = M2.gain;
+      if (old) {
+        old.gain.setTargetAtTime(0, now, 1.2);
+        setTimeout(() => old.disconnect(), 6e3);
+      }
+      M2.gain = A2.createGain();
+      M2.gain.gain.setValueAtTime(1e-4, now);
+      M2.gain.gain.setTargetAtTime(1, now, 1.5);
+      M2.gain.connect(musicBus);
+      M2.gain.connect(verb);
+      M2.mood = mood;
+      M2.next = Math.max(M2.next, now + 0.1);
+      M2.deg = 0;
+    }
+    const md = MOODS[mood], scale = MODES[md.mode], biome = S2 ? R.biomeOf(S2) : null, key = biome && (BIOME_KEY[biome.id] !== void 0 ? BIOME_KEY[biome.id] : (biome.name || "").length % 5) || 0, root = md.root + (mood === "fight" || mood === "deep" ? 0 : key), note = (d, oct) => root + 12 * (oct || 0) + scale[(d % scale.length + scale.length) % scale.length] + 12 * Math.floor(d / scale.length);
+    while (M2.next < now + 0.6) {
+      const t = M2.next, bar = md.bar, out = M2.gain;
+      M2.bar++;
+      if (md.drone && M2.bar % 2 === 1) pad(t, root - 12 - (md.low ? 12 : 0), 0.05, bar * 2.1, out, "sine");
+      const chord = [0, 2, 4].map((x) => note(x + (M2.phrase % 4 === 2 ? 3 : M2.phrase % 4 === 3 ? 4 : 0)));
+      if (M2.bar % 2 === 0 || md.swell) for (const n of chord) pad(t, n - 12, md.swell ? 0.035 : 0.028, bar * 1.9, out, md.padWave);
+      const steps = md.pulse ? 4 : md.drums ? 4 : 3;
+      for (let i = 0; i < steps; i++) {
+        if (Math.random() > md.density) continue;
+        const r = Math.random();
+        M2.deg += r < 0.35 ? 1 : r < 0.7 ? -1 : r < 0.85 ? 2 : -2;
+        if (M2.deg > 8) M2.deg -= 3;
+        if (M2.deg < -3) M2.deg += 3;
+        const tt = t + i * bar / steps + (md.pulse ? 0 : Math.random() * 0.15), n = note(M2.deg, md.low ? 0 : 1);
+        if (md.lead === "pluck") pluck(tt, n, 0.09, out);
+        else bell(tt, n, 0.06, out);
+      }
+      if (md.pulse) for (let i = 0; i < 4; i++) pluck(t + i * bar / 4, note(i % 2 ? 4 : 0, -1), 0.05, out);
+      if (md.drums) {
+        for (let i = 0; i < 4; i++)
+          if (i !== 3 || Math.random() < 0.5) drum(t + i * bar / 4, i === 0 ? 0.35 : 0.2, out, i === 0 ? 90 : 120);
+      }
+      if (M2.bar % 4 === 0) M2.phrase++;
+      M2.next += bar;
+    }
+  }
+  var AMB = {};
+  function loopNoise(type, freq, q) {
+    const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
+    s.buffer = NOISE;
+    s.loop = true;
+    f.type = type;
+    f.frequency.value = freq;
+    f.Q.value = q || 0.7;
+    g.gain.value = 0;
+    s.connect(f).connect(g).connect(sfxBus);
+    s.start();
+    return { f, g };
+  }
+  function makeAmbience() {
+    AMB.wind = loopNoise("bandpass", 500, 0.6);
+    AMB.rain = loopNoise("highpass", 2500, 0.5);
+    AMB.water = loopNoise("bandpass", 1100, 1.2);
+    AMB.bustle = loopNoise("bandpass", 380, 1.5);
+  }
+  var level = (n, v, k) => n.g.gain.setTargetAtTime(v, A2.currentTime, k || 0.6);
+  function waterNear(S2) {
+    if (R.levelLook(S2)) return 0;
+    const { x, y } = S2.player;
+    let best = 0;
+    for (let dy = -2; dy <= 2; dy++)
+      for (let dx = -2; dx <= 2; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= R.W || yy >= R.H) continue;
+        const i = yy * R.W + xx, st = S2.sites[i];
+        if (S2.terrain[i] === 4 || st && (st.kind === "spring" || st.kind === "pool" || st.kind === "well"))
+          best = Math.max(best, 1 - Math.hypot(dx, dy) / 3);
+      }
+    return best;
+  }
+  var gust = 0;
+  var lastWalk = 0;
+  var nextCall = 0;
+  var nextClink = 0;
+  var nextCrackle = 0;
+  var seen2 = { hp: null, chp: null, combat: false };
+  function world(now, dt) {
+    const S2 = V.S, look2 = R.levelLook(S2), rec = R.areaRec(S2), under2 = look2 && !look2.void, storm = S2.weather.storm ? R.stormOfNow(S2) : null, stormName = storm ? (storm.name || "").toLowerCase() : "", up = R.aloft && R.aloft(S2);
+    gust += dt * 0.3;
+    const w = under2 ? 0.01 : (0.035 + 0.025 * Math.sin(gust) * Math.sin(gust * 0.37)) * (storm ? 3 : 1) * (up ? 2.2 : 1);
+    level(AMB.wind, w, 1);
+    AMB.wind.f.frequency.setTargetAtTime(380 + 260 * (0.5 + 0.5 * Math.sin(gust * 0.7)) + (up ? 300 : 0), now, 1);
+    const wet = storm && !under2 && /rain|hail|storm|sleet/.test(stormName) && !/dust|sand|ash/.test(stormName);
+    level(AMB.rain, wet ? rec.kind === "town" ? 0.05 : 0.08 : 0, 1.2);
+    level(AMB.water, waterNear(S2) * 0.06, 0.8);
+    level(AMB.bustle, rec.kind === "town" ? 0.045 + 0.02 * Math.sin(now * 0.5) : 0, 1);
+    if (rec.kind === "town" && now > nextClink) {
+      nextClink = now + 1.5 + Math.random() * 4;
+      if (Math.random() < 0.5) noiseHit(now, 0.05, 2400 + Math.random() * 1200, 0.12, sfxBus, "bandpass", 8);
+      else pluck(now, 72 + Math.floor(Math.random() * 5) * 2, 0.02, sfxBus);
+    }
+    const camp = S2.camp && S2.camp.area === S2.area && Math.abs(S2.camp.i % R.W - S2.player.x) + Math.abs(Math.floor(S2.camp.i / R.W) - S2.player.y) <= 1;
+    if (camp && now > nextCrackle) {
+      nextCrackle = now + 0.05 + Math.random() * 0.4;
+      noiseHit(now, 0.03 + Math.random() * 0.05, 1800 + Math.random() * 3e3, 0.03, sfxBus, "highpass");
+    }
+    const stride = 1.7;
+    if (P3.walked - lastWalk > stride) {
+      lastWalk = P3.walked;
+      step(now, S2, look2);
+    } else if (P3.walked < lastWalk) lastWalk = P3.walked;
+    if (now > nextCall) {
+      nextCall = now + 6 + Math.random() * 10;
+      const c = S2.creatures.find((c2) => Math.abs(c2.x - S2.player.x) + Math.abs(c2.y - S2.player.y) <= 4 && !c2.bound);
+      if (c) call(now, R.spOf(S2, c).form, 0.08);
+    }
+    const cbt = S2.combat, foe2 = cbt && S2.creatures.find((c) => c.id === cbt.cid);
+    if (cbt && !seen2.combat && foe2) call(now, R.spOf(S2, foe2).form, 0.18);
+    seen2.combat = !!cbt;
+    if (seen2.hp !== null && S2.player.hp < seen2.hp) hurt2(now);
+    seen2.hp = S2.player.hp;
+    const chp = foe2 ? foe2.hp : null;
+    if (seen2.chp !== null && chp !== null && chp < seen2.chp) blow(now);
+    seen2.chp = chp;
+  }
+  function step(t, S2, look2) {
+    const ti = S2.player.y * R.W + S2.player.x, ter = S2.terrain[ti], b = R.biomeOf(S2), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", kind2 = R.areaRec(S2).kind;
+    let ground = "grass";
+    if (look2) ground = look2.kit === "planks" ? "wood" : look2.void && !look2.kit ? "grass" : "stone";
+    else if (kind2 === "town") ground = "stone";
+    else if (ter === 4 || ter === R.DEEP) ground = "water";
+    else if (climate === "cold") ground = "snow";
+    else if (climate === "hot" || climate === "ashen" || climate === "steppe") ground = "sand";
+    else if (ter === 2) ground = "stone";
+    const v = 0.05 + Math.random() * 0.02;
+    if (ground === "grass") noiseHit(t, v, 500 + Math.random() * 200, 0.09, sfxBus, "lowpass");
+    else if (ground === "sand") noiseHit(t, v, 2200 + Math.random() * 800, 0.1, sfxBus, "bandpass", 0.8);
+    else if (ground === "snow") {
+      noiseHit(t, v, 1500, 0.13, sfxBus, "bandpass", 2);
+      noiseHit(t + 0.03, v * 0.6, 3500, 0.06, sfxBus, "highpass");
+    } else if (ground === "water") noiseHit(t, v * 1.3, 900 + Math.random() * 400, 0.18, sfxBus, "bandpass", 3);
+    else if (ground === "wood") drum(t, v * 0.8, sfxBus, 180 + Math.random() * 30);
+    else noiseHit(t, v * 1.1, 3e3 + Math.random() * 1500, 0.04, sfxBus, "bandpass", 4);
+  }
+  function call(t, form, vel) {
+    if (form === "serpent") return noiseHit(t, vel * 0.8, 5e3, 0.9, sfxBus, "highpass");
+    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain(), [a, b, dur, type] = form === "hound" ? [440, 700, 1.4, "sawtooth"] : form === "brute" ? [90, 60, 0.7, "sawtooth"] : [220, 180, 2.2, "sine"];
+    o.type = type;
+    o.frequency.setValueAtTime(a, t);
+    o.frequency.linearRampToValueAtTime(b, t + dur * 0.4);
+    o.frequency.linearRampToValueAtTime(a * 0.8, t + dur);
+    f.type = "lowpass";
+    f.frequency.value = form === "brute" ? 500 : 1400;
+    env(g, t, dur * 0.25, vel, dur * 0.75);
+    o.connect(f).connect(g).connect(sfxBus);
+    g.connect(verb);
+    o.start(t);
+    o.stop(t + dur + 0.1);
+  }
+  var blow = (t) => (noiseHit(t, 0.35, 700, 0.12, sfxBus, "lowpass"), drum(t, 0.3, sfxBus, 70));
+  var hurt2 = (t) => (noiseHit(t, 0.3, 400, 0.2, sfxBus, "lowpass"), pluck(t, 40, 0.15, sfxBus));
+  R.on("did", (s, d) => {
+    if (!A2 || !on2()) return;
+    const t = A2.currentTime;
+    if (d.id === "attack") noiseHit(t, 0.12, 1600, 0.18, sfxBus, "bandpass", 0.7);
+    else if (d.id === "drink" || d.id === "fill" || d.id === "fillWater") noiseHit(t, 0.08, 900, 0.4, sfxBus, "bandpass", 4);
+  });
+  R.on("killed", () => {
+    if (!A2 || !on2()) return;
+    const t = A2.currentTime;
+    for (const [i, m] of [67, 71, 74].entries()) bell(t + i * 0.12, m, 0.06, sfxBus);
+  });
+  document.addEventListener("click", (e) => {
+    if (!A2 || !on2() || !(e.target && e.target.closest && e.target.closest("button"))) return;
+    const t = A2.currentTime, o = A2.createOscillator(), g = A2.createGain();
+    o.frequency.setValueAtTime(1300, t);
+    o.frequency.exponentialRampToValueAtTime(700, t + 0.05);
+    env(g, t, 2e-3, 0.05, 0.06);
+    o.connect(g).connect(sfxBus);
+    o.start(t);
+    o.stop(t + 0.1);
+  });
+  var lastUpdate = 0;
+  function updateSound(dt) {
+    if (!A2 || !V.S || A2.state !== "running") return;
+    if (!on2()) return;
+    const now = A2.currentTime;
+    if (now - lastUpdate < 0.1) return;
+    lastUpdate = now;
+    music(now);
+    world(now, 0.1);
+  }
+  var soundState = () => ({ running: !!A2 && A2.state === "running", mood: M2.mood });
+
   // src/view/run.js
   var codex = {};
   try {
@@ -16587,7 +16952,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     save();
   }
   var randomSeed = () => 1e4 + Math.floor(Math.random() * 9e4);
-  var start = (seed, set) => {
+  var start2 = (seed, set) => {
     enter(R.newGame(seed, {}, set));
     openCreate(false);
   };
@@ -16641,7 +17006,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const sn = Math.sin(P3.yaw), cs = Math.cos(P3.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx, mc = R.moveCost(V.S, V.S.player.x, V.S.player.y), indoor = R.indoors(V.S), sp = VIEW.speed * (indoor ? 0.65 : clamp2(mc.base / mc.mins, 0.3, 1.15));
     const inTown2 = R.areaRec(V.S).kind === "town", open = R.inOverworld(V.S) || inTown2, lim = open ? G2.half + 1 : G2.half - 1, tileOf = open ? (x) => Math.floor((x + G2.half) / G2.ts) : toTile;
     let nx = clamp2(P3.x + dx * sp * dt, -lim, lim), nz = clamp2(P3.z + dz * sp * dt, -lim, lim);
-    const pad = indoor ? 0.6 : 0, blocked = (x, z) => !R.passable(V.S, toTile(x + Math.sign(x - P3.x) * pad), toTile(z)) || !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P3.z) * pad));
+    const pad2 = indoor ? 0.6 : 0, blocked = (x, z) => !R.passable(V.S, toTile(x + Math.sign(x - P3.x) * pad2), toTile(z)) || !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P3.z) * pad2));
     if (indoor && blocked(nx, nz)) {
       if (!blocked(nx, P3.z)) nz = P3.z;
       else if (!blocked(P3.x, nz)) nx = P3.x;
@@ -16758,6 +17123,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   function finishFrame() {
     treesNear();
     animateActors(frameDt, P3.x, P3.z, still);
+    guard("sound", () => updateSound(frameDt));
     const target = V.terrain.height(P3.x, P3.z) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P3.walked * 1.7) * 0.05);
     P3.y = lerp(P3.y, target, Math.abs(target - P3.y) > 3 ? 0.06 : 0.35);
     camera.position.set(P3.x, P3.y, P3.z);
@@ -17287,7 +17653,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   function showEnd() {
     const c = R.clock(V.S), won = V.S.over.won, left = R.livesLeft(V.S), who = R.charTitle(V.S.char), dist = "with this still undone: " + R.objective(V.S).text.toLowerCase();
-    const world = el("p", {
+    const world2 = el("p", {
       cls: "note",
       text: "This world: " + R.biomeOf(V.S).name + ", shrine of " + R.godOf(V.S).name + ". Its people were " + R.civOf(V.S).name + ". Seed " + V.S.seed + "." + (V.S.cheated ? " Walked in god mode: this " + (won ? "win" : "run") + " does not count." : "")
     });
@@ -17295,10 +17661,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       openModal(R.byId(R.C.plots.kinds, V.S.over.plot).name + ": the end", [
         el("p", { text: V.S.over.ending }),
         el("p", { text: who + ", on day " + c.day + ", traveller " + V.S.travellers + " of this world." }),
-        world,
+        world2,
         el("div", { cls: "row" }, [
           btn("New world", () => openNewWorld(), "primary"),
-          btn("Same world again", () => start(V.S.seed))
+          btn("Same world again", () => start2(V.S.seed))
         ])
       ]);
     else if (won)
@@ -17306,10 +17672,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         el("p", {
           text: who + " carried it to the " + V.S.quest.dest + " on day " + c.day + ", traveller " + V.S.travellers + " of this world."
         }),
-        world,
+        world2,
         el("div", { cls: "row" }, [
           btn("New world", () => openNewWorld(), "primary"),
-          btn("Same world again", () => start(V.S.seed))
+          btn("Same world again", () => start2(V.S.seed))
         ])
       ]);
     else if (left > 0)
@@ -17322,14 +17688,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           }),
           el("div", { cls: "row" }, [
             btn("Send another traveller", () => openCreate(true), "primary"),
-            btn("Abandon this world", () => start(randomSeed()))
+            btn("Abandon this world", () => start2(randomSeed()))
           ])
         ]
       );
     else
       openModal("The beacon goes dark", [
         el("p", { text: who + " died on day " + c.day + ", " + dist + ". No one is left to send, and this world is lost." }),
-        world,
+        world2,
         el("div", { cls: "row" }, [btn("New world", () => openNewWorld(), "primary")])
       ]);
     lock(true);
@@ -17627,7 +17993,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var lastSet = {};
   function openNewWorld() {
-    const M2 = R.C.worldSet.menus, D3 = R.C.worldSet.defaults, cur = (k) => lastSet[k] !== void 0 ? lastSet[k] : D3[k], seedIn = el("input", { type: "number", id: "nw-seed", value: randomSeed(), inputmode: "numeric", "aria-label": "Seed" }), fields = {};
+    const M3 = R.C.worldSet.menus, D3 = R.C.worldSet.defaults, cur = (k) => lastSet[k] !== void 0 ? lastSet[k] : D3[k], seedIn = el("input", { type: "number", id: "nw-seed", value: randomSeed(), inputmode: "numeric", "aria-label": "Seed" }), fields = {};
     const choose = (key, label, list, val) => {
       const sel = el(
         "select",
@@ -17661,18 +18027,18 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       el("summary", { text: "World settings" }),
       el("p", { cls: "note", text: "Leave these alone for an ordinary world. Hold Ctrl (or long-press) to pick several peoples." }),
       el("ul", { cls: "items" }, [
-        choose("size", "Size", M2.size, lastSet.size || ""),
+        choose("size", "Size", M3.size, lastSet.size || ""),
         many("races", "Races that may appear (none picked: any)", R.C.races),
         count("nRaces", "How many races (0: rolled)"),
         many("classes", "Classes that may appear (none picked: any)", R.C.classes),
         count("nClasses", "How many classes (0: rolled)"),
-        choose("towns", "Other towns", M2.towns, cur("towns")),
-        choose("dungeons", "Dungeons", M2.dungeons, cur("dungeons")),
-        choose("depth", "How deep they go", M2.depth, cur("depth")),
-        choose("sky", "Places in the sky", M2.sky, cur("sky")),
-        choose("sea", "A sea", M2.sea, cur("sea")),
-        choose("doors", "Doors to other worlds", M2.doors, cur("doors")),
-        choose("maxDoors", "How many doors", M2.maxDoors, cur("maxDoors")),
+        choose("towns", "Other towns", M3.towns, cur("towns")),
+        choose("dungeons", "Dungeons", M3.dungeons, cur("dungeons")),
+        choose("depth", "How deep they go", M3.depth, cur("depth")),
+        choose("sky", "Places in the sky", M3.sky, cur("sky")),
+        choose("sea", "A sea", M3.sea, cur("sea")),
+        choose("doors", "Doors to other worlds", M3.doors, cur("doors")),
+        choose("maxDoors", "How many doors", M3.maxDoors, cur("maxDoors")),
         choose("trouble", "The great trouble", troubles, cur("trouble"))
       ])
     ]);
@@ -17691,7 +18057,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
               else set[k] = parseFloat(f.value);
             }
             lastSet = set;
-            start(parseInt(seedIn.value, 10) || 1, set);
+            start2(parseInt(seedIn.value, 10) || 1, set);
           },
           "primary"
         ),
@@ -17714,8 +18080,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         return el("li", { cls: "item" }, [el("label", { for: "sw-" + id, text: label }), cb]);
       })
     );
-    const tune = (obj, key, label, min, max, step) => {
-      const out = el("span", { cls: "wt", text: String(obj[key]) }), r = el("input", { type: "range", id: "tn-" + key, min, max, step, value: obj[key] });
+    const tune = (obj, key, label, min, max, step2) => {
+      const out = el("span", { cls: "wt", text: String(obj[key]) }), r = el("input", { type: "range", id: "tn-" + key, min, max, step: step2, value: obj[key] });
       r.addEventListener("input", () => {
         obj[key] = parseFloat(r.value);
         out.textContent = r.value;
@@ -17847,7 +18213,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       el("div", { cls: "row" }, [
         btn("New world", () => openNewWorld(), "primary"),
         seedIn,
-        btn("Play this seed", () => start(parseInt(seedIn.value, 10) || 1))
+        btn("Play this seed", () => start2(parseInt(seedIn.value, 10) || 1))
       ]),
       el("h3", { text: "Journal" }),
       el(
@@ -17922,6 +18288,22 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         });
         return el("ul", { cls: "items" }, [
           el("li", { cls: "item" }, [el("label", { for: "perf-meter", text: "Show the performance meter" }), cb])
+        ]);
+      })(),
+      // sound: music and effects volumes, and a mute (sound.js)
+      (() => {
+        const slider = (kind2, label) => {
+          const r = el("input", { type: "range", id: "vol-" + kind2, min: "0", max: "1", step: "0.05", value: String(SET[kind2]) });
+          r.addEventListener("input", () => setVolume(kind2, parseFloat(r.value)));
+          return el("li", { cls: "item tune" }, [el("label", { for: "vol-" + kind2, text: label }), r]);
+        };
+        const mute = el("input", { type: "checkbox", id: "vol-mute" });
+        mute.checked = !!SET.mute;
+        mute.addEventListener("change", () => setVolume("mute", mute.checked));
+        return el("ul", { cls: "items" }, [
+          slider("music", "Music"),
+          slider("sfx", "Sounds of the world"),
+          el("li", { cls: "item" }, [el("label", { for: "vol-mute", text: "Mute" }), mute])
         ]);
       })(),
       // the look's pieces, each on or off for this device (quality.js), to compare
@@ -18092,11 +18474,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   if (saved) {
     enter(saved);
     if (V.S.over) showEnd();
-  } else start(randomSeed());
+  } else start2(randomSeed());
   window.__g = {
     get S() {
       return V.S;
     },
+    sound: soundState,
     P: P3,
     V,
     VIEW,

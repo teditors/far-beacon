@@ -23,6 +23,7 @@ import { lightIndoors, lightOutdoors } from './light.js';
 import { WIND } from './kit.js';
 import { setNight } from './buildings.js';
 import { animateActors } from './actors.js';
+import { updateSound } from './sound.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -326,6 +327,7 @@ function frame() {
 function finishFrame() {
   treesNear();
   animateActors(frameDt, P.x, P.z, still);
+  guard('sound', () => updateSound(frameDt));
   const target = V.terrain.height(P.x, P.z) + EYE + (R.aloft(V.S) ? 28 : still ? 0 : Math.sin(P.walked * 1.7) * 0.05); // flying: high above the land
   P.y = lerp(P.y, target, Math.abs(target - P.y) > 3 ? 0.06 : 0.35); // rise and fall slowly
   camera.position.set(P.x, P.y, P.z);

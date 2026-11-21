@@ -5,6 +5,7 @@ import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSe
 import { box, buildDynamic, buildStatic, renderer, resize, scene } from './scene.js';
 import { LOOK_SWITCHES, Q, QUALITY, SET, lookChanged, lookOn, saveSettings, setQuality } from './quality.js';
 import { PF } from './perf.js';
+import { setVolume, soundState } from './sound.js';
 
 /* ---------- HUD and panels ---------- */
 function meter(id, v, max, txt) {
@@ -1376,6 +1377,22 @@ function openMenu() {
         el('li', { cls: 'item' }, [el('label', { for: 'perf-meter', text: 'Show the performance meter' }), cb]),
       ]);
     })(),
+    // sound: music and effects volumes, and a mute (sound.js)
+    (() => {
+      const slider = (kind, label) => {
+        const r = el('input', { type: 'range', id: 'vol-' + kind, min: '0', max: '1', step: '0.05', value: String(SET[kind]) });
+        r.addEventListener('input', () => setVolume(kind, parseFloat(r.value)));
+        return el('li', { cls: 'item tune' }, [el('label', { for: 'vol-' + kind, text: label }), r]);
+      };
+      const mute = el('input', { type: 'checkbox', id: 'vol-mute' });
+      mute.checked = !!SET.mute;
+      mute.addEventListener('change', () => setVolume('mute', mute.checked));
+      return el('ul', { cls: 'items' }, [
+        slider('music', 'Music'),
+        slider('sfx', 'Sounds of the world'),
+        el('li', { cls: 'item' }, [el('label', { for: 'vol-mute', text: 'Mute' }), mute]),
+      ]);
+    })(),
     // the look's pieces, each on or off for this device (quality.js), to compare
     el(
       'ul',
@@ -1555,6 +1572,7 @@ window.__g = {
   get S() {
     return V.S;
   },
+  sound: soundState,
   P,
   V,
   VIEW,

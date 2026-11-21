@@ -22,6 +22,10 @@ async def main():
         await shot('1-create')
         await pg.locator('#modal-body button', has_text='Roll again').click()
         await pg.locator('#modal-body button', has_text='Begin').click(); await pg.wait_for_timeout(300); steps.append('create')
+        # sound starts with the first tap (Begin), never before
+        snd = await pg.evaluate("()=>window.__g.sound()")
+        assert snd['running'] and snd['mood'], 'sound did not start after the first tap: %r' % snd
+        steps.append('sound (' + snd['mood'] + ')')
         await pg.evaluate("()=>{window.__g.VIEW.speed=16}")
         await pg.keyboard.down('w'); await pg.wait_for_timeout(2500); await pg.keyboard.up('w'); steps.append('walk')
         await shot('2-walk')
