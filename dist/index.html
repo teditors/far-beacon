@@ -5899,7 +5899,7 @@
   function findSite(s, kind2) {
     const ids = [HOME, ...Object.keys(s.areas).filter((id) => id !== HOME && s.areas[id].kind === "region")];
     for (const id of ids) {
-      const m = mapOf(s, id);
+      const m = id === s.area ? s : s.areas[id].map;
       if (!m || !m.sites) continue;
       for (const k in m.sites) if (m.sites[k].kind === kind2) return { x: k % W, y: Math.floor(k / W), st: m.sites[k], area: id };
     }
@@ -12373,6 +12373,32 @@
       text: p.done || p.failed ? "Asked by " + townName(s, p.giver) + "." : plotObjective(s, p).text + ". Asked by " + townName(s, p.giver) + "."
     }))
   );
+  function relicGoal(s) {
+    const q = s.quest;
+    if (!q || !q.told) return { town: "town" };
+    if (hasItem(s, "relic")) return q.dest === "beacon" ? Object.assign({ area: HOME }, s.goal) : findSite(s, "shrine");
+    const v = findSite(s, "vault");
+    if (v && (v.st.open || hasItem(s, "key"))) return v;
+    if (q.key === "ruin") return keyRuin(s);
+    if (q.key === "beast") {
+      const b = beastOf(s);
+      return b ? { area: b.area, x: b.c.x, y: b.c.y } : null;
+    }
+    return null;
+  }
+  function goalMark(s) {
+    if (s.over || areaRec(s).kind === "vault") return null;
+    const p = tracked(s), g = p && p.kind !== "relic" ? p.known ? plotGoal(s, p) : { town: p.giver } : relicGoal(s);
+    if (!g) return null;
+    const rt = route(s, g.area || g.town ? g : null);
+    if (!rt) return null;
+    if (rt.town) {
+      if (areaRec(s).kind === "town") return null;
+      const t = townById(s, rt.town) || s.town, d = townDoor(s, t);
+      return localPos(s, townArea(s, t), d.x, d.y - 1);
+    }
+    return rt.x === void 0 ? null : { x: rt.x, y: rt.y };
+  }
   function trackPlot(s, id) {
     const p = plotById(s, id);
     if (!p || p.done || (p.kind === "relic" ? !s.quest.told : !p.known && !p.main)) return false;
@@ -12610,6 +12636,7 @@
     plotObjective,
     plotsOf,
     stepOf,
+    goalMark,
     trackPlot,
     tracked,
     // for tests and tinkering: put the traveller on a tile of any outdoor region (from outdoors)
@@ -15227,7 +15254,7 @@
       cv2,
       el("p", {
         cls: "note",
-        text: rec.kind === "town" ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: a gate." : "Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see."
+        text: rec.kind === "town" ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: a gate." : "Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see. Gold ring: where your goal leads next."
       })
     ]);
     const css = cv2.clientWidth, dpr = window.devicePixelRatio || 1;
@@ -15262,7 +15289,21 @@
         g.arc((c.x + 0.5) * ts, (c.y + 0.5) * ts, 4, 0, 7);
         g.fill();
       }
+    const gm = R.goalMark(V.S);
+    if (gm) goalAt(g, (gm.x + 0.5) * ts, (gm.y + 0.5) * ts);
     youAt(g, (P3.x + G2.half) / G2.ts * ts, (P3.z + G2.half) / G2.ts * ts);
+  }
+  function goalAt(g, px, py) {
+    g.beginPath();
+    g.arc(px, py, 9, 0, 7);
+    g.lineWidth = 3;
+    g.strokeStyle = "#ffd24a";
+    g.stroke();
+    g.lineWidth = 1;
+    g.strokeStyle = "#141a22";
+    g.beginPath();
+    g.arc(px, py, 11, 0, 7);
+    g.stroke();
   }
   function youAt(g, px, py) {
     g.beginPath();
@@ -15297,7 +15338,7 @@
       ]),
       el("p", {
         cls: "note",
-        text: (V.S.godMode ? "God mode: tap anywhere to go there. " : "") + "The world as you have seen it. Drag to look around; it wraps around, like the world. White dot: you. Gold: camp and the well. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: something left lying. Red dot: a creature you can see."
+        text: (V.S.godMode ? "God mode: tap anywhere to go there. " : "") + "The world as you have seen it. Drag to look around; it wraps around, like the world. White dot: you. Gold: camp and the well. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: something left lying. Red dot: a creature you can see. Gold ring: where your goal leads next."
       })
     ]);
     let drag = null;
@@ -15387,6 +15428,23 @@
           g.arc((wp.x + c.x - S2.player.x + 0.5 - x0) * ts, (wp.y + c.y - S2.player.y + 0.5 - y0) * ts, 4, 0, 7);
           g.fill();
         }
+    }
+    const gm = R.inOverworld(S2) ? R.goalMark(S2) : null;
+    if (gm) {
+      let gx = wrapN(wp.x + gm.x - S2.player.x + 0.5 - x0, WW), gy = wrapN(wp.y + gm.y - S2.player.y + 0.5 - y0, HH);
+      if (gx > n + 1) gx -= WW;
+      if (gy > n + 1) gy -= HH;
+      const cx = n / 2 - mapView.dx, cy = n / 2 - mapView.dy, m = 1.2;
+      if (gx < m || gy < m || gx > n - m || gy > n - m) {
+        const dx = gx - cx, dy = gy - cy, k = Math.min(
+          Math.abs((dx > 0 ? n - m - cx : m - cx) / (dx || 1e-9)),
+          Math.abs((dy > 0 ? n - m - cy : m - cy) / (dy || 1e-9)),
+          1
+        );
+        gx = cx + dx * k;
+        gy = cy + dy * k;
+      }
+      goalAt(g, gx * ts, gy * ts);
     }
     let ux = wrapN(youX - x0, WW), uy = wrapN(youY - y0, HH);
     if (ux > n + 1) ux -= WW;

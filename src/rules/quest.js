@@ -53,7 +53,8 @@ function mark(s, x, y, area) {
 function findSite(s, kind) {
   const ids = [HOME, ...Object.keys(s.areas).filter((id) => id !== HOME && s.areas[id].kind === 'region')];
   for (const id of ids) {
-    const m = mapOf(s, id);
+    // only the sites are read, so a map packed away (far from the traveller) is left packed
+    const m = id === s.area ? s : s.areas[id].map;
     if (!m || !m.sites) continue;
     for (const k in m.sites) if (m.sites[k].kind === kind) return { x: k % W, y: Math.floor(k / W), st: m.sites[k], area: id };
   }

@@ -14,6 +14,7 @@ import {
   curTown,
   ensureRegion,
   homePos,
+  localPos,
   mapOf,
   outdoorRec,
   regionId,
@@ -22,6 +23,7 @@ import {
   townById,
   townId,
   townInRegion,
+  townDoor,
   wrap,
   wrapDelta,
   worldPos,
@@ -29,7 +31,7 @@ import {
 import { makeCreature } from './combat.js';
 import { makeItem } from './items.js';
 import { SITE_NAME, dirFrom, siteHere } from './map.js';
-import { ELDER_TALK, PLOT_HOOKS, findHere, mark } from './quest.js';
+import { ELDER_TALK, PLOT_HOOKS, beastOf, findHere, findSite, hasItem, keyRuin, mark } from './quest.js';
 import { gainXp } from './progress.js';
 import { road, spot, waterAt } from './plot.js';
 import { SOURCES } from './stats.js';
@@ -964,6 +966,37 @@ NOTES.push((s) =>
           : plotObjective(s, p).text + '. Asked by ' + townName(s, p.giver) + '.',
     })),
 );
+/* Where the goal line points, as a place on the map you are in: the next stair, shadow, door or town, or the place
+   itself ({ x, y }, in the frame of the area you are in; outdoors a place in another region lies off its edges), or
+   null when it is not known. The map screen draws a ring there. */
+function relicGoal(s) {
+  const q = s.quest;
+  if (!q || !q.told) return { town: 'town' };
+  if (hasItem(s, 'relic')) return q.dest === 'beacon' ? Object.assign({ area: HOME }, s.goal) : findSite(s, 'shrine');
+  const v = findSite(s, 'vault');
+  if (v && (v.st.open || hasItem(s, 'key'))) return v;
+  if (q.key === 'ruin') return keyRuin(s);
+  if (q.key === 'beast') {
+    const b = beastOf(s);
+    return b ? { area: b.area, x: b.c.x, y: b.c.y } : null;
+  }
+  return null;
+}
+function goalMark(s) {
+  if (s.over || areaRec(s).kind === 'vault') return null;
+  const p = tracked(s),
+    g = p && p.kind !== 'relic' ? (p.known ? plotGoal(s, p) : { town: p.giver }) : relicGoal(s);
+  if (!g) return null;
+  const rt = route(s, g.area || g.town ? g : null);
+  if (!rt) return null;
+  if (rt.town) {
+    if (areaRec(s).kind === 'town') return null;
+    const t = townById(s, rt.town) || s.town,
+      d = townDoor(s, t);
+    return localPos(s, townArea(s, t), d.x, d.y - 1);
+  }
+  return rt.x === undefined ? null : { x: rt.x, y: rt.y };
+}
 // Which plot's next step is on the top panel.
 function trackPlot(s, id) {
   const p = plotById(s, id);
@@ -989,5 +1022,6 @@ export {
   plotHere,
   relicSideDone,
   trackPlot,
+  goalMark,
   fill as fillPlot,
 };

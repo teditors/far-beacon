@@ -718,7 +718,7 @@ function openMap() {
       text:
         rec.kind === 'town'
           ? "White dot: you. Red: the elder's hall. Brown: the inn. Blue: the shop. Gold: a gate."
-          : 'Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see.',
+          : 'Only what your light has shown you. White dot: you. Gold: stairs and the way out. Black dot: something left lying. Red: a trap. Red dot: a creature you can see. Gold ring: where your goal leads next.',
     }),
   ]);
   const css = cv.clientWidth,
@@ -754,7 +754,22 @@ function openMap() {
       g.arc((c.x + 0.5) * ts, (c.y + 0.5) * ts, 4, 0, 7);
       g.fill();
     }
+  const gm = R.goalMark(V.S);
+  if (gm) goalAt(g, (gm.x + 0.5) * ts, (gm.y + 0.5) * ts);
   youAt(g, ((P.x + G.half) / G.ts) * ts, ((P.z + G.half) / G.ts) * ts);
+}
+// The next place the goal line points to: a gold ring.
+function goalAt(g, px, py) {
+  g.beginPath();
+  g.arc(px, py, 9, 0, 7);
+  g.lineWidth = 3;
+  g.strokeStyle = '#ffd24a';
+  g.stroke();
+  g.lineWidth = 1;
+  g.strokeStyle = '#141a22';
+  g.beginPath();
+  g.arc(px, py, 11, 0, 7);
+  g.stroke();
 }
 function youAt(g, px, py) {
   g.beginPath();
@@ -791,7 +806,7 @@ function openWorldMap() {
       cls: 'note',
       text:
         (V.S.godMode ? 'God mode: tap anywhere to go there. ' : '') +
-        'The world as you have seen it. Drag to look around; it wraps around, like the world. White dot: you. Gold: camp and the well. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: something left lying. Red dot: a creature you can see.',
+        'The world as you have seen it. Drag to look around; it wraps around, like the world. White dot: you. Gold: camp and the well. Blue: water. Grey: paved road. Purple: ruin. Dark: cave. Red: shrine. Orange: beacon. Pale yellow: town. Black square: the locked place. Black dot: something left lying. Red dot: a creature you can see. Gold ring: where your goal leads next.',
     }),
   ]);
   // drag to pan
@@ -906,6 +921,30 @@ function drawWorldMap(cv) {
         g.arc((wp.x + c.x - S.player.x + 0.5 - x0) * ts, (wp.y + c.y - S.player.y + 0.5 - y0) * ts, 4, 0, 7);
         g.fill();
       }
+  // where the goal line points, a ring (it may be in another region: in your region's frame it lies off its edges)
+  const gm = R.inOverworld(S) ? R.goalMark(S) : null;
+  if (gm) {
+    let gx = wrapN(wp.x + gm.x - S.player.x + 0.5 - x0, WW),
+      gy = wrapN(wp.y + gm.y - S.player.y + 0.5 - y0, HH);
+    if (gx > n + 1) gx -= WW;
+    if (gy > n + 1) gy -= HH;
+    // off the window: pinned to its edge, on the line from you toward it, so it still shows the way
+    const cx = n / 2 - mapView.dx,
+      cy = n / 2 - mapView.dy,
+      m = 1.2;
+    if (gx < m || gy < m || gx > n - m || gy > n - m) {
+      const dx = gx - cx,
+        dy = gy - cy,
+        k = Math.min(
+          Math.abs((dx > 0 ? n - m - cx : m - cx) / (dx || 1e-9)),
+          Math.abs((dy > 0 ? n - m - cy : m - cy) / (dy || 1e-9)),
+          1,
+        );
+      gx = cx + dx * k;
+      gy = cy + dy * k;
+    }
+    goalAt(g, gx * ts, gy * ts);
+  }
   // you, wherever the window has been panned to (the world wraps, so find the copy of you that is in view)
   let ux = wrapN(youX - x0, WW),
     uy = wrapN(youY - y0, HH);

@@ -391,5 +391,19 @@ const done = [];
   need(d && R.jumpTo(a, 'deep:' + d.id + ':1') && R.areaRec(a).kind === 'deep', 'could not go down into an old world\'s new dungeon');
   done.push('old worlds deepen (' + a.deeps.length + ' dungeons, ' + (a.skies || []).length + ' sky places)');
 }
+// The goal ring: wherever you are, the map can show where the goal leads next (in a dungeon, the stair).
+{
+  let marked = 0;
+  for (let seed = 1; seed <= 40; seed++) if (R.goalMark(R.newGame(seed))) marked++;
+  need(marked >= 36, 'only ' + marked + ' of 40 new worlds have a goal ring');
+  const s = R.newGame(7, {}, { trouble: 'deepking' }), m = R.mainPlot(s);
+  R.setGodMode(s, true); R.jumpTo(s, 'town:' + m.giver);
+  const e = R.findHere(s, 'elder'); s.player.x = e.x; s.player.y = e.y; R.talkElder(s);
+  const d = s.deeps.find((x) => x.plot);
+  R.jumpTo(s, 'deep:' + d.id + ':1');
+  const gm = R.goalMark(s), down = R.findHere(s, 'stairsDown');
+  need(gm && down && gm.x === down.x && gm.y === down.y, 'in the king\'s dungeon the goal ring is not on the stair down');
+  done.push('goal ring');
+}
 if (errs.length) { console.log('commission 4 problems:\n  ' + errs.join('\n  ')); process.exit(1); }
 console.log('c4 ok: ' + done.join(', '));

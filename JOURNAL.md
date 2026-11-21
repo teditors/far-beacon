@@ -93,6 +93,22 @@ seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after.
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
 
+## C4.14: a ring on the map where the goal leads
+
+**Why.** On a phone the goal line's compass word ("north-east") is all there is to steer by, and with stairs,
+shadows, doors and other regions in the way it is easy to lose the thread.
+
+**What it is.** The map screen (outdoors and inside any level or town) draws a **gold ring** at the next place the goal
+leads: the town to find, the stair down, the shadow to fly up from, the door, the den. Off the edge of the map window,
+the ring sits on the edge, on the line toward it. `R.goalMark(s)` gives it, from the route (C4.6) for any trouble and
+from the old story's own steps for the relic. The map's key says so.
+
+**Also fixed.** `findSite` (asked every time the goal line is drawn) unpacked every region map it looked through, which
+could have undone the packing of far maps (C4.2); it now reads only their sites. In a test walk it made no difference
+(the locked place was found early), but a far-off locked place would have unpacked every map before it.
+
+**Commits.** "A gold ring on the map where the goal leads next".
+
 ## C4.13: old worlds deepen
 
 **Why.** Andrew's game in progress was made before commission 4, so it would never have a dungeon or a sky place in it.

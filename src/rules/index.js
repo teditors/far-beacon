@@ -149,6 +149,7 @@ import './kin.js'; // after the sky and the sea: the kin come with them
 import { nearestUnknown } from './wayfarers.js';
 import './deepen.js';
 import {
+  goalMark,
   choosePlot,
   mainPlot,
   plotAct,
@@ -214,6 +215,7 @@ const api = {
   plotObjective,
   plotsOf,
   stepOf,
+  goalMark,
   trackPlot,
   tracked,
   // for tests and tinkering: put the traveller on a tile of any outdoor region (from outdoors)
