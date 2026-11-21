@@ -36,10 +36,39 @@ function perfWork(ms) {
 function perfSave(bytes) {
   PF.save = bytes;
 }
+/* Watching for a device that cannot keep up (C6): when the frames stay slow (under about 22 a second) for a dozen
+   seconds of play, the game steps its graphics down a level, by itself, and says so (ui.js shows the note). A hitch
+   (a long single frame, a build) or a hidden page says nothing. */
+const AUTO = { on: true, slow: -8, win: 0, n: 0, fn: null },
+  SLOW_MS = 45,
+  SLOW_SECS = 12;
+function autoWatch(dt) {
+  if (!AUTO.on || !AUTO.fn || (typeof document !== 'undefined' && document.hidden) || dt > 400) {
+    AUTO.win = AUTO.n = 0;
+    return;
+  }
+  AUTO.win += dt;
+  AUTO.n++;
+  if (AUTO.win < 1000) return;
+  const avg = AUTO.win / AUTO.n;
+  AUTO.win = AUTO.n = 0;
+  AUTO.slow = avg > SLOW_MS ? AUTO.slow + 1 : Math.max(Math.min(AUTO.slow, 0), AUTO.slow - 2);
+  if (AUTO.slow >= SLOW_SECS) {
+    AUTO.slow = -8; // a grace while the lower level settles
+    AUTO.fn();
+  }
+}
+// fn() is called to step down; on(false) stops the watching (the benchmark, the tests, a player who chose a level)
+const autoQuality = (fn, on) => {
+  if (fn) AUTO.fn = fn;
+  if (on !== undefined) AUTO.on = on;
+  AUTO.slow = -8;
+};
 function perfFrame(renderer) {
   const now = performance.now();
   if (PF.last) {
     const dt = now - PF.last;
+    autoWatch(dt);
     PF.sum += dt;
     PF.worst = Math.max(PF.worst, dt);
     PF.frames++;
@@ -97,4 +126,4 @@ function perfFrame(renderer) {
   PF.worst = 0;
   PF.work = PF.workN = PF.workWorst = 0;
 }
-export { PF, perfBuild, perfFrame, perfSave, perfWork };
+export { autoQuality, PF, perfBuild, perfFrame, perfSave, perfWork };

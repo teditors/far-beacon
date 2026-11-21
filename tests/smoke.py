@@ -19,6 +19,7 @@ async def main():
         async def shot(name):
             if SHOTS: await pg.screenshot(path=os.path.join(ROOT, 'build/shots', name + '.png'))
         await pg.goto('file://' + os.path.join(ROOT, 'dist/index.html')); await pg.wait_for_timeout(1500)
+        await pg.evaluate("()=>window.__g.autoQuality(false)")  # software drawing is slow: no stepping down
         await shot('1-create')
         await pg.locator('#modal-body button', has_text='Roll again').click()
         await pg.locator('#modal-body button', has_text='Begin').click(); await pg.wait_for_timeout(300); steps.append('create')
@@ -38,6 +39,10 @@ async def main():
         meter = await pg.evaluate("()=>{const e=document.getElementById('perf');return e&&!e.hidden?e.textContent:''}")
         assert 'fps' in meter and 'draws' in meter and 'low' in meter, 'performance meter not shown: %r' % meter
         steps.append('meter: ' + meter.split('\n')[1])
+        # too slow: the game steps down from Low to the hidden Fallback by itself, and says so
+        got = await pg.evaluate("()=>{window.__g.stepDown();const n=document.getElementById('quality-note');return [window.__g.Q.label,n?n.textContent:'']}")
+        assert got[0] == 'Fallback' and 'slowly' in got[1], 'no step down to Fallback: %r' % got
+        steps.append('step down')
         await pg.click('#btn-menu'); await pg.wait_for_timeout(150)
         await pg.locator('#modal-body button', has_text='Medium').click(); await pg.wait_for_timeout(300)
         await pg.uncheck('#perf-meter'); await pg.click('#modal-close')

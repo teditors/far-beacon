@@ -169,11 +169,14 @@ the player sends on are worth a test in `tests/explore.js` or `tests/c4.test.js`
 
 ## The phone budget
 
-The game must run on a phone. `src/view/quality.js` holds the graphics presets (Low / Medium / High) and the device's
-settings (`farbeacon.settings` in browser storage, not in the run). Anything visual that costs reads `Q` (the preset in
+The game must run on a phone. `src/view/quality.js` holds the graphics presets (Low / Medium / High, and a hidden
+Fallback below them; since commission 6 Low is what was High) and the device's settings (`farbeacon.settings` in
+browser storage, not in the run). `perf.js` steps the quality down a level by itself when frames stay slow for a dozen
+seconds (`autoQuality`), and ui.js says so. Anything visual that costs reads `Q` (the preset in
 use) rather than a constant: `terrain.js` takes the drawn margin and the ground's fineness from it (`setDetail`), the
 scene takes tree and rock density, the renderer its pixel ratio. `src/view/perf.js` is the on-screen meter. Measure a
-change with `python3 tools/bench.py low medium high` before and after. Saves write map grids as run-length text
+change with `python3 tools/bench.py fallback low medium high` before and after, and photograph it with
+`python3 tools/look.py` (pictures in `docs/look/`). Saves write map grids as run-length text
 (`packGrid` in save.js).
 
 ## Plugging a piece in

@@ -1,3 +1,52 @@
+# Commission 6
+
+The brief (COMMISSION.md): an art direction. Painted atmosphere as the base (Firewatch, Journey: palette, light and
+fog do the work; distance is colour), the best touches of toon (soft bands, light tinted outlines on things), and a
+clean-line comic look (Sable, Moebius) for other worlds; the look as data that can be rolled; today's High as the new
+minimum, with new Medium and High above it and a hidden fallback.
+
+**Measuring.** `python3 tools/bench.py fallback low medium high` (seeds 11 / 222 / 3333, software renderer at 412 x 915
+and a device pixel ratio of 1, so the pixel ratio of a level does not show in it), and `python3 tools/look.py` for the
+pictures in `docs/look/`. This machine is slower again than commission 5's: its High (now Low) measured 312 ms a frame
+there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session.
+
+| before (v0.16) | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| old Low (now Fallback) | 97 | 77 | 106,492 | 111.8 |
+| old High (now Low) | 369 | 117 | 571,366 | 395.9 |
+
+The page was 774 KB.
+
+## C6.1: the levels moved up, a fallback that comes by itself, and pictures for the phone
+
+**What it is.**
+- **The levels** (quality.js): what was High is now **Low**, the least the game offers. **Medium** and **High** sit
+  above it and will carry the new look's extras as they come (outlines, far hills, a painted grain); High already draws
+  at up to 2.5 screen pixels per point instead of 2, a little more land (26 tiles round), trees in full shape to 560 m,
+  grass to 56 m and a shadow map twice as fine each way (4096). The old Low lives on as **Fallback**, hidden from the
+  buttons unless it is in use.
+- **Saved settings** move with them: a device that was on old Low goes to Fallback, old Medium to the new Low, old High
+  to the new High. A new player starts on Medium.
+- **The fallback comes by itself** (perf.js `autoQuality`): when frames stay under about 22 a second for twelve seconds
+  of play, the game steps down a level and says so in a note ("The game was running slowly, so the graphics are now
+  Low. Menu, Settings to change it."). A single long frame, a scene being built or a hidden page counts for nothing, and
+  there is a grace of eight seconds after every change. The benchmark and the tests turn it off (software drawing is
+  slow); the browser test checks the step down and its note.
+- **Pictures** (`tools/look.py`, `tools/sheet.py`): nineteen views (each biome by day and night, dusk, three towns and
+  one at night, a ruin, a storm, a dungeon, a sky castle, the sea and two other worlds) taken in god mode at phone size,
+  looking the way the land is most open. The "before" set is in `docs/look/before/` (211 KB).
+
+**Switch.** None (settings). **Numbers.** Unchanged for each preset; Medium measures as Low for now.
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 97 | 77 | 106,492 | 111.8 |
+| Low | 369 | 117 | 571,366 | 395.9 |
+| Medium | 359 | 116 | 571,364 | 391.2 |
+| High | 385 | 121 | 647,753 | 468.1 |
+
+**Verdict.** Groundwork.
+
 # Commission 5
 
 ## Summary

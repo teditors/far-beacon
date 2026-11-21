@@ -3,8 +3,8 @@ import { $, G, P, R, V, VIEW, clamp, el, f1 } from './ctx.js';
 import { guard, showError, errors } from './oops.js';
 import { act, codex, codexTotal, enter, input, load, loop, placePlayer, randomSeed, save, start, sync } from './run.js';
 import { box, buildDynamic, buildStatic, renderer, resize, scene } from './scene.js';
-import { LOOK_SWITCHES, Q, QUALITY, SET, lookChanged, lookOn, saveSettings, setQuality } from './quality.js';
-import { PF } from './perf.js';
+import { LOOK_SWITCHES, ORDER, Q, QUALITY, SET, lookChanged, lookOn, saveSettings, setQuality } from './quality.js';
+import { PF, autoQuality } from './perf.js';
 import { setVolume, soundState } from './sound.js';
 
 /* ---------- HUD and panels ---------- */
@@ -1346,20 +1346,16 @@ function openMenu() {
     el('h3', { text: 'Settings' }),
     el('p', {
       cls: 'note',
-      text: 'Graphics quality for this device. Low draws less land and fewer trees, at a lower resolution: use it if the game stutters. Smoothing of edges changes the next time the page is loaded.',
+      text: 'Graphics quality for this device. Low is the plainest; Medium and High add outlines, far hills, a painted grain and more. If the game stays slow it lowers the quality by itself. Smoothing of edges changes the next time the page is loaded.',
     }),
     el(
       'div',
       { cls: 'row' },
-      Object.keys(QUALITY).map((k) =>
+      ORDER.filter((k) => !QUALITY[k].hidden || SET.quality === k).map((k) =>
         btn(
           QUALITY[k].label + (SET.quality === k ? ' (now)' : ''),
           () => {
-            setQuality(k);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
-            resize();
-            buildStatic();
-            buildDynamic();
+            useQuality(k);
             openMenu();
           },
           SET.quality === k ? 'primary' : '',
@@ -1568,6 +1564,34 @@ if (saved) {
   enter(saved);
   if (V.S.over) showEnd();
 } else start(randomSeed());
+// Change the graphics quality and redraw everything for it.
+function useQuality(k) {
+  setQuality(k);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
+  resize();
+  guard('redrawing', () => {
+    buildStatic();
+    buildDynamic();
+  });
+  autoQuality(null, true);
+}
+// When frames stay slow, one level down, with a note that says so (perf.js watches).
+function stepDown() {
+  const i = ORDER.indexOf(SET.quality);
+  if (i <= 0) return;
+  useQuality(ORDER[i - 1]);
+  const n = el('div', {
+    id: 'quality-note',
+    text: 'The game was running slowly, so the graphics are now ' + Q.label + '. Menu, Settings to change it.',
+  });
+  n.style.cssText =
+    'position:fixed;left:12px;right:12px;bottom:96px;z-index:40;background:#1d2430e8;color:#eef;border-radius:10px;' +
+    'padding:10px 12px;font:13px/1.4 system-ui,sans-serif;text-align:center;pointer-events:none;transition:opacity 1s';
+  document.body.appendChild(n);
+  setTimeout(() => (n.style.opacity = '0'), 7000);
+  setTimeout(() => n.remove(), 8200);
+}
+autoQuality(stepDown);
 window.__g = {
   get S() {
     return V.S;
@@ -1587,6 +1611,11 @@ window.__g = {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
     resize();
   },
+  // the automatic step down when frames are slow: off for the benchmark and the tests (software drawing is slow)
+  autoQuality(on) {
+    autoQuality(null, on);
+  },
+  stepDown,
   // a fresh world on this seed, without the character screen (for the benchmark)
   newWorld(seed, set) {
     enter(R.newGame(seed, {}, set));

@@ -41,6 +41,11 @@ function setShadows() {
   renderer.shadowMap.enabled = on;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap; // soft edges (C5.18)
   sun.castShadow = on;
+  const px = Q.shadowPx || 2048; // finer on High (C6)
+  if (sun.shadow.mapSize.x !== px) {
+    sun.shadow.mapSize.set(px, px);
+    if (sun.shadow.map) sun.shadow.map.dispose(), (sun.shadow.map = null);
+  }
 }
 scene.fog = new THREE.Fog(0xb9c7d1, 40, 600);
 scene.background = new THREE.Color(0xb9c7d1);

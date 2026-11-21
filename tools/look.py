@@ -1,0 +1,92 @@
+# Photographs the look (commission 6) for Andrew to review on his phone: each biome by day and night, towns of each
+# climate, a ruin, a dungeon, the sky, the sea and another world. JPEGs go to docs/look/<set>/ (default: after).
+# Usage: python3 tools/look.py [set] [quality]     e.g. python3 tools/look.py before high
+# Set CHROME=/opt/pw-browsers/chromium in a cloud session. Software rendering: slow, but the pictures are the same.
+import asyncio, os, sys
+from playwright.async_api import async_playwright
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+THREE = os.path.join(ROOT, 'node_modules/three/build/three.min.js')
+SET = sys.argv[1] if len(sys.argv) > 1 else 'after'
+QUAL = sys.argv[2] if len(sys.argv) > 2 else 'high'
+OUT = os.path.join(ROOT, 'docs/look', SET)
+W, H = 360, 640
+# (name, seed, world settings, javascript run with g, S, wait in scope; returns false to skip the shot)
+DAY, NIGHT = 'S.time = 13 * 60 - 360;', 'S.time = 23 * 60 - 360;'
+def region(biome, when):
+    return """const p = Rules.places(S).find((p) => p.group === 'Regions' && p.label.includes(%r));
+      if (!p) return false; Rules.jumpTo(S, p.id); %s g.refresh(); g.buildStatic(); g.refresh();
+      // look the way the land is open and dry: the longest clear sight over land
+      let best = 0, top = -1; const T = g.V.terrain, wat = g.V.base && g.V.base.waterAt;
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, sx = -Math.sin(a), sz = -Math.cos(a); let d = 20;
+        for (; d < 300; d += 20) if (T.height(g.P.x + sx * d, g.P.z + sz * d) > T.height(g.P.x, g.P.z) + 1.7 + d * 0.02) break;
+        if (wat && wat(g.P.x + sx * 40, g.P.z + sz * 40) > T.height(g.P.x + sx * 40, g.P.z + sz * 40)) d -= 150;
+        if (d > top) { top = d; best = a; } }
+      g.P.yaw = best; g.P.pitch = -0.03;""" % (biome, when)
+def town(n, when):
+    return """const t = Rules.places(S).filter((p) => p.group === 'Towns')[%d]; if (!t) return false;
+      Rules.jumpTo(S, t.id); %s g.refresh(); g.buildStatic(); g.refresh(); g.P.pitch = 0.02;""" % (n, when)
+def place(group, when):
+    return """const p = Rules.places(S).find((p) => p.group === %r); if (!p) return false;
+      Rules.jumpTo(S, p.id); %s g.refresh(); g.buildStatic(); g.refresh(); g.P.pitch = -0.04;""" % (group, when)
+RUIN = """Rules.travelTo(S, 'overworld', 18, 18); g.refresh(); let f = null;
+  for (const k in S.sites) if (S.sites[k].kind === 'ruin') { f = { x: k %% 36, y: Math.floor(k / 36) }; break; }
+  if (!f) return false; S.player.x = f.x; S.player.y = Math.min(35, f.y + 1); %s g.refresh();
+  const cx = (f.x + 0.5) * 28 - 504, cz = (f.y + 0.5) * 28 - 504; g.P.x = cx + 8; g.P.z = cz + 20;
+  g.P.yaw = Math.atan2(-(cx - g.P.x), -(cz - g.P.z)); g.P.pitch = -0.1;"""
+SHOTS = [
+    ('salt-day', 11, {}, region('Salt', DAY)),
+    ('salt-night', 11, {}, region('Salt', NIGHT)),
+    ('moor-day', 11, {}, region('Moor', DAY)),
+    ('moor-night', 11, {}, region('Moor', NIGHT)),
+    ('taiga-day', 11, {}, region('Taiga', DAY)),
+    ('taiga-night', 11, {}, region('Taiga', NIGHT)),
+    ('wild-day', 11, {}, region('(0, 1)', DAY)),
+    ('wild-dusk', 11, {}, region('(0, 1)', 'S.time = 19.3 * 60 - 360;')),
+    ('town-1', 11, {}, town(0, DAY)),
+    ('town-2', 222, {}, town(1, DAY)),
+    ('town-3', 3333, {}, town(2, 'S.time = 18.6 * 60 - 360;')),
+    ('town-night', 11, {}, town(0, NIGHT)),
+    ('ruin', 11, {}, RUIN % DAY),
+    ('storm', 222, {}, region('(1, 1)', DAY + 'S.weather.storm = Rules.stormOfNow ? true : true;')),
+    ('dungeon', 31, {}, place('Below', '')),
+    ('sky', 32, {'sky': 1, 'trouble': 'tyrant'}, place('Above', DAY)),
+    ('sea', 34, {'sea': 1, 'size': '5x5'}, place('Water', DAY)),
+    ('other-world', 35, {'doors': 1}, place('Other worlds', DAY)),
+    ('other-world-2', 36, {'doors': 1}, place('Other worlds', 'S.time = 17.5 * 60 - 360;')),
+]
+async def main():
+    os.makedirs(OUT, exist_ok=True)
+    only = [a for a in sys.argv[3:]]
+    async with async_playwright() as p:
+        b = await p.chromium.launch(args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], **({'executable_path': os.environ['CHROME']} if os.environ.get('CHROME') else {}))
+        pg = await b.new_page(viewport={'width': W, 'height': H}, device_scale_factor=1)
+        errs = []
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        await pg.route('**/three.min.js', lambda r: r.fulfill(path=THREE))
+        await pg.route('**/fonts.googleapis.com/**', lambda r: r.abort())
+        await pg.goto('file://' + os.environ.get('PAGE', os.path.join(ROOT, 'dist/index.html'))); await pg.wait_for_timeout(1500)
+        await pg.evaluate("(q) => { const g = window.__g; g.setQuality(q); if (g.autoQuality) g.autoQuality(false); }", QUAL)
+        total = 0
+        for (name, seed, setting, js) in SHOTS:
+            if only and name not in only: continue
+            ok = await pg.evaluate("""async ([seed, set, js]) => {
+              const g = window.__g, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+              g.newWorld(seed, set); document.querySelectorAll('#modal-close').forEach((b) => b.click());
+              const S = g.S; S.weather.storm = false; S.weather.changeAt = 1e9; Rules.setGodMode(S, true);
+              S.creatures.forEach((c) => (c.cool = 999));
+              const r = await (new Function('g', 'S', 'wait', 'return (async () => {' + js + '})()'))(g, S, wait);
+              document.getElementById('modal').hidden = true;
+              // the picture only: hide the panels and buttons
+              for (const e of document.body.children) if (!e.querySelector('canvas') && e.tagName !== 'CANVAS') e.style.visibility = 'hidden';
+              return r !== false;
+            }""", [seed, setting, js])
+            if not ok: print('  skipped', name); continue
+            await pg.wait_for_timeout(1200)
+            path = os.path.join(OUT, name + '.jpg')
+            await pg.screenshot(path=path, type='jpeg', quality=55)
+            total += os.path.getsize(path)
+            print('  %-14s %3d KB' % (name, os.path.getsize(path) // 1024))
+        print('%d KB in all, in %s' % (total // 1024, os.path.relpath(OUT, ROOT)))
+        if errs: print('page errors:', errs[:3]); sys.exit(1)
+        await b.close()
+asyncio.run(main())
