@@ -265,13 +265,14 @@ function track(g, mesh, o) {
       face: g.rotation.y,
       seed: Math.random() * 100,
       rest: 1 + Math.random() * 3, // seconds before it next wanders
-      rise: from || !o.key ? 0 : 1, // a newcomer rises out of the ground
+      rise: from || !o.key || o.rise === false ? 0 : 1, // a newcomer rises out of the ground
     };
   if (from) {
     g.position.copy(from.pos);
     // walking somewhere new: it turns that way and goes, rather than gliding backwards
   }
   g.rotation.y = a.yaw;
+  mesh.userData.key = a.key; // for the tests: who this is
   live.push(a);
   return a;
 }
@@ -279,7 +280,7 @@ function track(g, mesh, o) {
 function settleActors(group) {
   const now = new Set(live.map((a) => a.key));
   for (const a of prev) {
-    if (!a.key || now.has(a.key) || a.key.startsWith('folk:') || a.key.startsWith('site:')) continue;
+    if (!a.key || now.has(a.key) || a.key.startsWith('site:')) continue;
     if (group) {
       // the old group, put back for a moment (its model is kept; its material is remade)
       if (a.g.parent) a.g.parent.remove(a.g);

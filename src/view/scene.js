@@ -1393,12 +1393,16 @@ function drawArea(id, kind, nb) {
       if (st.kind === 'elder' || st.kind === 'inn' || st.kind === 'shop') g.rotation.y = Math.atan2(P.x - x, P.z - z);
       else if (st.kind === 'folk') g.rotation.y = (+k * 2.4) % 6.28;
       dynGroup.add(g);
-      const who = actorsOn() && g.children.find((o) => o.userData.actor);
+      let who = null; // the person's figure, within the group of their place
+      if (actorsOn()) g.traverse((o) => (who = who || (o.userData.actor ? o : null)));
       if (who)
         track(
           g,
           who,
-          st.kind === 'folk' ? { pool: 'folk:' + id, near: ts * 3, speed: 1.4, roam: ts * 0.3 } : { key: 'site:' + id + ':' + k },
+          st.kind === 'folk'
+            ? // a townsperson is known by name, wherever the rules have them stand: they walk there
+              { key: 'folk:' + id + ':' + st.name + ':' + st.role, speed: 1.4, roam: ts * 0.3, rise: false }
+            : { key: 'site:' + id + ':' + k },
         );
     }
   const camp = !nb && V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;

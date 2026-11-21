@@ -97,6 +97,26 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.16: townsfolk really walk (fix)
+
+**Asked by Andrew**: the townsfolk disappeared and reappeared in another place every so often.
+
+**What was wrong.** Two faults of mine, the first since C5.6. (1) The people of a town were never tracked at all: their
+figure sits one level deeper in the scene than the lookup searched, so every townsperson, and the elder, innkeeper and
+shopkeeper too, was redrawn from scratch at each step: a tile's jump each time the rules moved them. C5.12's walking
+only ever reached creatures. (2) Townsfolk had no lasting identity in the tracking, only "the nearest remembered
+spot", and stale memories of others' old spots could be matched, while one left unmatched vanished.
+
+**The fix.** The figure is found wherever it is in its place's group; each townsperson is known by name and trade
+(which the rules keep with them as they move), so they walk from where they were to where they now are, at a walk,
+and wander about their spot between steps; nobody vanishes unless they really leave.
+
+**Tested.** The browser test now walks the traveller up and down a town street twelve steps and checks that no
+townsperson moves more than 1.5 m between frames and none disappears (measured: at most 0.57 m a frame, 9 people
+throughout). The fault had slipped through because nothing measured it; now something does.
+
+**Verdict.** Fix.
+
 ## C5.15: smoke from the chimneys
 
 **What it is.** Every chimney in a town smokes: a few soft puffs over it that rise, swell, drift downwind with a little

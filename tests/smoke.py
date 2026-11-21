@@ -70,6 +70,14 @@ async def main():
         assert st['x'] == 18 and 28 <= st['y'] <= 35 and abs(st['px'] - 1.9) < 2 and 40 < st['pz'] < 70 and st['py'] < 4, 'not standing in the gateway after walking in: %r' % st
         await shot('3-town')
         await pg.keyboard.down('w'); await pg.wait_for_timeout(1200); await pg.keyboard.up('w'); steps.append('walk in town')
+        # townsfolk walk where the rules move them: none jumps or vanishes between frames while the player walks about
+        jump = await pg.evaluate("""async()=>{const g=window.__g,S=g.S,wait=(ms)=>new Promise(r=>setTimeout(r,ms));let prev=null,worst=0,counts=new Set();
+          const look=()=>{const now={};g.scene.traverse(o=>{if(o.userData&&o.userData.actor&&o.userData.actor.kind==='person'&&o.userData.key){const w=new THREE.Vector3();o.parent.getWorldPosition(w);now[o.userData.key]=w}});return now};
+          for(let step=0;step<12;step++){Rules.move(S,step%6<3?1:-1,0);g.refresh();for(let f=0;f<3;f++){await wait(100);const now=look();counts.add(Object.keys(now).length);
+            if(prev)for(const k in now)if(prev[k])worst=Math.max(worst,now[k].distanceTo(prev[k]));prev=now}}
+          return [worst,[...counts]]}""")
+        assert jump[0] < 1.5 and len(jump[1]) == 1 and jump[1][0] > 0, 'townsfolk jumped or vanished: %r' % jump
+        steps.append('townsfolk walk (%d, at most %.2f m a frame)' % (jump[1][0], jump[0]))
         await goto('elder'); await press('Talk to'); await shot('4-elder'); await pg.click('#modal-close'); steps.append('elder')
         await goto('shop'); await press('Trade'); await pg.locator('#modal-body button', has_text='Buy').first.click(); await pg.click('#modal-close'); steps.append('shop')
         await goto('inn'); await press('The inn'); await pg.locator('#modal-body button', has_text='A bed').click(); await pg.wait_for_timeout(150); await pg.click('#modal-close'); steps.append('inn')

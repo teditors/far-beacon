@@ -15644,20 +15644,21 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       seed: Math.random() * 100,
       rest: 1 + Math.random() * 3,
       // seconds before it next wanders
-      rise: from || !o.key ? 0 : 1
+      rise: from || !o.key || o.rise === false ? 0 : 1
       // a newcomer rises out of the ground
     };
     if (from) {
       g.position.copy(from.pos);
     }
     g.rotation.y = a.yaw;
+    mesh2.userData.key = a.key;
     live2.push(a);
     return a;
   }
   function settleActors(group) {
     const now = new Set(live2.map((a) => a.key));
     for (const a of prev) {
-      if (!a.key || now.has(a.key) || a.key.startsWith("folk:") || a.key.startsWith("site:")) continue;
+      if (!a.key || now.has(a.key) || a.key.startsWith("site:")) continue;
       if (group) {
         if (a.g.parent) a.g.parent.remove(a.g);
         group.add(a.g);
@@ -17076,12 +17077,16 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         if (st.kind === "elder" || st.kind === "inn" || st.kind === "shop") g.rotation.y = Math.atan2(P3.x - x, P3.z - z);
         else if (st.kind === "folk") g.rotation.y = +k * 2.4 % 6.28;
         dynGroup.add(g);
-        const who = actorsOn() && g.children.find((o) => o.userData.actor);
+        let who = null;
+        if (actorsOn()) g.traverse((o) => who = who || (o.userData.actor ? o : null));
         if (who)
           track(
             g,
             who,
-            st.kind === "folk" ? { pool: "folk:" + id, near: ts * 3, speed: 1.4, roam: ts * 0.3 } : { key: "site:" + id + ":" + k }
+            st.kind === "folk" ? (
+              // a townsperson is known by name, wherever the rules have them stand: they walk there
+              { key: "folk:" + id + ":" + st.name + ":" + st.role, speed: 1.4, roam: ts * 0.3, rise: false }
+            ) : { key: "site:" + id + ":" + k }
           );
       }
     const camp = !nb && V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
