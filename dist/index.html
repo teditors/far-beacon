@@ -13490,8 +13490,8 @@
     return GROUND;
   }
   function surfaceOf(c, steep, out) {
-    const L3 = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b, max = Math.max(c.r, c.g, c.b), min = Math.min(c.r, c.g, c.b), sat = max > 0 ? (max - min) / max : 0;
-    let grass = c.g >= c.r * 0.98 && c.g >= c.b * 0.9 && sat > 0.12 ? 1 : 0, snow = L3 > 0.72 && sat < 0.22 ? 1 : c.b > c.r * 1.25 && c.b > c.g ? 0.8 : 0, rock = Math.min(1, Math.max(0, (steep - 0.25) * 3)) + (sat < 0.12 && L3 < 0.5 ? 0.6 : 0), grains = snow ? 0.05 : 0.35;
+    const L4 = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b, max = Math.max(c.r, c.g, c.b), min = Math.min(c.r, c.g, c.b), sat = max > 0 ? (max - min) / max : 0;
+    let grass = c.g >= c.r * 0.98 && c.g >= c.b * 0.9 && sat > 0.12 ? 1 : 0, snow = L4 > 0.72 && sat < 0.22 ? 1 : c.b > c.r * 1.25 && c.b > c.g ? 0.8 : 0, rock = Math.min(1, Math.max(0, (steep - 0.25) * 3)) + (sat < 0.12 && L4 < 0.5 ? 0.6 : 0), grains = snow ? 0.05 : 0.35;
     if (snow) grass *= 0.2;
     const t2 = grass + snow + rock + grains;
     out[0] = grass / t2;
@@ -13808,13 +13808,13 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
   };
   var hex = (n) => "#" + (n >>> 0).toString(16).padStart(6, "0");
   function climateOf(biome) {
-    const L3 = R.C.townLooks;
-    return biome && biome.parts && biome.parts.climate || biome && L3.biomeClimate[biome.id] || "temperate";
+    const L4 = R.C.townLooks;
+    return biome && biome.parts && biome.parts.climate || biome && L4.biomeClimate[biome.id] || "temperate";
   }
   function styleOf(S2, townId2, biome) {
-    const L3 = R.C.townLooks, t2 = townId2 ? R.townById(S2, townId2) : null, culture = t2 ? t2 === S2.town ? S2.townCulture : t2.culture : null, area = t2 && t2.area;
+    const L4 = R.C.townLooks, t2 = townId2 ? R.townById(S2, townId2) : null, culture = t2 ? t2 === S2.town ? S2.townCulture : t2.culture : null, area = t2 && t2.area;
     if (!biome) biome = area && S2.areas[area] ? R.byId(R.C.biomes, S2.areas[area].biome) : R.biomeOf(S2);
-    const climate = climateOf(biome), st = Object.assign({ climate }, L3.climates[climate] || L3.climates.temperate), off = S2.off && S2.off.towns, tr = culture && !off && L3.trades[culture.trade] || {}, cu = culture && !off && L3.customs[culture.custom] || {}, ra = culture && !off && culture.rare && L3.rares[culture.rare] || {};
+    const climate = climateOf(biome), st = Object.assign({ climate }, L4.climates[climate] || L4.climates.temperate), off = S2.off && S2.off.towns, tr = culture && !off && L4.trades[culture.trade] || {}, cu = culture && !off && L4.customs[culture.custom] || {}, ra = culture && !off && culture.rare && L4.rares[culture.rare] || {};
     Object.assign(st, {
       props: tr.props || ["barrel", "crates"],
       chimneys: tr.chimneys !== void 0 ? tr.chimneys : 0.3,
@@ -14460,18 +14460,18 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     return KITS[look2.kit] ? Object.assign({ name: look2.kit }, KITS[look2.kit]) : Object.assign({ name: "stone" }, KITS.stone);
   }
   function levelWalls(K2, ts, h, color, list, y0) {
-    const mesh = new THREE.InstancedMesh(
+    const mesh2 = new THREE.InstancedMesh(
       tileModel(K2.name, ts, h),
       kitMat({ color, map: surface(K2.wall) }),
       Math.max(1, list.length)
     ), m = new THREE.Matrix4();
     list.forEach(([x, z], i) => {
       m.makeTranslation(x, y0 || 0, z);
-      mesh.setMatrixAt(i, m);
+      mesh2.setMatrixAt(i, m);
     });
-    mesh.count = list.length;
-    mesh.frustumCulled = false;
-    return mesh;
+    mesh2.count = list.length;
+    mesh2.frustumCulled = false;
+    return mesh2;
   }
   function levelFloor(K2, size, color, up) {
     const g = new THREE.PlaneGeometry(size, size).rotateX(up ? Math.PI / 2 : -Math.PI / 2), uv = g.attributes.uv;
@@ -14864,6 +14864,213 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     }
   }
 
+  // src/view/landmarks.js
+  LOOK_SWITCHES.push(["landmarks", "Landmarks in the style"]);
+  var marksOn = () => lookOn("landmarks") && lookOn("light");
+  var mesh = (k, tex) => new THREE.Mesh(k.build(), kitMat({ map: tex ? surface(tex) : null }));
+  var glowMat = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: o < 1, opacity: o, depthWrite: o >= 1, fog: false });
+  function courses(k, col, r0, r1, h, n, x, z) {
+    const rows = Math.round(h / 1.2);
+    for (let i = 0; i < rows; i++) {
+      const f = i / rows, r = r0 + (r1 - r0) * f;
+      k.add(
+        P4.cyl(r * 0.97, r, 1.2, n),
+        col * 1 + 0,
+        { x: x || 0, y: i * 1.2 + 0.6, z: z || 0, ry: i * 0.3 },
+        { flat: true, uv: 2, jitter: 0.08 }
+      );
+    }
+  }
+  var L3 = {
+    // the beacon: a great stone tower with a brazier at its top, its fire seen from far away, and the beam over it
+    beacon() {
+      const g = new THREE.Group(), k = kit();
+      courses(k, 5920336, 3.6, 2.4, 28, 8);
+      k.add(P4.cyl(3.4, 2.6, 1.4, 8), 4078134, { y: 28.7 }, { flat: true, uv: 2 });
+      for (let i = 0; i < 8; i++) {
+        const a = i / 8 * Math.PI * 2;
+        k.add(P4.box(0.8, 1.4, 0.8), 5920336, { x: Math.cos(a) * 3, y: 30.1, z: Math.sin(a) * 3, ry: -a }, { uv: 2 });
+      }
+      k.add(P4.box(1.6, 3, 0.3), 1380879, { y: 1.5, z: 3.5 });
+      g.add(mesh(k, "stone"));
+      const f = fire2(3.2);
+      f.position.y = 29.4;
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(2.6, 14, 10), glowMat(16758858, 0.85));
+      orb.position.y = 32;
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 420, 8, 1, true), glowMat(16756800, 0.4));
+      beam.material.side = THREE.DoubleSide;
+      beam.position.y = 240;
+      g.add(f, orb, beam);
+      return g;
+    },
+    // the god's shrine: a ring of standing stones with lintels, an altar, and the god's light over it
+    shrine(S2) {
+      const g = new THREE.Group(), k = kit(), col = R.godOf(S2).color;
+      for (let i = 0; i < 5; i++) {
+        const a = i / 5 * Math.PI * 2, x = Math.cos(a) * 4, z = Math.sin(a) * 4;
+        k.add(P4.box(0.9, 5.2, 0.7), 9276036, { x, y: 2.6, z, ry: -a, rz: i % 2 * 0.04 }, { uv: 1.5, jitter: 0.08 });
+        const b = (i + 1) / 5 * Math.PI * 2;
+        k.add(
+          P4.box(Math.hypot(Math.cos(b) * 4 - x, Math.sin(b) * 4 - z) + 0.8, 0.6, 0.8),
+          8289140,
+          {
+            x: (x + Math.cos(b) * 4) / 2,
+            y: 5.5,
+            z: (z + Math.sin(b) * 4) / 2,
+            ry: -Math.atan2(Math.sin(b) * 4 - z, Math.cos(b) * 4 - x)
+          },
+          { uv: 1.5 }
+        );
+      }
+      k.add(P4.box(1.8, 1, 1.2), 7236196, { y: 0.5 }, { uv: 1.5 });
+      k.add(P4.box(1.4, 0.06, 0.9), col, { y: 1.04 });
+      g.add(mesh(k, "stone"));
+      const o = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 10), glowMat(col, 1));
+      o.position.y = 3;
+      const halo = new THREE.Mesh(new THREE.SphereGeometry(1.4, 14, 10), glowMat(col, 0.25));
+      halo.position.y = 3;
+      g.add(o, halo);
+      return g;
+    },
+    // a cave: a heap of faceted rock round a dark arched mouth
+    cave() {
+      const g = new THREE.Group(), k = kit();
+      for (const [x, y, z, r, sy] of [
+        [0, 2.2, -1, 6.5, 0.7],
+        [-5, 1.5, 1, 4.5, 0.8],
+        [5, 1.6, 0.5, 4.2, 0.9],
+        [-3, 4.5, -2, 3.5, 0.9],
+        [3, 4.2, -1.5, 3.2, 0.9],
+        [0, 6, -3, 3, 0.8]
+      ])
+        k.add(P4.blob(r, 1), 6973022, { x, y, z, sy, ry: x }, { flat: true, uv: 3, jitter: 0.1 });
+      k.add(P4.box(4.4, 0.5, 1.2), 5920334, { y: 4.4, z: 4.6 }, { uv: 2 });
+      g.add(mesh(k, "plaster"));
+      const mouth = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.1, 2.1, 1.5, 12, 1, false, -Math.PI / 2, Math.PI),
+        glowMat(460810, 1)
+      );
+      mouth.rotation.x = Math.PI / 2;
+      mouth.rotation.z = Math.PI / 2;
+      mouth.position.set(0, 1.6, 4.9);
+      const low = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.8, 1.5), glowMat(460810, 1));
+      low.position.set(0, 0.9, 4.9);
+      g.add(mouth, low);
+      return g;
+    },
+    // a well: a ring of stone, two posts, a little roof, a bucket
+    well() {
+      const g = new THREE.Group(), k = kit(), w = kit();
+      for (let i = 0; i < 10; i++) {
+        const a = i / 10 * Math.PI * 2;
+        k.add(
+          P4.box(1.1, 1, 0.5),
+          8025710,
+          { x: Math.cos(a) * 1.6, y: 0.5, z: Math.sin(a) * 1.6, ry: -a + Math.PI / 2 },
+          { uv: 1.2, jitter: 0.08 }
+        );
+      }
+      for (const sx of [-1.7, 1.7]) w.add(P4.box(0.2, 3, 0.2), 5914672, { x: sx, y: 1.5 }, { uv: 1 });
+      w.add(P4.cyl(0.12, 0.12, 3.6, 6), 6965808, { y: 2.6, rz: Math.PI / 2 });
+      for (const sg of [-1, 1]) w.add(P4.box(4.2, 0.12, 1.4), 8016434, { y: 3.4, z: sg * 0.6, rx: sg * 0.5 }, { uv: 1 });
+      w.add(P4.cyl(0.3, 0.25, 0.4, 8), 6965808, { y: 1.7 }, { uv: 1 });
+      g.add(mesh(k, "stone"), mesh(w, "wood"));
+      const water2 = new THREE.Mesh(
+        new THREE.CircleGeometry(1.3, 14).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 3108762 })
+      );
+      water2.position.y = 0.6;
+      g.add(water2);
+      return g;
+    },
+    // a door of old stone, carved pillars and a lintel, with another sky showing through
+    door(S2, st) {
+      const g = new THREE.Group(), k = kit();
+      for (const sx of [-2.7, 2.7]) {
+        courses(k, 8025192, 0.8, 0.7, 7, 6, sx, 0);
+        k.add(P4.box(1.8, 0.6, 1.8), 6972506, { x: sx, y: 0.3 }, { uv: 1.5 });
+      }
+      k.add(P4.box(7.4, 1.2, 1.6), 8025192, { y: 7.6 }, { uv: 1.5 });
+      k.add(P4.cone(1.2, 1.5, 4), 6972506, { y: 8.9, ry: Math.PI / 4 }, { flat: true, uv: 1.5 });
+      g.add(mesh(k, "stone"));
+      const sky = new THREE.Mesh(new THREE.PlaneGeometry(4.3, 7), glowMat(st.back ? 12572912 : 11832544, 0.85));
+      sky.material.side = THREE.DoubleSide;
+      sky.position.y = 3.5;
+      g.add(sky);
+      return g;
+    },
+    // the locked place, by its kind: a castle of towers, a barrow under turf with a stone door, a stepped temple
+    vault(S2) {
+      const g = new THREE.Group(), k = kit(), turf = kit(), id = S2.quest.vault.id, col = id === "temple" ? 6060664 : id === "barrow" ? 6122058 : 6973022;
+      if (id === "castle") {
+        for (const [x, z, w, d] of [
+          [0, -8, 16, 1.6],
+          [-8, 0, 1.6, 16],
+          [8, 0, 1.6, 16],
+          [-5.2, 8, 5.6, 1.6],
+          [5.2, 8, 5.6, 1.6]
+        ]) {
+          k.add(P4.box(w, 7, d), col, { x, y: 3.5, z }, { uv: 2, jitter: 0.05 });
+          for (let i = 0, n = Math.round(Math.max(w, d) / 1.6); i < n; i += 2) {
+            const o = -Math.max(w, d) / 2 + (i + 0.5) * 1.6;
+            k.add(P4.box(0.9, 0.9, 0.9), col, { x: x + (w > d ? o : 0), y: 7.45, z: z + (w > d ? 0 : o) }, { uv: 2 });
+          }
+        }
+        for (const [x, z] of [
+          [-8, -8],
+          [8, -8],
+          [-8, 8],
+          [8, 8]
+        ]) {
+          courses(k, col, 2.9, 2.6, 13, 8, x, z);
+          k.add(P4.cone(3.3, 4.5, 8), 4864576, { x, y: 15.2, z }, { flat: true, uv: 2 });
+        }
+        k.add(P4.box(3, 4, 0.4), 526603, { y: 2, z: 8.6 });
+        k.add(P4.box(5, 9, 5), col, { y: 4.5 }, { uv: 2 });
+        k.add(P4.cone(3.6, 5, 4), 4864576, { y: 11.5, ry: Math.PI / 4 }, { flat: true, uv: 2 });
+      } else if (id === "barrow") {
+        turf.add(
+          new THREE.SphereGeometry(11, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+          6126150,
+          { sy: 0.55 },
+          { uv: 3, jitter: 0.1 }
+        );
+        for (let i = 0; i < 9; i++) {
+          const a = i / 9 * Math.PI * 2;
+          k.add(
+            P4.box(0.9, 2.4 + i % 3 * 0.6, 0.6),
+            9276036,
+            { x: Math.cos(a) * 13, y: 1.2, z: Math.sin(a) * 13, ry: -a },
+            { uv: 1.5 }
+          );
+        }
+        for (const sx of [-2, 2]) k.add(P4.box(1.2, 4, 1.2), 9276036, { x: sx, y: 2, z: 10.4 }, { uv: 1.5 });
+        k.add(P4.box(5.6, 1, 1.4), 9276036, { y: 4.4, z: 10.4 }, { uv: 1.5 });
+        k.add(P4.box(2.6, 3.4, 0.4), 526603, { y: 1.7, z: 10.1 });
+      } else {
+        for (let i = 0; i < 4; i++) k.add(P4.box(18 - i * 4, 1.8, 18 - i * 4), col, { y: 0.9 + i * 1.8 }, { uv: 2, jitter: 0.06 });
+        for (let i = 0; i < 6; i++) k.add(P4.box(3, 0.6, 1), col, { y: 0.3 + i * 1.2, z: 9.2 - i * 0.9 }, { uv: 1.5 });
+        for (const [x, z] of [
+          [-3.5, -3.5],
+          [3.5, -3.5],
+          [-3.5, 3.5],
+          [3.5, 3.5]
+        ])
+          k.add(P4.cyl(0.6, 0.7, 6, 8), 13156520, { x, y: 10.2, z }, { uv: 1.5 });
+        k.add(P4.box(9, 1, 9), col, { y: 13.7 }, { uv: 2 });
+        k.add(P4.prism(9.4, 2.6, 9.4), col, { y: 14.2 }, { uv: 2 });
+        k.add(P4.box(2.6, 3, 0.4), 526603, { y: 8.7, z: 3.9 });
+      }
+      g.add(mesh(k, "stone"));
+      if (!turf.empty) g.add(mesh(turf, "plaster"));
+      return g;
+    }
+  };
+  function landmark(kind2, S2, st) {
+    if (!marksOn() || !L3[kind2]) return null;
+    return L3[kind2](S2, st);
+  }
+
   // src/view/actors.js
   LOOK_SWITCHES.push(["actors", "People and creatures that move"]);
   var actorsOn = () => lookOn("actors") && lookOn("light");
@@ -15018,17 +15225,17 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var SKIN = [15254688, 14266508, 12618340, 10119752, 7227954];
   var HAIR = [2760214, 4861984, 8018480, 11569744, 9077880];
   function personActor(cloth, hat, seed) {
-    const s = Math.abs(seed | 0), mesh = new THREE.Mesh(personModel(cloth, SKIN[s % 5], hat || 0, HAIR[(s >> 3) % 5]), actorMat());
-    mesh.userData.actor = { kind: "person", seed: s };
-    return mesh;
+    const s = Math.abs(seed | 0), mesh2 = new THREE.Mesh(personModel(cloth, SKIN[s % 5], hat || 0, HAIR[(s >> 3) % 5]), actorMat());
+    mesh2.userData.actor = { kind: "person", seed: s };
+    return mesh2;
   }
   function creatureActor(form, color, eye) {
-    const ghost = form === "wight", mesh = new THREE.Mesh(
+    const ghost = form === "wight", mesh2 = new THREE.Mesh(
       creatureModel(form, eye),
       actorMat(ghost ? { color, transparent: true, opacity: 0.8, depthWrite: false } : { color })
     );
-    mesh.userData.actor = { kind: form };
-    return mesh;
+    mesh2.userData.actor = { kind: form };
+    return mesh2;
   }
   var LAST = /* @__PURE__ */ new Map();
   var live2 = [];
@@ -15036,7 +15243,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   function clearActors() {
     live2.length = 0;
   }
-  function track(g, mesh, o) {
+  function track(g, mesh2, o) {
     const to = g.position.clone();
     let from = null;
     if (o.key && LAST.has(o.key)) {
@@ -15053,8 +15260,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     }
     const a = {
       g,
-      mesh,
-      u: mesh.material.userData.u,
+      mesh: mesh2,
+      u: mesh2.material.userData.u,
       key: o.key || (o.pool ? o.pool + "#" + live2.length : null),
       to,
       speed: o.speed || 3,
@@ -15295,16 +15502,16 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   function updateLOD(rec, x, z, radius, force) {
     if (!force && rec.at && Math.abs(rec.at.x - x) + Math.abs(rec.at.z - z) < 25) return;
     rec.at = { x, z };
-    const r2 = radius * radius, L3 = rec.list, T2 = rec.tint, nm = rec.near.instanceMatrix.array, fm = rec.far.instanceMatrix.array, nc = rec.near.instanceColor.array, fc = rec.far.instanceColor.array;
+    const r2 = radius * radius, L4 = rec.list, T2 = rec.tint, nm = rec.near.instanceMatrix.array, fm = rec.far.instanceMatrix.array, nc = rec.near.instanceColor.array, fc = rec.far.instanceColor.array;
     let a = 0, b = 0;
     for (let i = 0; i < rec.n; i++) {
-      const dx = L3[i * 16 + 12] - x, dz = L3[i * 16 + 14] - z;
+      const dx = L4[i * 16 + 12] - x, dz = L4[i * 16 + 14] - z;
       if (dx * dx + dz * dz < r2) {
-        nm.set(L3.subarray(i * 16, i * 16 + 16), a * 16);
+        nm.set(L4.subarray(i * 16, i * 16 + 16), a * 16);
         nc.set(T2.subarray(i * 3, i * 3 + 3), a * 3);
         a++;
       } else {
-        fm.set(L3.subarray(i * 16, i * 16 + 16), b * 16);
+        fm.set(L4.subarray(i * 16, i * 16 + 16), b * 16);
         fc.set(T2.subarray(i * 3, i * 3 + 3), b * 3);
         b++;
       }
@@ -15498,6 +15705,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       return g;
     },
     well() {
+      const lm = landmark("well");
+      if (lm) return lm;
       const g = new THREE.Group(), m = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 1, 10), std(6117973));
       m.position.y = 0.5;
       const w = new THREE.Mesh(
@@ -15509,6 +15718,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       return g;
     },
     cave() {
+      const lm = landmark("cave");
+      if (lm) return lm;
       const g = new THREE.Group(), m = new THREE.Mesh(new THREE.IcosahedronGeometry(7, 1), std(5591628));
       m.scale.set(1.35, 0.8, 1.1);
       m.position.y = 1.5;
@@ -16119,8 +16330,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         if (d < 34) c.lerp(lush, (1 - d / 34) * 0.8);
       }
       if (painted) {
-        const L3 = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b, f = 1 + 0.35 * clamp2((0.85 - L3) / 0.35, 0, 1);
-        c.setRGB(L3 + (c.r - L3) * f, L3 + (c.g - L3) * f, L3 + (c.b - L3) * f);
+        const L4 = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b, f = 1 + 0.35 * clamp2((0.85 - L4) / 0.35, 0, 1);
+        c.setRGB(L4 + (c.r - L4) * f, L4 + (c.g - L4) * f, L4 + (c.b - L4) * f);
       }
       return c;
     };
@@ -16296,7 +16507,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         continue;
       }
       if (!BUILD[st.kind]) continue;
-      const g = BUILD[st.kind](S2, st, {
+      const g = st.kind !== "well" && st.kind !== "cave" && landmark(st.kind, S2, st) || BUILD[st.kind](S2, st, {
         biome: land2.biomes[land2.biome[(site.y + MARGIN) * EW + site.x + MARGIN]],
         seed: S2.seed ^ Math.imul(site.k + 1, 2654435761) ^ land2.cx * 977 + land2.cy * 131
       });
@@ -18034,8 +18245,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       const tap = drag && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6;
       drag = null;
       if (!tap || !V.S.godMode || !mapView.last) return;
-      const r = cv2.getBoundingClientRect(), L3 = mapView.last;
-      act(() => R.jumpMap(V.S, L3.x0 + (e.clientX - r.left) / L3.ts, L3.y0 + (e.clientY - r.top) / L3.ts));
+      const r = cv2.getBoundingClientRect(), L4 = mapView.last;
+      act(() => R.jumpMap(V.S, L4.x0 + (e.clientX - r.left) / L4.ts, L4.y0 + (e.clientY - r.top) / L4.ts));
       closeModal();
     });
     drawWorldMap(cv2);

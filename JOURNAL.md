@@ -24,6 +24,28 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.9: landmarks in the style
+
+**What it is.** The places you steer by are rebuilt with the kit (`src/view/landmarks.js`), so they belong to the same
+painted world as the towns and ruins:
+
+- **The beacon** is a great tower of stone courses tapering upward, battlements round a brazier at the top, its fire
+  (the same flickering fire as a camp, three times the size) and glowing orb under the beam, and a door at its foot.
+- **The god's shrine** is a ring of five standing stones joined by lintels round an altar, the god's light hanging
+  over it in its own colour with a soft halo.
+- **Caves** are heaps of faceted rock round a dark arched mouth with a lintel stone (dens keep their bones).
+- **The locked place**: a castle is curtain walls with battlements, four round towers with conical roofs and a keep;
+  a barrow is a turf mound ringed by standing stones with a stone doorway; a temple is a stepped pyramid with a stair
+  up its face and a pillared house on top.
+- **Wells** (in towns, hamlets and at home) have a ring of stones, two posts, a windlass, a little roof and a bucket.
+- **Doors to other worlds** stand between two pillars of courses under a capped lintel.
+
+**Switch.** `landmarks` ("Landmarks in the style").
+
+**Numbers.** Unchanged within the noise (a landmark is two or three draw calls). Page 729 KB.
+
+**Verdict.** Small pearl: the goal on the skyline is now a tower worth walking toward.
+
 ## C5.8: fire, water and shadows
 
 **What it is.** The small living things of the look (`src/view/fx.js`):

@@ -9,6 +9,7 @@ import { hamletGroup, townGroup, townsOn } from './buildings.js';
 import { levelFloor, levelKit, levelWalls } from './levels.js';
 import { ruinGroup, ruinsOn } from './ruins.js';
 import * as FX from './fx.js';
+import { landmark } from './landmarks.js';
 import { blob, fire, water } from './fx.js';
 import { actorsOn, clearActors, creatureActor, personActor, track } from './actors.js';
 import { kitMat } from './kit.js';
@@ -221,6 +222,8 @@ const BUILD = {
     return g;
   },
   well() {
+    const lm = landmark('well');
+    if (lm) return lm;
     const g = new THREE.Group(),
       m = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 1, 10), std(0x5d5a55));
     m.position.y = 0.5;
@@ -233,6 +236,8 @@ const BUILD = {
     return g;
   },
   cave() {
+    const lm = landmark('cave');
+    if (lm) return lm;
     const g = new THREE.Group(),
       m = new THREE.Mesh(new THREE.IcosahedronGeometry(7, 1), std(0x55524c));
     m.scale.set(1.35, 0.8, 1.1);
@@ -1208,10 +1213,12 @@ function* buildLand(S, timed) {
       continue;
     }
     if (!BUILD[st.kind]) continue; // a kind of place with no model yet is still on the map
-    const g = BUILD[st.kind](S, st, {
-      biome: land.biomes[land.biome[(site.y + MARGIN) * EW + site.x + MARGIN]],
-      seed: S.seed ^ Math.imul(site.k + 1, 2654435761) ^ (land.cx * 977 + land.cy * 131),
-    });
+    const g =
+      (st.kind !== 'well' && st.kind !== 'cave' && landmark(st.kind, S, st)) ||
+      BUILD[st.kind](S, st, {
+        biome: land.biomes[land.biome[(site.y + MARGIN) * EW + site.x + MARGIN]],
+        seed: S.seed ^ Math.imul(site.k + 1, 2654435761) ^ (land.cx * 977 + land.cy * 131),
+      });
     g.position.set(x, T.height(x, z), z);
     if (st.kind !== 'beacon') g.rotation.y = (site.k % 7) * 0.9;
     group.add(g);
