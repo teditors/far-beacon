@@ -21,6 +21,7 @@ const QUALITY = {
     sky: false,
     grain: false,
     weather: 0,
+    lite: true, // towns without their small things (shutters, flowers, street props)
     treeNear: 0, // metres round the player within which trees have their full shape (C5.3); 0: nowhere
   },
   medium: {

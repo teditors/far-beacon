@@ -24,6 +24,62 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.4: towns with culture, and levels with their own walls
+
+**What it is.** Every block of wall in a town's grid is now a building (`src/view/buildings.js`), built of what its
+land's climate offers and dressed by its people, from data in the new `src/content/townlooks.js` (for the view only;
+the rules never read it; an Almanac section lists it):
+
+- **Climate** decides what a town is built of: hot lands have ochre plaster houses with flat roofs, parapets and cloth
+  shades and banked mud walls; temperate lands timber-framed plaster under thatch with shutters and a log palisade;
+  wet lands grey stone under steep thatch; cold lands log houses with steep shingle roofs carrying snow; ashen lands
+  dark stone under low hipped roofs; the steppe round felt tents with domed tops, a coloured band and a smoke ring.
+- **Trade** puts things in the streets: anvils with glowing forges and woodpiles for smiths, planters for herbalists,
+  clothes lines of dyed cloth for weavers, charcoal kilns for burners, striped market stalls, crates and carts for
+  traders; and how many houses have chimneys, and the shop's awning.
+- **Custom** colours it: banners (the god's own colour for the pious), how many street lamps, window boxes of flowers
+  for the hospitable, fenced yards and a watchtower on the hall for the suspicious, a steeple with a gilded ball for
+  the pious, standing stones round the plaza for keepers of lore.
+- **Rare** towns: the people who never fell build in the lost people's own stone under their sign; pilgrims' towns
+  are whitewashed, with prayer flags across the streets.
+- The **elder's hall** has two storeys and banners by its door, the **inn** a hanging sign and two lanterns, the
+  **shop** an awning; doors face the plaza. A walled town's wall follows its climate (battlemented stone, a log
+  palisade or mud), with a tower by every gate. The streets are packed earth and the plaza is paved.
+- **At night** every window glows warm and every lamp, forge and kiln has a soft halo (one shared material whose
+  brightness follows the hour, and a single point sprite per town for the halos).
+
+Each town is merged into seven meshes (ground, walls, roofs, woodwork, stone, cloth, lights) plus its halos: about
+eight draw calls a town, a few thousand triangles. Hamlets use the same kit in their region's style.
+
+**Levels.** Each level's look in content now names a `kit` (`src/view/levels.js`): dressed stone (crypts, drowned
+shrines), battlements (floating castles, old holds), brick (cisterns), rough faceted rock (isles, the moon, sea caves,
+fungus caverns, warrens), propped rock (mines), white walls under gilded domes (cloud cities), boarded walls on posts
+(floating towns, wrecks), and rounded coral pillars capped with shell (merfolk halls). Each is still one instanced
+draw call for all the walls; floors and ceilings take the kit's surface.
+
+**Choices.** Town looks are content rather than code so they can be tinkered with like any menu. A town reads its
+climate from its region's biome (`parts.climate` for generated biomes, `biomeClimate` for the hand-made ones). On Low
+(`Q.lite`) towns leave out shutters, flowers and street props.
+
+**Switch.** `towns` ("Towns built in their own style"), which also covers the level kits.
+
+**Numbers** (land, away from a town: unchanged in frame time): Low 72 ms build, 68 calls, 102,779 triangles, 63.0 ms a
+frame; Medium 124 / 87 / 199,441 / 122.6; High 228 / 96 / 344,460 / 189.5. In sight of a town add about 8 draw calls
+and 3 to 8 thousand triangles. Builds are 10 to 30 ms dearer for the towns in view. Inside places on Medium
+(`bench.py places`), before (v0.15) and after:
+
+| place | calls before / after | triangles before / after | frame ms before / after |
+| --- | --- | --- | --- |
+| dungeon level | 18 / 18 | 3,312 / 13,712 | 70.2 / 36.7 |
+| sky castle | 11 / 11 | 16,581 / 18,261 | 185.6 / 51.1 |
+| open sea | 50 / 51 | 142,265 / 183,383 | 144.9 / 116.3 |
+| under the sea | 2 / 2 | 3,890 / 3,890 | 43.3 / 19.8 |
+| other world | 24 / 29 | 139,352 / 176,130 | 104.5 / 102.2 |
+
+Lambert light more than pays for the extra shape. Page 670 KB.
+
+**Verdict.** Pearl: a desert town, a northern log town and a steppe camp no longer look like the same kit of boxes.
+
 ## C5.3: trees with shapes, near and far
 
 **What it is.** Every kind of woodland has a shape of its own (`src/view/plants.js`): pines are three tiers of cone on

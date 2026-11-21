@@ -191,7 +191,7 @@ const MAKERS = {
           fx = u % 1,
           edge = Math.min(fy, 1 - fy, fx * 2, (1 - fx) * 2),
           block = rnd(row * 31 + ((col % 3) + 3) * 7)();
-        f[y * px + x] = 0.5 + (block - 0.5) * 0.25 + (n[y * px + x] - 0.5) * 0.25 - (edge < 0.08 ? 0.3 : 0);
+        f[y * px + x] = 0.5 + (block - 0.5) * 0.14 + (n[y * px + x] - 0.5) * 0.18 - (edge < 0.08 ? 0.14 : 0);
       }
     }
     return f;
@@ -261,7 +261,7 @@ const MAKERS = {
   plaster(px, r, n) {
     const f = new Float32Array(px * px);
     for (let i = 0; i < px * px; i++) f[i] = 0.52 + (n[i] - 0.5) * 0.3;
-    for (let k = 0; k < 10; k++) stroke(f, px, r() * px, r() * px, r() - 0.5, r() - 0.5, 12, 0, -0.15);
+    for (let k = 0; k < 5; k++) stroke(f, px, r() * px, r() * px, r() - 0.5, r() - 0.5, 10, 0, -0.06);
     return f;
   },
 };

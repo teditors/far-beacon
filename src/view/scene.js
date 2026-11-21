@@ -4,7 +4,10 @@ const clampI = (i, n) => (i < 0 ? 0 : i > n ? n : i);
 import { EW, MARGIN, PAD, SINK, makeTerrainG } from './terrain.js';
 import { Q, lookOn } from './quality.js';
 import { PF, perfBuild } from './perf.js';
-import { groundMaterial, paintOn, surfaceOf } from './paint.js';
+import { groundMaterial, paintOn, surface, surfaceOf } from './paint.js';
+import { hamletGroup, townGroup, townsOn } from './buildings.js';
+import { levelFloor, levelKit, levelWalls } from './levels.js';
+import { kitMat } from './kit.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 
 /* ---------- scene ---------- */
@@ -224,8 +227,9 @@ const BUILD = {
     g.add(m, d);
     return g;
   },
-  hamlet() {
-    // a few small houses round a well
+  hamlet(S, st, at) {
+    // a few small houses round a well, in the region's own style when the towns are (buildings.js)
+    if (townsOn() && at) return hamletGroup(S, at.biome, at.seed).add(BUILD.well());
     const g = new THREE.Group(),
       wall = std(0xb8a888),
       roof = std(0x6a4a32);
@@ -456,15 +460,23 @@ const BUILD = {
 const FLAT = { height: () => 0 };
 // The town or a level of the locked place, as a group centred on its own middle: a floor, and a block for every wall
 // tile that borders open floor. The town has no ceiling, so it can stand out of doors and be seen from far off.
-function interiorGroup(map, rec, ts) {
+function interiorGroup(map, rec, ts, id) {
   const group = new THREE.Group(),
     town = rec.kind === 'town',
     size = R.W * ts,
     T = map.terrain,
     at = (t) => (t + 0.5) * ts - size / 2,
     isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
+  if (town && townsOn()) {
+    // built in its own style (buildings.js), with the hearth smoke over it as before
+    const g = townGroup(V.S, id || 'town', map, ts);
+    hearthSmoke(g, map, ts, at);
+    return g;
+  }
   const look = town ? null : R.levelLook(V.S) || { stone: 0x6a6660, floor: 0x3e3a35 };
-  if (look && look.void) group.add(skyGround(map, ts, at, look));
+  const LK = town ? null : levelKit(look); // walls and floors with shape and surface (levels.js)
+  if (look && look.void) group.add(skyGround(map, ts, at, look, LK));
+  else if (LK) group.add(levelFloor(LK, size, look.floor));
   else {
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), std(town ? 0x8f8a80 : look.floor));
     floor.position.y = town ? 0.08 : 0;
@@ -491,6 +503,16 @@ function interiorGroup(map, rec, ts) {
   const outer = (x, y) => x === 0 || y === 0 || x === R.W - 1 || y === R.H - 1;
   const groups = town ? [tiles.filter(([x, y]) => outer(x, y)), tiles.filter(([x, y]) => !outer(x, y))] : [tiles];
   groups.forEach((list, gi) => {
+    if (LK)
+      return group.add(
+        levelWalls(
+          LK,
+          ts,
+          5,
+          stone,
+          list.map(([x, y]) => [at(x), at(y)]),
+        ),
+      );
     const h = town ? (gi === 0 ? 6 : 4.5) : 5,
       inst = new THREE.InstancedMesh(
         new THREE.BoxGeometry(ts, h + (town ? 3 : 0), ts),
@@ -518,34 +540,43 @@ function interiorGroup(map, rec, ts) {
     inst.count = caps.length;
     inst.frustumCulled = false;
     group.add(inst);
-    // hearth smoke over the hall and the inn, to find the town by from far off
-    for (const k in map.sites) {
-      const st = map.sites[k];
-      if (st.kind !== 'elder' && st.kind !== 'inn') continue;
-      const sm = new THREE.Mesh(new THREE.CylinderGeometry(1, 2.4, 170, 8, 1, true), glow(0xd9d4c4, 0.42));
-      sm.material.side = THREE.DoubleSide;
-      sm.position.set(
-        at(k % R.W) + (st.kind === 'inn' ? 3 * ts : 0),
-        90,
-        at(Math.floor(k / R.W)) - (st.kind === 'elder' ? 3 * ts : 0),
-      );
-      group.add(sm);
-    }
+    hearthSmoke(group, map, ts, at);
   } else if (look.ceiling !== false) {
-    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(look.roof || 0x1c1a18));
+    const ceiling = LK
+      ? levelFloor(LK, size, look.roof || 0x2a2622, true)
+      : new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(Math.PI / 2), std(look.roof || 0x1c1a18));
     ceiling.position.y = 5;
     group.add(ceiling);
   }
   return group;
 }
+// hearth smoke over the hall and the inn, to find the town by from far off
+function hearthSmoke(group, map, ts, at) {
+  for (const k in map.sites) {
+    const st = map.sites[k];
+    if (st.kind !== 'elder' && st.kind !== 'inn') continue;
+    const sm = new THREE.Mesh(new THREE.CylinderGeometry(1, 2.4, 170, 8, 1, true), glow(0xd9d4c4, 0.42));
+    sm.material.side = THREE.DoubleSide;
+    sm.position.set(
+      at(k % R.W) + (st.kind === 'inn' ? 3 * ts : 0),
+      90,
+      at(Math.floor(k / R.W)) - (st.kind === 'elder' ? 3 * ts : 0),
+    );
+    group.add(sm);
+  }
+}
 // A place in the sky: a slab of ground under every tile you can stand on, and rock hanging below it, with the open air
 // all round (VOID tiles are not drawn at all).
-function skyGround(map, ts, at, look) {
+function skyGround(map, ts, at, look, LK) {
   const g = new THREE.Group(),
     T = map.terrain,
     tiles = [];
   for (let i = 0; i < T.length; i++) if (T[i] !== R.VOID) tiles.push(i);
-  const slab = new THREE.InstancedMesh(new THREE.BoxGeometry(ts, 1.2, ts), std(look.floor), Math.max(1, tiles.length)),
+  const slab = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(ts, 1.2, ts),
+      LK ? kitMat({ vertexColors: false, color: look.floor, map: surface(LK.floor) }) : std(look.floor),
+      Math.max(1, tiles.length),
+    ),
     under = new THREE.InstancedMesh(
       new THREE.ConeGeometry(ts * 0.75, ts * 3, 5).rotateX(Math.PI),
       std(look.stone),
@@ -1110,13 +1141,16 @@ function* buildLand(S, timed) {
       const id = st.town || 'town',
         tw = towns.find((t) => t.id === id);
       if (!S.areas[id] || !R.mapOf(S, id) || !tw) continue;
-      const g = interiorGroup(R.mapOf(S, id), S.areas[id], TOWN_TS);
+      const g = interiorGroup(R.mapOf(S, id), S.areas[id], TOWN_TS, id);
       g.position.set(tw.x, tw.y, tw.z);
       group.add(g);
       continue;
     }
     if (!BUILD[st.kind]) continue; // a kind of place with no model yet is still on the map
-    const g = BUILD[st.kind](S, st);
+    const g = BUILD[st.kind](S, st, {
+      biome: land.biomes[land.biome[(site.y + MARGIN) * EW + site.x + MARGIN]],
+      seed: S.seed ^ Math.imul(site.k + 1, 2654435761) ^ (land.cx * 977 + land.cy * 131),
+    });
     g.position.set(x, T.height(x, z), z);
     if (st.kind !== 'beacon') g.rotation.y = (site.k % 7) * 0.9;
     group.add(g);

@@ -65,21 +65,40 @@ function kit() {
         col[i * 3 + 2] = _c.b * k;
       }
       g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-      for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'color') g.deleteAttribute(k);
+      // texture coordinates from where each point is, a repeat every opts.uv metres: walls take theirs across and up,
+      // floors and roofs from above, so a texture is never stretched and lines up from part to part
+      const uv = new Float32Array(p.count * 2),
+        nr = g.attributes.normal,
+        rep = opts.uv || 1;
+      for (let i = 0; i < p.count; i++) {
+        const ax = Math.abs(nr.getX(i)),
+          ay = Math.abs(nr.getY(i)),
+          az = Math.abs(nr.getZ(i));
+        uv[i * 2] = (ay > ax && ay > az ? p.getX(i) : ax > az ? p.getZ(i) : p.getX(i)) / rep;
+        uv[i * 2 + 1] = (ay > ax && ay > az ? p.getZ(i) : p.getY(i)) / rep;
+      }
+      g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      for (const k of Object.keys(g.attributes))
+        if (k !== 'position' && k !== 'normal' && k !== 'color' && k !== 'uv') g.deleteAttribute(k);
       parts.push(g);
       return self;
+    },
+    get empty() {
+      return !parts.length;
     },
     build() {
       let n = 0;
       for (const g of parts) n += g.attributes.position.count;
       const pos = new Float32Array(n * 3),
         nor = new Float32Array(n * 3),
-        col = new Float32Array(n * 3);
+        col = new Float32Array(n * 3),
+        uv = new Float32Array(n * 2);
       let o = 0;
       for (const g of parts) {
         pos.set(g.attributes.position.array, o * 3);
         nor.set(g.attributes.normal.array, o * 3);
         col.set(g.attributes.color.array, o * 3);
+        uv.set(g.attributes.uv.array, o * 2);
         o += g.attributes.position.count;
         g.dispose();
       }
@@ -87,6 +106,7 @@ function kit() {
       out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
       out.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      out.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
       out.computeBoundingSphere();
       return out;
     },
@@ -101,7 +121,35 @@ const P = {
   ball: (r, w, h) => new THREE.SphereGeometry(r, w || 8, h || 6),
   blob: (r, d) => new THREE.IcosahedronGeometry(r, d || 0),
   plane: (w, h) => new THREE.PlaneGeometry(w, h),
+  prism, // a gable roof: w wide (x), h high (y, from 0), d long (z)
 };
+function prism(w, h, d) {
+  const a = w / 2,
+    b = d / 2,
+    v = [
+      // the two slopes
+      [-a, 0, b],
+      [a, 0, b],
+      [0, h, b],
+      [-a, 0, -b],
+      [0, h, -b],
+      [a, 0, -b],
+    ],
+    tri = [
+      [0, 1, 2],
+      [3, 4, 5], // gable ends
+      [0, 2, 4],
+      [0, 4, 3], // left slope
+      [1, 5, 4],
+      [1, 4, 2], // right slope
+    ],
+    pos = [];
+  for (const t of tri) for (const i of t) pos.push(...v[i]);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  return g;
+}
 // A material for kit models: white Lambert reading the vertex colours (and, if given, a painted texture).
 const kitMat = (extra) => new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, extra || {}));
 

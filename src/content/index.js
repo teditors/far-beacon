@@ -38,6 +38,7 @@ import sea from './sea.js';
 import realms from './realms.js';
 import kin from './kin.js';
 import wayfarers from './wayfarers.js';
+import townLooks from './townlooks.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -79,4 +80,5 @@ export const CONTENT = Object.assign(
   realms,
   kin,
   wayfarers,
+  townLooks,
 );

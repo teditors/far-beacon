@@ -21,6 +21,7 @@ import { hideSky, updateSky } from './sky.js';
 import { guard } from './oops.js';
 import { lightIndoors, lightOutdoors } from './light.js';
 import { WIND } from './kit.js';
+import { setNight } from './buildings.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -293,6 +294,7 @@ function frame() {
     hemi.intensity = glowing ? look.light || 0.45 : 0.05;
     hemi.color.setHex(glowing && look.glow ? look.glow : 0xdfe7ee);
     lightIndoors();
+    setNight(1);
     lamp.intensity = lit || glowing ? 1.1 : 0.25;
     lamp.distance = lit || glowing ? 26 : 6;
     lamp.position.set(P.x, P.y + 0.8, P.z);
@@ -312,6 +314,7 @@ function frame() {
   scene.fog.far = shown.far;
   scene.fog.near = Math.min(40, shown.far * 0.2);
   lightOutdoors(h, day, dusk, skyC, !!storm, sight);
+  setNight(clamp(1 - day * 1.3 + (storm ? 0.3 : 0), 0, 1));
   const sa = ((h - 6) / 14) * Math.PI;
   sunDir.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
   lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
