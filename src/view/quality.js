@@ -67,6 +67,7 @@ const QUALITY = {
     grassMax: 14000,
     texPx: 256,
     aniso: 8,
+    post: true, // bloom, colour grading and a vignette (C5.19)
     shadows: true, // real-time shadows from the sun, near the player (C5.10)
   },
 };

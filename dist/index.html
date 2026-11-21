@@ -6053,22 +6053,22 @@
   };
   var buyPrice = (s, it) => Math.max(1, Math.round(itemValue(it) * stat(s, "town.buy", 1) * stat(s, "town.buy." + wareKind(it), 1)));
   function makeTownRec(s, r, x, y, race) {
-    const T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
+    const T3 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
     race = race || pick(C.races.filter((e) => !e.exotic && !e.roster));
     const t2 = {
       x,
       y,
-      name: pick(T2.a) + pick(T2.b),
+      name: pick(T3.a) + pick(T3.b),
       race: race.id,
       elder: pick(race.names),
       merchant: pick(race.names),
-      fuel: T2.fuel,
+      fuel: T3.fuel,
       stock: [],
       speech: []
     };
     while (t2.merchant === t2.elder) t2.merchant = pick(race.names);
-    for (const b of T2.staples) t2.stock.push(makeItem(s, b, null, null, true));
-    for (let i = 0; i < T2.stock; i++) {
+    for (const b of T3.staples) t2.stock.push(makeItem(s, b, null, null, true));
+    for (let i = 0; i < T3.stock; i++) {
       const it = genItem(s, { noConsumables: i < 3 });
       it.known = true;
       t2.stock.push(it);
@@ -6076,7 +6076,7 @@
     return t2;
   }
   function makeQuest(s, r, townP, vaultP, a0, goalP) {
-    const Q2 = C.quest, T2 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
+    const Q2 = C.quest, T3 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
     const race = pick(C.races.filter((e) => !e.exotic && !e.roster)), q = s.quest = {
       key: pick(Q2.keys),
       vault: pick(Q2.vaults),
@@ -7738,7 +7738,7 @@
     if (year) s.year = year.id;
     if (keepOf(set)) s.gen = keepOf(set);
     s.weather.changeAt = (360 + rW() * 600) * s.tun.stormGap;
-    const draw = (list, n) => {
+    const draw2 = (list, n) => {
       const a = list.map((e) => e.id);
       for (let i = a.length - 1; i > 0; i--) {
         const j = Math.floor(rO() * (i + 1));
@@ -7748,11 +7748,11 @@
     };
     const usual = (list, only) => list.filter((e) => !e.exotic && !e.roster && (!only || only.includes(e.id)));
     s.offer = {
-      races: draw(usual(C.races, set.races), set.nRaces || C.offer.races),
-      classes: draw(usual(C.classes, set.classes), set.nClasses || C.offer.classes)
+      races: draw2(usual(C.races, set.races), set.nRaces || C.offer.races),
+      classes: draw2(usual(C.classes, set.classes), set.nClasses || C.offer.classes)
     };
-    if (!s.offer.races.length) s.offer.races = draw(usual(C.races), C.offer.races);
-    if (!s.offer.classes.length) s.offer.classes = draw(usual(C.classes), C.offer.classes);
+    if (!s.offer.races.length) s.offer.races = draw2(usual(C.races), C.offer.races);
+    if (!s.offer.classes.length) s.offer.classes = draw2(usual(C.classes), C.offer.classes);
     s.species = makeSpecies(s, rnd2("species"), biome.id);
     s.speciesByBiome = { [biome.id]: s.species.map((_, i) => i) };
     s.creatures = [];
@@ -7873,20 +7873,20 @@
   var statsOf = (list) => new Set(list.flatMap((e) => e.mods.map((m) => m.stat)));
   var sum = (list) => list.reduce((a, e) => a + e.worth, 0);
   function rollGod(seed) {
-    const r = stream(seed, "pantheon"), pick = (a) => a[Math.floor(r() * a.length)], T2 = P(), rare = r() < T2.rareChance ? pick(T2.rares) : null, gifts = [pick(T2.gifts)];
+    const r = stream(seed, "pantheon"), pick = (a) => a[Math.floor(r() * a.length)], T3 = P(), rare = r() < T3.rareChance ? pick(T3.rares) : null, gifts = [pick(T3.gifts)];
     if (rare && rare.id !== "generous") {
-      const other = T2.gifts.filter((g) => g.domain !== gifts[0].domain);
+      const other = T3.gifts.filter((g) => g.domain !== gifts[0].domain);
       gifts.push(pick(other));
     }
     let vow = null;
-    if (rare && rare.id === "jealous" || !rare && r() < T2.vowChance) vow = pick(T2.vows);
+    if (rare && rare.id === "jealous" || !rare && r() < T3.vowChance) vow = pick(T3.vows);
     let costs = [];
     if (!rare || rare.id === "twin") {
-      const taken = statsOf(gifts), ok = T2.costs.filter((c) => ![...statsOf([c])].some((st) => taken.has(st))), n = gifts.length, combos = n === 1 ? ok.map((c) => [c]) : ok.flatMap((a, i) => ok.slice(i + 1).map((b) => [a, b])), score = (cs) => Math.abs(sum(gifts) + (vow ? vow.worth : 0) + sum(cs) - T2.target), fit = combos.filter((cs) => score(cs) <= T2.spread);
-      costs = fit.length ? pick(fit) : score([]) <= T2.spread ? [] : combos.sort((a, b) => score(a) - score(b))[0] || [];
+      const taken = statsOf(gifts), ok = T3.costs.filter((c) => ![...statsOf([c])].some((st) => taken.has(st))), n = gifts.length, combos = n === 1 ? ok.map((c) => [c]) : ok.flatMap((a, i) => ok.slice(i + 1).map((b) => [a, b])), score = (cs) => Math.abs(sum(gifts) + (vow ? vow.worth : 0) + sum(cs) - T3.target), fit = combos.filter((cs) => score(cs) <= T3.spread);
+      costs = fit.length ? pick(fit) : score([]) <= T3.spread ? [] : combos.sort((a, b) => score(a) - score(b))[0] || [];
     }
-    const dom = byId(T2.domains, gifts[0].domain), one = (d) => pick(T2.names.a) + pick(T2.names.b) + ", " + pick(d.titles);
-    const name = rare && rare.id === "twin" ? pick(T2.names.a) + pick(T2.names.b) + " and " + pick(T2.names.a) + pick(T2.names.b) + ", the Twins" : one(dom);
+    const dom = byId(T3.domains, gifts[0].domain), one = (d) => pick(T3.names.a) + pick(T3.names.b) + ", " + pick(d.titles);
+    const name = rare && rare.id === "twin" ? pick(T3.names.a) + pick(T3.names.b) + " and " + pick(T3.names.a) + pick(T3.names.b) + ", the Twins" : one(dom);
     return {
       name,
       domain: dom.id,
@@ -7899,11 +7899,11 @@
   function rolledGod(s) {
     const g = s.godRoll;
     if (!g || s.off.godslots) return null;
-    const T2 = P(), gifts = g.gifts.map((id) => byId(T2.gifts, id)), costs = g.costs.map((id) => byId(T2.costs, id)), vow = g.vow ? byId(T2.vows, g.vow) : null, rare = g.rare ? byId(T2.rares, g.rare) : null, broken = !!s.pactBroken;
+    const T3 = P(), gifts = g.gifts.map((id) => byId(T3.gifts, id)), costs = g.costs.map((id) => byId(T3.costs, id)), vow = g.vow ? byId(T3.vows, g.vow) : null, rare = g.rare ? byId(T3.rares, g.rare) : null, broken = !!s.pactBroken;
     return {
       id: s.god,
       name: g.name,
-      color: byId(T2.domains, g.domain).color,
+      color: byId(T3.domains, g.domain).color,
       rolled: true,
       vow,
       rare,
@@ -9056,7 +9056,7 @@
   var kind = (e) => e.hybrid ? "hybrid" : e.exotic ? "exotic" : "usual";
   on("worldBorn", (s, d) => {
     if (d.off.roster) return;
-    const r = stream(s.seed, "roster"), W8 = X2().offer.weights, draw = (list, n) => {
+    const r = stream(s.seed, "roster"), W8 = X2().offer.weights, draw2 = (list, n) => {
       const pool = list.slice(), out = [];
       while (out.length < n && pool.length) {
         let t2 = pool.reduce((a, e) => a + W8[kind(e)], 0) * r();
@@ -9068,11 +9068,11 @@
     }, [r0, r1] = X2().offer.races, [c0, c1] = X2().offer.classes;
     const set = d.set || {}, nr = r0 + Math.floor(r() * (r1 - r0 + 1)), nc = c0 + Math.floor(r() * (c1 - c0 + 1)), may = (e, only) => !(d.off.exotics && e.exotic) && !e.kin && (!only || only.includes(e.id));
     s.offer = {
-      races: draw(
+      races: draw2(
         C.races.filter((e) => may(e, set.races)),
         set.nRaces || nr
       ),
-      classes: draw(
+      classes: draw2(
         C.classes.filter((e) => may(e, set.classes)),
         set.nClasses || nc
       )
@@ -9813,7 +9813,7 @@
     caves(r) {
       let t2 = blank2(WALL);
       for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (r() < 0.55) t2[idx(x, y)] = FLOOR;
-      for (let pass = 0; pass < 4; pass++) {
+      for (let pass2 = 0; pass2 < 4; pass2++) {
         const n = t2.slice();
         for (let y = 1; y < H - 1; y++)
           for (let x = 1; x < W - 1; x++) {
@@ -10621,14 +10621,14 @@
   };
   TALK.push({
     info(s) {
-      const st = atTrader(s), T2 = st && traderOf(st);
-      if (!T2) return null;
+      const st = atTrader(s), T3 = st && traderOf(st);
+      if (!T3) return null;
       return {
-        title: T2.name.charAt(0).toUpperCase() + T2.name.slice(1),
-        text: [T2.talk],
+        title: T3.name.charAt(0).toUpperCase() + T3.name.slice(1),
+        text: [T3.talk],
         options: [
-          ...T2.bed ? [{ id: "bed", label: "A bed for the night", price: T2.bed, note: "eight hours; wake whole" }] : [],
-          ...T2.goods.map((g) => ({ id: "buy", arg: g.base, label: byId(C.bases, g.base).name, price: g.price }))
+          ...T3.bed ? [{ id: "bed", label: "A bed for the night", price: T3.bed, note: "eight hours; wake whole" }] : [],
+          ...T3.goods.map((g) => ({ id: "buy", arg: g.base, label: byId(C.bases, g.base).name, price: g.price }))
         ]
       };
     },
@@ -10777,15 +10777,15 @@
   function distTo(terrain, isLand, most) {
     const d = new Array(W * H).fill(most);
     for (let i = 0; i < W * H; i++) if (isLand(terrain[i])) d[i] = 0;
-    for (let pass = 0; pass < most; pass++)
+    for (let pass2 = 0; pass2 < most; pass2++)
       for (let y = 0; y < H; y++)
         for (let x = 0; x < W; x++) {
           const i = idx(x, y);
-          if (d[i] <= pass) continue;
+          if (d[i] <= pass2) continue;
           for (let j = -1; j <= 1; j++)
             for (let k = -1; k <= 1; k++) {
               const xx = x + k, yy = y + j;
-              if (xx >= 0 && yy >= 0 && xx < W && yy < H && d[idx(xx, yy)] === pass) d[i] = Math.min(d[i], pass + 1);
+              if (xx >= 0 && yy >= 0 && xx < W && yy < H && d[idx(xx, yy)] === pass2) d[i] = Math.min(d[i], pass2 + 1);
             }
         }
     return d;
@@ -13173,6 +13173,8 @@
       grassMax: 14e3,
       texPx: 256,
       aniso: 8,
+      post: true,
+      // bloom, colour grading and a vignette (C5.19)
       shadows: true
       // real-time shadows from the sun, near the player (C5.10)
     }
@@ -13265,11 +13267,11 @@
   }
   function* makeTerrainG(s) {
     setDetail();
-    const land2 = landAround(s), r = mulberry2(s.seed ^ 5370206), T2 = new Float32Array(4096);
-    for (let i = 0; i < 4096; i++) T2[i] = r();
+    const land2 = landAround(s), r = mulberry2(s.seed ^ 5370206), T3 = new Float32Array(4096);
+    for (let i = 0; i < 4096; i++) T3[i] = r();
     yield;
     const noise = (per, salt) => {
-      const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T2[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
+      const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T3[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
       return (x, z) => {
         const u = ((x + HALF) / WORLD + land2.cx) * per, v = ((z + HALF) / WORLD + land2.cy) * per, x0 = Math.floor(u), z0 = Math.floor(v), tx = smooth(u - x0), tz = smooth(v - z0);
         return (at(x0, z0) * (1 - tx) + at(x0 + 1, z0) * tx) * (1 - tz) + (at(x0, z0 + 1) * (1 - tx) + at(x0 + 1, z0 + 1) * tx) * tz;
@@ -13339,10 +13341,10 @@
         wl[e] = raw((ex - MARGIN + 0.5) * TS - HALF, (ey - MARGIN + 0.5) * TS - HALF) - 0.3;
       }
       const nbr = [1, -1, EW, -EW];
-      for (let pass = 0; pass < 14; pass++) {
-        if (pass % 7 === 6) yield;
+      for (let pass2 = 0; pass2 < 14; pass2++) {
+        if (pass2 % 7 === 6) yield;
         for (let e = 0; e < EW * EW; e++) {
-          if (!wk[e] || pass > 4 && !deepT[e]) continue;
+          if (!wk[e] || pass2 > 4 && !deepT[e]) continue;
           let a = wl[e], n = 1;
           for (const d of nbr) {
             const q = e + d;
@@ -13353,7 +13355,7 @@
       }
       const has2 = new Uint8Array(EW * EW);
       for (let e = 0; e < EW * EW; e++) has2[e] = wk[e] ? 1 : 0;
-      for (let pass = 0; pass < 2; pass++) {
+      for (let pass2 = 0; pass2 < 2; pass2++) {
         const next = has2.slice();
         for (let e = 0; e < EW * EW; e++) {
           if (has2[e]) continue;
@@ -14563,10 +14565,10 @@ vFade = sin(ph * 3.14159);`
     K2.lamps.push(x + 0.6, 2.85, z);
   }
   function blocks(map, walled) {
-    const W2 = R.W, H2 = R.H, T2 = map.terrain, seen3 = new Uint8Array(W2 * H2), out = [], ring = (x, y) => walled && (x === 0 || y === 0 || x === W2 - 1 || y === H2 - 1);
+    const W2 = R.W, H2 = R.H, T3 = map.terrain, seen3 = new Uint8Array(W2 * H2), out = [], ring = (x, y) => walled && (x === 0 || y === 0 || x === W2 - 1 || y === H2 - 1);
     for (let i = 0; i < W2 * H2; i++) {
       const x0 = i % W2, y0 = Math.floor(i / W2);
-      if (seen3[i] || T2[i] !== R.WALL || ring(x0, y0)) continue;
+      if (seen3[i] || T3[i] !== R.WALL || ring(x0, y0)) continue;
       const b = { x0, y0, x1: x0, y1: y0 }, stack = [i];
       seen3[i] = 1;
       while (stack.length) {
@@ -14582,7 +14584,7 @@ vFade = sin(ph * 3.14159);`
           [0, -1]
         ]) {
           const nx = x + dx, ny = y + dy, n = ny * W2 + nx;
-          if (nx < 0 || ny < 0 || nx >= W2 || ny >= H2 || seen3[n] || T2[n] !== R.WALL || ring(nx, ny)) continue;
+          if (nx < 0 || ny < 0 || nx >= W2 || ny >= H2 || seen3[n] || T3[n] !== R.WALL || ring(nx, ny)) continue;
           seen3[n] = 1;
           stack.push(n);
         }
@@ -14592,7 +14594,7 @@ vFade = sin(ph * 3.14159);`
     return out;
   }
   function townGroup(S2, townId2, map, ts) {
-    const st = styleOf(S2, townId2), r = dice(hash((townId2 || "town") + ":" + S2.seed)), K2 = kits(st), group = new THREE.Group(), W2 = R.W, size = W2 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T2 = map.terrain, walled = !!(S2.areas[townId2] && S2.areas[townId2].walled), c = 18;
+    const st = styleOf(S2, townId2), r = dice(hash((townId2 || "town") + ":" + S2.seed)), K2 = kits(st), group = new THREE.Group(), W2 = R.W, size = W2 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T3 = map.terrain, walled = !!(S2.areas[townId2] && S2.areas[townId2].walled), c = 18;
     K2.ground.add(P4.box(size, 0.1, size), st.ground, { y: 0.03 }, { uv: 2.5, jitter: 0.04 });
     K2.cobble.add(P4.box(13 * ts, 0.1, 13 * ts), st.plinth, { y: 0.06 }, { uv: 3, jitter: 0.03 });
     const kindAt = {};
@@ -14617,7 +14619,7 @@ vFade = sin(ph * 3.14159);`
       building(K2, st, r, { cx, cz, w: (b.x1 - b.x0 + 1) * ts - 0.5, d: (b.y1 - b.y0 + 1) * ts - 0.5, kind: kind2, door });
     }
     if (walled) outerWall(K2, st, r, map, ts, at);
-    const open = (x, y) => x >= 0 && y >= 0 && x < W2 && y < W2 && T2[y * W2 + x] !== R.WALL && !map.sites[y * W2 + x];
+    const open = (x, y) => x >= 0 && y >= 0 && x < W2 && y < W2 && T3[y * W2 + x] !== R.WALL && !map.sites[y * W2 + x];
     const step2 = Math.max(2, Math.round(5 / Math.max(0.3, st.lanterns)));
     for (let i = 3; i < W2 - 3; i += step2)
       for (const [x, y] of [
@@ -14643,7 +14645,7 @@ vFade = sin(ph * 3.14159);`
         [-1, 0],
         [0, 1],
         [0, -1]
-      ].find(([dx, dy]) => T2[(y + dy) * W2 + x + dx] === R.WALL);
+      ].find(([dx, dy]) => T3[(y + dy) * W2 + x + dx] === R.WALL);
       if (!by) continue;
       const name = st.props[placed % st.props.length];
       PROPS[name](K2, st, r, at(x), at(y), by[0] ? Math.PI / 2 : 0);
@@ -14674,18 +14676,18 @@ vFade = sin(ph * 3.14159);`
   function outerWall(K2, st, r, map, ts, at) {
     K2.wall.cur = (st.outer === "mud" ? "adobe" : st.walls) + ":0";
     K2.roof.cur = st.roofTex + ":0";
-    const W2 = R.W, T2 = map.terrain;
+    const W2 = R.W, T3 = map.terrain;
     for (let i = 0; i < W2 * W2; i++) {
       const x = i % W2, y = Math.floor(i / W2);
       if (!(x === 0 || y === 0 || x === W2 - 1 || y === W2 - 1)) continue;
-      const px = at(x), pz = at(y), gate = T2[i] !== R.WALL, nearGate = !gate && [
+      const px = at(x), pz = at(y), gate = T3[i] !== R.WALL, nearGate = !gate && [
         [1, 0],
         [-1, 0],
         [0, 1],
         [0, -1]
       ].some(([dx, dy]) => {
         const nx = x + dx, ny = y + dy;
-        return nx >= 0 && ny >= 0 && nx < W2 && ny < W2 && (nx === 0 || ny === 0 || nx === W2 - 1 || ny === W2 - 1) && T2[ny * W2 + nx] !== R.WALL;
+        return nx >= 0 && ny >= 0 && nx < W2 && ny < W2 && (nx === 0 || ny === 0 || nx === W2 - 1 || ny === W2 - 1) && T3[ny * W2 + nx] !== R.WALL;
       });
       if (gate) continue;
       if (st.outer === "palisade") {
@@ -14891,12 +14893,12 @@ vFade = sin(ph * 3.14159);`
         { uv: 1.5 }
       );
     };
-    const H2 = 5.5 * (civ.age === "recent" ? 1.15 : 1), T2 = 0.9, doors = [];
+    const H2 = 5.5 * (civ.age === "recent" ? 1.15 : 1), T3 = 0.9, doors = [];
     const box4 = (w, d, h, door) => {
-      wall(Z2, -w / 2, d / 2, w / 2, d / 2, h, T2, door ? { gap: 1.8 } : null);
-      wall(Z2, w / 2, -d / 2, -w / 2, -d / 2, h, T2);
-      wall(Z2, -w / 2, -d / 2, -w / 2, d / 2, h, T2);
-      wall(Z2, w / 2, d / 2, w / 2, -d / 2, h, T2);
+      wall(Z2, -w / 2, d / 2, w / 2, d / 2, h, T3, door ? { gap: 1.8 } : null);
+      wall(Z2, w / 2, -d / 2, -w / 2, -d / 2, h, T3);
+      wall(Z2, -w / 2, -d / 2, -w / 2, d / 2, h, T3);
+      wall(Z2, w / 2, d / 2, w / 2, -d / 2, h, T3);
       if (door) doors.push([0, d / 2]);
     };
     if (civ.habit === "tower") {
@@ -15114,8 +15116,8 @@ ${rich ? `{
   function setWaterSky(c) {
     SKY.value.copy(c);
   }
-  function* waterMesh(T2, g, sink, hollow, keep, colourAt) {
-    const W2 = T2.water, n = g.n, N1 = n + 1, idx2 = new Int32Array(N1 * N1).fill(-1), m = new Float32Array(N1 * N1), pos = [], wa = [], col = [], tri = [], c = new THREE.Color(), inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+  function* waterMesh(T3, g, sink, hollow, keep, colourAt) {
+    const W2 = T3.water, n = g.n, N1 = n + 1, idx2 = new Int32Array(N1 * N1).fill(-1), m = new Float32Array(N1 * N1), pos = [], wa = [], col = [], tri = [], c = new THREE.Color(), inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
     for (let iz = 0; iz <= n; iz++) {
       for (let ix = 0; ix <= n; ix++) m[iz * N1 + ix] = W2.mask(-g.half + ix * g.cell, -g.half + iz * g.cell);
       if ((iz & 15) === 15) yield;
@@ -15173,10 +15175,10 @@ ${rich ? `{
   // src/view/fx.js
   var live = [];
   var NIGHT = { value: 0 };
-  var canvasTex = (draw, n) => {
+  var canvasTex = (draw2, n) => {
     const c = document.createElement("canvas");
     c.width = c.height = n || 64;
-    draw(c.getContext("2d"), c.width);
+    draw2(c.getContext("2d"), c.width);
     const t2 = new THREE.CanvasTexture(c);
     t2.dispose = () => {
     };
@@ -15608,7 +15610,7 @@ ${rich ? `{
       cold: { n: 0.05, flowers: 0, col: new THREE.Color(6978138) }
     }[cl] || { n: 0.6, flowers: 0.05, col: lush };
   }
-  function makeGrass(group, T2, lush, towns, townHalf, seed) {
+  function makeGrass(group, T3, lush, towns, townHalf, seed) {
     if (!grassOn()) return null;
     const max = Q.grassMax, tufts = new THREE.InstancedMesh(
       tuftGeo(),
@@ -15628,7 +15630,7 @@ ${rich ? `{
       m.userData.grass = true;
       group.add(m);
     }
-    const grows = T2.land.biomes.map((b, i) => growthOf(b, lush[i])), mat = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), c = new THREE.Color(), CELL3 = 1.3, rad = Q.grass;
+    const grows = T3.land.biomes.map((b, i) => growthOf(b, lush[i])), mat = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), c = new THREE.Color(), CELL3 = 1.3, rad = Q.grass;
     let at = null;
     function update(px, pz, force) {
       if (!force && at && Math.abs(at.x - px) + Math.abs(at.z - pz) < 6) return;
@@ -15639,16 +15641,16 @@ ${rich ? `{
         for (let i = i0; i <= i1 && n < max; i++) {
           const cx = (i + 0.5) * CELL3, cz = (j + 0.5) * CELL3, dx = cx - px, dz = cz - pz, d2 = dx * dx + dz * dz;
           if (d2 > rad * rad) continue;
-          const r = mulberry2(seed ^ Math.imul(i + T2.land.cx * 4096, 374761393) ^ Math.imul(j + T2.land.cy * 4096, 668265263) | 0), x = (i + r()) * CELL3, z = (j + r()) * CELL3, e0 = T2.etile(x, z), ter = T2.land.terrain[e0];
-          if (ter === 4 || ter === R.DEEP || ter === 2 || T2.roadAt(x, z)) continue;
-          if (T2.water && T2.water.mask(x, z) > 0.05) continue;
-          if (T2.level(x, z) > 1.6) continue;
+          const r = mulberry2(seed ^ Math.imul(i + T3.land.cx * 4096, 374761393) ^ Math.imul(j + T3.land.cy * 4096, 668265263) | 0), x = (i + r()) * CELL3, z = (j + r()) * CELL3, e0 = T3.etile(x, z), ter = T3.land.terrain[e0];
+          if (ter === 4 || ter === R.DEEP || ter === 2 || T3.roadAt(x, z)) continue;
+          if (T3.water && T3.water.mask(x, z) > 0.05) continue;
+          if (T3.level(x, z) > 1.6) continue;
           let inTown2 = false;
           for (const t2 of towns) if (Math.abs(x - t2.x) < townHalf + 2 && Math.abs(z - t2.z) < townHalf + 2) inTown2 = true;
           if (inTown2) continue;
-          const g = grows[T2.land.biome[e0]], rich = (ter === 3 ? 1.3 : ter === 5 ? 1.2 : 1) * g.n, edge = 1 - Math.max(0, (Math.sqrt(d2) - rad * 0.7) / (rad * 0.3));
+          const g = grows[T3.land.biome[e0]], rich = (ter === 3 ? 1.3 : ter === 5 ? 1.2 : 1) * g.n, edge = 1 - Math.max(0, (Math.sqrt(d2) - rad * 0.7) / (rad * 0.3));
           if (r() > rich * edge) continue;
-          const y = T2.height(x, z) - 0.03, s = 0.7 + r() * 0.6;
+          const y = T3.height(x, z) - 0.03, s = 0.7 + r() * 0.6;
           e.set((r() - 0.5) * 0.3, r() * 6.28, (r() - 0.5) * 0.3);
           q.setFromEuler(e);
           sc.set(s * 1.2, s * (0.7 + r() * 0.6), s * 1.2);
@@ -16191,17 +16193,17 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   function updateLOD(rec, x, z, radius, force) {
     if (!force && rec.at && Math.abs(rec.at.x - x) + Math.abs(rec.at.z - z) < 25) return;
     rec.at = { x, z };
-    const r2 = radius * radius, L4 = rec.list, T2 = rec.tint, nm = rec.near.instanceMatrix.array, fm = rec.far.instanceMatrix.array, nc = rec.near.instanceColor.array, fc = rec.far.instanceColor.array;
+    const r2 = radius * radius, L4 = rec.list, T3 = rec.tint, nm = rec.near.instanceMatrix.array, fm = rec.far.instanceMatrix.array, nc = rec.near.instanceColor.array, fc = rec.far.instanceColor.array;
     let a = 0, b = 0;
     for (let i = 0; i < rec.n; i++) {
       const dx = L4[i * 16 + 12] - x, dz = L4[i * 16 + 14] - z;
       if (dx * dx + dz * dz < r2) {
         nm.set(L4.subarray(i * 16, i * 16 + 16), a * 16);
-        nc.set(T2.subarray(i * 3, i * 3 + 3), a * 3);
+        nc.set(T3.subarray(i * 3, i * 3 + 3), a * 3);
         a++;
       } else {
         fm.set(L4.subarray(i * 16, i * 16 + 16), b * 16);
-        fc.set(T2.subarray(i * 3, i * 3 + 3), b * 3);
+        fc.set(T3.subarray(i * 3, i * 3 + 3), b * 3);
         b++;
       }
     }
@@ -16663,7 +16665,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var FLAT = { height: () => 0 };
   function interiorGroup(map, rec, ts, id) {
-    const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T2 = map.terrain, at = (t2) => (t2 + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T2[y * R.W + x] === R.WALL;
+    const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T3 = map.terrain, at = (t2) => (t2 + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T3[y * R.W + x] === R.WALL;
     if (town && townsOn()) {
       return cachedModel("town" + V.S.seed + ":" + (id || "town") + ":" + (V.S.realm || ""), () => {
         const g = townGroup(V.S, id || "town", map, ts);
@@ -16745,8 +16747,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     }
   }
   function skyGround(map, ts, at, look2, LK) {
-    const g = new THREE.Group(), T2 = map.terrain, tiles = [];
-    for (let i = 0; i < T2.length; i++) if (T2[i] !== R.VOID) tiles.push(i);
+    const g = new THREE.Group(), T3 = map.terrain, tiles = [];
+    for (let i = 0; i < T3.length; i++) if (T3[i] !== R.VOID) tiles.push(i);
     const slab = new THREE.InstancedMesh(
       new THREE.BoxGeometry(ts, 1.2, ts),
       LK ? levelMat({ color: look2.floor, map: surface(LK.floor) }) : std(look2.floor),
@@ -16992,7 +16994,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const base = yield* makeTerrainG(S2);
     part("land");
     yield;
-    const T2 = base, land2 = T2.land, pal = land2.biomes.map((b) => ({
+    const T3 = base, land2 = T3.land, pal = land2.biomes.map((b) => ({
       cols: b.colors.map((c2) => new THREE.Color(c2)),
       lush: new THREE.Color(b.lush !== void 0 ? b.lush : b.id === "taiga" ? 6126200 : 6261317)
     })), paved = new THREE.Color(9210502), c = new THREE.Color(), cb = new THREE.Color(), lush = new THREE.Color(), centre = (t2) => (t2 + 0.5) * TS - HALF, springs = land2.sites.filter((q2) => q2.st.kind === "spring").map((q2) => ({ x: centre(q2.x), z: centre(q2.y) }));
@@ -17000,18 +17002,18 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     for (const sp of springs)
       for (let dz = -2; dz <= 2; dz++)
         for (let dx = -2; dx <= 2; dx++) {
-          const k = T2.etile(sp.x + dx * TS, sp.z + dz * TS);
+          const k = T3.etile(sp.x + dx * TS, sp.z + dz * TS);
           (springsNear[k] = springsNear[k] || []).push(sp);
         }
     for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
     const painted = lookOn("light"), bed = new THREE.Color(), MUD = new THREE.Color(3813926);
     const colourAt = (x, z) => {
-      const l = T2.level(x, z), mv = [T2.masks[0](x, z), T2.masks[1](x, z), T2.masks[2](x, z)];
+      const l = T3.level(x, z), mv = [T3.masks[0](x, z), T3.masks[1](x, z), T3.masks[2](x, z)];
       let total = 0;
       c.setRGB(0, 0, 0);
       lush.setRGB(0, 0, 0);
       for (let b = 0; b < pal.length; b++) {
-        const w = pal.length === 1 ? 1 : T2.share[b](x, z);
+        const w = pal.length === 1 ? 1 : T3.share[b](x, z);
         if (w < 2e-3) continue;
         const cols = pal[b].cols;
         if (l <= 1) cb.copy(cols[0]).lerp(cols[1], Math.max(0, l));
@@ -17019,7 +17021,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         for (let mi = 0; mi < 3; mi++)
           if (mv[mi] > 0)
             cb.lerp(
-              mi === 1 && T2.water ? bed.copy(cols[4]).multiplyScalar(0.3).lerp(MUD, 0.5) : cols[3 + mi],
+              mi === 1 && T3.water ? bed.copy(cols[4]).multiplyScalar(0.3).lerp(MUD, 0.5) : cols[3 + mi],
               mv[mi] * (mi === 0 ? 0.7 : 1)
             );
         c.r += cb.r * w;
@@ -17032,9 +17034,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       }
       c.multiplyScalar(1 / total);
       lush.multiplyScalar(1 / total);
-      if (T2.roadAt(x, z)) c.lerp(paved, 0.85);
-      c.multiplyScalar(0.88 + 0.2 * T2.tint(x, z));
-      for (const s of springsNear[T2.etile(x, z)] || NONE2) {
+      if (T3.roadAt(x, z)) c.lerp(paved, 0.85);
+      c.multiplyScalar(0.88 + 0.2 * T3.tint(x, z));
+      for (const s of springsNear[T3.etile(x, z)] || NONE2) {
         const dx = s.x - x, dz = s.z - z;
         if (dx > 34 || dx < -34 || dz > 34 || dz < -34) continue;
         const d = Math.hypot(dx, dz);
@@ -17115,14 +17117,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       gm.userData.farGround = hollow;
       group.add(gm);
     };
-    yield* ground(T2.fine, 0, false);
-    yield* ground(T2.coarse, SINK, true);
-    if (T2.water) {
+    yield* ground(T3.fine, 0, false);
+    yield* ground(T3.coarse, SINK, true);
+    if (T3.water) {
       const tint = (x, z, out) => {
         out.setRGB(0, 0, 0);
         let tot = 0;
         for (let b = 0; b < pal.length; b++) {
-          const w = pal.length === 1 ? 1 : T2.share[b](x, z);
+          const w = pal.length === 1 ? 1 : T3.share[b](x, z);
           if (w < 2e-3) continue;
           out.r += pal[b].cols[4].r * w;
           out.g += pal[b].cols[4].g * w;
@@ -17133,10 +17135,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       };
       yield;
       for (const [g, sink, hollow] of [
-        [T2.fine, 0, false],
-        [T2.coarse, SINK, true]
+        [T3.fine, 0, false],
+        [T3.coarse, SINK, true]
       ]) {
-        const w = yield* waterMesh(T2, g, sink, hollow, HALF - g.cell * 1.5, tint);
+        const w = yield* waterMesh(T3, g, sink, hollow, HALF - g.cell * 1.5, tint);
         if (w) group.add(w);
         yield;
       }
@@ -17147,28 +17149,28 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       id: q2.st.town || "town",
       here: q2.here,
       x: centre(q2.x),
-      y: T2.height(centre(q2.x), centre(q2.y)),
+      y: T3.height(centre(q2.x), centre(q2.y)),
       z: centre(q2.y)
     }));
     const nearSite = (x, z) => {
       for (const t2 of towns) if (Math.abs(x - t2.x) < townHalf + 4 && Math.abs(z - t2.z) < townHalf + 4) return true;
-      const site = land2.siteAt[T2.etile(x, z)];
+      const site = land2.siteAt[T3.etile(x, z)];
       return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;
     };
     const put = (list, x, z, sx, sy, lift, rx, ry, rz) => {
       e.set(rx, ry, rz);
       q.setFromEuler(e);
       sc.set(sx, sy, sx);
-      v.set(x, T2.height(x, z) + lift, z);
+      v.set(x, T3.height(x, z) + lift, z);
       m.compose(v, q, sc);
       for (let i = 0; i < 16; i++) list.push(m.elements[i]);
     };
     for (let ey = 0; ey < EW; ey++) {
       if ((ey & 3) === 3) yield;
       for (let ex = 0; ex < EW; ex++) {
-        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land2.biome[en], bio = land2.biomes[bi], r = T2.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8, rockShare = far ? Q.rocksF : Q.rocksN;
+        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land2.biome[en], bio = land2.biomes[bi], r = T3.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8, rockShare = far ? Q.rocksF : Q.rocksN;
         for (let n = Math.floor((bio.rocky !== void 0 ? bio.rocky : bio.id === "salt" ? 0.62 : 0.35) + r()); n > 0; n--) {
-          const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T2.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
+          const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T3.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
           if (r() < rockShare && !nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
         }
         if (r() < 0.0125) {
@@ -17185,7 +17187,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
             e.set(lean, ry, -lean);
             q.setFromEuler(e);
             sc.set(wd, hgt, wd);
-            v.set(px, T2.height(px, pz) - 0.3, pz);
+            v.set(px, T3.height(px, pz) - 0.3, pz);
             m.compose(v, q, sc);
             const list = near ? treesNear2[bi] : trees[bi];
             for (let i = 0; i < 16; i++) list.push(m.elements[i]);
@@ -17195,7 +17197,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           e.set(0, ry, 0);
           q.setFromEuler(e);
           sc.set(wd, hgt, wd);
-          v.set(px, T2.height(px, pz) + hgt / 2 - 0.3, pz);
+          v.set(px, T3.height(px, pz) + hgt / 2 - 0.3, pz);
           m.compose(v, q, sc);
           for (let i = 0; i < 16; i++) trees[bi].push(m.elements[i]);
         }
@@ -17204,7 +17206,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     {
       const gr = makeGrass(
         group,
-        T2,
+        T3,
         pal.map((p) => p.lush),
         towns,
         townHalf,
@@ -17243,7 +17245,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           new THREE.CircleGeometry(4.6, 12).rotateX(-Math.PI / 2),
           new THREE.MeshBasicMaterial({ color: 4165568 })
         );
-        w.position.set(x, T2.height(x, z) + 0.3, z);
+        w.position.set(x, T3.height(x, z) + 0.3, z);
         group.add(w);
         continue;
       }
@@ -17260,7 +17262,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         biome: land2.biomes[land2.biome[(site.y + MARGIN) * EW + site.x + MARGIN]],
         seed: S2.seed ^ Math.imul(site.k + 1, 2654435761) ^ land2.cx * 977 + land2.cy * 131
       });
-      g.position.set(x, T2.height(x, z), z);
+      g.position.set(x, T3.height(x, z), z);
       if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
       group.add(g);
     }
@@ -17587,12 +17589,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const g = c.getContext("2d");
     let a = seed;
     const r = () => (a = a * 16807 % 2147483647) / 2147483647;
-    for (let pass = 0; pass < 2; pass++)
+    for (let pass2 = 0; pass2 < 2; pass2++)
       for (let i = 0; i < 22; i++) {
-        const x = 40 + r() * 176, rad = 14 + r() * 30 * (1 - Math.abs(x - 128) / 160), y = 88 - rad * (0.4 + r() * 0.6) + (pass ? -6 : 4);
+        const x = 40 + r() * 176, rad = 14 + r() * 30 * (1 - Math.abs(x - 128) / 160), y = 88 - rad * (0.4 + r() * 0.6) + (pass2 ? -6 : 4);
         const grad = g.createRadialGradient(x, y - rad * 0.3, rad * 0.1, x, y, rad);
-        grad.addColorStop(0, pass ? "rgba(255,255,255,0.95)" : "rgba(170,176,190,0.7)");
-        grad.addColorStop(0.7, pass ? "rgba(250,250,252,0.6)" : "rgba(160,166,180,0.35)");
+        grad.addColorStop(0, pass2 ? "rgba(255,255,255,0.95)" : "rgba(170,176,190,0.7)");
+        grad.addColorStop(0.7, pass2 ? "rgba(250,250,252,0.6)" : "rgba(160,166,180,0.35)");
         grad.addColorStop(1, "rgba(255,255,255,0)");
         g.fillStyle = grad;
         g.beginPath();
@@ -18136,6 +18138,93 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var soundState = () => ({ running: !!A2 && A2.state === "running", mood: M2.mood });
 
+  // src/view/post.js
+  LOOK_SWITCHES.push(["post", "Bloom and colour grading (High)"]);
+  var postOn = () => !!Q.post && lookOn("post") && lookOn("light");
+  var T2 = null;
+  var quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+  var qScene = new THREE.Scene();
+  var qCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  qScene.add(quad);
+  quad.frustumCulled = false;
+  var VERT = "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }";
+  var bright = new THREE.ShaderMaterial({
+    uniforms: { src: { value: null } },
+    vertexShader: VERT,
+    fragmentShader: `uniform sampler2D src; varying vec2 vUv;
+    void main(){ vec3 c = texture2D(src, vUv).rgb; float l = dot(c, vec3(0.3, 0.59, 0.11));
+      gl_FragColor = vec4(c * smoothstep(0.8, 1.0, l), 1.0); }`,
+    depthTest: false,
+    depthWrite: false
+  });
+  var blur = new THREE.ShaderMaterial({
+    uniforms: { src: { value: null }, dir: { value: new THREE.Vector2() } },
+    vertexShader: VERT,
+    fragmentShader: `uniform sampler2D src; uniform vec2 dir; varying vec2 vUv;
+    void main(){ vec3 c = texture2D(src, vUv).rgb * 0.227;
+      c += (texture2D(src, vUv + dir * 1.385).rgb + texture2D(src, vUv - dir * 1.385).rgb) * 0.316;
+      c += (texture2D(src, vUv + dir * 3.231).rgb + texture2D(src, vUv - dir * 3.231).rgb) * 0.070;
+      gl_FragColor = vec4(c, 1.0); }`,
+    depthTest: false,
+    depthWrite: false
+  });
+  var finish2 = new THREE.ShaderMaterial({
+    uniforms: { src: { value: null }, glow: { value: null }, strength: { value: 0.5 } },
+    vertexShader: VERT,
+    fragmentShader: `uniform sampler2D src; uniform sampler2D glow; uniform float strength; varying vec2 vUv;
+    void main(){
+      vec3 c = texture2D(src, vUv).rgb + texture2D(glow, vUv).rgb * strength;
+      float l = dot(c, vec3(0.3, 0.59, 0.11));
+      c = mix(vec3(l), c, 1.1);                                  // a touch more colour
+      c = (c - 0.5) * 1.06 + 0.5;                                // a touch more contrast
+      c *= mix(vec3(0.97, 0.99, 1.05), vec3(1.04, 1.0, 0.95), smoothstep(0.15, 0.8, l)); // warm light, cool shade
+      vec2 d = vUv - 0.5; c *= 1.0 - dot(d, d) * 0.55;            // the vignette
+      gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0); }`,
+    depthTest: false,
+    depthWrite: false
+  });
+  function targets(renderer2) {
+    const size = renderer2.getDrawingBufferSize(new THREE.Vector2()), w = size.x, h = size.y;
+    if (T2 && T2.w === w && T2.h === h) return T2;
+    if (T2) for (const k of ["main", "a", "b"]) T2[k].dispose();
+    const opt = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat }, main = renderer2.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget ? new THREE.WebGLMultisampleRenderTarget(w, h, opt) : new THREE.WebGLRenderTarget(w, h, opt);
+    if (main.samples !== void 0) main.samples = 4;
+    const qw = Math.max(1, w >> 2), qh = Math.max(1, h >> 2);
+    T2 = { w, h, main, a: new THREE.WebGLRenderTarget(qw, qh, opt), b: new THREE.WebGLRenderTarget(qw, qh, opt), qw, qh };
+    return T2;
+  }
+  var pass = (renderer2, mat, to) => {
+    quad.material = mat;
+    renderer2.setRenderTarget(to);
+    renderer2.render(qScene, qCam);
+  };
+  function draw(renderer2, scene2, camera2) {
+    if (!postOn()) {
+      renderer2.render(scene2, camera2);
+      return null;
+    }
+    const t2 = targets(renderer2);
+    renderer2.setRenderTarget(t2.main);
+    renderer2.render(scene2, camera2);
+    const info = { calls: renderer2.info.render.calls, triangles: renderer2.info.render.triangles };
+    const ac = renderer2.autoClear;
+    bright.uniforms.src.value = t2.main.texture;
+    pass(renderer2, bright, t2.a);
+    blur.uniforms.src.value = t2.a.texture;
+    blur.uniforms.dir.value.set(1 / t2.qw, 0);
+    pass(renderer2, blur, t2.b);
+    blur.uniforms.src.value = t2.b.texture;
+    blur.uniforms.dir.value.set(0, 1 / t2.qh);
+    pass(renderer2, blur, t2.a);
+    finish2.uniforms.src.value = t2.main.texture;
+    finish2.uniforms.glow.value = t2.a.texture;
+    pass(renderer2, finish2, null);
+    renderer2.autoClear = ac;
+    renderer2.info.render.calls = info.calls + 4;
+    renderer2.info.render.triangles = info.triangles + 8;
+    return info;
+  }
+
   // src/view/run.js
   var codex = {};
   try {
@@ -18410,7 +18499,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     camera.rotation.set(P3.pitch, P3.yaw, 0);
     const deg = (-P3.yaw * 180 / Math.PI % 360 + 360) % 360;
     $("facing").textContent = "Facing " + DIRN[Math.round(deg / 45) % 8];
-    renderer.render(scene, camera);
+    draw(renderer, scene, camera);
     perfFrame(renderer);
   }
   var last = performance.now();
@@ -18835,7 +18924,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (!["elder", "inn", "shop"].includes(section)) return openService();
     const t2 = R.curTown(V.S);
     if (section === "elder" && (!V.S.quest.told || t2 !== V.S.town)) act(() => R.talkElder(V.S));
-    const p = V.S.player, T2 = R.C.town, race = R.byId(R.C.races, t2.race).name.toLowerCase(), re = (fn) => () => {
+    const p = V.S.player, T3 = R.C.town, race = R.byId(R.C.races, t2.race).name.toLowerCase(), re = (fn) => () => {
       act(fn);
       if (!V.S.over) openTown(section);
     };

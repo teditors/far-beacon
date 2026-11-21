@@ -97,6 +97,25 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.19: the finish (High)
+
+**What it is.** On High the scene is drawn into a picture of its own (multisampled, so edges stay as smooth as
+before), then finished on the way to the screen (`post.js`), like a painting varnished:
+- **bloom**: what is brightest (the sun and its glow, fires, lamps, lit windows, glints on water) bleeds a soft light
+  round itself, from a quarter-size copy of the brightest parts blurred across and down;
+- **grading**: a touch more colour and contrast, the light warmed and the shadows cooled, the storybook palette;
+- **a vignette**: the corners a little darker, to hold the eye.
+
+The three.js of this game (r128) has no ready post-processing in its core, so this is four small hand-written passes
+(bright parts, blur, blur, finish), about 60 lines. The meter and the benchmark still report the scene's own draw calls
+and triangles (plus the four passes).
+
+**Switch.** `post` ("Bloom and colour grading (High)"); only on High (`Q.post`).
+
+**Numbers.** High 288 ms build, 119 calls, 577,198 triangles, 312.0 ms a frame (300.2 without): 4%.
+
+**Verdict.** Pearl: a lit window at night and a low sun now glow the way the style always meant them to.
+
 ## C5.18: High pushed harder
 
 **Asked by Andrew**: High runs without trouble on the Pixel, so loosen the reins and make High very good; players on

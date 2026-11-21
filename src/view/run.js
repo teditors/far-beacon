@@ -27,6 +27,7 @@ import { updateSound } from './sound.js';
 import { updateFx } from './fx.js';
 import { setWaterSky } from './water.js';
 import { warmSurfaces } from './paint.js';
+import { draw as drawFrame } from './post.js';
 
 /* ---------- codex: what you have learned across every run ---------- */
 let codex = {};
@@ -350,7 +351,7 @@ function finishFrame() {
   camera.rotation.set(P.pitch, P.yaw, 0);
   const deg = ((((-P.yaw * 180) / Math.PI) % 360) + 360) % 360;
   $('facing').textContent = 'Facing ' + DIRN[Math.round(deg / 45) % 8];
-  renderer.render(scene, camera);
+  drawFrame(renderer, scene, camera); // through the finish on High (post.js)
   perfFrame(renderer);
 }
 let last = performance.now();
