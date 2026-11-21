@@ -646,6 +646,14 @@ section('Kin of the new places', ['kin'], () => {
   line();
 });
 
+section('Wayfarers', ['wayfarers'], () => {
+  const X = C.wayfarers;
+  line('People at a small fire in the wilds, in ' + Math.round(X.chance * 100) + '% of regions away from home, put there when the region is first built. Once dealt with, each moves on.');
+  line();
+  table(['Wayfarer', 'Weight', 'Offers', 'Says'], X.kinds.map((k) => [k.name, k.weight, Object.keys(k.offers).join(', '), k.talk]));
+  line();
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

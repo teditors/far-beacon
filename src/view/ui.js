@@ -673,6 +673,7 @@ const MAPC = {
   skyway: '#e0a84a',
   trader: '#3a6a9a',
   seaplace: '#7fd0e0',
+  wayfarer: '#f0a040',
   door: '#b48ce0',
   throne: '#c0612f',
   cellar: '#3b332c',

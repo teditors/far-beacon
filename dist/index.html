@@ -4299,6 +4299,56 @@
     }
   };
 
+  // src/content/wayfarers.js
+  var wayfarers_default = {
+    wayfarers: {
+      chance: 0.35,
+      // a region away from home has one
+      kinds: [
+        {
+          id: "waterseller",
+          name: "a water-carrier",
+          names: ["Old Tam", "Hessa", "Brannoc", "Jory"],
+          talk: '"Water, sweet and cold, carried from a spring you will never find. Two coin the measure, and I have six."',
+          weight: 3,
+          offers: { water: { price: 2, have: 6 } }
+        },
+        {
+          id: "mapmaker",
+          name: "a wandering mapmaker",
+          names: ["Ildra", "Penhal", "Quill", "Marrit"],
+          talk: '"I have walked every hill of this country. For a little coin I will draw it on your map, springs and all."',
+          weight: 2,
+          offers: { map: { price: 12, radius: 1 } }
+        },
+        {
+          id: "pilgrim",
+          name: "a pilgrim",
+          names: ["Brother Aun", "Sister Wenna", "the grey pilgrim", "Old Ysolt"],
+          talk: '"I go where the old stories go. Sit with me a while, and I will tell you what I have seen on the road."',
+          weight: 3,
+          offers: { sign: { price: 0 } }
+        },
+        {
+          id: "trapper",
+          name: "a trapper",
+          names: ["Corl", "Ama", "Riddock", "Fen"],
+          talk: '"Hides, bone: I buy them all, and I sell bandages to the ones who bleed for them."',
+          weight: 2,
+          offers: { mats: { hide: 3, bone: 2, bandage: 5 } }
+        },
+        {
+          id: "castaway",
+          name: "a lost traveller",
+          names: ["Petra", "Lowan", "Siske", "Garet"],
+          talk: '"Water. Please. I lost my skin at the river and I have not drunk in two days."',
+          weight: 1,
+          offers: { need: { water: 2, coin: [8, 20], xp: 25 } }
+        }
+      ]
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -4338,7 +4388,8 @@
     sky_default,
     sea_default,
     realms_default,
-    kin_default
+    kin_default,
+    wayfarers_default
   );
 
   // src/rules/core.js
@@ -5249,9 +5300,9 @@
   if (!C.classes.some((r) => r.exotic)) C.classes.push(...C.exoticClasses);
   on("worldBorn", (s, d) => {
     if (d.off.exotics) return;
-    const r = stream(s.seed, "exotics"), X7 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
-    if (r() < X7.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
-    if (r() < X7.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
+    const r = stream(s.seed, "exotics"), X8 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
+    if (r() < X8.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
+    if (r() < X8.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
     sworn(s);
   });
   function sworn(s) {
@@ -5400,8 +5451,8 @@
     if (!sp || s.off.specials || sp.named) return NONE;
     const key = s.seed + ":" + sp.name;
     if (!(key in cache)) {
-      const r = stream(s.seed, "special:" + sp.name), X7 = C.specials;
-      cache[key] = r() < X7.chance ? X7.list[Math.floor(r() * X7.list.length)].id : null;
+      const r = stream(s.seed, "special:" + sp.name), X8 = C.specials;
+      cache[key] = r() < X8.chance ? X8.list[Math.floor(r() * X8.list.length)].id : null;
     }
     return cache[key] ? byId(C.specials.list, cache[key]) : NONE;
   }
@@ -7963,7 +8014,7 @@
     return (ra ? s.town.name + " is a town of " + ra.name + ". " + ra.text + " " : "") + "Its people are " + tr.name + ", and " + cu.name + ". " + tr.text + " " + cu.text;
   };
   function rollCulture(s, r) {
-    const pick = (a) => a[Math.floor(r() * a.length)], X7 = T(), rare = r() < X7.rareChance ? pick(X7.rares) : null, trade = pick(X7.trades), custom = pick(X7.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
+    const pick = (a) => a[Math.floor(r() * a.length)], X8 = T(), rare = r() < X8.rareChance ? pick(X8.rares) : null, trade = pick(X8.trades), custom = pick(X8.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
     s.townCulture = { trade: trade.id, custom: custom.id, rare: rare ? rare.id : null };
     if (trade.stock)
       for (let i = 0; i < trade.stock.n; i++) s.town.stock.push(makeItem(s, pick(trade.stock.bases), null, null, true));
@@ -8063,14 +8114,14 @@
     return false;
   }
   function tryErrand(s) {
-    const pick = (a) => a[Math.floor(srand(s) * a.length)], X7 = E(), home = s.areas[townArea(s)] || s.world.home, near = [];
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], X8 = E(), home = s.areas[townArea(s)] || s.world.home, near = [];
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
         const id = ensureRegion(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows)).id;
         if (id !== townArea(s) && mapOf2(s, id) && !near.includes(id)) near.push(id);
       }
     if (!near.length) return false;
-    const kind2 = pick(X7.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X7.liarChance, giver = pick(X7.givers) + (liar ? " " + pick(X7.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
+    const kind2 = pick(X8.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X8.liarChance, giver = pick(X8.givers) + (liar ? " " + pick(X8.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
     let fill3 = { region: byId(C.biomes, rec.biome).name, reward };
     if (kind2.id === "slay") {
       const live = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
@@ -8221,12 +8272,12 @@
       h *= 60;
     }
     h = ((h + deg) % 360 + 360) % 360;
-    const C2 = (1 - Math.abs(2 * l - 1)) * s, X7 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X7, 0] : h < 120 ? [X7, C2, 0] : h < 180 ? [0, C2, X7] : h < 240 ? [0, X7, C2] : h < 300 ? [X7, 0, C2] : [C2, 0, X7];
+    const C2 = (1 - Math.abs(2 * l - 1)) * s, X8 = C2 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C2 / 2, [r1, g1, b1] = h < 60 ? [C2, X8, 0] : h < 120 ? [X8, C2, 0] : h < 180 ? [0, C2, X8] : h < 240 ? [0, X8, C2] : h < 300 ? [X8, 0, C2] : [C2, 0, X8];
     const out = Math.round((r1 + m) * 255) << 16 | Math.round((g1 + m) * 255) << 8 | Math.round((b1 + m) * 255);
     return num2 ? out : "#" + out.toString(16).padStart(6, "0");
   }
   function makeBiome(seed, n) {
-    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X7 = G(), cl = pick(X7.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X7.landforms), wa = pick(suits(X7.waters)), wo = pick(suits(X7.woodlands)), gr = pick(suits(X7.grounds)), rare = r() < X7.rareChance ? pick(X7.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
+    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X8 = G(), cl = pick(X8.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X8.landforms), wa = pick(suits(X8.waters)), wo = pick(suits(X8.woodlands)), gr = pick(suits(X8.grounds)), rare = r() < X8.rareChance ? pick(X8.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
     const forest = copy(wo.forest);
     if (rare && rare.treeMul) {
       forest.tree.h = forest.tree.h.map((h) => h * rare.treeMul);
@@ -8275,11 +8326,11 @@
   SKETCHERS.push((seed, world, off) => {
     if (off.biomegen) return;
     ensureBiomes(seed);
-    const r = stream(seed, "biomegen:sketch"), X7 = G();
+    const r = stream(seed, "biomegen:sketch"), X8 = G();
     for (let cy = 0; cy < world.rows; cy++)
       for (let cx = 0; cx < world.cols; cx++) {
-        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X7.perWorld);
-        if (roll2 < (home ? X7.homeChance : X7.regionChance))
+        const home = cx === world.home.cx && cy === world.home.cy, roll2 = r(), which = Math.floor(r() * X8.perWorld);
+        if (roll2 < (home ? X8.homeChance : X8.regionChance))
           world.sketch[cy * world.cols + cx].biome = ofSeed(seed) + (home ? 0 : which);
       }
   });
@@ -8477,20 +8528,20 @@
   for (const sv of L2().services) SITE_NAME[sv.id] = sv.role.replace(/^the /, "") + "'s door";
   Object.assign(SITE_NAME, { folk: "townsperson", grave: "grave" });
   function rollLife(s, r) {
-    const X7 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
-    let t = X7.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X7.sizes[0];
-    for (const e of X7.sizes)
+    const X8 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
+    let t = X8.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X8.sizes[0];
+    for (const e of X8.sizes)
       if ((t -= e.w) < 0) {
         size = e;
         break;
       }
-    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X7.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
+    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X8.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
     while (want.length < size.services && rest2.length) want.push(rest2.splice(Math.floor(r() * rest2.length), 1)[0]);
-    const ls = X7.lessons.map((l) => l.id);
+    const ls = X8.lessons.map((l) => l.id);
     s.town.size = size.id;
     s.town.services = want;
     s.town.lessons = [];
-    while (s.town.lessons.length < X7.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
+    while (s.town.lessons.length < X8.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
     if (size.stock < 0) s.town.stock.splice(5, -size.stock);
     for (let i = 0; i < size.stock; i++) {
       const b = pick(["sword", "spear", "cloak", "boots", "framepack", "compass", "spyglass", "salve", "tonic", "draught"]);
@@ -8507,7 +8558,7 @@
   GENERATORS.town = (s, rec) => withTown(s, townById(s, rec.id) || s.town, () => lifeTown(s, rec));
   function lifeTown(s, rec) {
     if (s.off.townlife || !s.town.size) return oldTown(s, rec);
-    const X7 = L2(), size = byId(X7.sizes, s.town.size), r = stream(s.seed, "area:town2" + townSfx(s)), rw = stream(s.seed, "town:walls" + townSfx(s)), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring(x, y), used = new Array(W * H).fill(0);
+    const X8 = L2(), size = byId(X8.sizes, s.town.size), r = stream(s.seed, "area:town2" + townSfx(s)), rw = stream(s.seed, "town:walls" + townSfx(s)), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring(x, y), used = new Array(W * H).fill(0);
     if (walled)
       for (let i = 0; i < W; i++)
         for (const [x, y] of [
@@ -8567,7 +8618,7 @@
       { kind: "elder" },
       { kind: "inn" },
       { kind: "shop" },
-      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X7.services, id).role }))
+      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X8.services, id).role }))
     ];
     let li = 0;
     for (const q of queue) if (order[li]) build(order[li++], q);
@@ -8575,7 +8626,7 @@
       const lot = order[li++], sp = s.species.filter((x) => !x.named), fill4 = (t) => t.replace("{storm}", byId(C.biomes, s.biome).storm.name).replace("{species}", sp.length ? pick(sp).name : "wolf").replace("{dir}", pick(["north", "south", "east", "west"])).replace("{site}", pick(["spring", "ruin", "cave"])), nm = byId(C.races, s.town.race).names;
       lot.cells.forEach(([x, y], i) => {
         if ((x + y) % 2 === 0 && i % 2 === 0)
-          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill4(pick(X7.epitaphs)) };
+          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill4(pick(X8.epitaphs)) };
       });
     }
     const fill3 = { hamlet: 0.35, village: 0.55, town: 0.8, city: 1 }[size.id];
@@ -8587,7 +8638,7 @@
       let nearDoor = false;
       for (const key in sites) if (Math.abs(key % W - x) + Math.abs(Math.floor(key / W) - y) <= 1) nearDoor = true;
       if (nearDoor) continue;
-      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X7.folkRoles) };
+      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X8.folkRoles) };
       n++;
     }
     if (walled) {
@@ -9531,20 +9582,20 @@
   SITE_NAME.cellar = "cellar stair";
   on("worldBorn", (s, ev) => {
     if (ev.off.deeps) return;
-    const set = ev.set || genOf(s), r = stream(s.seed, "deeps"), X7 = D2(), w = s.world, pick = (a) => a[Math.floor(r() * a.length)], most = Math.max(1, set.depth), list = [];
+    const set = ev.set || genOf(s), r = stream(s.seed, "deeps"), X8 = D2(), w = s.world, pick = (a) => a[Math.floor(r() * a.length)], most = Math.max(1, set.depth), list = [];
     let n = 0;
     const add = (area, at) => {
-      const themes = X7.themes.filter((t2) => t2.entry.includes(at)), t = pick(themes), [lo, hi] = X7.depth, depth = clamp(lo + Math.floor(r() * (hi - lo + 1)), 1, most), unused = t.names.filter((nm) => !list.some((o) => o.name === nm || o.name === "the Lower " + nm.slice(4))), name = unused.length ? pick(unused) : "the Lower " + pick(t.names).slice(4), d = { id: "d" + n++, theme: t.id, name, area, at, depth };
+      const themes = X8.themes.filter((t2) => t2.entry.includes(at)), t = pick(themes), [lo, hi] = X8.depth, depth = clamp(lo + Math.floor(r() * (hi - lo + 1)), 1, most), unused = t.names.filter((nm) => !list.some((o) => o.name === nm || o.name === "the Lower " + nm.slice(4))), name = unused.length ? pick(unused) : "the Lower " + pick(t.names).slice(4), d = { id: "d" + n++, theme: t.id, name, area, at, depth };
       list.push(d);
       return d;
     };
-    const per = X7.perRegion * set.dungeons;
+    const per = X8.perRegion * set.dungeons;
     for (let cy = 0; cy < w.rows; cy++)
       for (let cx = 0; cx < w.cols; cx++) {
         let k = Math.floor(per) + (r() < per - Math.floor(per) ? 1 : 0);
         for (; k > 0; k--) add(regionId(s, cx, cy), r() < 0.5 ? "cave" : "ruin");
       }
-    for (const t of [s.town].concat(s.towns || [])) if (t && r() < X7.townChance * set.dungeons) add(townId(t), "town");
+    for (const t of [s.town].concat(s.towns || [])) if (t && r() < X8.townChance * set.dungeons) add(townId(t), "town");
     const deepest = list.slice().sort((a, b) => b.depth - a.depth)[0];
     if (deepest && deepest.depth >= 3 && !ev.off.artifacts) deepest.prize = makeArtifact(s, stream(s.seed, "deeps:art"), []);
     s.deeps = list;
@@ -10129,11 +10180,11 @@
     if (ev.off.sky) return;
     const set = ev.set || genOf(s), r = stream(s.seed, "sky");
     if (!(r() < set.sky)) return;
-    const X7 = K(), w = s.world, pickW = (list2) => {
+    const X8 = K(), w = s.world, pickW = (list2) => {
       let t = list2.reduce((a, e) => a + e.weight, 0) * r();
       for (const e of list2) if ((t -= e.weight) < 0) return e;
       return list2[0];
-    }, n = X7.places[0] + Math.floor(r() * (X7.places[1] - X7.places[0] + 1)), regions = [];
+    }, n = X8.places[0] + Math.floor(r() * (X8.places[1] - X8.places[0] + 1)), regions = [];
     for (let cy = 0; cy < w.rows; cy++)
       for (let cx = 0; cx < w.cols; cx++) {
         const d = sketchOf(s, cx, cy).danger;
@@ -10143,7 +10194,7 @@
     regions.sort((a, b) => a.k - b.k);
     const list = [];
     for (let i = 0; i < n && regions.length; i++) {
-      const kd = pickW(X7.kinds.filter((k) => !k.rare)), at = regions.shift(), id = "s" + i;
+      const kd = pickW(X8.kinds.filter((k) => !k.rare)), at = regions.shift(), id = "s" + i;
       const free = kd.names.filter((nm) => !list.some((o) => o.name === nm));
       list.push({
         id,
@@ -10155,7 +10206,7 @@
         levels: kd.levels
       });
     }
-    const moon = X7.kinds.find((k) => k.rare);
+    const moon = X8.kinds.find((k) => k.rare);
     if (moon && list.length && regions.length && r() < 0.35) {
       const at = regions.pop();
       list.push({
@@ -10169,7 +10220,7 @@
       });
     }
     s.skies = list;
-    const F2 = X7.firstFlight, deepest = deepsOf(s).slice().sort((a, b) => b.depth - a.depth)[0], boots = makeItem(s, "wingboots", null, null, true);
+    const F2 = X8.firstFlight, deepest = deepsOf(s).slice().sort((a, b) => b.depth - a.depth)[0], boots = makeItem(s, "wingboots", null, null, true);
     if (r() < F2.shop || !deepest) {
       const towns = allTowns(s), t = towns[Math.floor(r() * towns.length)];
       t.stock.push(boots);
@@ -11320,9 +11371,214 @@
   });
   SWITCHES.push(["kin", "Windborn and merrow (new worlds)"]);
 
+  // src/rules/wayfarers.js
+  var X5 = () => C.wayfarers;
+  var kindOf3 = (st) => byId(X5().kinds, st.way);
+  SITE_NAME.wayfarer = "campfire";
+  {
+    const region = GENERATORS.region;
+    GENERATORS.region = (s, rec) => {
+      const m = region(s, rec);
+      if (s.off.wayfarers || rec.id === HOME) return m;
+      const r = stream(s.seed, "wayfarer:" + rec.id);
+      if (!(r() < X5().chance)) return m;
+      let t = X5().kinds.reduce((a, k) => a + k.weight, 0) * r(), kind2 = X5().kinds[0];
+      for (const k of X5().kinds)
+        if ((t -= k.weight) < 0) {
+          kind2 = k;
+          break;
+        }
+      const town = townInRegion(s, rec.id);
+      let best = null, bs = -1e9;
+      for (let n = 0; n < 120; n++) {
+        const x = 4 + Math.floor(r() * (W - 8)), y = 4 + Math.floor(r() * (H - 8)), i = idx(x, y), g = m.terrain[i];
+        if (g === 2 || g >= 4 || m.sites[i]) continue;
+        if (town && Math.max(Math.abs(town.x - x), Math.abs(town.y - y)) < 5) continue;
+        let near = false;
+        for (let j = -2; j <= 2 && !near; j++)
+          for (let k = -2; k <= 2; k++) if (m.sites[idx(clamp(x + k, 0, W - 1), clamp(y + j, 0, H - 1))]) near = true;
+        if (near) continue;
+        const sc = (m.road && m.road[i] ? 20 : 0) - Math.abs(x - 18) - Math.abs(y - 18) + r() * 6;
+        if (sc > bs) {
+          bs = sc;
+          best = i;
+        }
+      }
+      if (best !== null)
+        m.sites[best] = {
+          kind: "wayfarer",
+          way: kind2.id,
+          name: kind2.names[Math.floor(r() * kind2.names.length)],
+          have: (kind2.offers.water || {}).have || 0
+        };
+      return m;
+    };
+  }
+  function unknownThings(s) {
+    const out = [], here2 = s.realm || null, add = (area, x, y, what) => {
+      if (x === void 0 || (realmOf(s, area) || null) !== here2) return;
+      out.push({ area, x, y, what });
+    };
+    for (const d of deepsOf(s)) if (!d.entered && d.at !== "town") add(d.area, d.x, d.y, "a stair going down, into " + d.name);
+    for (const k of skiesOf(s))
+      if (!k.reached) add(k.area, k.x, k.y, "a shadow on the ground with no cloud to cast it, and " + k.name + " above it");
+    for (const p of placesOf(s)) if (!p.reached) add(p.area, p.x, p.y, p.name + ", in the water");
+    for (const d of doorsOf(s)) if (!d.crossed && !here2) add(d.area, d.x, d.y, "a door of old stone, standing on its own");
+    return out;
+  }
+  function nearestUnknown(s) {
+    const from = worldPos(s);
+    let best = null, bd = 1e9;
+    for (const t of unknownThings(s)) {
+      if (!s.areas[t.area]) continue;
+      const h = homePos(s, t.area, t.x, t.y), d = Math.hypot(h.x - from.x, h.y - from.y);
+      if (d < bd) {
+        bd = d;
+        best = Object.assign({ dist: d, at: h }, t);
+      }
+    }
+    return best;
+  }
+  var atFire = (s) => {
+    const st = siteHere(s);
+    return st && st.kind === "wayfarer" && !st.gone && !s.off.wayfarers ? st : null;
+  };
+  TALK.push({
+    info(s) {
+      const st = atFire(s);
+      if (!st) return null;
+      const k = kindOf3(st), o = k.offers, p = s.player, opts = [];
+      if (o.water && st.have > 0) {
+        const room = Math.max(0, Math.floor(waterCap(s) - p.water));
+        if (room > 0)
+          opts.push({
+            id: "water",
+            label: "A measure of water (" + st.have + " left)",
+            price: o.water.price,
+            note: "fills one more"
+          });
+      }
+      if (o.map)
+        opts.push({
+          id: "map",
+          label: "Have the country drawn on your map",
+          price: o.map.price,
+          note: "this region and those round it, springs marked"
+        });
+      if (o.sign) opts.push({ id: "sign", label: "Sit and listen", price: 0, note: "news of the road" });
+      if (o.mats) {
+        for (const m of ["hide", "bone"])
+          if ((p.mats || {})[m] > 0)
+            opts.push({ id: "sell", arg: m, label: "Sell a " + m, price: -o.mats[m], note: o.mats[m] + " coin" });
+        opts.push({ id: "bandage", label: "Bandages", price: o.mats.bandage });
+      }
+      if (o.need)
+        opts.push({
+          id: "give",
+          label: "Share " + o.need.water + " water",
+          price: 0,
+          note: p.water >= o.need.water ? "they need it" : "you have too little"
+        });
+      return { title: st.name + ", " + k.name, text: [k.talk], options: opts };
+    },
+    use(s, opt, arg) {
+      const st = atFire(s);
+      if (!st || s.over) return false;
+      const k = kindOf3(st), o = k.offers, p = s.player, info = this.info(s), op = info.options.find((x) => x.id === opt && (arg === void 0 || x.arg === arg));
+      if (!op) return false;
+      if (op.price > 0 && p.coin < op.price) {
+        say(s, "You cannot afford that.");
+        return false;
+      }
+      if (opt === "water") {
+        p.coin -= op.price;
+        p.water = Math.min(waterCap(s), p.water + 1);
+        st.have--;
+        say(s, "A measure of cold water, poured into your skin.", "good");
+        if (st.have <= 0) moveOn(s, st, "The water-carrier has no more, and shoulders the empty yoke.");
+      } else if (opt === "map") {
+        p.coin -= op.price;
+        const here2 = outdoorRec(s), rad = o.map.radius;
+        let n = 0;
+        for (let dy = -rad; dy <= rad; dy++)
+          for (let dx = -rad; dx <= rad; dx++) {
+            const rec = ensureRegion(s, wrap(here2.cx + dx, s.world.cols), wrap(here2.cy + dy, s.world.rows)), m = mapOf(s, rec.id);
+            for (let i = 0; i < W * H; i++) if (!m.seen[i]) m.seen[i] = 1, n++;
+            for (const q in m.sites) if (m.sites[q].kind === "spring") m.sites[q].seen = true, m.sites[q].known = true;
+          }
+        say(
+          s,
+          "The mapmaker draws quickly and well: " + n + " tiles of country on your map, every spring marked, sweet or foul.",
+          "good"
+        );
+        moveOn(s, st, "The mapmaker rolls up the charts and goes on.");
+      } else if (opt === "sign") {
+        const t = nearestUnknown(s);
+        if (t) {
+          if (!mapOf(s, t.area)) {
+            const c = t.area.match(/r(\d+)_(\d+)$/);
+            if (c) ensureRegion(s, +c[1], +c[2]);
+          }
+          mark(s, t.x, t.y, t.area);
+          say(
+            s,
+            '"Off to the ' + dirFrom(worldPos(s), t.at.x, t.at.y) + ", a day or two, I saw " + t.what + '." It is on your map now.',
+            "good"
+          );
+        } else say(s, '"I have seen nothing on this road that you have not." The pilgrim smiles and says no more.');
+        gainXp(s, 5);
+        moveOn(s, st, "The pilgrim blesses the road you are on, and goes the other way.");
+      } else if (opt === "sell") {
+        p.mats[arg]--;
+        p.coin += o.mats[arg];
+        say(s, "The trapper weighs the " + arg + " and pays " + o.mats[arg] + " coin.");
+      } else if (opt === "bandage") {
+        p.coin -= op.price;
+        p.items.push(makeItem(s, "bandage", null, null, true));
+        say(s, "You buy bandages.");
+      } else if (opt === "give") {
+        if (p.water < o.need.water) {
+          say(s, "You have too little water to share.", "bad");
+          return false;
+        }
+        p.water -= o.need.water;
+        const coin = o.need.coin[0] + Math.floor(srand(s) * (o.need.coin[1] - o.need.coin[0] + 1));
+        p.coin += coin;
+        gainXp(s, o.need.xp);
+        say(
+          s,
+          st.name + ' drinks, and lives. "Take this. It is all I have, and it is less than I owe." ' + coin + " coin.",
+          "good"
+        );
+        moveOn(s, st, st.name + " sets off for the nearest town, slowly.");
+      }
+      return true;
+    }
+  });
+  function moveOn(s, st, text) {
+    st.gone = true;
+    say(s, text);
+  }
+  ACTIONS.push((s, st, a) => {
+    if (s.combat || !atFire(s)) return;
+    a.push({ id: "townAsk", section: "wayfarer", label: "Talk to " + st.name, hint: kindOf3(st).name });
+  });
+  on("did", (s, ev) => {
+    if (ev.id !== "move") return;
+    const st = siteHere(s);
+    if (!st || st.kind !== "wayfarer" || st.told) return;
+    st.told = true;
+    st.seen = true;
+    say(
+      s,
+      st.gone ? "The ashes of a small fire. Whoever sat here has gone on." : "A small fire, and someone beside it: " + st.name + ", " + kindOf3(st).name + "."
+    );
+  });
+  SWITCHES.push(["wayfarers", "Wayfarers in the wilds"]);
+
   // src/rules/plots.js
   var P2 = () => C.plots;
-  var kindOf3 = (p) => byId(P2().kinds, p.kind);
+  var kindOf4 = (p) => byId(P2().kinds, p.kind);
   if (!C.bases.some((b) => b.id === "token")) {
     C.bases.push({ id: "token", name: "Token", wt: 0.3, w: 0, plain: true, quest: "Someone is waiting for this." });
     C.bases.push({
@@ -11344,7 +11600,7 @@
     return p && !p.done && !p.failed ? p : mainPlot(s);
   };
   var stepsOf = (p) => {
-    const k = kindOf3(p);
+    const k = kindOf4(p);
     return (k.steps || []).concat(p.branch && k.branches ? k.branches[p.branch] : []);
   };
   var stepOf = (p) => p.done || p.failed ? null : stepsOf(p)[p.step] || null;
@@ -11363,7 +11619,7 @@
       if (k === "giver") return g.name;
       if (k === "elder") return g.elder;
       if (k === "land") return landOf(s, p).toLowerCase();
-      if (k === "days") return String(kindOf3(p).days || "");
+      if (k === "days") return String(kindOf4(p).days || "");
       if (k === "due") return String(p.due || "");
       if (k === "town") return p.hostile ? townName(s, p.hostile) : g.name;
       const r = p.roles[k];
@@ -11462,7 +11718,7 @@
     if (p && p.roles[t.role]) Object.assign(p.roles[t.role], { x: ev.x, y: ev.y });
   });
   function placeRoles(s, p, r, link) {
-    const k = kindOf3(p), giverArea = townArea(s, townById(s, p.giver)), g = s.areas[giverArea] || s.areas[HOME], pick = (a) => a[Math.floor(r() * a.length)], roles = p.roles = {};
+    const k = kindOf4(p), giverArea = townArea(s, townById(s, p.giver)), g = s.areas[giverArea] || s.areas[HOME], pick = (a) => a[Math.floor(r() * a.length)], roles = p.roles = {};
     let cid = 600 + 20 * +p.id.slice(1);
     const clear = (area, x, y, rad) => {
       const t = townInRegion(s, area);
@@ -11643,7 +11899,7 @@
     return true;
   }
   function plotItem(s, p, key) {
-    const R2 = kindOf3(p).roles[key], it = makeItem(s, R2.base, null, null, true);
+    const R2 = kindOf4(p).roles[key], it = makeItem(s, R2.base, null, null, true);
     it.label = fill2(s, p, R2.label);
     it.plot = p.id;
     it.role = key;
@@ -11653,13 +11909,13 @@
   var canNeed = (s, need) => need === "sky" ? !s.off.sky : need === "sea" ? !!s.world.sea && !s.off.sea : need === "realm" ? doorsOf(s).length > 0 : true;
   on("worldBorn", (s, d) => {
     if (d.off.plots) return;
-    const r = stream(s.seed, "plots"), X7 = P2(), pickW = (list, w) => {
+    const r = stream(s.seed, "plots"), X8 = P2(), pickW = (list, w) => {
       let t = list.reduce((a, e) => a + (e[w] || 0), 0) * r();
       for (const e of list) if ((t -= e[w] || 0) < 0) return e;
       return list[0];
     };
     s.plots = [];
-    const fits = X7.kinds.filter((k) => !k.needs || k.needs === "other" || canNeed(s, k.needs)), rolled = pickW(fits, "main"), main = d.set && d.set.trouble && byId(X7.kinds, d.set.trouble) || rolled;
+    const fits = X8.kinds.filter((k) => !k.needs || k.needs === "other" || canNeed(s, k.needs)), rolled = pickW(fits, "main"), main = d.set && d.set.trouble && byId(X8.kinds, d.set.trouble) || rolled;
     let n = 0;
     const add = (kind2, giver, isMain, link) => {
       const p = { id: "p" + n++, kind: kind2.id, giver, main: !!isMain, known: false, step: 0 };
@@ -11668,9 +11924,9 @@
       return p;
     };
     let mp = add(main, "town", true);
-    if (!mp) mp = add(byId(X7.kinds, "relic"), "town", true);
-    if (mp.kind !== "relic") add(byId(X7.kinds, "relic"), "town", false);
-    const towns = (s.towns || []).filter((t) => !t.realm), want = Math.min(towns.length, X7.side[0] + Math.floor(r() * (X7.side[1] - X7.side[0] + 1)));
+    if (!mp) mp = add(byId(X8.kinds, "relic"), "town", true);
+    if (mp.kind !== "relic") add(byId(X8.kinds, "relic"), "town", false);
+    const towns = (s.towns || []).filter((t) => !t.realm), want = Math.min(towns.length, X8.side[0] + Math.floor(r() * (X8.side[1] - X8.side[0] + 1)));
     for (let i = 0; i < want && towns.length; i++) {
       const t = towns.splice(Math.floor(r() * towns.length), 1)[0];
       for (let tries = 0; tries < 4; tries++) {
@@ -11679,7 +11935,7 @@
         if (s.plots.some((q) => q.kind === kind2.id)) continue;
         const beast = s.plots.find((q) => q.kind === "beast");
         let link = null;
-        if (kind2.id === "plague" && beast && r() < X7.linkChance) link = { place: "patch", item: "cure", at: beast.roles.lair };
+        if (kind2.id === "plague" && beast && r() < X8.linkChance) link = { place: "patch", item: "cure", at: beast.roles.lair };
         const p = add(kind2, townId(t), false, link);
         if (p) {
           if (link) p.linked = beast.id;
@@ -11702,7 +11958,7 @@
       if (placeRoles(s, p, r, null)) s.plots.push(p);
     }
     const sides = s.plots.filter((q) => !q.main && q.kind !== "relic");
-    for (let i = 0; i + 1 < sides.length; i++) if (r() < X7.chainChance) sides[i].opens = sides[i + 1].id;
+    for (let i = 0; i + 1 < sides.length; i++) if (r() < X8.chainChance) sides[i].opens = sides[i + 1].id;
     s.track = mp.id;
     if (mp.kind === "relic") mp.known = false;
   });
@@ -11722,7 +11978,7 @@
     return null;
   }
   var placeOfPerson = (s, p, who) => {
-    const k = kindOf3(p).roles[who];
+    const k = kindOf4(p).roles[who];
     return p.roles[k.at];
   };
   function creaturePlace(s, p, key) {
@@ -11737,7 +11993,7 @@
     for (const [area, m] of allMaps(s))
       for (const k in m.depots)
         if (m.depots[k].items.some((i) => i.plot === p.id && i.role === key)) return { area, x: k % W, y: Math.floor(k / W) };
-    for (const ck in kindOf3(p).roles) if (kindOf3(p).roles[ck].carries === key) return creaturePlace(s, p, ck);
+    for (const ck in kindOf4(p).roles) if (kindOf4(p).roles[ck].carries === key) return creaturePlace(s, p, ck);
     const r = p.roles[key];
     return r && r.at && r.at.area ? { area: r.at.area, x: r.at.x, y: r.at.y } : null;
   }
@@ -11761,7 +12017,7 @@
   }
   function plotObjectiveHere(s, p) {
     const st = stepOf(p);
-    if (!st) return { text: p.done ? "Done: " + kindOf3(p).name : kindOf3(p).name + ": failed", dir: null };
+    if (!st) return { text: p.done ? "Done: " + kindOf4(p).name : kindOf4(p).name + ": failed", dir: null };
     if (!p.known) return { text: "Find " + townName(s, p.giver), dir: dirToTown(s, p.giver) };
     const at = stepPlace(s, p, st), text = fill2(s, p, st.text);
     if (!at) return { text, dir: null };
@@ -11792,7 +12048,7 @@
   function finishPlot(s, p, ending) {
     if (p.done) return;
     p.done = true;
-    const k = kindOf3(p), X7 = P2();
+    const k = kindOf4(p), X8 = P2();
     say(s, fill2(s, p, ending || p.branch === "peace" && k.peaceEnd || k.end), "good");
     if (s.curses) {
       for (const a in s.curses) if (s.curses[a] === p.id) delete s.curses[a];
@@ -11804,9 +12060,9 @@
       s.over = { won: true, ending: fill2(s, p, k.end), plot: k.id };
       return;
     }
-    const coin = X7.reward.coin[0] + Math.floor(srand(s) * (X7.reward.coin[1] - X7.reward.coin[0] + 1));
+    const coin = X8.reward.coin[0] + Math.floor(srand(s) * (X8.reward.coin[1] - X8.reward.coin[0] + 1));
     s.player.coin += coin;
-    gainXp(s, X7.reward.xp);
+    gainXp(s, X8.reward.xp);
     say(s, "They give you " + coin + " coin for it.");
     emit(s, "plotDone", { id: p.id, kind: k.id });
     const next = plotById(s, p.opens);
@@ -11824,7 +12080,7 @@
     for (const p of plotsOf(s)) {
       if (p.kind === "relic") continue;
       if (p.hostile === id) {
-        sp.push('"' + fill2(s, p, kindOf3(p).hostileText).replace(/^"|"$/g, "") + '"');
+        sp.push('"' + fill2(s, p, kindOf4(p).hostileText).replace(/^"|"$/g, "") + '"');
         continue;
       }
       if (p.done || p.failed) continue;
@@ -11833,7 +12089,7 @@
         told = true;
         p.known = true;
         if (!s.track || !plotById(s, s.track) || plotById(s, s.track).done) s.track = p.id;
-        const k = kindOf3(p), linked = p.linked && plotById(s, p.linked);
+        const k = kindOf4(p), linked = p.linked && plotById(s, p.linked);
         if (k.days) p.due = clock(s).day + k.days;
         sp.push(fill2(s, p, linked ? k.tellHoard.replace("{beast}", linked.roles.beast.name) : k.tell));
         const areas = new Set([townArea(s, t)].concat(p.legs || []));
@@ -12021,7 +12277,7 @@
       const st = stepOf(p);
       if (!st) continue;
       if (st.do === "take" && carrying2(s, p, st.what)) finishStep(s, p);
-      const k = kindOf3(p);
+      const k = kindOf4(p);
       if (k.days && p.due && p.known && !p.done && clock(s).day > p.due) {
         p.failed = true;
         say(s, fill2(s, p, k.failText), "bad");
@@ -12032,11 +12288,11 @@
   function relicSideDone(s) {
     const p = plotsOf(s).find((q) => q.kind === "relic");
     if (p) p.done = true;
-    const X7 = P2().relicSide;
+    const X8 = P2().relicSide;
     s.player.items = s.player.items.filter((i) => i.base !== "relic");
-    s.player.coin += X7.coin;
-    gainXp(s, X7.xp);
-    say(s, "The old story is ended, and this land remembers you for it: " + X7.coin + " coin, and a name in every town.", "good");
+    s.player.coin += X8.coin;
+    gainXp(s, X8.xp);
+    say(s, "The old story is ended, and this land remembers you for it: " + X8.coin + " coin, and a name in every town.", "good");
   }
   SOURCES.push({
     id: "plots",
@@ -12061,7 +12317,7 @@
         id: "plotAct",
         arg: p.id,
         label: step.do === "free" ? (step.water ? "Share water with " : "Free ") + who.name : "Use the " + carrying2(s, p, step.what).label.toLowerCase(),
-        hint: kindOf3(p).name.toLowerCase()
+        hint: kindOf4(p).name.toLowerCase()
       });
     }
   });
@@ -12082,14 +12338,14 @@
       if (!t) continue;
       out.push(() => {
         mark(s, t.x, t.y, townArea(s, t));
-        return '"Have you been to ' + t.name + "? They have trouble there: " + kindOf3(p).name.toLowerCase() + ', they say. Their elder would pay someone to deal with it." (' + t.name + " is on your map.)";
+        return '"Have you been to ' + t.name + "? They have trouble there: " + kindOf4(p).name.toLowerCase() + ', they say. Their elder would pay someone to deal with it." (' + t.name + " is on your map.)";
       });
     }
   });
   SWITCHES.push(["plots", "Many plots (new worlds)"]);
   NOTES.push(
     (s) => plotsOf(s).filter((p) => p.known && p.kind !== "relic").map((p) => ({
-      label: kindOf3(p).name + (p.main ? " (the great trouble)" : "") + (p.done ? ": done" : p.failed ? ": failed" : ""),
+      label: kindOf4(p).name + (p.main ? " (the great trouble)" : "") + (p.done ? ": done" : p.failed ? ": failed" : ""),
       text: p.done || p.failed ? "Asked by " + townName(s, p.giver) + "." : plotObjective(s, p).text + ". Asked by " + townName(s, p.giver) + "."
     }))
   );
@@ -12101,14 +12357,14 @@
   }
 
   // src/rules/crafting.js
-  var X5 = () => C.crafting;
-  for (const b of X5().bases)
+  var X6 = () => C.crafting;
+  for (const b of X6().bases)
     if (!C.bases.some((e) => e.id === b.id)) {
       C.bases.push(Object.assign({}, b, { value: void 0 }));
       C.value[b.id] = b.value;
     }
   var mats = (s) => s.player.mats = s.player.mats || {};
-  var matOf = (id) => byId(X5().mats, id);
+  var matOf = (id) => byId(X6().mats, id);
   function addMats(s, got, why) {
     if (s.off.crafting) return;
     const m = mats(s), parts2 = [];
@@ -12121,11 +12377,11 @@
   var has = (s, needs) => Object.keys(needs).every((k) => (k === "fuel" ? s.player.fuel : mats(s)[k] || 0) >= needs[k]);
   function recipes(s) {
     if (s.off.crafting) return [];
-    return X5().recipes.map((r) => ({ r, ok: has(s, r.needs) && (r.makes !== "shelter" || canShelter(s)) }));
+    return X6().recipes.map((r) => ({ r, ok: has(s, r.needs) && (r.makes !== "shelter" || canShelter(s)) }));
   }
   var canShelter = (s) => inOverworld(s) && !siteHere(s);
   function craft(s, id) {
-    const r = byId(X5().recipes, id);
+    const r = byId(X6().recipes, id);
     if (s.over || s.combat || s.off.crafting || !r || !has(s, r.needs)) return false;
     if (r.makes === "shelter" && !canShelter(s)) {
       say(s, "There is no room for a shelter here.");
@@ -12155,14 +12411,14 @@
   on("killed", (s, d) => {
     const c = d.c;
     if (!c) return;
-    const sp = s.species[c.sp], got = Object.assign({}, X5().kills[sp && sp.form]);
+    const sp = s.species[c.sp], got = Object.assign({}, X6().kills[sp && sp.form]);
     if (c.tier > 2) for (const k in got) got[k]++;
     addMats(s, got, "You take from the carcass: ");
   });
   on("did", (s, d) => {
     if (s.off.crafting) return;
-    if (d.id === "search" && d.site && X5().search[d.site]) addMats(s, X5().search[d.site], "Among it all: ");
-    if (d.id === "gather" && srand(s) < X5().herbChance) addMats(s, { herbs: 1 }, "And with the wood, ");
+    if (d.id === "search" && d.site && X6().search[d.site]) addMats(s, X6().search[d.site], "Among it all: ");
+    if (d.id === "gather" && srand(s) < X6().herbChance) addMats(s, { herbs: 1 }, "And with the wood, ");
   });
   SOURCES.push({
     id: "crafting",
@@ -12183,9 +12439,9 @@
   });
 
   // src/rules/trade.js
-  var X6 = () => C.trade;
+  var X7 = () => C.trade;
   var goods = (s) => s.player.goods = s.player.goods || {};
-  var goodOf = (id) => byId(X6().goods, id);
+  var goodOf = (id) => byId(X7().goods, id);
   var cultureOf2 = (s, t) => (t === s.town ? s.townCulture : t.culture) || {};
   var biomeOfTown = (s, t) => {
     const a = s.areas[townArea(s, t)];
@@ -12203,15 +12459,15 @@
     return false;
   }
   function price2(s, t, id) {
-    const g = goodOf(id), r = stream(s.seed, "market:" + townId(t) + ":" + id)(), y = (X6().year[s.year] || {})[id] || 1;
-    return g.price * (makes(s, t, g) ? X6().made : X6().wanted) * (1 + (r * 2 - 1) * X6().wander) * y;
+    const g = goodOf(id), r = stream(s.seed, "market:" + townId(t) + ":" + id)(), y = (X7().year[s.year] || {})[id] || 1;
+    return g.price * (makes(s, t, g) ? X7().made : X7().wanted) * (1 + (r * 2 - 1) * X7().wander) * y;
   }
   var buyAt = (s, t, id) => Math.max(1, Math.round(price2(s, t, id) * stat(s, "town.buy", 1)));
-  var sellAt = (s, t, id) => Math.max(1, Math.floor(price2(s, t, id) * X6().spread));
+  var sellAt = (s, t, id) => Math.max(1, Math.floor(price2(s, t, id) * X7().spread));
   function stockOf(s, t, id) {
     t.goods = t.goods || {};
     if (t.goods[id] === void 0) {
-      const r = stream(s.seed, "marketstock:" + townId(t) + ":" + id)(), [a, b] = X6().stock;
+      const r = stream(s.seed, "marketstock:" + townId(t) + ":" + id)(), [a, b] = X7().stock;
       t.goods[id] = makes(s, t, goodOf(id)) ? a + Math.floor(r * (b - a + 1)) : 0;
     }
     return t.goods[id];
@@ -12219,7 +12475,7 @@
   function market(s) {
     if (s.off.trade || areaRec(s).kind !== "town") return [];
     const t = curTown(s);
-    return X6().goods.map((g) => ({
+    return X7().goods.map((g) => ({
       id: g.id,
       name: g.name,
       text: g.text,
@@ -12256,7 +12512,7 @@
     const m = byId(C.crafting.mats, id), have = s.player.mats || {};
     if (!m || !(have[id] > 0)) return false;
     have[id]--;
-    const n = Math.max(1, Math.round(m.value * X6().mats));
+    const n = Math.max(1, Math.round(m.value * X7().mats));
     s.player.coin += n;
     return true;
   }
@@ -12283,6 +12539,7 @@
   // src/rules/index.js
   var api = {
     setGodMode,
+    nearestUnknown,
     rescue,
     chainOf,
     route,
@@ -13073,6 +13330,22 @@
         up.position.y = 130;
       }
       g.add(up);
+      return g;
+    },
+    // someone at a small fire in the wilds (only the ashes, once they have gone on)
+    wayfarer(S2, st) {
+      const g = new THREE.Group();
+      g.add(box2(1.4, 0.3, 1.4, std(3813415), 0, 0.15, 0));
+      if (!st.gone) {
+        const f = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.4, 6), glow(16752704, 0.9));
+        f.position.y = 0.9;
+        const who = new THREE.Group(), body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 2.2, 8), std(6969920)), head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 8), std(14268566));
+        body.position.y = 1.1;
+        head.position.y = 2.5;
+        who.add(body, head);
+        who.position.set(2.2, 0, 0.6);
+        g.add(f, who);
+      }
       return g;
     },
     // a door of old stone, alone in the land, with another sky showing through it
@@ -13968,7 +14241,7 @@
     m.frustumCulled = false;
     return m;
   };
-  function kindOf4(name) {
+  function kindOf5(name) {
     const n = (name || "").toLowerCase();
     if (/snow|blizzard/.test(n)) return "snow";
     if (/hail/.test(n)) return "hail";
@@ -14026,7 +14299,7 @@
         moonDisc.material.opacity = storm ? 0 : Math.max(0, 0.9 - day * 1.6);
       }
     }
-    const kind2 = Q.weather > 0 && storm && !R.indoors(V.S) ? kindOf4(storm.name) : "";
+    const kind2 = Q.weather > 0 && storm && !R.indoors(V.S) ? kindOf5(storm.name) : "";
     if (kind2 !== fallKind || fall && fallN !== Math.max(1, Math.round(Q.weather * (FALL[kind2] || { n: 1 }).n))) {
       if (fall) {
         scene.remove(fall);
@@ -14891,6 +15164,7 @@
     skyway: "#e0a84a",
     trader: "#3a6a9a",
     seaplace: "#7fd0e0",
+    wayfarer: "#f0a040",
     door: "#b48ce0",
     throne: "#c0612f",
     cellar: "#3b332c",

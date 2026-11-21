@@ -348,5 +348,34 @@ const done = [];
   need(R.canFly(s) && !s.player.swims, 'the windborn cannot fly, or swim when they should not');
   done.push('kin (' + offered + ' of 150 worlds)');
 }
+// Wayfarers: about one region in three, each kind does what it offers, then moves on.
+{
+  const s = R.newGame(4, {}, { sea: 1, size: '5x5', sky: 1 }), byKind = {};
+  R.setGodMode(s, true);
+  for (const p of R.places(s).filter((p) => p.group === 'Regions')) R.jumpTo(s, p.id);
+  let regions = 0;
+  for (const id in s.areas) {
+    if (s.areas[id].kind !== 'region') continue;
+    regions++;
+    const m = R.mapOf(s, id);
+    for (const q in m.sites) if (m.sites[q].kind === 'wayfarer') byKind[m.sites[q].way] = byKind[m.sites[q].way] || { id, i: +q };
+  }
+  need(Object.keys(byKind).length >= 3, 'only ' + Object.keys(byKind) + ' kinds of wayfarer in a 5 x 5 world');
+  for (const k in byKind) {
+    const w = byKind[k];
+    R.setGodMode(s, true); R.jumpTo(s, 'region:' + w.id); R.setGodMode(s, false);
+    s.player.x = w.i % R.W; s.player.y = Math.floor(w.i / R.W); s.player.coin = 100; s.player.water = 2; s.player.mats = { hide: 2 }; s.combat = null;
+    const info = R.serviceInfo(s), seen = R.mapOf(s, w.id).seen.filter(Boolean).length;
+    need(info && info.options.length && R.actions(s).some((a) => a.section === 'wayfarer'), 'the ' + k + ' will not talk');
+    if (!info) continue;
+    const o = info.options.find((x) => x.id !== 'sell') || info.options[0], coin = s.player.coin, water = s.player.water;
+    need(R.useService(s, o.id, o.arg), 'the ' + k + ' would not ' + o.id);
+    if (k === 'waterseller') need(s.player.water > water && s.player.coin < coin, 'bought no water');
+    if (k === 'mapmaker') need(R.mapOf(s, w.id).seen.filter(Boolean).length > seen && R.siteHere(s).gone, 'the map drew nothing, or the mapmaker stayed');
+    if (k === 'pilgrim') need(R.siteHere(s).gone, 'the pilgrim did not move on');
+    if (k === 'castaway') need(s.player.water < water && s.player.coin > coin, 'sharing water paid nothing');
+  }
+  done.push('wayfarers (' + Object.keys(byKind).join(', ') + ')');
+}
 if (errs.length) { console.log('commission 4 problems:\n  ' + errs.join('\n  ')); process.exit(1); }
 console.log('c4 ok: ' + done.join(', '));

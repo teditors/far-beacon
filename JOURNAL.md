@@ -93,6 +93,28 @@ seeds 11 / 222 / 3333): slow in absolute terms, but comparable before and after.
 `node tests/playtest.js 150`, seed sets 5 / 1000 / 2000 unless stated. Commission 4's own checks are in
 `tests/c4.test.js` (part of `node tools/check.js`).
 
+## C4.12: wayfarers
+
+**Why.** Half of all deaths are thirst on the long legs between towns, and the land between towns has no people in
+it; the new places are found only by stumbling on them. So: chance meetings that help with both.
+
+**What it is** (`wayfarers` piece, `content/wayfarers.js`, `rules/wayfarers.js`). About one region in three away from
+home has someone at a small fire (seen from a way off by its flame), put there when the region is first built:
+- a **water-carrier**: water at 2 coin the measure, six measures, then gone;
+- a **wandering mapmaker**: for 12 coin, this region and the eight round it drawn on your map, every spring marked
+  sweet or foul;
+- a **pilgrim**: free, tells you where the nearest thing you have not found lies (a dungeon's stair, a shadow in the
+  sky, a place in the water, a door) and marks it;
+- a **trapper**: buys hides (3) and bone (2), sells bandages (5);
+- rarely, a **lost traveller** who needs two of your water and pays it back in coin and experience.
+Once dealt with (all but the trapper) they move on and leave their ashes.
+
+**In play.** A reason to walk toward a distant flame; a way to buy your way across a dry leg; the pilgrim makes the
+places of commission 4 findable. The bot buys water from carriers it passes. Bot win rate 30, 27, 20 (77 / 450) with
+them, 32, 28, 21 (81) with `NO=wayfarers`: within the noise; the bot rarely passes a fire.
+
+**Commits.** "Wayfarers in the wilds". Switch: `wayfarers` (as regions are built).
+
 ## C4.11: no more black screens, and a fuzz that goes everywhere
 
 After Andrew's freeze at Saltholm (C4.10), two things so that a fault like it can neither hide nor strand anyone.

@@ -119,6 +119,24 @@ const BUILD = {
     g.add(up);
     return g;
   },
+  // someone at a small fire in the wilds (only the ashes, once they have gone on)
+  wayfarer(S, st) {
+    const g = new THREE.Group();
+    g.add(box(1.4, 0.3, 1.4, std(0x3a3027), 0, 0.15, 0));
+    if (!st.gone) {
+      const f = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.4, 6), glow(0xffa040, 0.9));
+      f.position.y = 0.9;
+      const who = new THREE.Group(),
+        body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 2.2, 8), std(0x6a5a40)),
+        head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 8), std(0xd9b896));
+      body.position.y = 1.1;
+      head.position.y = 2.5;
+      who.add(body, head);
+      who.position.set(2.2, 0, 0.6);
+      g.add(f, who);
+    }
+    return g;
+  },
   // a door of old stone, alone in the land, with another sky showing through it
   door(S, st) {
     const g = new THREE.Group(),

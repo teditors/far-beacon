@@ -44,7 +44,8 @@ function allWater(s){ const out=[]; for(const id in s.areas){ if(id===s.area||s.
     for(const k in m.sites){ const st=m.sites[k]; if(st.seen&&st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1)) out.push(R.localPos(s,id,k%W,Math.floor(k/W))); } }
   for(const k in s.sites){ const st=s.sites[k]; if(st.seen&&(st.kind==='well'||st.kind==='hamlet'||(st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1)))) out.push({x:k%W,y:Math.floor(k/W)}); }
   return out; }
-function knownWater(s){ let best=null,bd=1e9; { const f=farWater(s); if(f){best=f.p;bd=f.d;} } for(const k in s.sites){const st=s.sites[k]; if(!st.seen)continue; const ok=st.kind==='well'||st.kind==='town'||(st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1))||(st.kind==='ruin'&&st.water>0.5); if(!ok)continue; const p=st.kind==='town'?door(s):{x:k%W,y:Math.floor(k/W)},d=dist(p,s.player); if(d<bd){bd=d;best=p;}}
+const p0coin=(s)=>s.player.coin;
+function knownWater(s){ let best=null,bd=1e9; { const f=farWater(s); if(f){best=f.p;bd=f.d;} } for(const k in s.sites){const st=s.sites[k]; if(!st.seen)continue; const ok=st.kind==='well'||st.kind==='town'||(st.kind==='wayfarer'&&st.way==='waterseller'&&!st.gone&&st.have>0&&p0coin(s)>=2)||(st.kind==='spring'&&!(st.known&&st.foul&&s.player.fuel<1))||(st.kind==='ruin'&&st.water>0.5); if(!ok)continue; const p=st.kind==='town'?door(s):{x:k%W,y:Math.floor(k/W)},d=dist(p,s.player); if(d<bd){bd=d;best=p;}}
   for(let i=0;i<W*W;i++) if(s.seen[i]&&s.terrain[i]===4&&R.terrainInfo(s,4).drink){const p={x:i%W,y:Math.floor(i/W)},d=dist(p,s.player); if(d<bd){bd=d;best=p;}} return best?{p:best,d:bd}:null; }
 function step(s,t){ const p=s.player, out=(o)=>o.x<0||o.y<0||o.x>=W||o.y>=W; // outdoors the bot may step over a region's edge
   const opts=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({dx,dy,x:p.x+dx,y:p.y+dy})).filter(o=>out(o)?R.inOverworld(s):R.passable(s,o.x,o.y));
@@ -71,6 +72,8 @@ function maintain(s,stats){ const p=s.player,st=R.siteHere(s);
   // freezing in a storm in the open, where no fire will light: make for the nearest trees or shelter
   if(p.warmth<40&&s.weather.storm&&!R.inShelter(s)&&!R.groundHere(s).blind&&R.inOverworld(s)){ let best=null,bd=9; for(let y=Math.max(0,p.y-6);y<=Math.min(W-1,p.y+6);y++) for(let x=Math.max(0,p.x-6);x<=Math.min(W-1,p.x+6);x++){ const i=y*W+x,st=s.sites[i]; if((s.terrain[i]===3&&R.terrainInfo(s,3).blind)||(st&&['cave','ruin','well'].includes(st.kind))){ const d=Math.abs(x-p.x)+Math.abs(y-p.y); if(d<bd){bd=d;best={x,y};} } }
     if(best){ for(let k=0;k<bd&&!s.over&&!s.combat;k++) if(!bfsStep(s,best.x,best.y)) break; if(p.fuel>=1&&!s.combat) R.fire(s); } } if(s.weather.storm&&!R.inShelter(s)&&!R.groundHere(s).blind&&p.warmth<60){ const ok=[[1,0],[-1,0],[0,1],[0,-1]].find(([dx,dy])=>{const x=p.x+dx,y=p.y+dy;return x>=0&&y>=0&&x<36&&y<36&&s.terrain[y*36+x]===3;}); if(ok)R.move(s,ok[0],ok[1]); }
+  // a water-carrier by the road: buy what fits
+  if(st&&st.kind==='wayfarer'&&st.way==='waterseller'&&!st.gone){ for(let i=0;i<6&&p.water<R.waterCap(s)-1&&p.coin>=2;i++) R.useService(s,'water'); }
   if(R.atTown(s)&&st&&st.kind==='elder'&&!s.quest.told){R.talkElder(s);stats.town=R.clock(s).day;}
   if(R.atTown(s)&&st&&st.kind==='shop'){ stats.shopped=true;
     if(!R.stat(s,'nightSight',0)){const l=s.town.stock.find(i=>i.base==='lantern'); if(l&&p.coin>=R.itemValue(l)){R.buy(s,l.id);R.equip(s,l.id);}}

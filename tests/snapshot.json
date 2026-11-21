@@ -5,7 +5,7 @@
   "sites": "3f15ce72cd73",
   "quest": "6d1b709600a3",
   "creatures": "b1d04e9ce164",
-  "all": "9914c6d197c0"
+  "all": "91722bf5ed79"
  },
  "2": {
   "terrain": "749abc1c0d32",
@@ -13,7 +13,7 @@
   "sites": "5493537892e9",
   "quest": "089bfd520a4b",
   "creatures": "d0d7d5ce5770",
-  "all": "dfdd9587396e"
+  "all": "8be3f1c66b4d"
  },
  "3": {
   "terrain": "269cca8439ad",
@@ -21,7 +21,7 @@
   "sites": "4e27f1d09c01",
   "quest": "7e294457c9ad",
   "creatures": "29e3681076ad",
-  "all": "9e2a8bca5f17"
+  "all": "97c553e236a7"
  },
  "42": {
   "terrain": "5213a5f08eae",
@@ -29,7 +29,7 @@
   "sites": "2670635b5aaa",
   "quest": "3d7a6309eb0b",
   "creatures": "aaac9da53bcf",
-  "all": "a33f1fe0867d"
+  "all": "56252d4dc6c8"
  },
  "1000": {
   "terrain": "a72156d75df9",
@@ -37,6 +37,6 @@
   "sites": "b35cd6206c58",
   "quest": "7c0e37138d37",
   "creatures": "5f00068df405",
-  "all": "4f1c148f5549"
+  "all": "b25822c48a58"
  }
 }

@@ -146,6 +146,7 @@ import { breathes, enterWater, hasBoat, seaPlacesOf } from './sea.js';
 import { doorsOf, realmName, realmsOf, stepThrough } from './realms.js'; // before the plots: they use the doors
 import { chainOf, route } from './route.js';
 import './kin.js'; // after the sky and the sea: the kin come with them
+import { nearestUnknown } from './wayfarers.js';
 import {
   choosePlot,
   mainPlot,
@@ -165,6 +166,7 @@ import { genOf, parseSet, settings } from './worldset.js';
 
 const api = {
   setGodMode,
+  nearestUnknown,
   rescue,
   chainOf,
   route,
