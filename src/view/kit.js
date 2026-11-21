@@ -3,6 +3,7 @@
    with instancing a whole forest of them is one draw call too. Trees, buildings, people and creatures are all built
    with it. Parts with few sides keep cut faces; round parts are smooth. */
 
+const PREP = new Map(); // parts already made non-indexed, by shape and size
 const _m = new THREE.Matrix4(),
   _q = new THREE.Quaternion(),
   _e = new THREE.Euler(),
@@ -29,8 +30,16 @@ function kit() {
   const self = {
     add(geo, color, place, opts) {
       opts = opts || {};
-      let g = geo.index ? geo.toNonIndexed() : geo.clone();
-      if (geo !== g) geo.dispose();
+      let g;
+      if (geo.parameters) {
+        // the same part again (a block, a drum): reuse its prepared form rather than making it anew
+        const key = geo.type + JSON.stringify(geo.parameters),
+          pre = PREP.get(key) || PREP.set(key, geo.index ? geo.toNonIndexed() : geo.clone()).get(key);
+        g = new THREE.BufferGeometry();
+        g.setAttribute('position', pre.attributes.position.clone());
+        if (pre.attributes.normal) g.setAttribute('normal', pre.attributes.normal.clone());
+      } else g = geo.index ? geo.toNonIndexed() : geo.clone();
+      geo.dispose();
       g.applyMatrix4(placeMatrix(place));
       if (opts.flat || !g.attributes.normal) g.computeVertexNormals();
       if (opts.flat) {

@@ -13610,6 +13610,7 @@
   }
 
   // src/view/kit.js
+  var PREP = /* @__PURE__ */ new Map();
   var _m = new THREE.Matrix4();
   var _q = new THREE.Quaternion();
   var _e = new THREE.Euler();
@@ -13630,8 +13631,14 @@
     const self = {
       add(geo, color, place, opts) {
         opts = opts || {};
-        let g = geo.index ? geo.toNonIndexed() : geo.clone();
-        if (geo !== g) geo.dispose();
+        let g;
+        if (geo.parameters) {
+          const key = geo.type + JSON.stringify(geo.parameters), pre = PREP.get(key) || PREP.set(key, geo.index ? geo.toNonIndexed() : geo.clone()).get(key);
+          g = new THREE.BufferGeometry();
+          g.setAttribute("position", pre.attributes.position.clone());
+          if (pre.attributes.normal) g.setAttribute("normal", pre.attributes.normal.clone());
+        } else g = geo.index ? geo.toNonIndexed() : geo.clone();
+        geo.dispose();
         g.applyMatrix4(placeMatrix(place));
         if (opts.flat || !g.attributes.normal) g.computeVertexNormals();
         if (opts.flat) {
@@ -14450,6 +14457,234 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     return new THREE.Mesh(g, kitMat({ vertexColors: false, color, map: surface(up ? K2.wall : K2.floor) }));
   }
 
+  // src/view/ruins.js
+  LOOK_SWITCHES.push(["ruins", "Ruins with character"]);
+  var ruinsOn = () => lookOn("ruins") && lookOn("light");
+  function dice2(seed) {
+    let a = seed | 0;
+    const r = () => {
+      a = a + 1831565813 | 0;
+      let t = Math.imul(a ^ a >>> 15, a | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+    return r;
+  }
+  var STYLE = {
+    river: { tex: "brick", block: [1.4, 0.55], round: 0, steps: true },
+    steppe: { tex: "plaster", block: [1.3, 0.8], rough: true },
+    highland: { tex: "plaster", block: [1.1, 0.5], taper: true, flags: true },
+    sea: { tex: "stone", block: [1.2, 0.5], columns: true },
+    forest: { tex: "stone", block: [1, 0.5], beams: true, moss: 0.25 }
+  };
+  var AGE = {
+    recent: { stand: 1, gone: 0.04, roof: true, moss: 0 },
+    old: { stand: 0.85, gone: 0.16, roof: false, moss: 0.25 },
+    ancient: { stand: 0.32, gone: 0.3, roof: false, moss: 0.55 }
+  };
+  var C2 = (h) => new THREE.Color(h);
+  function wall(Z2, x0, z0, x1, z1, h, t, o) {
+    const len = Math.hypot(x1 - x0, z1 - z0), ry = -Math.atan2(z1 - z0, x1 - x0), [bw, bh] = Z2.st.block, cols = Math.max(1, Math.round(len / bw)), rows = Math.max(1, Math.round(h / bh)), r = Z2.r;
+    for (let c = 0; c < cols; c++) {
+      const f = (c + 0.5) / cols, x = x0 + (x1 - x0) * f, z = z0 + (z1 - z0) * f;
+      if (o && o.gap && Math.abs(f - 0.5) * len < o.gap / 2) {
+        const top2 = Math.round(rows * Z2.age.stand * (0.9 + r() * 0.2));
+        if (top2 * bh > 2.6)
+          Z2.stone.add(P4.box(o.gap + 0.8, bh, t * 1.05), Z2.colAt(2.6, r), { x, y: 2.6 + bh / 2, z, ry }, { uv: 1.5 });
+        continue;
+      }
+      let top = rows * (Z2.age.stand + (r() - 0.5) * (1 - Z2.age.stand) * 1.2);
+      top = Math.max(1, Math.min(rows, Math.round(top)));
+      for (let k = 0; k < top; k++) {
+        if (k > 0 && r() < Z2.age.gone * (0.3 + k / rows)) {
+          if (r() < 0.5) Z2.fallen(x, z, ry);
+          if (r() < 0.8) break;
+          continue;
+        }
+        const taper = Z2.st.taper ? 1 - k / rows * 0.25 : 1, y = k * bh + bh / 2, w = len / cols * (0.94 + r() * 0.06);
+        if (Z2.st.rough)
+          Z2.stone.add(
+            P4.blob(bh * 0.75, 0),
+            Z2.colAt(y, r),
+            { x, y, z, ry: r() * 6, sx: w / bh * 0.7, sz: t * 0.8 },
+            { flat: true, uv: 1.5 }
+          );
+        else Z2.stone.add(P4.box(w, bh * 0.97, t * taper), Z2.colAt(y, r), { x, y, z, ry: ry + (r() - 0.5) * 0.05 }, { uv: 1.5 });
+      }
+    }
+  }
+  function ruinGroup(S2, seed) {
+    const civ = S2.civ, style = R.trait(S2, "style"), st = STYLE[civ.style] || STYLE.river, age = AGE[civ.age] || AGE.old, doom = civ.doom, affinity = R.trait(S2, "affinity"), r = dice2(seed), Z2 = { st, age, r, stone: kit(), wood: kit(), cloth: kit(), dark: kit() }, base = C2(style.stone), moss = C2(5929530), soot = C2(1972760), tmp2 = C2(0);
+    const mossy = Math.min(0.8, age.moss + (st.moss || 0));
+    Z2.colAt = (y, rr) => {
+      tmp2.copy(base).multiplyScalar(0.85 + rr() * 0.25);
+      if (mossy && rr() < mossy * (1.2 - Math.min(1, y / 4))) tmp2.lerp(moss, 0.35 + rr() * 0.3);
+      if (doom === "fire") tmp2.lerp(soot, Math.min(0.9, 0.45 + y * 0.08));
+      if (doom === "plague") tmp2.lerp(C2(15132374), 0.25);
+      return tmp2.getHex();
+    };
+    Z2.fallen = (x, z, ry) => {
+      const d = 1 + r() * 2.5, a = r() * 6.28, [bw, bh] = st.block;
+      Z2.stone.add(
+        P4.box(bw * 0.9, bh, bh * 1.2),
+        Z2.colAt(0, r),
+        { x: x + Math.cos(a) * d, y: bh * 0.4, z: z + Math.sin(a) * d, ry: ry + r(), rx: (r() - 0.5) * 0.4, rz: (r() - 0.5) * 0.4 },
+        { uv: 1.5 }
+      );
+    };
+    const H2 = 5.5 * (civ.age === "recent" ? 1.15 : 1), T2 = 0.9, doors = [];
+    const box4 = (w, d, h, door) => {
+      wall(Z2, -w / 2, d / 2, w / 2, d / 2, h, T2, door ? { gap: 1.8 } : null);
+      wall(Z2, w / 2, -d / 2, -w / 2, -d / 2, h, T2);
+      wall(Z2, -w / 2, -d / 2, -w / 2, d / 2, h, T2);
+      wall(Z2, w / 2, d / 2, w / 2, -d / 2, h, T2);
+      if (door) doors.push([0, d / 2]);
+    };
+    if (civ.habit === "tower") {
+      const rad = 3.2, n = 12, h = 15 * age.stand + 2;
+      for (let i = 0; i < n; i++) {
+        const a0 = i / n * Math.PI * 2, a1 = (i + 1) / n * Math.PI * 2;
+        wall(
+          Z2,
+          Math.cos(a0) * rad,
+          Math.sin(a0) * rad,
+          Math.cos(a1) * rad,
+          Math.sin(a1) * rad,
+          h,
+          1,
+          i === 3 ? { gap: 1.6 } : null
+        );
+      }
+      doors.push([Math.cos(3.5 / 12 * Math.PI * 2) * rad, Math.sin(3.5 / 12 * Math.PI * 2) * rad]);
+      if (age.roof) Z2.stone.add(P4.cone(4.2, 4, 12), Z2.colAt(h, r), { y: h + 2 }, { flat: true, uv: 2 });
+    } else if (civ.habit === "cistern") {
+      box4(10, 9, 2.6, false);
+      for (let i = 0; i < 3; i++)
+        Z2.stone.add(P4.box(2.4, 0.35, 0.8), Z2.colAt(0, r), { y: 0.2 + i * 0.4, z: 5.2 - i * 0.6 }, { uv: 1.5 });
+      Z2.dark.add(P4.box(7.6, 0.1, 6.6), 2372670, { y: 0.15 });
+      doors.push([0, 4.6]);
+    } else if (civ.habit === "tomb") {
+      box4(10, 7, 2.6, true);
+      if (age.stand > 0.5) Z2.stone.add(P4.box(11.4, 0.7, 8.4), Z2.colAt(3, r), { y: 2.9 }, { uv: 2 });
+      for (const sx of [-2.4, 2.4]) {
+        const n = Math.max(1, Math.round((4.4 * age.stand + 1) / st.block[1]));
+        for (let k = 0; k < n; k++)
+          Z2.stone.add(
+            P4.box(0.9, st.block[1] * 0.97, 0.9),
+            Z2.colAt(k, r),
+            { x: sx, y: (k + 0.5) * st.block[1], z: 4.4, ry: (r() - 0.5) * 0.1 },
+            { uv: 1.5 }
+          );
+      }
+    } else if (civ.habit === "granary") {
+      box4(6.5, 13, H2, true);
+      if (age.roof) {
+        const h = 3.2, half = 3.6, a = Math.atan2(h, half), sl = Math.hypot(half, h);
+        for (const sg of [-1, 1])
+          Z2.wood.add(P4.box(sl, 0.3, 13.6), 6967360, { x: sg * half / 2, y: H2 + h / 2, rz: -sg * a }, { uv: 2 });
+      } else
+        for (let i = 0; i < 4; i++)
+          Z2.wood.add(P4.box(7.2, 0.3, 0.3), 3811872, { y: H2 * age.stand - 0.2, z: -5 + i * 3.3, rz: (r() - 0.5) * 0.3 }, { uv: 1 });
+    } else {
+      const h = 6.5 * Math.max(0.45, age.stand);
+      wall(Z2, -3.6, 0, -2.4, 0, h, 1.6);
+      wall(Z2, 2.4, 0, 3.6, 0, h, 1.6);
+      if (age.stand > 0.6) Z2.stone.add(P4.box(8.4, 1.2, 1.8), Z2.colAt(h, r), { y: h + 0.6 }, { uv: 2 });
+      for (let i = 0; i < 9; i++)
+        if (r() > age.gone * 2)
+          Z2.stone.add(P4.box(3.6, 0.2, 1.2), Z2.colAt(0, r), { y: 0.08, z: -5.6 + i * 1.4, ry: (r() - 0.5) * 0.1 }, { uv: 2 });
+      doors.push([0, 0.8]);
+    }
+    if (st.columns)
+      for (const [x, z] of [
+        [-4.2, 6.2],
+        [-1.4, 6.6],
+        [1.4, 6.6],
+        [4.2, 6.2]
+      ]) {
+        const drums = Math.max(1, Math.round(6 * age.stand * (0.6 + r() * 0.5)));
+        for (let k = 0; k < drums; k++)
+          Z2.stone.add(P4.cyl(0.42, 0.45, 0.9, 10), Z2.colAt(k, r), { x, y: 0.45 + k * 0.9, z }, { uv: 1.5 });
+        if (drums >= 5) Z2.stone.add(P4.box(1.2, 0.35, 1.2), Z2.colAt(5, r), { x, y: drums * 0.9 + 0.17, z }, { uv: 1.5 });
+        else
+          Z2.stone.add(
+            P4.cyl(0.42, 0.42, 0.9, 10),
+            Z2.colAt(0, r),
+            { x: x + 1.4, y: 0.42, z: z + 0.6, rz: Math.PI / 2, ry: r() * 3 },
+            { uv: 1.5 }
+          );
+      }
+    if (st.steps && age.stand > 0.5)
+      for (let i = 0; i < 3; i++)
+        Z2.stone.add(P4.box(3.4 - i * 0.9, 0.5, 1.2), Z2.colAt(0, r), { y: 0.25 + i * 0.5, z: 5.8 - i * 0.3, x: -3.6 }, { uv: 1.5 });
+    if (st.beams && age.stand > 0.5 && civ.habit !== "cistern" && civ.habit !== "road")
+      for (let i = 0; i < 3; i++)
+        Z2.wood.add(
+          P4.box(0.3, 0.3, 5 + r() * 3),
+          4075556,
+          { x: -2 + i * 2, y: H2 * age.stand * 0.9, z: 0, rx: (r() - 0.5) * 0.4 },
+          { uv: 1 }
+        );
+    if (st.flags && age.stand > 0.3) {
+      Z2.wood.add(P4.box(0.08, 0.08, 9), 9076848, { x: 0, y: H2 * age.stand + 0.4, z: 0, ry: 0.6 });
+      for (let i = 0; i < 7; i++)
+        if (r() > 0.25)
+          Z2.cloth.add(P4.box(0.5, 0.6, 0.02), ["#c04a3a", "#e0c050", "#3a6aa0", "#f0ece0", "#4a8a4a"][i % 5], {
+            x: Math.sin(0.6) * (-3.6 + i * 1.2),
+            y: H2 * age.stand + 0.05,
+            z: Math.cos(0.6) * (-3.6 + i * 1.2),
+            ry: 0.6 + Math.PI / 2
+          });
+    }
+    if (doom === "plague")
+      for (let i = 0; i < 3; i++) {
+        const a = i / 3 * 6.28 + 0.4;
+        Z2.wood.add(P4.cyl(0.1, 0.12, 6.5, 5), 15790310, { x: Math.cos(a) * 9, y: 3.2, z: Math.sin(a) * 9, rz: (r() - 0.5) * 0.15 });
+        Z2.cloth.add(P4.box(0.7, 1.2, 0.02), 14210232, { x: Math.cos(a) * 9 + 0.4, y: 5.6, z: Math.sin(a) * 9, ry: a });
+      }
+    if (doom === "war")
+      for (let i = 0; i < 14; i++) {
+        const a = i / 14 * 6.28;
+        Z2.wood.add(
+          P4.cone(0.2, 2.8, 5),
+          4864554,
+          { x: Math.cos(a) * 9, y: 1.1, z: Math.sin(a) * 9, rx: Math.sin(a) * 0.5, rz: -Math.cos(a) * 0.5 },
+          { flat: true }
+        );
+      }
+    if (doom === "famine")
+      for (const [dx, dz] of doors)
+        for (let i = 0; i < 4; i++) {
+          const jx = dx - 1.4 + i * 0.9 + (i > 1 ? 0.8 : 0), jz = dz + 1.2 + r() * 0.4, tip = r() < 0.4;
+          Z2.stone.add(
+            P4.cyl(0.25, 0.38, 0.9, 8),
+            11035194,
+            { x: jx, y: tip ? 0.3 : 0.45, z: jz, rz: tip ? Math.PI / 2 : 0, ry: r() * 3 },
+            { uv: 1 }
+          );
+          Z2.dark.add(P4.cyl(0.2, 0.2, 0.05, 8), 1708560, { x: jx, y: tip ? 0.3 : 0.91, z: jz, rz: tip ? Math.PI / 2 : 0 });
+        }
+    if (doom === "quiet")
+      for (const [dx, dz] of doors)
+        Z2.wood.add(P4.box(1.6, 2.4, 0.12), 5914672, { x: dx + 1.4, y: 1.25, z: dz + 0.7, ry: -1.2 }, { uv: 1 });
+    {
+      const [dx, dz] = doors[0] || [0, 5], x = dx + 3, z = dz + 1.6;
+      Z2.stone.add(P4.box(1.1, 2.6, 0.45), Z2.colAt(1, r), { x, y: 1.3, z }, { uv: 1.5 });
+      Z2.cloth.add(P4.blob(0.36, 0), affinity.color, { x, y: 1.9, z: z + 0.25, sz: 0.3 }, { flat: true });
+      Z2.cloth.add(P4.box(0.7, 0.12, 0.05), affinity.color, { x, y: 1.25, z: z + 0.24 });
+    }
+    const dh = Math.min(2.4, H2 * age.stand - 0.4);
+    if (dh > 1 && civ.habit !== "cistern")
+      for (const [dx, dz] of doors) Z2.dark.add(P4.box(1.7, dh, 0.3), 723982, { x: dx, y: dh / 2, z: dz - 0.2 });
+    const g = new THREE.Group(), add = (k, mat) => !k.empty && g.add(new THREE.Mesh(k.build(), mat));
+    add(Z2.stone, kitMat({ map: surface(st.tex) }));
+    add(Z2.wood, kitMat({ map: surface("wood") }));
+    add(Z2.cloth, kitMat({ side: THREE.DoubleSide }));
+    add(Z2.dark, new THREE.MeshBasicMaterial({ vertexColors: true }));
+    g.scale.y = 1;
+    return g;
+  }
+
   // src/view/plants.js
   LOOK_SWITCHES.push(["plants", "Trees with shapes"]);
   var BARK = 5981490;
@@ -14830,8 +15065,9 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
       return g;
     },
     hamlet(S2, st, at) {
-      if (townsOn() && at) return hamletGroup(S2, at.biome, at.seed).add(BUILD.well());
-      const g = new THREE.Group(), wall = std(12101768), roof2 = std(6965810);
+      if (townsOn() && at)
+        return cachedModel("hamlet" + S2.seed + ":" + at.seed, () => hamletGroup(S2, at.biome, at.seed).add(BUILD.well()));
+      const g = new THREE.Group(), wall2 = std(12101768), roof2 = std(6965810);
       g.add(BUILD.well());
       for (const [x, z, r] of [
         [-5, -3, 0.3],
@@ -14840,7 +15076,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
         [-4, 5, 2]
       ]) {
         const h = new THREE.Group();
-        h.add(box2(4, 2.6, 3.2, wall, 0, 1.3, 0));
+        h.add(box2(4, 2.6, 3.2, wall2, 0, 1.3, 0));
         const top = new THREE.Mesh(new THREE.ConeGeometry(3.2, 2, 4), roof2);
         top.position.y = 3.6;
         top.rotation.y = Math.PI / 4;
@@ -14973,7 +15209,8 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
       g.add(p, o, b);
       return g;
     },
-    ruin(s) {
+    ruin(s, site, at) {
+      if (ruinsOn() && at) return cachedModel("ruin" + s.seed + ":" + at.seed, () => ruinGroup(s, at.seed));
       const g = new THREE.Group(), body = new THREE.Group(), hb = s.civ.habit, doom = s.civ.doom, col = new THREE.Color(R.trait(s, "style").stone);
       if (doom === "fire") col.multiplyScalar(0.3);
       if (doom === "plague") col.lerp(new THREE.Color(15132374), 0.35);
@@ -15032,13 +15269,36 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
       return g;
     }
   };
+  var MODELS = /* @__PURE__ */ new Map();
+  var noop = () => {
+  };
+  function cachedModel(key, make) {
+    key += "|" + Q.label + "|" + JSON.stringify(SET.off);
+    let m = MODELS.get(key);
+    if (!m) {
+      m = make();
+      m.traverse((o) => {
+        if (o.geometry) o.geometry.dispose = noop, o.geometry.kept = true;
+        if (o.material) o.material.dispose = noop;
+      });
+      MODELS.set(key, m);
+      if (MODELS.size > 48) {
+        const [k, old] = MODELS.entries().next().value;
+        MODELS.delete(k);
+        old.traverse((o) => o.geometry && THREE.BufferGeometry.prototype.dispose.call(o.geometry));
+      }
+    }
+    return m.clone();
+  }
   var FLAT = { height: () => 0 };
   function interiorGroup(map, rec, ts, id) {
     const group = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T2 = map.terrain, at = (t) => (t + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T2[y * R.W + x] === R.WALL;
     if (town && townsOn()) {
-      const g = townGroup(V.S, id || "town", map, ts);
-      hearthSmoke(g, map, ts, at);
-      return g;
+      return cachedModel("town" + V.S.seed + ":" + (id || "town") + ":" + (V.S.realm || ""), () => {
+        const g = townGroup(V.S, id || "town", map, ts);
+        hearthSmoke(g, map, ts, at);
+        return g;
+      });
     }
     const look2 = town ? null : R.levelLook(V.S) || { stone: 6973024, floor: 4078133 };
     const LK = town ? null : levelKit(look2);
@@ -15874,23 +16134,23 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
 
   // src/view/light.js
   LOOK_SWITCHES.push(["light", "Warm sun and cool shade"]);
-  var C2 = (h) => new THREE.Color(h);
+  var C3 = (h) => new THREE.Color(h);
   var PAL = {
-    sunHigh: C2(16773590),
+    sunHigh: C3(16773590),
     // the sun overhead: nearly white, a little warm
-    sunLow: C2(16753244),
+    sunLow: C3(16753244),
     // at dawn and dusk: orange
-    moon: C2(9414364),
+    moon: C3(9414364),
     // moonlight: pale blue
-    skyDay: C2(12375280),
+    skyDay: C3(12375280),
     // the sky's light from above, by day (mixed with the land's own sky colour)
-    skyNight: C2(3424878),
-    earthDay: C2(8020552),
+    skyNight: C3(3424878),
+    earthDay: C3(8020552),
     // light thrown back up by the ground: warm brown
-    earthNight: C2(1381918),
-    storm: C2(10133670)
+    earthNight: C3(1381918),
+    storm: C3(10133670)
   };
-  var tmp = C2(0);
+  var tmp = C3(0);
   function lightOutdoors(h, day, dusk, skyC2, storm, sight) {
     if (!lookOn("light")) {
       hemi.color.setHex(14673902);
@@ -16080,13 +16340,13 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
       return tx2 >= 0 && tz2 >= 0 && tx2 < R.W && tz2 < R.H ? { x: tx2, y: tz2 } : null;
     };
     {
-      const tm = !indoor && V.townAt && V.townId ? R.mapOf(V.S, V.townId) : null, wall = (x, z) => {
+      const tm = !indoor && V.townAt && V.townId ? R.mapOf(V.S, V.townId) : null, wall2 = (x, z) => {
         const t = townTile(x, z);
         return !!(t && tm && tm.terrain[t.y * R.W + t.x] === R.WALL);
       };
-      if (tm && wall(nx, nz)) {
-        if (!wall(nx, P3.z)) nz = P3.z;
-        else if (!wall(P3.x, nz)) nx = P3.x;
+      if (tm && wall2(nx, nz)) {
+        if (!wall2(nx, P3.z)) nz = P3.z;
+        else if (!wall2(P3.x, nz)) nx = P3.x;
         else return;
       }
       enterAt = townTile(nx, nz);

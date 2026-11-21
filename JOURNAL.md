@@ -24,6 +24,43 @@ machine is slower than the one commission 4 measured on, so the "before" row bel
 
 The page was 621 KB. (Set `CHROME=/opt/pw-browsers/chromium` for the bench and the browser test in a cloud session.)
 
+## C5.5: ruins with character, and places kept between builds
+
+**What it is.** A ruin is now built the way its people built and then aged and marked by how they ended
+(`src/view/ruins.js`), so all five traits of the lost people can be read from a distance:
+
+- **Style** is what they built with: river-valley builders lay big mud bricks and add a stepped stair; steppe riders
+  pile rough boulders low; highland monastics taper pale walls and string prayer flags over them; sea traders raise
+  columns of stone drums under lintels (fallen drums lie beside the short ones); forest clans set dark stone with timber
+  beams, and moss comes thick.
+- **Habit** is the plan: a walled cistern of dark still water with steps down; a round tower; a low tomb with a slab
+  roof and pillars at the door; a long granary (with its roof when recent, bare beams when not); a road's gateway with
+  paving running through.
+- **Age** is how much stands: recent ruins keep their full height and roofs; long-fallen ones stand to the eaves with
+  ragged tops; ancient ones are stumps a course or two high. Walls are laid as courses of blocks, so age takes blocks
+  away (what stood on a lost block mostly comes down with it) and the fallen ones lie about the foot. Moss grows with
+  age, heaviest near the ground.
+- **Doom**: plague leaves pale poles with rags round the ruin (and paler stone); fire blackens it, soot heaviest at
+  the top; famine leaves clay jars at the doors, some tipped over; war a ring of sharpened stakes leaning outward; a
+  quiet end leaves the door standing open. These follow the signs the game's text already gives for each doom.
+- **Affinity**: their sign is carved on a stele by the door, in their colour.
+
+**Places kept between builds.** Towns, ruins and hamlets are now made once and reused (`cachedModel` in scene.js):
+after crossing a border most of the same places are still in view, so the new land's build reuses them (places part
+of the build: 70 to 95 ms the first time, 4 to 6 ms after). The key holds the world's seed, the site, the quality and
+the look's switches, so nothing stale is shown; the oldest of 48 models are let go.
+
+**Kit.** Parts used again and again (a block, a drum) are prepared once (`PREP` in kit.js).
+
+**Switch.** `ruins` ("Ruins with character").
+
+**Numbers.** Low 58 ms build, 59 calls, 104,747 triangles, 63.2 ms a frame; Medium 93 / 77 / 196,559 / 122.3; High 179
+/ 85 / 341,960 / 186.9. Draw calls are down about ten (the old ruins were a dozen separate meshes each; a new one is
+four). Page 682 KB.
+
+**Verdict.** Pearl: a burnt tower of mud brick and a mossy ring of boulders with stakes round it tell two different
+stories before you search them.
+
 ## C5.4: towns with culture, and levels with their own walls
 
 **What it is.** Every block of wall in a town's grid is now a building (`src/view/buildings.js`), built of what its

@@ -2,11 +2,12 @@
 import { $, FR, G, HALF, P, R, TOWN_TS, TS, V, clamp, setGeometry } from './ctx.js';
 const clampI = (i, n) => (i < 0 ? 0 : i > n ? n : i);
 import { EW, MARGIN, PAD, SINK, makeTerrainG } from './terrain.js';
-import { Q, lookOn } from './quality.js';
+import { Q, SET, lookOn } from './quality.js';
 import { PF, perfBuild } from './perf.js';
 import { groundMaterial, paintOn, surface, surfaceOf } from './paint.js';
 import { hamletGroup, townGroup, townsOn } from './buildings.js';
 import { levelFloor, levelKit, levelWalls } from './levels.js';
+import { ruinGroup, ruinsOn } from './ruins.js';
 import { kitMat } from './kit.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 
@@ -229,7 +230,8 @@ const BUILD = {
   },
   hamlet(S, st, at) {
     // a few small houses round a well, in the region's own style when the towns are (buildings.js)
-    if (townsOn() && at) return hamletGroup(S, at.biome, at.seed).add(BUILD.well());
+    if (townsOn() && at)
+      return cachedModel('hamlet' + S.seed + ':' + at.seed, () => hamletGroup(S, at.biome, at.seed).add(BUILD.well()));
     const g = new THREE.Group(),
       wall = std(0xb8a888),
       roof = std(0x6a4a32);
@@ -390,7 +392,8 @@ const BUILD = {
     g.add(p, o, b);
     return g;
   },
-  ruin(s) {
+  ruin(s, site, at) {
+    if (ruinsOn() && at) return cachedModel('ruin' + s.seed + ':' + at.seed, () => ruinGroup(s, at.seed)); // laid block by block and aged (ruins.js)
     // shape = building habit, stone = style, height = age, tint and props = doom, flag = affinity
     const g = new THREE.Group(),
       body = new THREE.Group(),
@@ -457,6 +460,30 @@ const BUILD = {
     return g;
   },
 };
+/* Built models of places (towns, ruins, hamlets) kept between builds: after a border is crossed most of the same places
+   are still in view, so they are reused rather than built again. A model's geometry and materials are shared by every
+   copy and survive dispose(); the oldest are let go when there are too many. The key holds whatever the model is made
+   from (the world's seed, the site, the quality and the look's switches). */
+const MODELS = new Map();
+const noop = () => {};
+function cachedModel(key, make) {
+  key += '|' + Q.label + '|' + JSON.stringify(SET.off);
+  let m = MODELS.get(key);
+  if (!m) {
+    m = make();
+    m.traverse((o) => {
+      if (o.geometry) (o.geometry.dispose = noop), (o.geometry.kept = true);
+      if (o.material) o.material.dispose = noop;
+    });
+    MODELS.set(key, m);
+    if (MODELS.size > 48) {
+      const [k, old] = MODELS.entries().next().value;
+      MODELS.delete(k);
+      old.traverse((o) => o.geometry && THREE.BufferGeometry.prototype.dispose.call(o.geometry));
+    }
+  }
+  return m.clone();
+}
 const FLAT = { height: () => 0 };
 // The town or a level of the locked place, as a group centred on its own middle: a floor, and a block for every wall
 // tile that borders open floor. The town has no ceiling, so it can stand out of doors and be seen from far off.
@@ -469,9 +496,11 @@ function interiorGroup(map, rec, ts, id) {
     isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T[y * R.W + x] === R.WALL;
   if (town && townsOn()) {
     // built in its own style (buildings.js), with the hearth smoke over it as before
-    const g = townGroup(V.S, id || 'town', map, ts);
-    hearthSmoke(g, map, ts, at);
-    return g;
+    return cachedModel('town' + V.S.seed + ':' + (id || 'town') + ':' + (V.S.realm || ''), () => {
+      const g = townGroup(V.S, id || 'town', map, ts);
+      hearthSmoke(g, map, ts, at);
+      return g;
+    });
   }
   const look = town ? null : R.levelLook(V.S) || { stone: 0x6a6660, floor: 0x3e3a35 };
   const LK = town ? null : levelKit(look); // walls and floors with shape and surface (levels.js)
