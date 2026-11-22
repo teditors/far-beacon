@@ -61,6 +61,9 @@ DOOR = """const bs = Rules.buildingsOf(S, S.area); const b = bs.find((x) => x.ki
   const qx = (b.door.x + 0.5) * ts - h, qz = (b.door.y + 0.5) * ts - h;
   S.player.x = b.door.ox; S.player.y = b.door.oy; g.refresh();
   g.P.x = qx + dx * 7 + dy * 2.5; g.P.z = qz + dy * 7 + dx * 2.5; g.P.yaw = Math.atan2(-(qx - g.P.x), -(qz - g.P.z)); g.P.pitch = -0.05; await wait(800);"""
+OUTDOOR = """const L2 = Rules.houseOf(S, S.area), e = L2.exit, ts2 = 5 * 28 / 36 / 3, h2 = 18 * ts2, ex = e % 36, ey = Math.floor(e / 36);
+  const dx = ex - L2.entry.x, dy = ey - L2.entry.y; g.P.x = (L2.entry.x + 0.5 - dx * 3.2) * ts2 - h2; g.P.z = (L2.entry.y + 0.5 - dy * 3.2) * ts2 - h2;
+  g.P.yaw = Math.atan2(-dx, -dy); g.P.pitch = -0.02; await wait(600);"""
 SHOTS = [
     ('salt-day', 11, {}, region('Salt', DAY)),
     ('salt-night', 11, {}, region('Salt', NIGHT)),
@@ -88,6 +91,7 @@ SHOTS = [
     ('house-home', 11, {}, HOUSE % (2, DAY)),
     ('house-inn', 222, {}, HOUSE % (1, 'S.time = 21 * 60 - 360;')),
     ('house-door', 11, {}, town(0, DAY) + DOOR),
+    ('house-out', 11, {}, HOUSE % (2, DAY) + OUTDOOR),
     ('rare-sepia', 9, {}, region('Home', DAY)),
     ('rare-reds', 251, {}, region('Home', 'S.time = 17.8 * 60 - 360;')),
     ('storm', 222, {}, region('(1, 1)', DAY + 'S.weather.storm = Rules.stormOfNow ? true : true;')),

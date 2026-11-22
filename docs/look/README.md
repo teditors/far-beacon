@@ -19,7 +19,7 @@ makes a contact sheet of a set.
 | `storm` | a storm: every palette greys |
 | `person-close`, `person-near` | a townsperson up close and from a few steps (C7.1: no lines on the face, thin outlines) |
 | `things-level`, `things-ruin` | things (C7.3): a chest and what stands on it in a dungeon, old things by a ruin |
-| `house-hall`, `house-home`, `house-inn`, `house-door` | inside buildings (C7.4): an elder's hall, a house, an inn at night, and a house's open door seen from the street |
+| `house-hall`, `house-home`, `house-inn`, `house-door`, `house-out` | inside buildings (C7.4): an elder's hall, a house, an inn at night, a house's open door seen from the street, and the street seen through it |
 | `rare-sepia`, `rare-reds` | worlds that rolled a rare look: sepia, and all reds (at dusk) |
 | `dungeon` | a dungeon level (levels keep their own look) |
 | `sky` | a castle in the sky |

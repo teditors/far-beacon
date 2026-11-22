@@ -1,6 +1,7 @@
 /* Run control: saving, starting, acting, and the per-frame loop. */
 import { $, CODEX, EYE, FR, G, KEY, OLD_KEYS, P, R, TOWN_TS, TS, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
 import {
+  indoorView,
   applyFrame,
   buildDynamic,
   buildStatic,
@@ -363,6 +364,7 @@ function frame() {
   finishFrame();
 }
 function finishFrame() {
+  indoorView(R.areaRec(V.S).kind === 'house');
   treesNear();
   animateActors(frameDt, P.x, P.z, still);
   guard('sound', () => updateSound(frameDt));

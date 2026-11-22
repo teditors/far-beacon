@@ -860,6 +860,7 @@ function buildStaticInner() {
   if (R.isLevel(V.S)) {
     dispose(staticGroup);
     staticGroup = new THREE.Group();
+    shut = false;
     scene.add(staticGroup);
     V.townAt = V.townId = null;
     V.towns = [];
@@ -874,8 +875,17 @@ function buildStaticInner() {
   while (!(r = g.next()).done);
   install(r.value);
 }
+/* Inside a building (C7), only the town is drawn of the land: through the door you see the street and the houses
+   across it, and nothing of the land behind the walls costs anything. */
+let shut = false;
+function indoorView(on) {
+  if (!staticGroup || on === shut) return;
+  shut = on;
+  for (const o of staticGroup.children) o.visible = !on || o.userData.townGroup === V.townId;
+}
 // Put a finished land on screen in place of the old one.
 function install(res) {
+  shut = false;
   dispose(staticGroup);
   staticGroup = res.group;
   scene.add(staticGroup);
@@ -1313,6 +1323,7 @@ function* buildLand(S, timed) {
       if (!S.areas[id] || !R.mapOf(S, id) || !tw) continue;
       const g = interiorGroup(R.mapOf(S, id), S.areas[id], TOWN_TS, id);
       g.position.set(tw.x, tw.y, tw.z);
+      g.userData.townGroup = id;
       group.add(g);
       continue;
     }
@@ -1657,6 +1668,7 @@ function resize() {
 }
 
 export {
+  indoorView,
   renderer,
   scene,
   camera,

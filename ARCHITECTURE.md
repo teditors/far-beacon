@@ -152,7 +152,8 @@ Every place you walk into is an area; commission 4 added four kinds of level and
   all from the seed; nothing stored, and the area is deleted on leaving unless something was put down in it). The view
   shifts the frame's origin to the house's grid (`applyFrame`, `houseOrigin`), as it does at the town's gate, and
   draws the room within the building's walls, which have a doorway (`open` in buildings.js). `doorAt` tells the view a
-  door is walkable. Rooms near the player are drawn too, to be seen through their doors.
+  door is walkable. Rooms near the player are drawn too, to be seen through their doors. Indoors only the town of
+  the land is drawn (`indoorView` in scene.js).
 - **Theft** (`rules/theft.js`): one check in `TAKE_CHECKS` and the `'caught'` event (a window in ui.js). Replaceable.
 - **Secret value** (`rules/secrets.js`): rolled in `THING_FINISH`, revealed by appraisal through `ITEM_NAMES` /
   `ITEM_VALUES`.

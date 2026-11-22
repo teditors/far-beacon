@@ -21232,6 +21232,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (R.isLevel(V.S)) {
       dispose(staticGroup);
       staticGroup = new THREE.Group();
+      shut = false;
       scene.add(staticGroup);
       V.townAt = V.townId = null;
       V.towns = [];
@@ -21246,7 +21247,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     while (!(r = g.next()).done) ;
     install(r.value);
   }
+  var shut = false;
+  function indoorView(on3) {
+    if (!staticGroup || on3 === shut) return;
+    shut = on3;
+    for (const o of staticGroup.children) o.visible = !on3 || o.userData.townGroup === V.townId;
+  }
   function install(res) {
+    shut = false;
     dispose(staticGroup);
     staticGroup = res.group;
     scene.add(staticGroup);
@@ -21568,6 +21576,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         if (!S3.areas[id] || !R.mapOf(S3, id) || !tw) continue;
         const g2 = interiorGroup(R.mapOf(S3, id), S3.areas[id], TOWN_TS, id);
         g2.position.set(tw.x, tw.y, tw.z);
+        g2.userData.townGroup = id;
         group2.add(g2);
         continue;
       }
@@ -22747,6 +22756,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     finishFrame();
   }
   function finishFrame() {
+    indoorView(R.areaRec(V.S).kind === "house");
     treesNear();
     animateActors(frameDt, P3.x, P3.z, still);
     guard("sound", () => updateSound(frameDt));

@@ -8,6 +8,100 @@ abandoned places. Pieces with switches, as before.
 **Measuring.** As commission 6: `python3 tools/bench.py fallback low medium high` and `python3 tools/look.py`, with
 `CHROME=/opt/pw-browsers/chromium` (the full `node tools/check.js` needs it too for the browser test in a cloud session).
 
+## Summary
+
+Seven entries, newest first below, in four commits (C7.4 to C7.6 went in together: they were built and checked as one,
+each with its own switch). Every check passes, the full one with the browser test, which now walks into a house through
+its door, takes something (and, seen, is made to put it back first), and walks out. No save migration: the new state
+(`s.taken`, areas of kind `house`, `s.stats.caught`) is optional, and old saves load as they were.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C7.1 | Outlines only outside the figure (stencil), thin; caves fade into the air far off; bands and far outlines that do not crawl | `outlines` | a needed fix |
+| C7.2 | A harpsichord, Baroque dances and a tune of its own for every kind of place; pieces for a discovery, a win and a death | `sound` | pearl |
+| C7.3 | Ninety kinds of ordinary things in levels and round ruins and caves, made from the seed, to pick up, carry, eat, light or sell | `things` | groundwork, and a pleasure to poke about in |
+| C7.4 | Every town building is a place you walk into, with rooms that suit it, drawn where it stands | `interiors` | pearl |
+| C7.5 | Taking in someone's house is seen and undone; a window says who saw you | `theft` | small, replaceable |
+| C7.6 | Some old things are secretly valuable, until a merchant appraises them | `secrets` | small pearl |
+| C7.7 | Inside a building only the town of the land is drawn; measurements | (none) | pearl for the phone |
+
+**Numbers, before and after** (`python3 tools/bench.py fallback low medium high rooms`, software renderer at 412 x 915,
+seeds 11 / 222 / 3333; slow in absolute terms, comparable across rows, about 8% noise). Before is the end of
+commission 6.
+
+| | build ms | draw calls | triangles | frame ms | page |
+| --- | --- | --- | --- | --- | --- |
+| before, Fallback | 82 | 73 | 106,484 | 75.4 | 818 KB |
+| after, Fallback | 74 | 75 | 110,521 | 72.9 | 935 KB |
+| before, Low | 362 | 124 | 578,686 | 401.7 | |
+| after, Low | 389 | 124 | 583,226 | 403.9 | |
+| before, Medium | 381 | 146 | 590,024 | 405.6 | |
+| after, Medium | 362 | 145 | 595,389 | 401.0 | |
+| before, High | 389 | 154 | 762,489 | 513.3 | |
+| after, High | 435 | 153 | 767,854 | 525.0 | |
+
+Outdoors nothing changed but a few thousand triangles of old things round the ruins. **A full room** (seed 11's
+elder's hall, 54 things, and a house of four rooms, 86 things):
+
+| | the room's draw calls | the room's triangles | the whole frame inside: calls, triangles, ms |
+| --- | --- | --- | --- |
+| Fallback | 7 | 4,502 / 9,312 | 67 / 58 calls; 135k / 145k; 112 / 119 ms (before C7.7) |
+| Low | 7 | 4,502 / 9,312 | 120 / 95 calls; 698k / 705k; 555 / 538 ms (before C7.7) |
+| Medium | 8 to 9 | 6,766 / 14,232 | 144 / 104 calls; 709k / 722k; 526 / 552 ms (before C7.7) |
+| Medium, after C7.7 | 9 | 7,114 / 14,796 | **65 / 68 calls; 29k / 47k; 183 / 199 ms** |
+| High | 8 | 6,766 / 14,232 | 148 / 106 calls; 976k / 978k; 735 / 733 ms (before C7.7) |
+
+A room is cheap (walls, floor, ceiling, woodwork, window glow, furniture, small things, two outlines); what cost was the
+land behind its walls, which C7.7 stops drawing indoors: inside a building is now the cheapest place in the game.
+
+**Saves and memory** (Node, a world's every place visited by god mode, three worlds): a new world's save is the same
+(77 / 57 / 56 KB); after every place, 157 → 159, 108 → 109 and 124 → 126 KB (the god-mode jumps into a house each leave
+an area a few hundred bytes, which C7.4's `forgetHouses` now removes); thirty things taken add 0.3 to 0.9 KB (about 30
+bytes each). Making every thing of a whole world at once (3,500 to 5,000 things in every level and round every ruin,
+and 41 to 57 buildings' rooms) costs some 2 to 8 MB of memory more than before; in play only the places near you are
+made, and the caches keep at most 64 places' things and 32 houses.
+
+The bot: 30 / 150 (20%), 19 / 150 (13%) and 22 / 150 (15%) over three seed sets, every piece on (floor: 8%).
+
+**My three best.**
+1. **The town's buildings opened (C7.4)**: no loading, no jump, the same trick as the town's gate. The room is made
+   from the seed, drawn where the building stands within its walls, and forgotten when you leave; the house's trade,
+   wealth, climate and year decide its rooms and things, so a hamlet's cottage and a city merchant's house really are
+   different places, and none of it is stored.
+2. **Tunes with identity (C7.2)**: a theme per place, varied each time round, so the city's minuet is the city's, and
+   the Baroque's own devices (sequence, walking bass, a lament over a chromatic bass) make it sound composed, for a few
+   oscillators.
+3. **Outlines in the stencil (C7.1)**: one line of state per material fixed the masks on faces for good, for nothing.
+
+**What I would do next.**
+1. People inside: the smith at the forge, the innkeeper at the counter, a family at the table (the actors exist; they
+   need a place to stand and a reason).
+2. A real crime system in place of C7.5: unseen at night or with the household asleep, a fine or a night in the cells,
+   a bad name in the town that raises its prices.
+3. Rooms in the steppe's tents and the hamlets on the land; upper floors and cellars.
+4. More things for the strange places (the moon's, other worlds'), and the lost people's wares drawn in their own
+   style (their marks and shapes), not only their colour.
+5. On the Pixel: walk into a few houses with the meter on; if the room's things cost, `FOLD` in view/things.js is the
+   lever.
+
+**CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
+
+| v0.18 | Commission 7: rooms full of things. Every building in a town is a place you walk into through its open door, with rooms that suit it (a house's living room, bedroom, kitchen and workroom; the inn's taproom; the elder's hall; the temple's chapel; the smithy), furnished by the town's trade, size, climate and the year. Ninety kinds of ordinary things in rooms, levels, ruins and caves, made from the seed and never stored, to pick up and carry, eat, light or sell; taking in someone's house is seen; some old things are secretly valuable until appraised. Music: a harpsichord, Baroque dances and a tune of its own for every kind of place, and pieces for a discovery, a win and a death. Fixes: thin outlines only round the outside of people (no masks on faces), caves that fade into the distance, less shimmer far off. See `JOURNAL.md` |
+
+## C7.7: indoors, only the town; measurements
+
+**What it is.** Inside a building the land behind its walls was still drawn: 700,000 triangles to look at a wall. Now,
+while the traveller is in a house, only the town of the whole land is drawn (`indoorView` in scene.js, each frame, a
+flag on the land's parts); through the open door you see the street and the houses across it, and haze beyond. The frame
+inside a house went from 526 to 183 ms on Medium on this renderer, 144 to 65 draw calls. Also: `tools/bench.py rooms`
+measures a full room on each quality; `tools/nofog.py` lists dark things that skip the fog; `tools/look.py` has the new
+pictures (`person-*`, `things-*`, `house-*`).
+
+**About the browser test.** It now takes eight minutes here, so `tools/check.js` gives that step twenty (it was cut off
+at ten once); and its walk over a border starts 5 m from the edge instead of 14, since on this software renderer the
+walk manages about a metre a second (frames are capped at 0.05 s of walking each), so 15 seconds was borderline. It
+failed that way twice in this commission, both times with no error but the timeout; neither is a fault in the game.
+
 ## C7.6: secret value
 
 **What it is.** A few old things are not what they seem. In ruins, caves, dungeons and empty houses, about one old
