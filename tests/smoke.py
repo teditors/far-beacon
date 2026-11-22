@@ -162,7 +162,7 @@ async def main():
         steps.append('fight(%d turns)' % fought)
         await shot('4-after-fight')
         # walk east off the edge of the home region into the next one, then look at the world map
-        await pg.evaluate("()=>{const g=window.__g,S=g.S;Rules.travelTo(S,'overworld',18,18);g.refresh();S.combat=null;S.creatures.length=0;S.player.stamina=100;S.player.water=Rules.waterCap(S);document.getElementById('modal').hidden=true;}")
+        await pg.evaluate("()=>{const g=window.__g,S=g.S;Rules.travelTo(S,'overworld',18,18);g.refresh();S.combat=null;S.creatures.length=0;S.player.stamina=100;S.player.items=S.player.items.filter(i=>i.eq);S.player.water=Math.min(4,Rules.waterCap(S));document.getElementById('modal').hidden=true;}")
         crossed = False
         for y in range(4, 32, 3):
             ok = await pg.evaluate("y=>{const g=window.__g,S=g.S;if(S.area!=='overworld')return true;if(!Rules.passable(S,35,y))return false;S.player.x=35;S.player.y=y;g.refresh();g.P.x=35.5*28-504+9;g.P.z=(y+0.5)*28-504;g.P.yaw=-Math.PI/2;return true}", y)
