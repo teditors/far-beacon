@@ -1,7 +1,7 @@
 # The look in pictures
 
 Pictures of the game's look for reviewing on a phone, taken by `python3 tools/look.py <set> <quality>` in a software
-renderer at phone size (360 x 640), in god mode, without the panels. `before/` is v0.16 (the end of commission 5) on
+renderer at phone size (drawn at 360 x 640, kept at 288 x 512), in god mode, without the panels. `before/` is v0.16 (the end of commission 5) on
 its High; `after/` is commission 6 on Medium. Same places, same framing, same hour. `python3 tools/sheet.py after`
 makes a contact sheet of a set.
 

@@ -17,6 +17,79 @@ there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session
 
 The page was 774 KB.
 
+## Summary
+
+Nine entries, newest first below. Every check passes (the full one, with the browser test). The rules are untouched;
+everything is in `src/view/`, `src/content/looks.js` (read only by the view) and the tools. No save changes. The page
+went from 774 KB to 818 KB.
+
+**The style as built.** Painted atmosphere at home: each place has a small palette rolled in layers (climate, this
+world's turn of it, rare looks, the year, troubles, curses, rare countries, weather, dusk and night) that sets the sun,
+the shade's fill, the sky, the fog and the colour grade; distance fades into the air in soft steps and on into rings of
+far hills; shade is the colour of the air, never black. Toon touches: soft two- or three-band light on people,
+creatures, buildings, ruins, rocks and trees, and thin outlines tinted from each thing's own colour. Through a door,
+clean line: ink on everything, land included, two hard bands, pale washed palettes of their own on flat land, empty
+skies, an inked sun, and music in a whole-tone scale. All of it in data and with switches; `ART.md` is the style guide.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C6.1 | Old High is the new Low; new Medium and High; a hidden Fallback that comes by itself; pictures in `docs/look/` | (settings) | groundwork |
+| C6.2 | The look in data: palettes in layers from climate, world, rare looks, year, troubles, curses, rare countries, weather, hour | `look` | pearl |
+| C6.3 | Soft toon bands on things; distance fading in steps | `toon`, `fogbands` | small pearl |
+| C6.4 | Thin tinted outlines on people, creatures, buildings, ruins, landmarks, near trees; a fix to switching quality | `outlines` | pearl |
+| C6.5 | Other worlds in clean line: ink on everything, pale palettes, empty skies; a paper grain; ART.md | `ink`, `paper` | pearl |
+| C6.6 | Far hills in bands beyond the drawn land | `skyline` | small pearl |
+| C6.7 | Stones without facets; flat land and an inked sun in other worlds | (`toon`, `ink`) | pearl (flat land) |
+| C6.8 | At most 60 frames a second, 30 with Save battery, 10 behind a panel | (setting) | pearl for the phone |
+| C6.9 | Music for other worlds and cursed lands; dusty reds; clouds in the air's colour; smoother border builds | (`sound`) | small pearl |
+
+**Numbers, before and after** (`python3 tools/bench.py fallback low medium high`, software renderer at 412 x 915,
+seeds 11 / 222 / 3333; slow in absolute terms, comparable across rows; about 8% noise). "Before" is v0.16's levels by
+their new names, measured cleanly (C6.4 found the benchmark had been carrying settings from one level to the next):
+
+| | build ms | draw calls | triangles | frame ms | page |
+| --- | --- | --- | --- | --- | --- |
+| before, old Low (now Fallback) | 78 | 73 | 106,484 | 74.8 | 774 KB |
+| after, Fallback | 82 | 73 | 106,484 | 75.4 | 818 KB |
+| before, old High (now Low) | 369 | 117 | 571,366 | 395.9 | |
+| after, Low | 362 | 124 | 578,686 | 401.7 | |
+| after, Medium | 381 | 146 | 590,024 | 405.6 | |
+| after, High | 389 | 154 | 762,489 | 513.3 | |
+
+Low, the new least, costs what old High did (the look is colour, a few instructions a pixel, and two extra draw calls
+for the far hills). Medium adds the buildings' outlines and the paper for about 1%. High adds 30%: the near trees'
+outlines (170,000 triangles, cheap on a phone's chip, dear on this renderer), finer shadows and more grass, and draws
+at 2.5 pixels per point (which the benchmark at a pixel ratio of 1 does not show). Against all that, the frame cap
+(C6.8) halves the work on a 120 Hz phone. Another world on Medium: 268 ms a frame here. **Andrew: on the Pixel, turn
+the meter on and compare High and Medium in a forest and in a town; if High runs warm, `outline: 2` and `ratio: 2` in
+quality.js's High are the levers, and "Save battery" in Settings halves the work again.**
+
+**My three best.**
+1. **The look as layered data (C6.2)**: a palette is a few colours and numbers per layer, each pulling the look its
+   own way by its own amount, resolved in plain arithmetic that is tested in Node. It is why a drought, a curse, a
+   storm at dusk and a rare violet world all come out coherent without anyone painting each case, and why a new
+   mood is one entry in `looks.js`.
+2. **Clean line through the door (C6.5, C6.7)**: ink from the bend of one-over-distance (no false lines on slanted
+   ground), wisps that the ink does not see, flat land and a washed palette: one full-screen pass, and stepping
+   through a door really is turning the page into another artist's book.
+3. **Tinted outlines with joints (C6.4)**: the inverted hull reuses each model's own joints and sway, so people,
+   creatures and trees keep their thin line as they walk and bend, in the dark of their own colour, for one draw
+   call each.
+
+**What I would do next.**
+1. Measure on the Pixel (above), and tune High's levers from it.
+2. Build a newly seen town or ruin a part at a time, so crossing into a country with one never holds a frame (C6.9).
+3. Other worlds: hatching in the shade (a screen pattern in the ink pass), and stranger skies (two suns, banded
+   skies) as more of the realm's palettes.
+4. The look in levels: dungeons and sky places still use commission 5's fixed colours; give each kind of level a
+   palette layer in `looks.js`.
+5. A cursed country is coloured but not yet changed in shape: withered trees and a low sickly mist would carry it
+   further.
+
+**CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
+
+| v0.17 | Commission 6: an art direction. Painted atmosphere: every place has a palette rolled from its climate, the world, the year, troubles, curses, rare countries, the weather and the hour; distance fades in steps into bands of far hills; rare worlds in sepia or all reds. Toon touches: soft bands of light and thin tinted outlines on people, creatures, buildings and things. Other worlds in clean line: ink on everything, pale flat palettes of their own, empty skies, music of their own. Old High is the new Low, with new Medium and High above it and a hidden Fallback that comes by itself when frames stay slow; at most 60 frames a second, 30 with Save battery. ART.md is the style guide; pictures before and after in docs/look/. |
+
 ## C6.9: music for other worlds and cursed lands, rare looks seen, and smoother border builds
 
 **What it is.**

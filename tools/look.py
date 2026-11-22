@@ -4,6 +4,7 @@
 # Set CHROME=/opt/pw-browsers/chromium in a cloud session. Software rendering: slow, but the pictures are the same.
 import asyncio, os, sys
 from playwright.async_api import async_playwright
+from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 THREE = os.path.join(ROOT, 'node_modules/three/build/three.min.js')
 SET = sys.argv[1] if len(sys.argv) > 1 else 'after'
@@ -91,7 +92,9 @@ async def main():
             if not ok: print('  skipped', name); continue
             await pg.wait_for_timeout(1200)
             path = os.path.join(OUT, name + '.jpg')
-            await pg.screenshot(path=path, type='jpeg', quality=55)
+            await pg.screenshot(path=path, type='jpeg', quality=90)
+            # small enough for the repository: 288 x 512, quality 45 (a few hundred KB for the whole set)
+            im = Image.open(path); im.load(); im.resize((288, 512), Image.LANCZOS).save(path, quality=45, optimize=True)
             total += os.path.getsize(path)
             lk = await pg.evaluate("() => window.__g.look ? window.__g.look() : null")
             print('  %-14s %3d KB  %s' % (name, os.path.getsize(path) // 1024, lk and ', '.join(lk['names']) + ' ' + lk['zenith'] + ' ' + lk['horizon'] or ''))

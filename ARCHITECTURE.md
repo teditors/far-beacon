@@ -142,6 +142,17 @@ the hour. `view/look.js` resolves them with plain numbers (no Three.js, tested i
 in `NOW.look` each frame, which light.js, sky.js, run.js (fog) and post.js (the grade) read; null means "do as
 commission 5 did" (indoors, or the `look` switch off).
 
+| Module | What it does |
+| --- | --- |
+| `look.js` | resolves the look's layers into numbers (pure, tested in tests/pieces.test.js) |
+| `mood.js` | the look for this frame (`NOW.look`), blended across borders |
+| `toon.js` | soft bands of light (`toonMat`, used by `kitMat`, actors and `std`), fog in steps (the shared fog shader), wisps |
+| `outline.js` | thin tinted outlines by the inverted hull (`addOutline`), with an actor's joints or a tree's sway |
+| `skyline.js` | rings of far hills beyond the drawn land |
+| `post.js` | the finish: bloom, the look's grade and wash, ink lines in other worlds, the paper grain |
+
+`tools/look.py` photographs the look into `docs/look/` (before and after); `tools/sheet.py` makes a contact sheet.
+
 ## The look (commission 5)
 
 The view is painted in one style (a storybook of about 2005: see the top of JOURNAL.md's commission 5) and built from
