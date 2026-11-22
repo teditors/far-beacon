@@ -4493,7 +4493,8 @@
         line: 0,
         outline: 0.6,
         paper: 0.35,
-        vignette: 0.55
+        vignette: 0.55,
+        wash: 0
       },
       // how much a biome's own sky colour (biomes.js, generated biomes) colours the horizon and the fog
       biomeSky: 0.3,
@@ -13870,7 +13871,7 @@
 
   // src/view/look.js
   var COLS = ["zenith", "horizon", "fog", "sun", "shade", "bounce", "cloud", "lift", "gain", "ink"];
-  var NUMS = ["sunK", "fillK", "sat", "contrast", "bands", "soft", "reach", "line", "outline", "paper", "vignette"];
+  var NUMS = ["sunK", "fillK", "sat", "contrast", "bands", "soft", "reach", "line", "outline", "paper", "vignette", "wash"];
   var L3 = () => CONTENT.looks;
   var hex = (h) => {
     const n = typeof h === "number" ? h : parseInt(String(h).replace("#", ""), 16);
@@ -14539,6 +14540,17 @@
   #endif
   gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );
 #endif`;
+  var WISPS = /* @__PURE__ */ new Set();
+  var wispsInked = false;
+  var wisp = (mat) => (WISPS.add(mat), mat);
+  function setWisps(inked) {
+    if (inked === wispsInked) return;
+    wispsInked = inked;
+    for (const m of WISPS) {
+      m.transparent = inked;
+      m.depthWrite = !inked;
+    }
+  }
 
   // src/view/kit.js
   var PREP = /* @__PURE__ */ new Map();
@@ -16410,11 +16422,11 @@ ${rich ? `{
     if (!grassOn()) return null;
     const max = Q.grassMax, tufts = new THREE.InstancedMesh(
       tuftGeo(),
-      swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.18),
+      wisp(swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.18)),
       max
     ), blooms = new THREE.InstancedMesh(
       bloomGeo(),
-      swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.3),
+      wisp(swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.3)),
       Math.ceil(max / 6)
     );
     tufts.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);
@@ -17015,6 +17027,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const shape = shapeOf2(forest), amt = { conifer: 0.025, birch: 0.04, broad: 0.03, dead: 0.015, thorn: 0.02, fern: 0.06, grass: 0.12 }[shape] || 0.03;
     if (MATS3[shape]) return MATS3[shape];
     const m = swaying(kitMat(), amt);
+    if (["grass", "fern", "thorn", "dead"].includes(shape)) wisp(m);
     m.dispose = () => {
     };
     return MATS3[shape] = m;
@@ -18547,7 +18560,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   function updateSky(skyColor, sunPos, day, storm, dt) {
     const on3 = Q.sky && !R.isDark(V.S);
-    updateClouds(on3 && lookOn("clouds") && lookOn("light"), skyColor, sunPos, day, storm, dt);
+    const inked = NOW.look && NOW.look.line > 0.5;
+    updateClouds(on3 && !inked && lookOn("clouds") && lookOn("light"), skyColor, sunPos, day, storm, dt);
     if (on3 && !dome) {
       dome = makeDome();
       sunDisc = disc(70, 16773832);
@@ -19031,8 +19045,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var soundState = () => ({ running: !!A2 && A2.state === "running", mood: M2.mood });
 
   // src/view/post.js
-  LOOK_SWITCHES.push(["post", "Bloom and colour grading (High)"]);
+  LOOK_SWITCHES.push(["post", "Bloom and colour grading"]);
+  LOOK_SWITCHES.push(["ink", "Ink lines in other worlds"]);
+  LOOK_SWITCHES.push(["paper", "A painted grain over the picture"]);
   var postOn = () => !!Q.post && lookOn("post") && lookOn("light");
+  var inkOn = () => !!Q.ink && lookOn("ink") && !!NOW.look && NOW.look.line > 0.02;
+  var paperOn = () => !!Q.paper && lookOn("paper") && !!NOW.look;
   var T2 = null;
   var quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
   var qScene = new THREE.Scene();
@@ -19066,14 +19084,45 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     liftT: { value: new THREE.Vector3(0.97, 0.99, 1.05) },
     gainT: { value: new THREE.Vector3(1.04, 1, 0.95) },
     liftC: { value: new THREE.Vector3(0, 0, 0) },
-    vignette: { value: 0.55 }
+    vignette: { value: 0.55 },
+    gainC: { value: new THREE.Vector3(1, 1, 1) },
+    wash: { value: 0 }
   };
-  var finish2 = new THREE.ShaderMaterial({
-    uniforms: Object.assign({ src: { value: null }, glow: { value: null }, strength: { value: 0.5 } }, G3),
+  var FU = Object.assign(
+    {
+      src: { value: null },
+      glow: { value: null },
+      strength: { value: 0.5 },
+      depth: { value: null },
+      texel: { value: new THREE.Vector2(1, 1) },
+      cNear: { value: 0.3 },
+      cFar: { value: 3e3 },
+      inkK: { value: 0 },
+      inkC: { value: new THREE.Vector3(0.16, 0.16, 0.2) },
+      inkFar: { value: 600 },
+      paper: { value: 0 }
+    },
+    G3
+  );
+  var makeFinish = (defines) => new THREE.ShaderMaterial({
+    uniforms: FU,
+    defines,
     vertexShader: VERT,
     fragmentShader: `uniform sampler2D src; uniform sampler2D glow; uniform float strength; varying vec2 vUv;
     uniform float sat; uniform float contrast; uniform vec3 liftT; uniform vec3 gainT; uniform vec3 liftC;
-    uniform float vignette;
+    uniform float vignette; uniform float paper; uniform vec3 gainC; uniform float wash;
+#ifdef INK
+    uniform sampler2D depth; uniform vec2 texel; uniform float cNear; uniform float cFar;
+    uniform float inkK; uniform vec3 inkC; uniform float inkFar;
+    // one over the distance: on a flat surface it changes evenly across the screen, so its bend is zero there and
+    // large at an edge or a crease
+    float invZ(vec2 uv) { float d = texture2D(depth, uv).x; return (cFar - d * (cFar - cNear)) / (cNear * cFar); }
+#endif
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    float vnoise(vec2 p) {
+      vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0)), f.x), f.y);
+    }
     void main(){
       vec3 c = texture2D(src, vUv).rgb + texture2D(glow, vUv).rgb * strength;
       float l = dot(c, vec3(0.3, 0.59, 0.11));
@@ -19081,11 +19130,30 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       c = (c - 0.5) * contrast + 0.5;                             // contrast
       c *= mix(liftT, gainT, smoothstep(0.15, 0.8, l));           // the lights and the darks each lean their way
       c += liftC * (1.0 - smoothstep(0.0, 0.45, l));              // shade the colour of the air, never black
+      c = mix(c, gainC, wash);                                    // washed pale toward the paper (other worlds)
+#ifdef INK
+      float w = invZ(vUv), wl = invZ(vUv - vec2(texel.x, 0.0)), wr = invZ(vUv + vec2(texel.x, 0.0)),
+        wd = invZ(vUv - vec2(0.0, texel.y)), wu = invZ(vUv + vec2(0.0, texel.y));
+      float wmax = max(w, max(max(wl, wr), max(wd, wu)));
+      float bend = (abs(wl + wr - 2.0 * w) + abs(wd + wu - 2.0 * w)) / wmax;
+      float e = smoothstep(0.015, 0.05, bend) * inkK;
+      e *= mix(0.9, 0.25, smoothstep(inkFar * 0.15, inkFar * 0.8, 1.0 / wmax)); // far lines fainter, as if drawn lighter
+      c = mix(c, inkC, e);
+#endif
+      if (paper > 0.0) {
+        vec2 px = gl_FragCoord.xy;
+        float grain = hash(floor(px / 1.5)) - 0.5;                                     // a fine speckle
+        vec2 q = vec2(px.x * 0.8 + px.y * 0.6, px.y * 0.8 - px.x * 0.6);                 // dabs on the slant
+        float dab = vnoise(q * vec2(0.025, 0.07)) + vnoise(q * vec2(0.06, 0.15)) * 0.5 - 0.75; // soft brush dabs
+        c *= 1.0 + paper * (grain * 0.045 + dab * 0.045) * (0.4 + 0.6 * smoothstep(0.05, 0.4, l));
+      }
       vec2 d = vUv - 0.5; c *= 1.0 - dot(d, d) * vignette;        // the vignette
       gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0); }`,
     depthTest: false,
     depthWrite: false
   });
+  var finish2 = makeFinish({});
+  var finishInk = makeFinish({ INK: "" });
   var tint = (v, c, k) => {
     const l = Math.max(0.02, c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11);
     v.set(1 + (c[0] / l - 1) * k, 1 + (c[1] / l - 1) * k, 1 + (c[2] / l - 1) * k);
@@ -19098,6 +19166,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       G3.gainT.value.set(1.04, 1, 0.95);
       G3.liftC.value.set(0, 0, 0);
       G3.vignette.value = 0.55;
+      G3.wash.value = 0;
       return;
     }
     G3.sat.value = lk.sat;
@@ -19106,11 +19175,15 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     tint(G3.gainT.value, lk.gain, 0.45);
     G3.liftC.value.set(lk.lift[0], lk.lift[1], lk.lift[2]).multiplyScalar(0.35);
     G3.vignette.value = lk.vignette;
+    G3.gainC.value.set(lk.gain[0], lk.gain[1], lk.gain[2]);
+    G3.wash.value = lk.wash || 0;
   }
   function targets(renderer2) {
     const size = renderer2.getDrawingBufferSize(new THREE.Vector2()), w = size.x, h = size.y;
     if (T2 && T2.w === w && T2.h === h) return T2;
-    if (T2) for (const k of ["main", "a", "b"]) T2[k].dispose();
+    if (T2) {
+      for (const k of ["main", "a", "b", "ink"]) if (T2[k]) T2[k].dispose();
+    }
     const opt = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat }, main = renderer2.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget ? new THREE.WebGLMultisampleRenderTarget(w, h, opt) : new THREE.WebGLRenderTarget(w, h, opt);
     if (main.samples !== void 0) main.samples = 4;
     const qw = Math.max(1, w >> 2), qh = Math.max(1, h >> 2);
@@ -19122,18 +19195,42 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     renderer2.setRenderTarget(to);
     renderer2.render(qScene, qCam);
   };
+  function inkTarget(t2) {
+    if (t2.ink) return t2.ink;
+    const rt = new THREE.WebGLRenderTarget(t2.w, t2.h, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat
+    });
+    rt.depthTexture = new THREE.DepthTexture(t2.w, t2.h);
+    rt.depthTexture.type = THREE.UnsignedIntType;
+    return t2.ink = rt;
+  }
   function draw(renderer2, scene2, camera2) {
     if (!postOn()) {
       renderer2.render(scene2, camera2);
       return null;
     }
-    const t2 = targets(renderer2);
+    const t2 = targets(renderer2), ink = inkOn();
+    setWisps(ink);
+    const to = ink ? inkTarget(t2) : t2.main;
     grade(NOW.look);
-    renderer2.setRenderTarget(t2.main);
+    FU.paper.value = paperOn() ? NOW.look.paper : 0;
+    if (ink) {
+      const lk = NOW.look, px = Math.max(1, renderer2.getPixelRatio() * 0.55);
+      FU.depth.value = to.depthTexture;
+      FU.texel.value.set(px / t2.w, px / t2.h);
+      FU.cNear.value = camera2.near;
+      FU.cFar.value = camera2.far;
+      FU.inkK.value = Math.min(1, lk.line);
+      FU.inkC.value.set(lk.ink[0], lk.ink[1], lk.ink[2]);
+      FU.inkFar.value = scene2.fog ? scene2.fog.far : 600;
+    }
+    renderer2.setRenderTarget(to);
     renderer2.render(scene2, camera2);
     const info = { calls: renderer2.info.render.calls, triangles: renderer2.info.render.triangles };
     const ac = renderer2.autoClear;
-    bright.uniforms.src.value = t2.main.texture;
+    bright.uniforms.src.value = to.texture;
     pass(renderer2, bright, t2.a);
     blur.uniforms.src.value = t2.a.texture;
     blur.uniforms.dir.value.set(1 / t2.qw, 0);
@@ -19141,9 +19238,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     blur.uniforms.src.value = t2.b.texture;
     blur.uniforms.dir.value.set(0, 1 / t2.qh);
     pass(renderer2, blur, t2.a);
-    finish2.uniforms.src.value = t2.main.texture;
-    finish2.uniforms.glow.value = t2.a.texture;
-    pass(renderer2, finish2, null);
+    FU.src.value = to.texture;
+    FU.glow.value = t2.a.texture;
+    pass(renderer2, ink ? finishInk : finish2, null);
     renderer2.autoClear = ac;
     renderer2.info.render.calls = info.calls + 4;
     renderer2.info.render.triangles = info.triangles + 8;

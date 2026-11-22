@@ -24,6 +24,7 @@
      outline          the strength of the outlines on people, creatures and nearby things
      paper            a painted grain over the picture
      vignette         the corners darkened
+     wash             the whole picture washed pale toward the gain colour, as if printed on paper
    ART.md says how to choose them. */
 export default {
   looks: {
@@ -49,6 +50,7 @@ export default {
       outline: 0.6,
       paper: 0.35,
       vignette: 0.55,
+      wash: 0,
     },
     // how much a biome's own sky colour (biomes.js, generated biomes) colours the horizon and the fog
     biomeSky: 0.3,

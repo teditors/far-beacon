@@ -17,6 +17,45 @@ there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session
 
 The page was 774 KB.
 
+## C6.5: other worlds in clean line, and paper
+
+**What it is.** Through a door, the look itself changes, as if stepping into another artist's book (Sable, Moebius).
+- **Ink lines on everything**, land included (`post.js`): the scene is drawn into a picture that keeps its depth, and
+  the last pass draws a thin ink line wherever the depth jumps (a silhouette: a hill against the sky, a house against a
+  hill) or bends (a crease: where a wall meets the ground). It looks at one over the distance, which changes evenly
+  across any flat surface, so a plain or a wall seen at a slant gets no false lines however far it runs; only edges
+  and creases do. Lines are about a pixel and a half wide on a phone, in the palette's ink, and drawn lighter with
+  distance, so far ridges are a faint pencil line and near things a firm one. That picture is not multisampled: the
+  ink covers the edges.
+- **The style** (the realm layer in content): two almost hard bands, a weak sun and a strong fill (flat colour, little
+  shading), saturation 0.72, the picture washed 16% toward the palette's paper colour, a stronger paper grain, a small
+  vignette, the eye seeing a quarter further, **no clouds** (big empty skies), and one of seven palettes per world
+  (peach and teal, Sable noon, mint and rose, lilac desert, ochre and slate, cold paper, ember and bone).
+- **Wisps**: grass, reeds, ferns and twiggy scrub would be scribbled black by the ink, every blade an edge; while the
+  ink is on they are drawn after everything solid without writing their depth, so the ink never sees them.
+- **Paper** (Medium and High, everywhere): a fine speckle and soft brush dabs on the slant, fixed to the screen, over
+  the whole picture, a little stronger in the midtones; flat colour reads as paint on paper. 4.5% at most at home,
+  more in other worlds.
+- `ART.md`: the style guide (the rules, the toon touches, clean line, the palettes and how to make one, how to make a
+  building, creature, tree or place, the quality levels).
+- The browser pictures now go through the door (three other worlds).
+
+**Switches.** `ink` ("Ink lines in other worlds"), `paper` ("A painted grain over the picture"); the finish's switch is
+now "Bloom and colour grading" (it runs from Low).
+
+**Numbers.** Home unchanged (the paper is a few instructions a pixel). Another world on Medium (bench `places`):
+
+| place (Medium) | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| other world, in clean line | 896 | 60 | 519,862 | 268.0 |
+| dungeon level | 9 | 14 | 36,440 | 89.3 |
+| sky castle | 5 | 17 | 20,171 | 162.7 |
+| open sea | 1,260 | 97 | 619,015 | 476.0 |
+| under the sea | 6 | 6 | 14,264 | 59.7 |
+
+**Verdict.** Pearl, the one Andrew asked for: stepping through the door now feels like turning the page into another
+book. What I would still do: flatten the land's painted grain in other worlds, and draw the sun as an ink circle.
+
 ## C6.4: light outlines, and a fix to switching quality
 
 **What it is** (`outline.js`). A thin line round people and creatures (from Low), buildings, ruins and landmarks (from

@@ -28,6 +28,8 @@ def town(n, when):
 def place(group, when):
     return """const p = Rules.places(S).find((p) => p.group === %r); if (!p) return false;
       Rules.jumpTo(S, p.id); %s g.refresh(); g.buildStatic(); g.refresh(); g.P.pitch = -0.04;""" % (group, when)
+REALM = """const id = 'realm:' + S.doors[0].realm + ':' + S.doors[0].back.area.split(':r')[1];
+  if (!Rules.jumpTo(S, id)) return false; %s g.refresh(); g.buildStatic(); g.refresh(); g.P.pitch = -0.03;"""
 RUIN = """Rules.travelTo(S, 'overworld', 18, 18); g.refresh(); let f = null;
   for (const k in S.sites) if (S.sites[k].kind === 'ruin') { f = { x: k %% 36, y: Math.floor(k / 36) }; break; }
   if (!f) return false; S.player.x = f.x; S.player.y = Math.min(35, f.y + 1); %s g.refresh();
@@ -53,8 +55,9 @@ SHOTS = [
     ('dungeon', 31, {}, place('Below', '')),
     ('sky', 32, {'sky': 1, 'trouble': 'tyrant'}, place('Above', DAY)),
     ('sea', 34, {'sea': 1, 'size': '5x5'}, place('Water', DAY)),
-    ('other-world', 35, {'doors': 1}, place('Other worlds', DAY)),
-    ('other-world-2', 36, {'doors': 1}, place('Other worlds', 'S.time = 17.5 * 60 - 360;')),
+    ('other-world', 35, {'doors': 1}, REALM % DAY),
+    ('other-world-2', 36, {'doors': 1}, REALM % 'S.time = 17.5 * 60 - 360;'),
+    ('other-world-3', 37, {'doors': 1}, REALM % 'S.time = 10 * 60 - 360;'),
 ]
 async def main():
     os.makedirs(OUT, exist_ok=True)

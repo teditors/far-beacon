@@ -239,7 +239,9 @@ function updateClouds(on, skyColor, sunPos, day, storm, dt) {
 }
 function updateSky(skyColor, sunPos, day, storm, dt) {
   const on = Q.sky && !R.isDark(V.S);
-  updateClouds(on && lookOn('clouds') && lookOn('light'), skyColor, sunPos, day, storm, dt);
+  // other worlds drawn in clean line have big empty skies (C6): no soft clouds in them
+  const inked = NOW.look && NOW.look.line > 0.5;
+  updateClouds(on && !inked && lookOn('clouds') && lookOn('light'), skyColor, sunPos, day, storm, dt);
   if (on && !dome) {
     dome = makeDome();
     sunDisc = disc(70, 0xfff2c8);

@@ -66,4 +66,18 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
   #endif
   gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );
 #endif`;
-export { toonOn, toonMat, setBands, fogBandsOn, BANDS };
+/* ---------- wisps ---------- */
+// Thin things (grass, reeds, ferns) would be scribbled over by the ink of other worlds (post.js), every blade an edge.
+// While the ink is on they are drawn after everything solid without writing their depth, so the ink never sees them.
+const WISPS = new Set();
+let wispsInked = false;
+const wisp = (mat) => (WISPS.add(mat), mat);
+function setWisps(inked) {
+  if (inked === wispsInked) return;
+  wispsInked = inked;
+  for (const m of WISPS) {
+    m.transparent = inked;
+    m.depthWrite = !inked;
+  }
+}
+export { toonOn, toonMat, setBands, fogBandsOn, BANDS, wisp, setWisps };

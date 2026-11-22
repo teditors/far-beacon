@@ -9,7 +9,7 @@
 import { CONTENT as C } from '../content/index.js';
 
 const COLS = ['zenith', 'horizon', 'fog', 'sun', 'shade', 'bounce', 'cloud', 'lift', 'gain', 'ink'];
-const NUMS = ['sunK', 'fillK', 'sat', 'contrast', 'bands', 'soft', 'reach', 'line', 'outline', 'paper', 'vignette'];
+const NUMS = ['sunK', 'fillK', 'sat', 'contrast', 'bands', 'soft', 'reach', 'line', 'outline', 'paper', 'vignette', 'wash'];
 const L = () => C.looks;
 
 const hex = (h) => {
