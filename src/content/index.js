@@ -40,6 +40,7 @@ import kin from './kin.js';
 import wayfarers from './wayfarers.js';
 import townLooks from './townlooks.js';
 import looks from './looks.js';
+import music from './music.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -83,4 +84,5 @@ export const CONTENT = Object.assign(
   wayfarers,
   townLooks,
   looks,
+  music,
 );

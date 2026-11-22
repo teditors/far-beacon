@@ -8,6 +8,46 @@ abandoned places. Pieces with switches, as before.
 **Measuring.** As commission 6: `python3 tools/bench.py fallback low medium high` and `python3 tools/look.py`, with
 `CHROME=/opt/pw-browsers/chromium` (the full `node tools/check.js` needs it too for the browser test in a cloud session).
 
+## C7.2: a harpsichord, Baroque dances, and a tune for every place
+
+**What it is.** The score is composed now, not wandered. `src/view/score.js` writes it a bar at a time from
+`content/music.js`:
+- **A theme per place**, rolled from the place's key (`town:city`, `land:cold:night:taiga`, `deep:crypt`,
+  `sea:merhall`, `elsewhere:<world>`...): a motif and its answer (two bars of rhythm and melodic shape), a third shape,
+  and two chord progressions. The tune states the motif over the A part's chords, carries it through them in sequence,
+  and closes with a trilled cadence; then the B part (to the fifth, the relative, or round the circle of fifths); then A
+  again. **Each time round it varies**: passing notes, an octave up, the shape turned over, trills and turns on long
+  notes, rests. So the city's minuet is recognisably the city's, every visit, and does not wear thin.
+- **Baroque dances**: minuet, sarabande, gigue (in threes), gavotte, bourrée, musette (over a drone), air, chorale,
+  march, with a bass of a note a beat, a walking line to the next chord, long notes or a drone, and an inner voice in
+  thirds and sixths under the tune (simple counterpoint). The land keeps slow airs (`drift`) over the old washes and
+  drone, but now each biome by day and by night has its own air in its climate's mode (hot lands in a hijaz mode,
+  cold days lydian, ashen phrygian...).
+- **Voices** (sound.js): a **harpsichord** (one oscillator with the spectrum of a string plucked near its end, a filter
+  that closes as it dies, the damper falling when the note ends: cheap), a lute (the old pluck), an organ for temples,
+  chorales and crypts, a wooden pipe for wet lands and steppes, the old bells and pads.
+- **Who plays what**: hamlets a musette on the lute, villages a bourrée, towns a gavotte and cities a minuet on the
+  harpsichord; the unfallen town a sarabande in the dorian mode, a pilgrims' town a chorale on the organ; a cloud city
+  a lydian minuet, a sky castle a sarabande, a merfolk hall a sarabande, a floating town a gigue; crypts an organ
+  sarabande, mines a lute air, the locked place a harpsichord sarabande in the minor; fights in a driving four with
+  drums, and a lair's beast or a named foe on a harpsichord in the harmonic minor. Halls, temples, libraries, inns,
+  shops, smithies, rich and poor homes and abandoned buildings have entries ready for the interiors piece.
+- **Events**: a discovery (a trait of the lost people learned, a plot's step done) gets a rising trilled figure; a
+  win a run up the scale and a full close; a death a lament over the falling chromatic bass (the Baroque's own sign of
+  mourning). The score bows out under them for a moment.
+
+The Almanac lists every dance and place (`The score`). Tests (pieces.test.js, `the score`): every place's dance, mode
+and voice exist, every rhythm fills its bar, themes are stable and distinct, every tune plays 64 bars of good notes and
+varies, and the city has its minuet. In the browser the music's level is what it was (peak about 0.05).
+
+**Cost.** A note is one to three oscillators living a second or so; a minuet with its bass and inner voice is about
+eight notes a second. Scheduled a bar ahead, ten times a second, as before.
+
+**Switch.** `sound` (Settings), as before; the music volume.
+
+**Verdict.** Pearl, I think: the town now sounds like a town in an old storybook. Andrew: listen in a city and a
+hamlet, and at night on the land.
+
 ## C7.1: outlines that stay outside the figure, far things that fade and do not crawl
 
 **What it was.** Andrew's screenshot (`docs/bugs/c7-townsperson-outlines.jpg`) showed a townsperson with fat dark

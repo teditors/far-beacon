@@ -859,14 +859,63 @@ async function lookChecks() {
   );
   need(L.lookFor(c, 1, 0, null).names.length >= 1, 'a real world has no look');
 }
+// The score (commission 7, view only): src/view/score.js composes from content/music.js with no sound.
+async function scoreChecks() {
+  const S = await import('../src/view/score.js'),
+    X = R.C.music;
+  for (const k in X.places) {
+    const p = X.places[k];
+    need(X.dances[p.dance], 'music: ' + k + ' names no dance');
+    need(X.modes[p.mode], 'music: ' + k + ' names no mode');
+    need(['harpsichord', 'lute', 'bell', 'organ', 'pipe'].includes(p.voice), 'music: ' + k + ' has an unknown voice');
+  }
+  for (const k in X.dances)
+    for (const c of X.dances[k].cells) {
+      const d = X.dances[k];
+      need(c.reduce((a, u) => a + Math.abs(u), 0) === d.beats * d.sub, 'music: a ' + k + ' rhythm does not fill its bar');
+    }
+  // a place's theme is its own (the same each time), different places differ, and it falls back along its key
+  const sig = (key) => JSON.stringify(S.themeOf(X, key).shapes);
+  need(sig('town:city') === sig('town:city'), 'a theme is not the same twice');
+  const keys = ['town:city', 'town:hamlet', 'land:cold:day:taiga', 'land:cold:day:x9', 'deep:crypt', 'sea:merhall', 'fight'];
+  need(new Set(keys.map(sig)).size === keys.length, 'two places share a theme');
+  need(S.placeOf(X, 'town:city:salt') === X.places['town:city'] && S.placeOf(X, 'nowhere') === X.places.land, 'fallback');
+  // tunes play: notes in range, a bar fills its beats, the towns are on the harpsichord, the tune varies as it repeats
+  for (const k of Object.keys(X.places).concat(['land:hot:night:salt', 'elsewhere:r2'])) {
+    const tu = S.makeTune(X, k, 7);
+    let n = 0;
+    const firsts = [];
+    for (let b = 0; b < 64; b++) {
+      const bar = S.nextBar(tu);
+      need(bar.spb > 0.2 && bar.spb < 1.5, 'music: ' + k + ' tempo');
+      for (const x of bar.notes) {
+        n++;
+        need(
+          x.m >= 24 && x.m <= 100 && x.t >= 0 && x.t + x.d <= bar.beats + 1e-6 && x.d > 0,
+          'music: a bad note in ' + k + ': ' + JSON.stringify(x),
+        );
+      }
+      if (b % 16 === 0) firsts.push(JSON.stringify(bar.notes.filter((x) => x.voice === tu.place.voice).map((x) => x.m)));
+    }
+    need(n > 40, 'music: ' + k + ' hardly plays (' + n + ' notes in 64 bars)');
+    need(new Set(firsts).size > 1, 'music: ' + k + ' never varies');
+  }
+  need(
+    X.places['town:city'].voice === 'harpsichord' && X.dances[X.places['town:city'].dance].beats === 3,
+    'the city has no minuet',
+  );
+  for (const e of ['discovery', 'win', 'death']) need(S.eventPiece(X, e, 3).length >= 6, 'music: no piece for ' + e);
+}
 lookChecks()
   .catch((e) => errs.push('the look: ' + (e.stack || e)))
+  .then(() => scoreChecks())
+  .catch((e) => errs.push('the score: ' + (e.stack || e)))
   .then(() => {
     if (errs.length) {
       console.log('piece problems:\n  ' + errs.join('\n  '));
       process.exit(1);
     }
     console.log(
-      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting, trade, the look',
+      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting, trade, the look, the score',
     );
   });

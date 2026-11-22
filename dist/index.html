@@ -4896,6 +4896,221 @@
     }
   };
 
+  // src/content/music.js
+  var music_default = {
+    music: {
+      modes: {
+        ionian: [0, 2, 4, 5, 7, 9, 11],
+        dorian: [0, 2, 3, 5, 7, 9, 10],
+        phrygian: [0, 1, 3, 5, 7, 8, 10],
+        lydian: [0, 2, 4, 6, 7, 9, 11],
+        mixolydian: [0, 2, 4, 5, 7, 9, 10],
+        aeolian: [0, 2, 3, 5, 7, 8, 10],
+        harmonic: [0, 2, 3, 5, 7, 8, 11],
+        // minor with a leading note: the Baroque's minor
+        hijaz: [0, 1, 4, 5, 7, 8, 10],
+        // hot lands
+        whole: [0, 2, 4, 6, 8, 10],
+        penta: [0, 2, 4, 7, 9],
+        minpenta: [0, 3, 5, 7, 10]
+      },
+      dances: {
+        minuet: {
+          beats: 3,
+          sub: 2,
+          tempo: 126,
+          cells: [
+            [2, 2, 2],
+            [2, 1, 1, 2],
+            [1, 1, 1, 1, 2],
+            [4, 2],
+            [3, 1, 2]
+          ],
+          bass: "beat"
+        },
+        sarabande: {
+          beats: 3,
+          sub: 2,
+          tempo: 60,
+          cells: [
+            [2, 3, 1],
+            [2, 4],
+            [2, 2, 2],
+            [1, 1, 4]
+          ],
+          bass: "long"
+        },
+        gigue: {
+          beats: 2,
+          sub: 3,
+          tempo: 100,
+          cells: [
+            [1, 1, 1, 1, 1, 1],
+            [2, 1, 2, 1],
+            [3, 1, 1, 1],
+            [2, 1, 3]
+          ],
+          bass: "beat"
+        },
+        gavotte: {
+          beats: 4,
+          sub: 2,
+          tempo: 104,
+          cells: [
+            [2, 2, 2, 2],
+            [1, 1, 1, 1, 2, 2],
+            [2, 1, 1, 4],
+            [4, 2, 2]
+          ],
+          bass: "walk"
+        },
+        bourree: {
+          beats: 2,
+          sub: 4,
+          tempo: 92,
+          cells: [
+            [2, 2, 2, 2],
+            [1, 1, 2, 4],
+            [2, 1, 1, 2, 2],
+            [4, 4]
+          ],
+          bass: "walk"
+        },
+        musette: {
+          beats: 2,
+          sub: 3,
+          tempo: 88,
+          cells: [
+            [2, 1, 2, 1],
+            [1, 1, 1, 3],
+            [3, 3]
+          ],
+          bass: "drone"
+        },
+        air: {
+          beats: 4,
+          sub: 2,
+          tempo: 66,
+          cells: [
+            [3, 1, 2, 2],
+            [4, 4],
+            [2, 2, 4],
+            [2, 1, 1, 4]
+          ],
+          bass: "walk"
+        },
+        chorale: {
+          beats: 4,
+          sub: 1,
+          tempo: 54,
+          cells: [
+            [1, 1, 1, 1],
+            [2, 1, 1],
+            [2, 2]
+          ],
+          bass: "beat"
+        },
+        march: {
+          beats: 4,
+          sub: 2,
+          tempo: 108,
+          cells: [
+            [3, 1, 2, 2],
+            [2, 2, 4],
+            [1, 1, 2, 2, 2]
+          ],
+          bass: "beat"
+        },
+        // the land's slow airs: a few notes a bar over washes of sound, resting often
+        drift: { beats: 4, sub: 1, tempo: 50, cells: [[2, 2], [1, 1, 2], [3, 1], [4], [-2, 2], [2, -2]], bass: "none" },
+        fight: {
+          beats: 4,
+          sub: 2,
+          tempo: 132,
+          cells: [
+            [1, 1, 1, 1, 2, 2],
+            [2, 2, 2, 2],
+            [1, 1, 2, 1, 1, 2]
+          ],
+          bass: "beat"
+        }
+      },
+      places: {
+        // towns: the harpsichord's home, a dance for each size, and their own for the strange ones
+        town: { dance: "gavotte", mode: "ionian", root: 64, voice: "harpsichord", inner: true, ornament: 0.35 },
+        "town:hamlet": { dance: "musette", mode: "mixolydian", root: 62, voice: "lute", ornament: 0.2 },
+        "town:village": { dance: "bourree", mode: "ionian", root: 62, voice: "lute", ornament: 0.25 },
+        "town:town": { dance: "gavotte", mode: "ionian", root: 64, voice: "harpsichord", inner: true, ornament: 0.35 },
+        "town:city": { dance: "minuet", mode: "ionian", root: 67, voice: "harpsichord", inner: true, ornament: 0.45 },
+        "town:unfallen": { dance: "sarabande", mode: "dorian", root: 62, voice: "harpsichord", inner: true, ornament: 0.5 },
+        "town:pilgrims": { dance: "chorale", mode: "aeolian", root: 60, voice: "organ", inner: true, ornament: 0 },
+        // inside buildings (the interiors piece)
+        "in:hall": { dance: "march", mode: "ionian", root: 62, voice: "harpsichord", inner: true, ornament: 0.4 },
+        "in:temple": { dance: "chorale", mode: "dorian", root: 57, voice: "organ", inner: true, ornament: 0 },
+        "in:library": { dance: "sarabande", mode: "harmonic", root: 64, voice: "harpsichord", inner: true, ornament: 0.5 },
+        "in:rich": { dance: "minuet", mode: "ionian", root: 69, voice: "harpsichord", inner: true, ornament: 0.5 },
+        "in:inn": { dance: "gigue", mode: "mixolydian", root: 62, voice: "lute", ornament: 0.3 },
+        "in:home": { dance: "air", mode: "aeolian", root: 62, voice: "lute", density: 0.7, ornament: 0.2 },
+        "in:shop": { dance: "bourree", mode: "ionian", root: 60, voice: "harpsichord", ornament: 0.3 },
+        "in:smithy": { dance: "march", mode: "mixolydian", root: 55, voice: "lute", ornament: 0.1 },
+        "in:abandoned": {
+          dance: "drift",
+          mode: "harmonic",
+          root: 57,
+          voice: "harpsichord",
+          density: 0.6,
+          drone: true,
+          ornament: 0.3
+        },
+        // the land by day and night, by climate (each biome has its own theme within it)
+        land: { dance: "drift", mode: "penta", root: 62, voice: "bell", pad: true, drone: true },
+        "land:temperate:day": { dance: "drift", mode: "penta", root: 62, voice: "bell", pad: true, drone: true },
+        "land:temperate:night": { dance: "drift", mode: "aeolian", root: 57, voice: "bell", pad: true, drone: true, density: 0.6 },
+        "land:wet:day": { dance: "drift", mode: "dorian", root: 60, voice: "pipe", pad: true, drone: true },
+        "land:wet:night": { dance: "drift", mode: "dorian", root: 55, voice: "bell", pad: true, drone: true, density: 0.6 },
+        "land:hot:day": { dance: "drift", mode: "hijaz", root: 62, voice: "lute", pad: true, drone: true },
+        "land:hot:night": { dance: "drift", mode: "hijaz", root: 57, voice: "bell", pad: true, drone: true, density: 0.6 },
+        "land:cold:day": { dance: "drift", mode: "lydian", root: 64, voice: "bell", pad: true, drone: true },
+        "land:cold:night": { dance: "drift", mode: "aeolian", root: 59, voice: "bell", pad: true, drone: true, density: 0.5 },
+        "land:ashen:day": { dance: "drift", mode: "phrygian", root: 57, voice: "bell", pad: true, drone: true },
+        "land:ashen:night": { dance: "drift", mode: "phrygian", root: 52, voice: "bell", pad: true, drone: true, density: 0.5 },
+        "land:steppe:day": { dance: "drift", mode: "minpenta", root: 60, voice: "pipe", pad: true, drone: true },
+        "land:steppe:night": { dance: "drift", mode: "minpenta", root: 55, voice: "bell", pad: true, drone: true, density: 0.6 },
+        // below, above, on and under the water, beyond
+        deep: { dance: "drift", mode: "phrygian", root: 50, voice: "bell", pad: true, drone: true, density: 0.5 },
+        "deep:crypt": { dance: "sarabande", mode: "harmonic", root: 50, voice: "organ", drone: true, density: 0.6 },
+        "deep:mine": { dance: "drift", mode: "dorian", root: 48, voice: "lute", pad: true, drone: true, density: 0.6 },
+        "deep:hold": { dance: "march", mode: "phrygian", root: 50, voice: "bell", drone: true, density: 0.5 },
+        vault: { dance: "sarabande", mode: "harmonic", root: 52, voice: "harpsichord", drone: true, density: 0.6, ornament: 0.3 },
+        sky: { dance: "drift", mode: "lydian", root: 69, voice: "bell", pad: true },
+        "sky:city": { dance: "minuet", mode: "lydian", root: 72, voice: "harpsichord", inner: true, pad: true, ornament: 0.5 },
+        "sky:castle": { dance: "sarabande", mode: "lydian", root: 67, voice: "harpsichord", pad: true, ornament: 0.4 },
+        sea: { dance: "drift", mode: "mixolydian", root: 60, voice: "lute", pad: true, drone: true },
+        "sea:merhall": {
+          dance: "sarabande",
+          mode: "mixolydian",
+          root: 60,
+          voice: "harpsichord",
+          inner: true,
+          pad: true,
+          ornament: 0.4
+        },
+        "sea:raft": { dance: "gigue", mode: "mixolydian", root: 62, voice: "lute", ornament: 0.25 },
+        elsewhere: { dance: "drift", mode: "whole", root: 66, voice: "bell", pad: true },
+        blight: { dance: "drift", mode: "phrygian", root: 53, voice: "bell", drone: true, density: 0.4 },
+        storm: { dance: "drift", mode: "minpenta", root: 55, voice: "bell", pad: true, drone: true, density: 0.4 },
+        fight: { dance: "fight", mode: "phrygian", root: 52, voice: "lute", drums: true, density: 0.8 },
+        "fight:boss": { dance: "fight", mode: "harmonic", root: 50, voice: "harpsichord", inner: true, drums: true }
+      },
+      // short pieces for events, played over the score: a discovery, a win, a death (see score.js `eventPiece`)
+      events: {
+        discovery: { mode: "ionian", root: 72, voice: "harpsichord" },
+        win: { mode: "ionian", root: 67, voice: "harpsichord" },
+        death: { mode: "harmonic", root: 57, voice: "harpsichord" }
+      }
+    }
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -4938,7 +5153,8 @@
     kin_default,
     wayfarers_default,
     townlooks_default,
-    looks_default
+    looks_default,
+    music_default
   );
 
   // src/rules/core.js
@@ -18827,6 +19043,167 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     hemi.groundColor.setHex(lookOn("light") ? 2761760 : 5920076);
   }
 
+  // src/view/score.js
+  function dice3(seed) {
+    let a = seed | 0;
+    return () => {
+      a = a + 1831565813 | 0;
+      let t2 = Math.imul(a ^ a >>> 15, a | 1);
+      t2 ^= t2 + Math.imul(t2 ^ t2 >>> 7, t2 | 61);
+      return ((t2 ^ t2 >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  var hash3 = (str) => {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+    return h | 0;
+  };
+  function placeOf(X8, key2) {
+    let k = key2;
+    while (k) {
+      if (X8.places[k]) return X8.places[k];
+      k = k.includes(":") ? k.slice(0, k.lastIndexOf(":")) : "";
+    }
+    return X8.places.land;
+  }
+  var PROG_A = [
+    [0, 3, 4, 4, 0, 3, 4, 0],
+    [0, 4, 0, 4, 5, 3, 4, 0],
+    [0, 5, 3, 4, 0, 5, 4, 0],
+    [0, 0, 3, 4, 5, 1, 4, 0]
+  ];
+  var PROG_B = [
+    [4, 0, 4, 4, 5, 1, 4, 0],
+    [5, 2, 5, 4, 3, 1, 4, 0],
+    [3, 0, 3, 4, 2, 5, 4, 0],
+    [0, 3, 6, 2, 5, 1, 4, 0]
+    // round the circle of fifths
+  ];
+  function contour(r, n, start3, down) {
+    const out = [];
+    let d = start3;
+    for (let i = 0; i < n; i++) {
+      out.push(d);
+      const x = r();
+      d += x < 0.62 ? (down ? -1 : 1) * (x < 0.4 ? 1 : -1) : x < 0.8 ? x < 0.71 ? 2 : -2 : x < 0.9 ? 0 : down ? -3 : 3;
+      d = Math.max(-2, Math.min(7, d));
+    }
+    return out;
+  }
+  var notesIn = (cell) => cell.filter((u) => u > 0).length;
+  function themeOf2(X8, key2) {
+    const place = placeOf(X8, key2), dance = X8.dances[place.dance] || X8.dances.drift, r = dice3(hash3("theme:" + key2)), pick = (a) => a[Math.floor(r() * a.length)], c1 = Math.floor(r() * dance.cells.length), c2 = (c1 + 1 + Math.floor(r() * (dance.cells.length - 1))) % dance.cells.length, c3 = Math.floor(r() * dance.cells.length), s1 = pick([0, 2, 4]), m1 = contour(r, notesIn(dance.cells[c1]), s1, false), m2 = contour(r, notesIn(dance.cells[c2]), Math.max(0, m1[m1.length - 1]), true), m3 = contour(r, notesIn(dance.cells[c3]), pick([2, 4]), r() < 0.5);
+    return { key: key2, place, dance, cells: [c1, c2, c3], shapes: [m1, m2, m3], A: pick(PROG_A), B: pick(PROG_B) };
+  }
+  function makeTune(X8, key2, seed) {
+    const th = themeOf2(X8, key2);
+    return Object.assign(th, { bar: 0, r: dice3(hash3("play:" + key2) ^ (seed | 0)), mode: X8.modes[th.place.mode] || X8.modes.ionian });
+  }
+  var deg2m = (mode, root, d, oct) => {
+    const n = mode.length, k = (d % n + n) % n;
+    return root + 12 * (oct || 0) + mode[k] + 12 * Math.floor(d / n);
+  };
+  function nextBar(tu) {
+    const { dance, place, mode } = tu, r = tu.r, root = place.root, bars = 16, i = tu.bar % bars, pass2 = Math.floor(tu.bar / bars), part = i < 8 ? tu.A : tu.B, b = i % 8, chord = part[b], next = part[(b + 1) % 8], sub = dance.sub, beats = dance.beats, units = beats * sub, density = place.density === void 0 ? 1 : place.density, vary = (pass2 + (i < 8 ? 0 : 1)) % 4, notes = [], lead = place.voice, oct = vary === 2 && root < 70 ? 1 : 0;
+    tu.bar++;
+    if (b === 7) {
+      const half = Math.max(1, Math.round(units / 2)) / sub;
+      notes.push({ t: 0, d: half, m: deg2m(mode, root, chord + 1, oct), v: 0.11, voice: lead, trill: place.ornament > 0 });
+      notes.push({ t: half, d: beats - half, m: deg2m(mode, root, chord, oct), v: 0.12, voice: lead });
+    } else {
+      const which = b === 1 || b === 5 ? 1 : b === 2 || b === 6 ? 2 : 0, cell = dance.cells[tu.cells[which]], shape = tu.shapes[which];
+      let t2 = 0, k = 0;
+      for (let j = 0; j < cell.length; j++) {
+        const u = cell[j], dur = Math.abs(u) / sub;
+        if (u < 0) {
+          t2 += dur;
+          continue;
+        }
+        let d = shape[k++ % shape.length];
+        if (vary === 3) d = 4 - d;
+        const m = deg2m(mode, root, chord + d, oct), restHere = density < 1 && j > 0 && r() > density;
+        if (!restHere) {
+          const strong = Math.abs(t2 - Math.round(t2)) < 1e-6 && Math.round(t2) % beats === 0;
+          if (vary === 1 && u >= 2 && r() < 0.6) {
+            const nd = shape[k % shape.length], step2 = nd > d ? 1 : nd < d ? -1 : 1;
+            notes.push({ t: t2, d: dur / 2, m, v: strong ? 0.11 : 0.09, voice: lead });
+            notes.push({ t: t2 + dur / 2, d: dur / 2, m: deg2m(mode, root, chord + d + step2, oct), v: 0.08, voice: lead });
+          } else {
+            const orn = dur >= 1 && place.ornament && r() < place.ornament;
+            notes.push({ t: t2, d: dur, m, v: strong ? 0.11 : 0.09, voice: lead, trill: orn && r() < 0.5, turn: orn });
+          }
+          if (place.inner && Math.abs(t2 - Math.round(t2)) < 1e-6)
+            notes.push({ t: t2, d: Math.min(dur, 1), m: deg2m(mode, root, chord + d - (k % 2 ? 2 : 5), oct), v: 0.05, voice: lead });
+        }
+        t2 += dur;
+      }
+    }
+    const bo = root >= 60 ? -2 : -1, bvoice = lead === "organ" ? "organ" : lead === "bell" || lead === "pipe" ? "pad" : "bass", bass = (d, t2, dur, v) => notes.push({ t: t2, d: dur, m: deg2m(mode, root, d, bo), v, voice: bvoice });
+    if (dance.bass === "beat") {
+      const pat = beats === 3 ? [0, 4, 4] : beats === 2 ? [0, 4] : [0, 4, 2, 4];
+      pat.forEach((o, j) => bass(chord + o, j, 1, j === 0 ? 0.1 : 0.06));
+    } else if (dance.bass === "walk") {
+      let target = next;
+      while (target - chord > 3) target -= 7;
+      while (chord - target > 3) target += 7;
+      for (let j = 0; j < beats; j++) {
+        const f = j / beats, d = j === 0 ? chord : Math.round(chord + (target - chord) * f) + (j === beats - 1 && target === chord ? 1 : 0);
+        bass(d, j, 1, j === 0 ? 0.1 : 0.07);
+      }
+    } else if (dance.bass === "long") {
+      bass(chord, 0, beats === 3 ? 2 : beats, 0.09);
+      if (beats === 3) bass(chord + 4, 2, 1, 0.06);
+    } else if (dance.bass === "drone") {
+      notes.push({ t: 0, d: beats, m: deg2m(mode, root, 0, -1), v: 0.05, voice: "drone" });
+      notes.push({ t: 0, d: beats, m: deg2m(mode, root, 4, -1), v: 0.035, voice: "drone" });
+    }
+    const lo = root - 5 + 12 * oct, hi = root + 16 + 12 * oct;
+    for (const n of notes)
+      if (n.voice === lead) {
+        while (n.m > hi) n.m -= 12;
+        while (n.m < lo) n.m += 12;
+      }
+    return { beats, spb: 60 / dance.tempo, chord: [0, 2, 4].map((o) => deg2m(mode, root, chord + o, -1)), notes };
+  }
+  function eventPiece(X8, kind2, seed) {
+    const e = X8.events[kind2], mode = X8.modes[e.mode], root = e.root, r = dice3(hash3("event:" + kind2) ^ (seed | 0)), out = [], n = (d, o) => deg2m(mode, root, d, o), v = e.voice;
+    if (kind2 === "discovery") {
+      const s = 0.11, steps = r() < 0.5 ? [0, 2, 4, 7] : [0, 4, 2, 7];
+      steps.forEach((d, i) => out.push({ t: i * s, d: s, m: n(d), v: 0.1, voice: v }));
+      out.push({ t: 4 * s, d: 0.7, m: n(8), v: 0.11, voice: v, trill: true });
+      out.push({ t: 0, d: 1.2, m: n(0, -2), v: 0.08, voice: "bass" });
+    } else if (kind2 === "win") {
+      const b = 0.42;
+      for (let i = 0; i < 8; i++) out.push({ t: i * b * 0.5, d: b * 0.5, m: n(i), v: 0.09, voice: v });
+      const close = [
+        [3, 5],
+        [4, 6],
+        [4, 8],
+        [0, 7]
+      ];
+      close.forEach(([ch, top], i) => {
+        out.push({ t: 4 * b + i * 2 * b, d: 2 * b, m: n(top), v: 0.11, voice: v, trill: i === 2 });
+        out.push({ t: 4 * b + i * 2 * b, d: 2 * b, m: n(top - 2), v: 0.06, voice: v });
+        out.push({ t: 4 * b + i * 2 * b, d: 2 * b, m: n(ch, -2), v: 0.1, voice: "bass" });
+      });
+      out.push({ t: 12 * b, d: 3, m: n(7), v: 0.12, voice: v });
+      out.push({ t: 12 * b, d: 3, m: n(0, -2), v: 0.1, voice: "bass" });
+    } else {
+      const b = 1.05, top = root + 12;
+      for (let i = 0; i < 6; i++) {
+        out.push({ t: i * b, d: b, m: root - 12 - i, v: 0.1, voice: "bass" });
+        if (i < 5) {
+          const hi = top + 2 - i * 2 + (r() < 0.3 ? 1 : 0);
+          out.push({ t: i * b, d: b * 0.6, m: hi, v: 0.1, voice: v });
+          out.push({ t: i * b + b * 0.6, d: b * 0.4, m: hi - 1, v: 0.06, voice: v });
+        }
+      }
+      out.push({ t: 6 * b, d: 3, m: root - 17, v: 0.1, voice: "bass" });
+      out.push({ t: 6 * b, d: 3, m: root - 1, v: 0.08, voice: v, trill: true });
+    }
+    return out;
+  }
+
   // src/view/sound.js
   LOOK_SWITCHES.push(["sound", "Sound and music"]);
   if (SET.music === void 0) SET.music = 0.55;
@@ -18965,51 +19342,117 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     s.start(t2, Math.random() * 1.5);
     s.stop(t2 + dur + 0.05);
   }
-  var MODES = {
-    dorian: [0, 2, 3, 5, 7, 9, 10],
-    aeolian: [0, 2, 3, 5, 7, 8, 10],
-    ionian: [0, 2, 4, 5, 7, 9, 11],
-    lydian: [0, 2, 4, 6, 7, 9, 11],
-    phrygian: [0, 1, 3, 5, 7, 8, 10],
-    mixolydian: [0, 2, 4, 5, 7, 9, 10],
-    penta: [0, 2, 4, 7, 9],
-    minpenta: [0, 3, 5, 7, 10],
-    whole: [0, 2, 4, 6, 8, 10]
-    // no home key at all: dreamlike, for other worlds (C6)
-  };
-  var MOODS = {
-    day: { mode: "penta", root: 62, bar: 4.2, density: 0.45, lead: "bell", padWave: "triangle", drone: true },
-    night: { mode: "aeolian", root: 57, bar: 5.5, density: 0.25, lead: "bell", padWave: "sine", drone: true },
-    town: { mode: "ionian", root: 64, bar: 2.6, density: 0.7, lead: "pluck", padWave: "triangle", pulse: true },
-    deep: { mode: "phrygian", root: 50, bar: 6.5, density: 0.18, lead: "bell", padWave: "sine", drone: true, low: true },
-    sky: { mode: "lydian", root: 69, bar: 4.8, density: 0.4, lead: "bell", padWave: "sine" },
-    sea: { mode: "mixolydian", root: 60, bar: 5, density: 0.3, lead: "pluck", padWave: "sine", drone: true, swell: true },
-    storm: { mode: "minpenta", root: 55, bar: 5, density: 0.2, lead: "bell", padWave: "sawtooth", drone: true, low: true },
-    fight: { mode: "phrygian", root: 52, bar: 1.8, density: 0.6, lead: "pluck", padWave: "sawtooth", drums: true, low: true },
-    // commission 6: through a door, as the look turns to another artist's book; and on a cursed country
-    elsewhere: { mode: "whole", root: 66, bar: 5.6, density: 0.32, lead: "bell", padWave: "sine", swell: true },
-    blight: { mode: "phrygian", root: 53, bar: 6.2, density: 0.16, lead: "bell", padWave: "triangle", drone: true, low: true }
-  };
-  var BIOME_KEY = { salt: 2, moor: 0, taiga: -3 };
-  var M2 = { mood: null, root: 62, next: 0, deg: 0, bar: 0, gain: null, phrase: 0 };
-  function moodNow() {
+  var HARP = null;
+  function harpWave() {
+    if (HARP) return HARP;
+    const n = 32, re = new Float32Array(n), im = new Float32Array(n);
+    for (let k = 1; k < n; k++) im[k] = Math.abs(Math.sin(k * Math.PI * 0.13)) / k * (k < 3 ? 1 : 1.3);
+    return HARP = A2.createPeriodicWave(re, im);
+  }
+  function harpsichord(t2, m, vel, dur, out) {
+    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain(), fr = mtof(m), ring2 = 0.25 + Math.max(0, 84 - m) * 0.018;
+    o.setPeriodicWave(harpWave());
+    o.frequency.value = fr;
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(Math.min(14e3, fr * 12), t2);
+    f.frequency.setTargetAtTime(fr * 2.5, t2 + 0.01, ring2 * 0.6);
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel, t2 + 3e-3);
+    g.gain.setTargetAtTime(1e-4, t2 + 4e-3, ring2);
+    g.gain.setTargetAtTime(1e-4, t2 + Math.max(0.05, dur), 0.03);
+    o.connect(f).connect(g).connect(out);
+    o.start(t2);
+    o.stop(t2 + Math.min(dur + 0.25, ring2 * 5));
+  }
+  function organ(t2, m, vel, dur, out) {
+    const g = A2.createGain();
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel * 0.7, t2 + 0.06);
+    g.gain.setValueAtTime(vel * 0.7, t2 + Math.max(0.07, dur - 0.05));
+    g.gain.linearRampToValueAtTime(1e-4, t2 + dur + 0.15);
+    for (const [mul, type, k] of [
+      [1, "sine", 1],
+      [2, "triangle", 0.35]
+    ]) {
+      const o = A2.createOscillator(), og = A2.createGain();
+      o.type = type;
+      o.frequency.value = mtof(m) * mul;
+      og.gain.value = k;
+      o.connect(og).connect(g);
+      o.start(t2);
+      o.stop(t2 + dur + 0.2);
+    }
+    g.connect(out);
+  }
+  function pipe(t2, m, vel, dur, out) {
+    const o = A2.createOscillator(), lfo = A2.createOscillator(), lg = A2.createGain(), g = A2.createGain();
+    o.frequency.value = mtof(m);
+    lfo.frequency.value = 5.2;
+    lg.gain.value = mtof(m) * 6e-3;
+    lfo.connect(lg).connect(o.frequency);
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel * 0.8, t2 + 0.07);
+    g.gain.setTargetAtTime(1e-4, t2 + Math.max(0.1, dur * 0.9), 0.08);
+    o.connect(g).connect(out);
+    o.start(t2);
+    lfo.start(t2);
+    o.stop(t2 + dur + 0.5);
+    lfo.stop(t2 + dur + 0.5);
+  }
+  function playNote(n, t2, dur, out) {
+    const voice = n.voice, one = (tt, m, v, d) => {
+      if (voice === "harpsichord" || voice === "bass") harpsichord(tt, m, v * (voice === "bass" ? 0.9 : 1), d, out);
+      else if (voice === "lute") pluck(tt, m, v, out);
+      else if (voice === "organ") organ(tt, m, v * 0.8, d, out);
+      else if (voice === "pipe") pipe(tt, m, v, d, out);
+      else if (voice === "pad") pad(tt, m, v * 0.4, Math.max(1, d), out, "sine");
+      else if (voice === "drone") pad(tt, m, v, Math.max(1, d), out, "sine");
+      else bell(tt, m, v * 0.6, out);
+    };
+    if (n.trill && dur > 0.3 && voice !== "bell" && voice !== "organ") {
+      const s = 0.07, k = Math.min(8, Math.floor(dur * 0.6 / s));
+      for (let i = 0; i < k; i++) one(t2 + i * s, i % 2 ? n.m : n.m + 2, n.v * 0.8, s);
+      one(t2 + k * s, n.m, n.v, dur - k * s);
+    } else if (n.turn && dur > 0.4 && voice !== "bell" && voice !== "organ") {
+      const s = 0.08;
+      [n.m + 2, n.m, n.m - 1].forEach((m, i) => one(t2 + i * s, m, n.v * 0.8, s));
+      one(t2 + 3 * s, n.m, n.v, dur - 3 * s);
+    } else one(t2, n.m, n.v, dur);
+  }
+  var KEYS = [];
+  function placeKey() {
     const S2 = V.S;
-    if (!S2) return "day";
-    if (S2.combat) return "fight";
-    const look2 = R.levelLook(S2), rec = R.areaRec(S2);
-    if (look2) return look2.void && !look2.water ? "sky" : look2.water || rec.kind === "sea" ? "sea" : "deep";
-    if (rec.kind === "town") return "town";
+    if (!S2) return "land";
+    if (S2.combat) {
+      const foe2 = S2.creatures.find((c) => c.id === S2.combat.cid);
+      return foe2 && (foe2.lair || foe2.boss || foe2.named) ? "fight:boss" : "fight";
+    }
+    const rec = R.areaRec(S2);
+    for (const f of KEYS) {
+      const k = f(S2, rec);
+      if (k) return k;
+    }
+    if (rec.kind === "deep") return "deep:" + rec.theme;
+    if (rec.kind === "vault") return "vault";
+    if (rec.kind === "sky") return "sky:" + rec.place;
+    if (rec.kind === "sea") return "sea:" + rec.place;
+    if (R.levelLook(S2)) return "deep";
+    if (rec.kind === "town") {
+      const t2 = R.curTown(S2), cul = t2 === S2.town ? S2.townCulture : t2 && t2.culture;
+      return "town:" + (cul && cul.rare || t2 && t2.size || "town");
+    }
     if (R.aloft && R.aloft(S2)) return "sky";
     if (S2.weather.storm) return "storm";
     if (S2.player.swims || S2.terrain[S2.player.y * R.W + S2.player.x] === R.DEEP) return "sea";
-    if (S2.realm) return "elsewhere";
+    if (S2.realm) return "elsewhere:" + S2.realm;
     if (S2.curses && S2.curses[R.outdoorRec(S2).id]) return "blight";
-    const h = R.clock(S2).hour;
-    return h >= 20 || h < 5 ? "night" : "day";
+    const b = R.biomeOf(S2), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", h = R.clock(S2).hour;
+    return "land:" + climate + ":" + (h >= 20 || h < 5 ? "night" : "day") + ":" + b.id;
   }
+  var M2 = { key: null, tune: null, next: 0, gain: null, duck: 0 };
   function music(now) {
-    const mood = moodNow(), S2 = V.S;
-    if (mood !== M2.mood) {
+    const key2 = placeKey(), X8 = R.C.music;
+    if (key2 !== M2.key) {
       const old = M2.gain;
       if (old) {
         old.gain.setTargetAtTime(0, now, 1.2);
@@ -19020,37 +19463,42 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       M2.gain.gain.setTargetAtTime(1, now, 1.5);
       M2.gain.connect(musicBus);
       M2.gain.connect(verb);
-      M2.mood = mood;
+      M2.key = key2;
+      M2.tune = makeTune(X8, key2, Math.floor(Math.random() * 1e9));
       M2.next = Math.max(M2.next, now + 0.1);
-      M2.deg = 0;
     }
-    const md = MOODS[mood], scale = MODES[md.mode], biome = S2 ? R.biomeOf(S2) : null, key2 = biome && (BIOME_KEY[biome.id] !== void 0 ? BIOME_KEY[biome.id] : (biome.name || "").length % 5) || 0, root = md.root + (mood === "fight" || mood === "deep" ? 0 : key2), note = (d, oct) => root + 12 * (oct || 0) + scale[(d % scale.length + scale.length) % scale.length] + 12 * Math.floor(d / scale.length);
+    const tu = M2.tune, pl = tu.place, out = M2.gain;
     while (M2.next < now + 0.6) {
-      const t2 = M2.next, bar = md.bar, out = M2.gain;
-      M2.bar++;
-      if (md.drone && M2.bar % 2 === 1) pad(t2, root - 12 - (md.low ? 12 : 0), 0.05, bar * 2.1, out, "sine");
-      const chord = [0, 2, 4].map((x) => note(x + (M2.phrase % 4 === 2 ? 3 : M2.phrase % 4 === 3 ? 4 : 0)));
-      if (M2.bar % 2 === 0 || md.swell) for (const n of chord) pad(t2, n - 12, md.swell ? 0.035 : 0.028, bar * 1.9, out, md.padWave);
-      const steps = md.pulse ? 4 : md.drums ? 4 : 3;
-      for (let i = 0; i < steps; i++) {
-        if (Math.random() > md.density) continue;
-        const r = Math.random();
-        M2.deg += r < 0.35 ? 1 : r < 0.7 ? -1 : r < 0.85 ? 2 : -2;
-        if (M2.deg > 8) M2.deg -= 3;
-        if (M2.deg < -3) M2.deg += 3;
-        const tt = t2 + i * bar / steps + (md.pulse ? 0 : Math.random() * 0.15), n = note(M2.deg, md.low ? 0 : 1);
-        if (md.lead === "pluck") pluck(tt, n, 0.09, out);
-        else bell(tt, n, 0.06, out);
+      const t2 = M2.next, bar = nextBar(tu), len = bar.beats * bar.spb;
+      for (const n of bar.notes) playNote(n, t2 + n.t * bar.spb, n.d * bar.spb, out);
+      if (pl.drone && tu.bar % 2 === 1) pad(t2, bar.chord[0] - 12, 0.045, len * 2.1, out, "sine");
+      if (pl.pad && tu.bar % 2 === 0) for (const m of bar.chord) pad(t2, m, 0.024, len * 1.9, out, "triangle");
+      if (pl.drums) {
+        for (let i = 0; i < bar.beats; i++)
+          if (i !== 3 || Math.random() < 0.5) drum(t2 + i * bar.spb, i === 0 ? 0.3 : 0.18, out, i === 0 ? 90 : 120);
       }
-      if (md.pulse) for (let i = 0; i < 4; i++) pluck(t2 + i * bar / 4, note(i % 2 ? 4 : 0, -1), 0.05, out);
-      if (md.drums) {
-        for (let i = 0; i < 4; i++)
-          if (i !== 3 || Math.random() < 0.5) drum(t2 + i * bar / 4, i === 0 ? 0.35 : 0.2, out, i === 0 ? 90 : 120);
-      }
-      if (M2.bar % 4 === 0) M2.phrase++;
-      M2.next += bar;
+      M2.next += len;
     }
   }
+  var lastEvent = 0;
+  function eventMusic(kind2) {
+    if (!A2 || !on2() || A2.state !== "running") return;
+    const now = A2.currentTime;
+    if (kind2 === "discovery" && now - lastEvent < 4) return;
+    lastEvent = now;
+    const notes = eventPiece(R.C.music, kind2, Math.floor(Math.random() * 1e9)), g = A2.createGain(), end = notes.reduce((a, n) => Math.max(a, n.t + n.d), 0);
+    g.gain.value = 1;
+    g.connect(musicBus);
+    g.connect(verb);
+    for (const n of notes) playNote(n, now + 0.05 + n.t, n.d, g);
+    setTimeout(() => g.disconnect(), (end + 4) * 1e3);
+    if (M2.gain) {
+      M2.gain.gain.setTargetAtTime(kind2 === "discovery" ? 0.45 : 0.1, now, 0.15);
+      M2.gain.gain.setTargetAtTime(1, now + end, 1.2);
+    }
+  }
+  R.on("learned", () => eventMusic("discovery"));
+  R.on("plotDone", () => eventMusic("discovery"));
   var AMB = {};
   function loopNoise(type, freq, q) {
     const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
@@ -19196,8 +19644,25 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     lastUpdate = now;
     music(now);
     world(now, 0.1);
+    const over = V.S.over ? V.S.over.won ? "win" : "death" : null;
+    if (over && over !== seen2.over) eventMusic(over);
+    seen2.over = over;
   }
-  var soundState = () => ({ running: !!A2 && A2.state === "running", mood: M2.mood });
+  var METER = null;
+  function soundLevel() {
+    if (!A2) return null;
+    if (!METER) {
+      METER = A2.createAnalyser();
+      METER.fftSize = 2048;
+      master.connect(METER);
+    }
+    const d = new Float32Array(METER.fftSize);
+    METER.getFloatTimeDomainData(d);
+    let peak = 0, sum2 = 0;
+    for (const x of d) peak = Math.max(peak, Math.abs(x)), sum2 += x * x;
+    return { peak, rms: Math.sqrt(sum2 / d.length) };
+  }
+  var soundState = () => ({ running: !!A2 && A2.state === "running", mood: M2.key, level: soundLevel() });
 
   // src/view/post.js
   LOOK_SWITCHES.push(["post", "Bloom and colour grading"]);

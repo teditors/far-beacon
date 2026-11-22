@@ -172,7 +172,8 @@ a few shared bricks. Every piece of the look has a switch of its own, a setting 
 | `actors.js` | people and creatures as jointed models worked in the vertex shader; they walk from where they were drawn (never jump), wander, rise in, fall when killed; `shiftActors` when the frame moves |
 | `fx.js` | fires, pools of water and blob shadows |
 | `water.js` | rivers, lakes and the sea: a surface over beds carved by terrain.js (`T.water`, `waterAt`), rippling and mirroring the sky in its shader |
-| `sound.js` | the generative score (`MOODS`) and the sounds of the world, Web Audio only, started by the first tap |
+| `sound.js` | the voices (harpsichord, lute, organ, pipe, bells, pads, drums) and the sounds of the world, Web Audio only, started by the first tap |
+| `score.js` | the composer (C7.2): Baroque dances and slow airs from a theme per place (content/music.js), bar by bar, as notes; event pieces; pure, tested in Node |
 
 Rules for the look: generate, never ship files (textures, models and sounds are all code); anything costly reads `Q`
 and is lighter or absent on Low; models of places are kept between builds (`cachedModel` in scene.js), so their key
@@ -268,7 +269,7 @@ Players can copy a run out of Menu and paste it into another device.
 | A way towns look | an entry (climate, trade or custom) in content/townlooks.js; a new street prop is a function in `PROPS` in view/buildings.js |
 | A tree shape | a function in `SHAPES` in view/plants.js, and `tree.shape` on the woodland in content |
 | A look for a level | a `kit` name on its `look` in content (view/levels.js lists them) |
-| A mood of the music | an entry in `MOODS` in view/sound.js, and a case in `moodNow` |
+| A tune for a kind of place | an entry in `places` in content/music.js (its dance, mode, key and voice); `placeKey` in view/sound.js (or a function pushed onto its `MUSIC_KEYS`) names where the traveller is |
 | A biome | an entry in content/biomes.js (the content test lists every field it needs), and name prefixes in content/creatures.js |
 | A god | an entry in content/gods.js |
 | A new kind of modifier | use a new stat name in content, read it with stat() in the rules, and add it to the known list in tests/content.test.js |

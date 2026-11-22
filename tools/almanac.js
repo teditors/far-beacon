@@ -507,6 +507,34 @@ section('How towns look', ['townLooks'], () => {
   );
 });
 
+section('The score', ['music'], () => {
+  const X = C.music;
+  line(
+    'For the view only (commission 7): a tune for each kind of place, composed bar by bar from a theme rolled from the ' +
+      "place's name (src/view/score.js), so a place always sounds like itself and never quite the same. A place with " +
+      'no entry of its own takes the nearest along its name. Events: ' +
+      Object.keys(X.events).join(', ') +
+      '.',
+  );
+  line();
+  table(
+    ['Dance', 'Beats a bar', 'Tempo', 'Bass'],
+    Object.entries(X.dances).map(([k, d]) => [k, d.beats + (d.sub === 3 ? ' (in threes)' : ''), d.tempo, d.bass]),
+  );
+  line();
+  table(
+    ['Place', 'Dance', 'Mode', 'Key', 'Voice', 'Also'],
+    Object.entries(X.places).map(([k, p]) => [
+      k,
+      p.dance,
+      p.mode,
+      p.root,
+      p.voice,
+      ['inner', 'pad', 'drone', 'drums'].filter((f) => p[f]).join(', '),
+    ]),
+  );
+  line();
+});
 section('The look', ['looks'], () => {
   const X = C.looks,
     sw = (e) =>
@@ -532,7 +560,7 @@ section('The look', ['looks'], () => {
     Object.entries(X.climates).map(([id, c]) => [
       id,
       c.name,
-      (c.vary ? 'hue ' + c.vary.hue[0] + '° to +' + c.vary.hue[1] + '°, saturation ±' + Math.round(c.vary.sat * 100) + '%' : 'no'),
+      c.vary ? 'hue ' + c.vary.hue[0] + '° to +' + c.vary.hue[1] + '°, saturation ±' + Math.round(c.vary.sat * 100) + '%' : 'no',
       sw(c),
     ]),
   );

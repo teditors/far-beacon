@@ -1,8 +1,8 @@
 /* Sound and music (commission 5), made in the browser with the Web Audio API: no sound files.
-   - The score is generative: a slow random walk over a mode, phrased, with a drone and a soft pad under it, so it
-     never repeats and is original by construction. Where you are and what is happening sets its mode, root, pace and
-     instruments (MOODS): open land by day and by night, a town, below ground, the sky, the sea, a fight, a storm. A
-     change of mood crossfades over a few seconds.
+   - The score (commission 7): every kind of place has a tune of its own, composed bar by bar by score.js from a theme
+     rolled from the place's key (content/music.js): Baroque dances on a harpsichord in towns and halls, slow airs over
+     washes of sound on the land by climate and hour, below ground, in the sky, at sea, beyond a door, in a fight.
+     Short pieces mark a discovery, a win and a death. A change of place crossfades over a few seconds.
    - The world: wind (stronger high up and in storms), rain and hail, running water near a river or spring, the bustle
      of a town, a crackling fire by your camp, footsteps that sound like the ground underfoot (grass, sand, snow, stone,
      wood, water), creatures' calls, blows given and taken, and a soft click on every button.
@@ -11,6 +11,7 @@
    filtered noise at any one time. */
 import { P, R, V } from './ctx.js';
 import { LOOK_CHANGED, LOOK_SWITCHES, SET, lookOn, saveSettings } from './quality.js';
+import { eventPiece, makeTune, nextBar } from './score.js';
 
 LOOK_SWITCHES.push(['sound', 'Sound and music']);
 if (SET.music === undefined) SET.music = 0.55;
@@ -167,56 +168,142 @@ function noiseHit(t, vel, freq, dur, out, type, q) {
   s.stop(t + dur + 0.05);
 }
 
-/* ---------- the score ---------- */
-// modes as steps from the root; each mood a mode, a root, how many notes a bar, and its instruments
-const MODES = {
-  dorian: [0, 2, 3, 5, 7, 9, 10],
-  aeolian: [0, 2, 3, 5, 7, 8, 10],
-  ionian: [0, 2, 4, 5, 7, 9, 11],
-  lydian: [0, 2, 4, 6, 7, 9, 11],
-  phrygian: [0, 1, 3, 5, 7, 8, 10],
-  mixolydian: [0, 2, 4, 5, 7, 9, 10],
-  penta: [0, 2, 4, 7, 9],
-  minpenta: [0, 3, 5, 7, 10],
-  whole: [0, 2, 4, 6, 8, 10], // no home key at all: dreamlike, for other worlds (C6)
-};
-const MOODS = {
-  day: { mode: 'penta', root: 62, bar: 4.2, density: 0.45, lead: 'bell', padWave: 'triangle', drone: true },
-  night: { mode: 'aeolian', root: 57, bar: 5.5, density: 0.25, lead: 'bell', padWave: 'sine', drone: true },
-  town: { mode: 'ionian', root: 64, bar: 2.6, density: 0.7, lead: 'pluck', padWave: 'triangle', pulse: true },
-  deep: { mode: 'phrygian', root: 50, bar: 6.5, density: 0.18, lead: 'bell', padWave: 'sine', drone: true, low: true },
-  sky: { mode: 'lydian', root: 69, bar: 4.8, density: 0.4, lead: 'bell', padWave: 'sine' },
-  sea: { mode: 'mixolydian', root: 60, bar: 5, density: 0.3, lead: 'pluck', padWave: 'sine', drone: true, swell: true },
-  storm: { mode: 'minpenta', root: 55, bar: 5, density: 0.2, lead: 'bell', padWave: 'sawtooth', drone: true, low: true },
-  fight: { mode: 'phrygian', root: 52, bar: 1.8, density: 0.6, lead: 'pluck', padWave: 'sawtooth', drums: true, low: true },
-  // commission 6: through a door, as the look turns to another artist's book; and on a cursed country
-  elsewhere: { mode: 'whole', root: 66, bar: 5.6, density: 0.32, lead: 'bell', padWave: 'sine', swell: true },
-  blight: { mode: 'phrygian', root: 53, bar: 6.2, density: 0.16, lead: 'bell', padWave: 'triangle', drone: true, low: true },
-};
-// each land has its own key, so crossing a border shifts the music a little
-const BIOME_KEY = { salt: 2, moor: 0, taiga: -3 };
-const M = { mood: null, root: 62, next: 0, deg: 0, bar: 0, gain: null, phrase: 0 };
-function moodNow() {
+/* ---------- the score (commission 7: a tune for every place, composed by score.js) ---------- */
+// The harpsichord: one oscillator with the spectrum of a string plucked near its end (strong upper partials, the ones
+// at multiples of the pluck point missing), through a filter that closes as the note dies, and a quill's click.
+let HARP = null;
+function harpWave() {
+  if (HARP) return HARP;
+  const n = 32,
+    re = new Float32Array(n),
+    im = new Float32Array(n);
+  for (let k = 1; k < n; k++) im[k] = (Math.abs(Math.sin(k * Math.PI * 0.13)) / k) * (k < 3 ? 1 : 1.3);
+  return (HARP = A.createPeriodicWave(re, im));
+}
+function harpsichord(t, m, vel, dur, out) {
+  const o = A.createOscillator(),
+    f = A.createBiquadFilter(),
+    g = A.createGain(),
+    fr = mtof(m),
+    ring = 0.25 + Math.max(0, 84 - m) * 0.018; // low strings ring longer
+  o.setPeriodicWave(harpWave());
+  o.frequency.value = fr;
+  f.type = 'lowpass';
+  f.frequency.setValueAtTime(Math.min(14000, fr * 12), t);
+  f.frequency.setTargetAtTime(fr * 2.5, t + 0.01, ring * 0.6);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vel, t + 0.003);
+  g.gain.setTargetAtTime(0.0001, t + 0.004, ring);
+  g.gain.setTargetAtTime(0.0001, t + Math.max(0.05, dur), 0.03); // the damper falls when the key is let go
+  o.connect(f).connect(g).connect(out);
+  o.start(t);
+  o.stop(t + Math.min(dur + 0.25, ring * 5));
+}
+// the organ of a temple or a crypt: two soft pipes, an octave apart, slow to speak
+function organ(t, m, vel, dur, out) {
+  const g = A.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vel * 0.7, t + 0.06);
+  g.gain.setValueAtTime(vel * 0.7, t + Math.max(0.07, dur - 0.05));
+  g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.15);
+  for (const [mul, type, k] of [
+    [1, 'sine', 1],
+    [2, 'triangle', 0.35],
+  ]) {
+    const o = A.createOscillator(),
+      og = A.createGain();
+    o.type = type;
+    o.frequency.value = mtof(m) * mul;
+    og.gain.value = k;
+    o.connect(og).connect(g);
+    o.start(t);
+    o.stop(t + dur + 0.2);
+  }
+  g.connect(out);
+}
+// a wooden pipe (a recorder's breath): a sine that wavers a little, soft in and out
+function pipe(t, m, vel, dur, out) {
+  const o = A.createOscillator(),
+    lfo = A.createOscillator(),
+    lg = A.createGain(),
+    g = A.createGain();
+  o.frequency.value = mtof(m);
+  lfo.frequency.value = 5.2;
+  lg.gain.value = mtof(m) * 0.006;
+  lfo.connect(lg).connect(o.frequency);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vel * 0.8, t + 0.07);
+  g.gain.setTargetAtTime(0.0001, t + Math.max(0.1, dur * 0.9), 0.08);
+  o.connect(g).connect(out);
+  o.start(t);
+  lfo.start(t);
+  o.stop(t + dur + 0.5);
+  lfo.stop(t + dur + 0.5);
+}
+// Play one note of the score: its voice, and a trill (fast turns with the note above) or a turn when it has one.
+function playNote(n, t, dur, out) {
+  const voice = n.voice,
+    one = (tt, m, v, d) => {
+      if (voice === 'harpsichord' || voice === 'bass') harpsichord(tt, m, v * (voice === 'bass' ? 0.9 : 1), d, out);
+      else if (voice === 'lute') pluck(tt, m, v, out);
+      else if (voice === 'organ') organ(tt, m, v * 0.8, d, out);
+      else if (voice === 'pipe') pipe(tt, m, v, d, out);
+      else if (voice === 'pad') pad(tt, m, v * 0.4, Math.max(1, d), out, 'sine');
+      else if (voice === 'drone') pad(tt, m, v, Math.max(1, d), out, 'sine');
+      else bell(tt, m, v * 0.6, out);
+    };
+  if (n.trill && dur > 0.3 && voice !== 'bell' && voice !== 'organ') {
+    const s = 0.07,
+      k = Math.min(8, Math.floor((dur * 0.6) / s));
+    for (let i = 0; i < k; i++) one(t + i * s, i % 2 ? n.m : n.m + 2, n.v * 0.8, s);
+    one(t + k * s, n.m, n.v, dur - k * s);
+  } else if (n.turn && dur > 0.4 && voice !== 'bell' && voice !== 'organ') {
+    const s = 0.08;
+    [n.m + 2, n.m, n.m - 1].forEach((m, i) => one(t + i * s, m, n.v * 0.8, s));
+    one(t + 3 * s, n.m, n.v, dur - 3 * s);
+  } else one(t, n.m, n.v, dur);
+}
+/* Where the traveller is, as a key into content/music.js's places: the fight, the level, the town, the land by its
+   climate and the hour. Interiors and other pieces add their own (KEYS: functions (S, rec) -> key or null). */
+const KEYS = [];
+function placeKey() {
   const S = V.S;
-  if (!S) return 'day';
-  if (S.combat) return 'fight';
-  const look = R.levelLook(S),
-    rec = R.areaRec(S);
-  if (look) return look.void && !look.water ? 'sky' : look.water || rec.kind === 'sea' ? 'sea' : 'deep';
-  if (rec.kind === 'town') return 'town';
+  if (!S) return 'land';
+  if (S.combat) {
+    const foe = S.creatures.find((c) => c.id === S.combat.cid);
+    return foe && (foe.lair || foe.boss || foe.named) ? 'fight:boss' : 'fight';
+  }
+  const rec = R.areaRec(S);
+  for (const f of KEYS) {
+    const k = f(S, rec);
+    if (k) return k;
+  }
+  if (rec.kind === 'deep') return 'deep:' + rec.theme;
+  if (rec.kind === 'vault') return 'vault';
+  if (rec.kind === 'sky') return 'sky:' + rec.place;
+  if (rec.kind === 'sea') return 'sea:' + rec.place;
+  if (R.levelLook(S)) return 'deep';
+  if (rec.kind === 'town') {
+    const t = R.curTown(S),
+      cul = t === S.town ? S.townCulture : t && t.culture;
+    return 'town:' + ((cul && cul.rare) || (t && t.size) || 'town');
+  }
   if (R.aloft && R.aloft(S)) return 'sky';
   if (S.weather.storm) return 'storm';
   if (S.player.swims || S.terrain[S.player.y * R.W + S.player.x] === R.DEEP) return 'sea';
-  if (S.realm) return 'elsewhere';
+  if (S.realm) return 'elsewhere:' + S.realm;
   if (S.curses && S.curses[R.outdoorRec(S).id]) return 'blight';
-  const h = R.clock(S).hour;
-  return h >= 20 || h < 5 ? 'night' : 'day';
+  const b = R.biomeOf(S),
+    climate = (b.parts && b.parts.climate) || { salt: 'hot', taiga: 'cold', moor: 'wet' }[b.id] || 'temperate',
+    h = R.clock(S).hour;
+  return 'land:' + climate + ':' + (h >= 20 || h < 5 ? 'night' : 'day') + ':' + b.id;
 }
+const M = { key: null, tune: null, next: 0, gain: null, duck: 0 };
 function music(now) {
-  const mood = moodNow(),
-    S = V.S;
-  if (mood !== M.mood) {
-    // a new voice for the new mood, the old one fading out under it
+  const key = placeKey(),
+    X = R.C.music;
+  if (key !== M.key) {
+    // a new tune for the new place, the old one fading out under it
     const old = M.gain;
     if (old) {
       old.gain.setTargetAtTime(0, now, 1.2);
@@ -227,48 +314,50 @@ function music(now) {
     M.gain.gain.setTargetAtTime(1, now, 1.5);
     M.gain.connect(musicBus);
     M.gain.connect(verb);
-    M.mood = mood;
+    M.key = key;
+    M.tune = makeTune(X, key, Math.floor(Math.random() * 1e9));
     M.next = Math.max(M.next, now + 0.1);
-    M.deg = 0;
   }
-  const md = MOODS[mood],
-    scale = MODES[md.mode],
-    biome = S ? R.biomeOf(S) : null,
-    key = (biome && (BIOME_KEY[biome.id] !== undefined ? BIOME_KEY[biome.id] : (biome.name || '').length % 5)) || 0,
-    root = md.root + (mood === 'fight' || mood === 'deep' ? 0 : key),
-    note = (d, oct) =>
-      root + 12 * (oct || 0) + scale[((d % scale.length) + scale.length) % scale.length] + 12 * Math.floor(d / scale.length);
+  const tu = M.tune,
+    pl = tu.place,
+    out = M.gain;
   // schedule a bar ahead at a time
   while (M.next < now + 0.6) {
     const t = M.next,
-      bar = md.bar,
-      out = M.gain;
-    M.bar++;
-    // under it all: a drone on the root and fifth, and a pad on the chord of the bar
-    if (md.drone && M.bar % 2 === 1) pad(t, root - 12 - (md.low ? 12 : 0), 0.05, bar * 2.1, out, 'sine');
-    const chord = [0, 2, 4].map((x) => note(x + (M.phrase % 4 === 2 ? 3 : M.phrase % 4 === 3 ? 4 : 0)));
-    if (M.bar % 2 === 0 || md.swell) for (const n of chord) pad(t, n - 12, md.swell ? 0.035 : 0.028, bar * 1.9, out, md.padWave);
-    // the tune: a walk over the mode, mostly by step, now and then a leap, resting often
-    const steps = md.pulse ? 4 : md.drums ? 4 : 3;
-    for (let i = 0; i < steps; i++) {
-      if (Math.random() > md.density) continue;
-      const r = Math.random();
-      M.deg += r < 0.35 ? 1 : r < 0.7 ? -1 : r < 0.85 ? 2 : -2;
-      if (M.deg > 8) M.deg -= 3;
-      if (M.deg < -3) M.deg += 3;
-      const tt = t + (i * bar) / steps + (md.pulse ? 0 : Math.random() * 0.15),
-        n = note(M.deg, md.low ? 0 : 1);
-      if (md.lead === 'pluck') pluck(tt, n, 0.09, out);
-      else bell(tt, n, 0.06, out);
-    }
-    if (md.pulse) for (let i = 0; i < 4; i++) pluck(t + (i * bar) / 4, note(i % 2 ? 4 : 0, -1), 0.05, out);
-    if (md.drums)
-      for (let i = 0; i < 4; i++)
-        if (i !== 3 || Math.random() < 0.5) drum(t + (i * bar) / 4, i === 0 ? 0.35 : 0.2, out, i === 0 ? 90 : 120);
-    if (M.bar % 4 === 0) M.phrase++;
-    M.next += bar;
+      bar = nextBar(tu),
+      len = bar.beats * bar.spb;
+    for (const n of bar.notes) playNote(n, t + n.t * bar.spb, n.d * bar.spb, out);
+    // the old washes under the land's airs: a drone on the key note, a pad on the bar's chord
+    if (pl.drone && tu.bar % 2 === 1) pad(t, bar.chord[0] - 12, 0.045, len * 2.1, out, 'sine');
+    if (pl.pad && tu.bar % 2 === 0) for (const m of bar.chord) pad(t, m, 0.024, len * 1.9, out, 'triangle');
+    if (pl.drums)
+      for (let i = 0; i < bar.beats; i++)
+        if (i !== 3 || Math.random() < 0.5) drum(t + i * bar.spb, i === 0 ? 0.3 : 0.18, out, i === 0 ? 90 : 120);
+    M.next += len;
   }
 }
+// A short piece for an event, over the score (which bows out under it for a moment).
+let lastEvent = 0;
+function eventMusic(kind) {
+  if (!A || !on() || A.state !== 'running') return;
+  const now = A.currentTime;
+  if (kind === 'discovery' && now - lastEvent < 4) return; // not a fanfare for every step
+  lastEvent = now;
+  const notes = eventPiece(R.C.music, kind, Math.floor(Math.random() * 1e9)),
+    g = A.createGain(),
+    end = notes.reduce((a, n) => Math.max(a, n.t + n.d), 0);
+  g.gain.value = 1;
+  g.connect(musicBus);
+  g.connect(verb);
+  for (const n of notes) playNote(n, now + 0.05 + n.t, n.d, g);
+  setTimeout(() => g.disconnect(), (end + 4) * 1000);
+  if (M.gain) {
+    M.gain.gain.setTargetAtTime(kind === 'discovery' ? 0.45 : 0.1, now, 0.15);
+    M.gain.gain.setTargetAtTime(1, now + end, 1.2);
+  }
+}
+R.on('learned', () => eventMusic('discovery'));
+R.on('plotDone', () => eventMusic('discovery'));
 
 /* ---------- the world ---------- */
 const AMB = {};
@@ -453,6 +542,26 @@ function updateSound(dt) {
   lastUpdate = now;
   music(now);
   world(now, 0.1);
+  // the end of a run: a full close for a win, a lament for a death
+  const over = V.S.over ? (V.S.over.won ? 'win' : 'death') : null;
+  if (over && over !== seen.over) eventMusic(over);
+  seen.over = over;
 }
-const soundState = () => ({ running: !!A && A.state === 'running', mood: M.mood });
-export { updateSound, setVolume, soundState, MOODS };
+// for the tests: how loud the sound is now (the peak and the mean of the last few hundredths of a second)
+let METER = null;
+function soundLevel() {
+  if (!A) return null;
+  if (!METER) {
+    METER = A.createAnalyser();
+    METER.fftSize = 2048;
+    master.connect(METER);
+  }
+  const d = new Float32Array(METER.fftSize);
+  METER.getFloatTimeDomainData(d);
+  let peak = 0,
+    sum = 0;
+  for (const x of d) (peak = Math.max(peak, Math.abs(x))), (sum += x * x);
+  return { peak, rms: Math.sqrt(sum / d.length) };
+}
+const soundState = () => ({ running: !!A && A.state === 'running', mood: M.key, level: soundLevel() });
+export { updateSound, setVolume, soundState, KEYS as MUSIC_KEYS, eventMusic };
