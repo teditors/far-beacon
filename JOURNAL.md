@@ -8,6 +8,80 @@ abandoned places. Pieces with switches, as before.
 **Measuring.** As commission 6: `python3 tools/bench.py fallback low medium high` and `python3 tools/look.py`, with
 `CHROME=/opt/pw-browsers/chromium` (the full `node tools/check.js` needs it too for the browser test in a cloud session).
 
+## C7.6: secret value
+
+**What it is.** A few old things are not what they seem. In ruins, caves, dungeons and empty houses, about one old
+thing in twenty-five that could be one (rings, cups, bowls, plates, statuettes, lockets, vases, urns, books, scrolls,
+maps, dolls, combs, holy symbols, skulls, paintings, lutes, flutes, mirrors, bones) is a secret: a dull ring that is
+**old gold** (60), a cracked bowl **of rare Tokhirut make** (40), a mouldering book that is a **lost book of the
+Tokhirut** (50), a rag doll **with a gem hidden in it** (45), **a saint's bones** (35), a painting **by a master's
+hand** (55). It is picked up as its plain self, and a merchant who has not looked at it pays as for anything unknown
+(3 coin). **Appraised** in a town (the shop's "appraise", 4 coin), it takes its true name and worth. Studying it by the
+fire or a wizard's spell learns nothing (there is nothing to study in a bowl); the merchant's eye does. The lost
+people's name comes from the world's own (`s.civ`), so their wares and their secrets are theirs.
+
+Which things are secrets is rolled with the rest of a place's things (`THING_FINISH`), from the seed; the roll is
+always drawn, so turning the piece off leaves every place exactly as it was. Some 25 to 30 secrets a world.
+
+**Switch.** `secrets`.
+
+## C7.5: theft
+
+**What it is.** In someone's house or shop, and in the places people live (a cloud city, a merfolk hall, a floating
+town), every thing belongs to someone. Taking one: you are always seen, a window says who saw you ("Tamsin, the smith,
+sees you lift the iron hammer. 'That is not yours.' You put it back where it was."), the thing stays, and the journal
+counts the times. The owner is named where the town knows them (the elder, the merchant, the person at a service's
+door) and otherwise is the woman or the man of the house, a child, an old man by the hearth. Where nobody lives
+(ruins, caves, dungeons, the wild, an empty house) things are anyone's.
+
+**Choices.** Kept deliberately small, as the brief asks: one check on taking (`TAKE_CHECKS` in things.js) and one
+event (`'caught'`) the view shows as a window. A real crime system (being unseen at night, a fine, a bad name in the
+town, the watch) can replace this module without touching anything else.
+
+**Switch.** `theft` (off: take anything anywhere).
+
+## C7.4: buildings you can walk into
+
+**What it is.** Every building in a town is a place you walk into, with no menu and no jump.
+- **The door** (rules/houses.js): each block of wall in a town's grid is a building (as the view has always drawn
+  them); one beside the elder's, inn's, shop's or a service's door is theirs, the rest are houses, and each has its
+  door on the side facing a main street. The building's wall there is open: a doorway with its door standing open
+  against the wall, a step, a lintel (buildings.js). Walk into it and you are inside (`MOVES` in hooks.js, run at the
+  start of `move()`); walk back out of it and you are in the street before it.
+- **Inside**: the building's own small map (an area of kind `house`), three tiles to a town tile (about 1.3 m), over a
+  window of the town round the building. Its outer ring is the room's edge, where furniture stands against the walls;
+  inner walls with doorways part it into rooms of five to eight tiles a side, both ways for a big building, as many as
+  its kind has: a house a living room, a bedroom, a kitchen and a store or workroom; the inn a taproom, kitchen and
+  bedrooms; the elder's hall a hall and a study; the temple a chapel; the healer a sickroom; the smith a smithy; the
+  mapmaker a study; the stable a stable and store. What stands in a room's middle (a table, a counter, an anvil) is in
+  the way, so long as every corner can still be reached.
+- **What it holds** follows from the building, the town's trade (looms in the weavers' town, drying racks among the
+  herbalists, anvils among the smiths, nets and floats and dried fish in a town by the water), its size and so its
+  wealth (a hamlet's cot and rush mat and wooden cups; a city's curtained bed, fine carpet, tapestry, painting and
+  silver), its climate (a stove and firewood in the cold, water jars in the heat), the year (no food in a lean year,
+  firewood in a hard winter, candles in the long dark), and in the unfallen town the lost people's own wares under
+  their mark. About one house in fourteen stands empty, its things old, dusty and free to take.
+- **Seamless**: the view (rooms.js) draws the room where the building stands, within its outer walls, with the town
+  round it: a floor of boards (earth in a poor house, stone in a hall or a temple), walls of plaster, logs, stone or
+  adobe by climate, a beamed ceiling, windows bright by day and glowing at night, door frames. Walking through the door
+  only moves the frame's origin (as the town's gate does); nothing is rebuilt. The rooms of the buildings whose doors
+  are near you are drawn too, so you see in through an open door before you step through it. Inside, the light is the
+  sky's through the windows and a warm lamp, and the score plays the room's own tune (a march in the hall, a chorale in
+  the temple, a gigue at the inn, a minuet in a rich house, a drifting air in an empty one).
+- **Memory and saves**: nothing of a house is stored. Its layout and things are made from the seed when wanted; the
+  house's area is forgotten when you walk out, unless you put something down there. A save made inside a house loads
+  inside it. Measured below (C7.7).
+
+**Not done.** Tents (a steppe town) stay closed: a round tent and a square room do not fit; hamlets on the land have
+no interiors yet. Upper floors are not walked (a house's upper storey is roof space as before).
+
+**Switch.** `interiors` (off: solid buildings, as before). God mode lists the story town's hall, inn and a house
+("Houses"). Tests (pieces.test.js, `interiors`): in 25 worlds' towns every building has a door into a street and rooms
+with things, every floor tile can be reached from the door, a house is the same twice, walking in and out puts you
+where you should be, a save inside a house loads, a house left is forgotten, and the switch closes the doors. The
+browser test walks in through a door, takes something (and, seen, is made to put it back), and walks out.
+Pictures: `docs/look/after/house-hall.jpg`, `house-home.jpg`, `house-inn.jpg`, `house-door.jpg`.
+
 ## C7.3: things in levels, ruins and caves, and picking them up
 
 **What it is.** The first half of the commission's main work: ordinary things, made in code and in the style, put

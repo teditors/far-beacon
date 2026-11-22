@@ -109,6 +109,8 @@ function openModal(title, body) {
   input.fx = input.fy = 0;
   input.keys = {};
 }
+// Seen taking something in someone's house (C7, the theft piece): a window says so
+R.on('caught', (s, d) => openModal(d.title, [el('p', { text: d.text })]));
 function closeModal() {
   $('modal').hidden = true;
 }

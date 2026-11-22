@@ -20,6 +20,7 @@ import { toonMat } from './toon.js';
 import { smoothNormals } from './outline.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 import { thingsGroup } from './things.js';
+import { HOUSE_TS, houseGroup, houseOrigin } from './rooms.js';
 
 /* ---------- scene ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: Q.aa, powerPreference: 'high-performance' });
@@ -832,13 +833,14 @@ function interiorSite(st, ts, inTown, k) {
 // when this changes; the same scene is simply looked at from the other origin.
 function applyFrame() {
   const kind = R.areaRec(V.S).kind,
-    inTown = kind === 'town' && V.townAt;
+    inTown = (kind === 'town' || kind === 'house') && V.townAt,
+    house = kind === 'house' && V.townAt ? houseOrigin(R.houseOf(V.S, V.S.area)) : null;
   if (R.isLevel(V.S)) return;
   const was = { x: FR.x, y: FR.y, z: FR.z };
-  FR.x = inTown ? V.townAt.x : 0;
+  FR.x = inTown ? V.townAt.x + (house ? house.x : 0) : 0;
   FR.y = inTown ? V.townAt.y : 0;
-  FR.z = inTown ? V.townAt.z : 0;
-  setGeometry(inTown ? 'town' : 'region');
+  FR.z = inTown ? V.townAt.z + (house ? house.z : 0) : 0;
+  setGeometry(house ? 'house' : inTown ? 'town' : 'region'); // a house (C7): its own grid, where the building stands
   // everyone remembered moves with the frame, however it moved (the gate, an action, a jump): they walk on
   if (was.x !== FR.x || was.y !== FR.y || was.z !== FR.z) shiftActors(was.x - FR.x, was.z - FR.z, was.y - FR.y);
   const sh = V.shift || { x: 0, z: 0 };
@@ -1372,6 +1374,7 @@ function buildDynamic() {
     const rec = R.outdoorRec(V.S);
     drawArea(rec.id, 'region');
     if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, 'town');
+    if (V.townAt && V.townId) drawHouses(); // inside a building, and the rooms seen through the open doors near you (C7)
     // the creatures of the regions round about, near the borders (built ahead by the rules; never built here)
     if (actorsOn())
       for (let dy = -1; dy <= 1; dy++)
@@ -1387,11 +1390,57 @@ function buildDynamic() {
 }
 // nb: for a neighbouring region, its offset in metres; only its creatures near the border are drawn, so that they are
 // already there, and walking, when the border is crossed.
-function drawArea(id, kind, nb) {
+/* The rooms of the buildings about the traveller (C7, rooms.js): the one they are in, and any whose door is near enough
+   to see in at, each with its things, standing where the building is. */
+function drawHouses() {
+  const S = V.S,
+    here = R.areaRec(S),
+    inHouse = here.kind === 'house',
+    list = [];
+  if (inHouse) list.push({ id: S.area, L: R.houseOf(S, S.area) });
+  if (R.interiorsOn(S, V.townId)) {
+    const tsz = TOWN_TS,
+      th = (R.W * tsz) / 2;
+    for (const b of R.buildingsOf(S, V.townId)) {
+      if (inHouse && b.id === S.area) continue;
+      const dx = (b.door.x + 0.5) * tsz - th + V.townAt.x - FR.x - P.x,
+        dz = (b.door.y + 0.5) * tsz - th + V.townAt.z - FR.z - P.z;
+      if (dx * dx + dz * dz < 22 * 22) list.push({ id: b.id, L: R.houseLayout(S, V.townId, b) });
+    }
+  }
+  for (const { id, L } of list.slice(0, 4)) {
+    if (!L) continue;
+    const o = houseOrigin(L),
+      g = houseGroup(S, id, L);
+    g.position.set(V.townAt.x + o.x - FR.x, V.townAt.y + 0.08 - FR.y, V.townAt.z + o.z - FR.z);
+    if (g.parent) g.parent.remove(g);
+    dynGroup.add(g);
+    if (S.areas[id]) drawArea(id, 'house', null, L);
+    else {
+      // a house not walked into: its things straight from its layout, less any taken before
+      const gone = new Set((S.taken && S.taken[id]) || []),
+        hh = (R.W * HOUSE_TS) / 2,
+        tg = thingsGroup(
+          S,
+          id,
+          HOUSE_TS,
+          (t) => [
+            (t.x + 0.5 + t.px) * HOUSE_TS - hh + V.townAt.x + o.x - FR.x,
+            V.townAt.y + 0.08 - FR.y,
+            (t.y + 0.5 + t.pz) * HOUSE_TS - hh + V.townAt.z + o.z - FR.z,
+          ],
+          [FR.x, FR.y, FR.z].join(),
+          L.things.filter((t) => !gone.has(t.id)),
+        );
+      if (tg) dynGroup.add(tg);
+    }
+  }
+}
+function drawArea(id, kind, nb, L) {
   const map = R.mapOf(V.S, id),
     current = id === V.S.area,
     indoor = kind !== 'region',
-    ts = kind === 'town' ? TOWN_TS : kind === 'vault' ? G.ts : TS,
+    ts = kind === 'town' ? TOWN_TS : kind === 'house' ? HOUSE_TS : kind === 'vault' ? G.ts : TS,
     half = (R.W * ts) / 2,
     off = indoor ? ts / 28 : 1;
   // a tile of this area, plus an offset in metres, as a point in the frame the player is in
@@ -1402,6 +1451,11 @@ function drawArea(id, kind, nb) {
     if (kind === 'town') {
       x += V.townAt.x;
       z += V.townAt.z;
+      y = V.townAt.y + 0.08;
+    } else if (kind === 'house') {
+      const o = houseOrigin(L);
+      x += V.townAt.x + o.x;
+      z += V.townAt.z + o.z;
       y = V.townAt.y + 0.08;
     } else if (kind === 'region') y = V.base.height(x, z);
     return [x - FR.x, y - FR.y, z - FR.z];

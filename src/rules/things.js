@@ -88,8 +88,12 @@ function furnish(s, spec, room, o, out) {
   };
   // furniture against the walls: pushed back to the wall, facing out into the room; one longer than a tile turned to run
   // along the wall, over two tiles
-  const inset = o.inset || 0; // metres from a tile's outer side to the wall's face
-  for (const [k, ch] of spec.wall || []) {
+  const inset = o.inset || 0, // metres from a tile's outer side to the wall's face
+    // a long wall takes the list more than once (less likely each time round)
+    rounds = Math.max(1, Math.round(room.tiles.filter((t) => room.wallSide(t)).length / (o.perRound || 99))),
+    wallList = [];
+  for (let i = 0; i < rounds; i++) for (const [k, ch] of spec.wall || []) wallList.push([k, i ? ch * 0.55 : ch]);
+  for (const [k, ch] of wallList) {
     if (!(r() < ch)) continue;
     const tile = take((t) => room.wallSide(t));
     if (tile === null) break;
@@ -125,7 +129,10 @@ function furnish(s, spec, room, o, out) {
     if (kindOf(k).top) surf.push(t);
   }
   // furniture in the middle: a table with seats round it, a rug, a counter (one longer than a tile over two)
-  for (const [k, ch] of spec.middle || []) {
+  const midRounds = Math.max(1, Math.round((o.floor || 0) / (o.perMiddle || 999))),
+    midList = [];
+  for (let i = 0; i < midRounds; i++) for (const [k, ch] of spec.middle || []) midList.push([k, i ? ch * 0.6 : ch]);
+  for (const [k, ch] of midList) {
     if (!(r() < ch)) continue;
     const tile = take((t) => !room.wallSide(t)) ?? take(() => true);
     if (tile === null) break;
@@ -376,7 +383,7 @@ function takeThing(s, id) {
   const it = makeItem(s, 'th_' + t.k, null, null, true);
   it.thing = { k: t.k };
   for (const f of ['g', 'old', 'ware', 'sec']) if (t[f] !== undefined) it.thing[f] = t[f];
-  if (t.ware) it.thing.people = people;
+  if (t.ware || t.sec) it.thing.people = people;
   if (t.sec) it.known = false; // it looks like nothing much: a merchant may see more (the secret piece)
   s.player.items.push(it);
   s.taken = s.taken || {};

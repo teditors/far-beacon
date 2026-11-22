@@ -146,6 +146,16 @@ Every place you walk into is an area; commission 4 added four kinds of level and
   and worth come through `ITEM_NAMES` / `ITEM_VALUES` (hooks.js). `TAKE_CHECKS` may stop a taking (theft),
   `THING_FINISH` may change a thing as it is made (secret value). The view merges a place's things into two meshes
   (furniture, small things), kept per place and what is left; small things fold away with distance in the shader.
+- **Interiors** (`rules/houses.js`, drawn by `view/rooms.js`): `buildingsOf(s, town)` finds a town's buildings, their
+  kinds and doors; walking into a door (`MOVES` in hooks.js, first thing in `move()`) enters an area of kind `house`, a
+  grid three tiles to a town tile laid over the town (`layoutOf`: rooms, inner walls, furniture that blocks, things,
+  all from the seed; nothing stored, and the area is deleted on leaving unless something was put down in it). The view
+  shifts the frame's origin to the house's grid (`applyFrame`, `houseOrigin`), as it does at the town's gate, and
+  draws the room within the building's walls, which have a doorway (`open` in buildings.js). `doorAt` tells the view a
+  door is walkable. Rooms near the player are drawn too, to be seen through their doors.
+- **Theft** (`rules/theft.js`): one check in `TAKE_CHECKS` and the `'caught'` event (a window in ui.js). Replaceable.
+- **Secret value** (`rules/secrets.js`): rolled in `THING_FINISH`, revealed by appraisal through `ITEM_NAMES` /
+  `ITEM_VALUES`.
 
 ## The look (commission 6)
 

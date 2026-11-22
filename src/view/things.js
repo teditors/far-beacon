@@ -618,6 +618,7 @@ function thingsGroup(S, id, ts, pos, frame, list) {
       (kd.fixed ? big : small).push({ g: modelGeo(t.k, colourOf(t, mark), t.old), x, y: y + (t.h || 0), z, ry: t.ry || 0 });
     }
     g = new THREE.Group();
+    g.userData.things = id;
     if (big.length) {
       const m = new THREE.Mesh(merge(big), bigMat());
       g.add(m);

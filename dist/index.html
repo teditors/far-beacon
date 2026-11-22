@@ -7057,9 +7057,9 @@
   if (!C.classes.some((r) => r.exotic)) C.classes.push(...C.exoticClasses);
   on("worldBorn", (s, d) => {
     if (d.off.exotics) return;
-    const r = stream(s.seed, "exotics"), X9 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
-    if (r() < X9.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
-    if (r() < X9.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
+    const r = stream(s.seed, "exotics"), X10 = C.exotics, pick = (a) => a[Math.floor(r() * a.length)];
+    if (r() < X10.raceChance) s.offer.races[s.offer.races.length - 1] = pick(C.exoticRaces).id;
+    if (r() < X10.classChance) s.offer.classes[s.offer.classes.length - 1] = pick(C.exoticClasses).id;
     sworn(s);
   });
   function sworn(s) {
@@ -7208,8 +7208,8 @@
     if (!sp || s.off.specials || sp.named) return NONE;
     const key2 = s.seed + ":" + sp.name;
     if (!(key2 in cache)) {
-      const r = stream(s.seed, "special:" + sp.name), X9 = C.specials;
-      cache[key2] = r() < X9.chance ? X9.list[Math.floor(r() * X9.list.length)].id : null;
+      const r = stream(s.seed, "special:" + sp.name), X10 = C.specials;
+      cache[key2] = r() < X10.chance ? X10.list[Math.floor(r() * X10.list.length)].id : null;
     }
     return cache[key2] ? byId(C.specials.list, cache[key2]) : NONE;
   }
@@ -8981,11 +8981,11 @@
     return { river, at, forward, road: road2, roadAt };
   }
   function crossings(seed, world2, cx, cy) {
-    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world2.cols) + ":" + cy), S2 = edgeRoll(seed, "h:" + cx + ":" + cy), N3 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world2.rows));
+    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world2.cols) + ":" + cy), S3 = edgeRoll(seed, "h:" + cx + ":" + cy), N3 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world2.rows));
     return [
       { side: "east", river: E2.river, road: E2.road, inflow: !E2.forward, x: W - 1, y: E2.at, x2: W - 1, y2: E2.roadAt },
       { side: "west", river: Wst.river, road: Wst.road, inflow: Wst.forward, x: 0, y: Wst.at, x2: 0, y2: Wst.roadAt },
-      { side: "south", river: S2.river, road: S2.road, inflow: !S2.forward, x: S2.at, y: H - 1, x2: S2.roadAt, y2: H - 1 },
+      { side: "south", river: S3.river, road: S3.road, inflow: !S3.forward, x: S3.at, y: H - 1, x2: S3.roadAt, y2: H - 1 },
       { side: "north", river: N3.river, road: N3.road, inflow: N3.forward, x: N3.at, y: 0, x2: N3.roadAt, y2: 0 }
     ];
   }
@@ -9780,7 +9780,7 @@
     return (ra ? s.town.name + " is a town of " + ra.name + ". " + ra.text + " " : "") + "Its people are " + tr.name + ", and " + cu.name + ". " + tr.text + " " + cu.text;
   };
   function rollCulture(s, r) {
-    const pick = (a) => a[Math.floor(r() * a.length)], X9 = T2(), rare = r() < X9.rareChance ? pick(X9.rares) : null, trade = pick(X9.trades), custom = pick(X9.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
+    const pick = (a) => a[Math.floor(r() * a.length)], X10 = T2(), rare = r() < X10.rareChance ? pick(X10.rares) : null, trade = pick(X10.trades), custom = pick(X10.customs.filter((c) => !rare || !c.elder || c.elder !== rare.elder));
     s.townCulture = { trade: trade.id, custom: custom.id, rare: rare ? rare.id : null };
     if (trade.stock)
       for (let i = 0; i < trade.stock.n; i++) s.town.stock.push(makeItem(s, pick(trade.stock.bases), null, null, true));
@@ -9880,14 +9880,14 @@
     return false;
   }
   function tryErrand(s) {
-    const pick = (a) => a[Math.floor(srand(s) * a.length)], X9 = E(), home = s.areas[townArea(s)] || s.world.home, near = [];
+    const pick = (a) => a[Math.floor(srand(s) * a.length)], X10 = E(), home = s.areas[townArea(s)] || s.world.home, near = [];
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
         const id = ensureRegion(s, wrap(home.cx + dx, s.world.cols), wrap(home.cy + dy, s.world.rows)).id;
         if (id !== townArea(s) && mapOf2(s, id) && !near.includes(id)) near.push(id);
       }
     if (!near.length) return false;
-    const kind2 = pick(X9.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X9.liarChance, giver = pick(X9.givers) + (liar ? " " + pick(X9.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
+    const kind2 = pick(X10.kinds), area = pick(near), m = mapOf2(s, area), rec = s.areas[area], liar = srand(s) < X10.liarChance, giver = pick(X10.givers) + (liar ? " " + pick(X10.tells) : ""), reward = kind2.reward[0] + Math.floor(srand(s) * (kind2.reward[1] - kind2.reward[0] + 1)), e = { kind: kind2.id, area, liar, giver, reward, done: false };
     let fill3 = { region: byId(C.biomes, rec.biome).name, reward };
     if (kind2.id === "slay") {
       const live3 = m.creatures.filter((c2) => !s.species[c2.sp].rare || s.species[c2.sp].rare !== "docile");
@@ -10038,12 +10038,12 @@
       h *= 60;
     }
     h = ((h + deg) % 360 + 360) % 360;
-    const C22 = (1 - Math.abs(2 * l - 1)) * s, X9 = C22 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C22 / 2, [r1, g1, b1] = h < 60 ? [C22, X9, 0] : h < 120 ? [X9, C22, 0] : h < 180 ? [0, C22, X9] : h < 240 ? [0, X9, C22] : h < 300 ? [X9, 0, C22] : [C22, 0, X9];
+    const C22 = (1 - Math.abs(2 * l - 1)) * s, X10 = C22 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C22 / 2, [r1, g1, b1] = h < 60 ? [C22, X10, 0] : h < 120 ? [X10, C22, 0] : h < 180 ? [0, C22, X10] : h < 240 ? [0, X10, C22] : h < 300 ? [X10, 0, C22] : [C22, 0, X10];
     const out = Math.round((r1 + m) * 255) << 16 | Math.round((g1 + m) * 255) << 8 | Math.round((b1 + m) * 255);
     return num2 ? out : "#" + out.toString(16).padStart(6, "0");
   }
   function makeBiome(seed, n) {
-    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X9 = G(), cl = pick(X9.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X9.landforms), wa = pick(suits(X9.waters)), wo = pick(suits(X9.woodlands)), gr = pick(suits(X9.grounds)), rare = r() < X9.rareChance ? pick(X9.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
+    const r = stream(seed, "biomegen:" + n), pick = (a) => a[Math.floor(r() * a.length)], X10 = G(), cl = pick(X10.climates), suits = (list) => list.filter((e) => e.climates.includes(cl.id)), lf = pick(X10.landforms), wa = pick(suits(X10.waters)), wo = pick(suits(X10.woodlands)), gr = pick(suits(X10.grounds)), rare = r() < X10.rareChance ? pick(X10.rares) : null, copy = (o) => JSON.parse(JSON.stringify(o));
     const forest = copy(wo.forest);
     if (rare && rare.treeMul) {
       forest.tree.h = forest.tree.h.map((h) => h * rare.treeMul);
@@ -10092,11 +10092,11 @@
   SKETCHERS.push((seed, world2, off) => {
     if (off.biomegen) return;
     ensureBiomes(seed);
-    const r = stream(seed, "biomegen:sketch"), X9 = G();
+    const r = stream(seed, "biomegen:sketch"), X10 = G();
     for (let cy = 0; cy < world2.rows; cy++)
       for (let cx = 0; cx < world2.cols; cx++) {
-        const home = cx === world2.home.cx && cy === world2.home.cy, roll3 = r(), which = Math.floor(r() * X9.perWorld);
-        if (roll3 < (home ? X9.homeChance : X9.regionChance))
+        const home = cx === world2.home.cx && cy === world2.home.cy, roll3 = r(), which = Math.floor(r() * X10.perWorld);
+        if (roll3 < (home ? X10.homeChance : X10.regionChance))
           world2.sketch[cy * world2.cols + cx].biome = ofSeed(seed) + (home ? 0 : which);
       }
   });
@@ -10294,20 +10294,20 @@
   for (const sv of L2().services) SITE_NAME[sv.id] = sv.role.replace(/^the /, "") + "'s door";
   Object.assign(SITE_NAME, { folk: "townsperson", grave: "grave" });
   function rollLife(s, r) {
-    const X9 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
-    let t2 = X9.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X9.sizes[0];
-    for (const e of X9.sizes)
+    const X10 = L2(), pick = (a) => a[Math.floor(r() * a.length)];
+    let t2 = X10.sizes.reduce((a, e) => a + e.w, 0) * r(), size = X10.sizes[0];
+    for (const e of X10.sizes)
       if ((t2 -= e.w) < 0) {
         size = e;
         break;
       }
-    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X9.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
+    const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X10.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
     while (want.length < size.services && rest2.length) want.push(rest2.splice(Math.floor(r() * rest2.length), 1)[0]);
-    const ls = X9.lessons.map((l) => l.id);
+    const ls = X10.lessons.map((l) => l.id);
     s.town.size = size.id;
     s.town.services = want;
     s.town.lessons = [];
-    while (s.town.lessons.length < X9.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
+    while (s.town.lessons.length < X10.lessonsOffered) s.town.lessons.push(ls.splice(Math.floor(r() * ls.length), 1)[0]);
     if (size.stock < 0) s.town.stock.splice(5, -size.stock);
     for (let i = 0; i < size.stock; i++) {
       const b = pick(["sword", "spear", "cloak", "boots", "framepack", "compass", "spyglass", "salve", "tonic", "draught"]);
@@ -10324,7 +10324,7 @@
   GENERATORS.town = (s, rec) => withTown(s, townById(s, rec.id) || s.town, () => lifeTown(s, rec));
   function lifeTown(s, rec) {
     if (s.off.townlife || !s.town.size) return oldTown(s, rec);
-    const X9 = L2(), size = byId(X9.sizes, s.town.size), r = stream(s.seed, "area:town2" + townSfx(s)), rw = stream(s.seed, "town:walls" + townSfx(s)), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring2 = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring2(x, y), used = new Array(W * H).fill(0);
+    const X10 = L2(), size = byId(X10.sizes, s.town.size), r = stream(s.seed, "area:town2" + townSfx(s)), rw = stream(s.seed, "town:walls" + townSfx(s)), pick = (a) => a[Math.floor(r() * a.length)], terrain = new Array(W * H).fill(FLOOR), sites = {}, c = 18, big = size.id === "town" || size.id === "city", plaza = { hamlet: 3, village: 4, town: 5, city: 6 }[size.id], walled = rw() < size.walled, ring2 = (x, y) => big && Math.max(Math.abs(x - c), Math.abs(y - c)) === 12, street = (x, y) => Math.abs(x - c) <= 1 || Math.abs(y - c) <= 1 || ring2(x, y), used = new Array(W * H).fill(0);
     if (walled)
       for (let i = 0; i < W; i++)
         for (const [x, y] of [
@@ -10384,7 +10384,7 @@
       { kind: "elder" },
       { kind: "inn" },
       { kind: "shop" },
-      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X9.services, id).role }))
+      ...s.town.services.map((id) => ({ kind: id, name: nameOf(), role: byId(X10.services, id).role }))
     ];
     let li = 0;
     for (const q of queue) if (order[li]) build2(order[li++], q);
@@ -10392,7 +10392,7 @@
       const lot = order[li++], sp = s.species.filter((x) => !x.named), fill4 = (t2) => t2.replace("{storm}", byId(C.biomes, s.biome).storm.name).replace("{species}", sp.length ? pick(sp).name : "wolf").replace("{dir}", pick(["north", "south", "east", "west"])).replace("{site}", pick(["spring", "ruin", "cave"])), nm = byId(C.races, s.town.race).names;
       lot.cells.forEach(([x, y], i) => {
         if ((x + y) % 2 === 0 && i % 2 === 0)
-          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill4(pick(X9.epitaphs)) };
+          sites[idx(x, y)] = { kind: "grave", seen: true, name: pick(nm), text: fill4(pick(X10.epitaphs)) };
       });
     }
     const fill3 = { hamlet: 0.35, village: 0.55, town: 0.8, city: 1 }[size.id];
@@ -10404,7 +10404,7 @@
       let nearDoor = false;
       for (const key2 in sites) if (Math.abs(key2 % W - x) + Math.abs(Math.floor(key2 / W) - y) <= 1) nearDoor = true;
       if (nearDoor) continue;
-      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X9.folkRoles) };
+      sites[k] = { kind: "folk", seen: true, name: nameOf(), role: pick(X10.folkRoles) };
       n++;
     }
     if (walled) {
@@ -11348,20 +11348,20 @@
   SITE_NAME.cellar = "cellar stair";
   function rollDeeps(s, ev) {
     if (ev.off.deeps) return;
-    const set = ev.set || genOf(s), r = stream(s.seed, "deeps"), X9 = D2(), w = s.world, pick = (a) => a[Math.floor(r() * a.length)], most = Math.max(1, set.depth), list = [];
+    const set = ev.set || genOf(s), r = stream(s.seed, "deeps"), X10 = D2(), w = s.world, pick = (a) => a[Math.floor(r() * a.length)], most = Math.max(1, set.depth), list = [];
     let n = 0;
     const add = (area, at) => {
-      const themes = X9.themes.filter((t3) => t3.entry.includes(at)), t2 = pick(themes), [lo, hi] = X9.depth, depth = clamp(lo + Math.floor(r() * (hi - lo + 1)), 1, most), unused = t2.names.filter((nm) => !list.some((o) => o.name === nm || o.name === "the Lower " + nm.slice(4))), name = unused.length ? pick(unused) : "the Lower " + pick(t2.names).slice(4), d = { id: "d" + n++, theme: t2.id, name, area, at, depth };
+      const themes = X10.themes.filter((t3) => t3.entry.includes(at)), t2 = pick(themes), [lo, hi] = X10.depth, depth = clamp(lo + Math.floor(r() * (hi - lo + 1)), 1, most), unused = t2.names.filter((nm) => !list.some((o) => o.name === nm || o.name === "the Lower " + nm.slice(4))), name = unused.length ? pick(unused) : "the Lower " + pick(t2.names).slice(4), d = { id: "d" + n++, theme: t2.id, name, area, at, depth };
       list.push(d);
       return d;
     };
-    const per = X9.perRegion * set.dungeons;
+    const per = X10.perRegion * set.dungeons;
     for (let cy = 0; cy < w.rows; cy++)
       for (let cx = 0; cx < w.cols; cx++) {
         let k = Math.floor(per) + (r() < per - Math.floor(per) ? 1 : 0);
         for (; k > 0; k--) add(regionId(s, cx, cy), r() < 0.5 ? "cave" : "ruin");
       }
-    for (const t2 of [s.town].concat(s.towns || [])) if (t2 && r() < X9.townChance * set.dungeons) add(townId(t2), "town");
+    for (const t2 of [s.town].concat(s.towns || [])) if (t2 && r() < X10.townChance * set.dungeons) add(townId(t2), "town");
     const deepest = list.slice().sort((a, b) => b.depth - a.depth)[0];
     if (deepest && deepest.depth >= 3 && !ev.off.artifacts) deepest.prize = makeArtifact(s, stream(s.seed, "deeps:art"), []);
     s.deeps = list;
@@ -11947,11 +11947,11 @@
     if (ev.off.sky) return;
     const set = ev.set || genOf(s), r = stream(s.seed, "sky");
     if (!(r() < set.sky)) return;
-    const X9 = K(), w = s.world, pickW2 = (list2) => {
+    const X10 = K(), w = s.world, pickW2 = (list2) => {
       let t2 = list2.reduce((a, e) => a + e.weight, 0) * r();
       for (const e of list2) if ((t2 -= e.weight) < 0) return e;
       return list2[0];
-    }, n = X9.places[0] + Math.floor(r() * (X9.places[1] - X9.places[0] + 1)), regions = [];
+    }, n = X10.places[0] + Math.floor(r() * (X10.places[1] - X10.places[0] + 1)), regions = [];
     for (let cy = 0; cy < w.rows; cy++)
       for (let cx = 0; cx < w.cols; cx++) {
         const d = sketchOf(s, cx, cy).danger;
@@ -11961,7 +11961,7 @@
     regions.sort((a, b) => a.k - b.k);
     const list = [];
     for (let i = 0; i < n && regions.length; i++) {
-      const kd = pickW2(X9.kinds.filter((k) => !k.rare)), at = regions.shift(), id = "s" + i;
+      const kd = pickW2(X10.kinds.filter((k) => !k.rare)), at = regions.shift(), id = "s" + i;
       const free = kd.names.filter((nm) => !list.some((o) => o.name === nm));
       list.push({
         id,
@@ -11973,7 +11973,7 @@
         levels: kd.levels
       });
     }
-    const moon = X9.kinds.find((k) => k.rare);
+    const moon = X10.kinds.find((k) => k.rare);
     if (moon && list.length && regions.length && r() < 0.35) {
       const at = regions.pop();
       list.push({
@@ -11987,7 +11987,7 @@
       });
     }
     s.skies = list;
-    const F2 = X9.firstFlight, deepest = deepsOf(s).slice().sort((a, b) => b.depth - a.depth)[0], boots = makeItem(s, "wingboots", null, null, true);
+    const F2 = X10.firstFlight, deepest = deepsOf(s).slice().sort((a, b) => b.depth - a.depth)[0], boots = makeItem(s, "wingboots", null, null, true);
     if (r() < F2.shop || !deepest) {
       const towns = allTowns(s), t2 = towns[Math.floor(r() * towns.length)];
       t2.stock.push(boots);
@@ -13697,13 +13697,13 @@
   var canNeed = (s, need) => need === "sky" ? !s.off.sky : need === "sea" ? !!s.world.sea && !s.off.sea : need === "realm" ? doorsOf(s).length > 0 : true;
   on("worldBorn", (s, d) => {
     if (d.off.plots) return;
-    const r = stream(s.seed, "plots"), X9 = P2(), pickW2 = (list, w) => {
+    const r = stream(s.seed, "plots"), X10 = P2(), pickW2 = (list, w) => {
       let t2 = list.reduce((a, e) => a + (e[w] || 0), 0) * r();
       for (const e of list) if ((t2 -= e[w] || 0) < 0) return e;
       return list[0];
     };
     s.plots = [];
-    const fits = X9.kinds.filter((k) => !k.needs || k.needs === "other" || canNeed(s, k.needs)), rolled = pickW2(fits, "main"), main = d.set && d.set.trouble && byId(X9.kinds, d.set.trouble) || rolled;
+    const fits = X10.kinds.filter((k) => !k.needs || k.needs === "other" || canNeed(s, k.needs)), rolled = pickW2(fits, "main"), main = d.set && d.set.trouble && byId(X10.kinds, d.set.trouble) || rolled;
     let n = 0;
     const add = (kind2, giver, isMain, link) => {
       const p = { id: "p" + n++, kind: kind2.id, giver, main: !!isMain, known: false, step: 0 };
@@ -13712,9 +13712,9 @@
       return p;
     };
     let mp = add(main, "town", true);
-    if (!mp) mp = add(byId(X9.kinds, "relic"), "town", true);
-    if (mp.kind !== "relic") add(byId(X9.kinds, "relic"), "town", false);
-    const towns = (s.towns || []).filter((t2) => !t2.realm), want = Math.min(towns.length, X9.side[0] + Math.floor(r() * (X9.side[1] - X9.side[0] + 1)));
+    if (!mp) mp = add(byId(X10.kinds, "relic"), "town", true);
+    if (mp.kind !== "relic") add(byId(X10.kinds, "relic"), "town", false);
+    const towns = (s.towns || []).filter((t2) => !t2.realm), want = Math.min(towns.length, X10.side[0] + Math.floor(r() * (X10.side[1] - X10.side[0] + 1)));
     for (let i = 0; i < want && towns.length; i++) {
       const t2 = towns.splice(Math.floor(r() * towns.length), 1)[0];
       for (let tries = 0; tries < 4; tries++) {
@@ -13723,7 +13723,7 @@
         if (s.plots.some((q) => q.kind === kind2.id)) continue;
         const beast = s.plots.find((q) => q.kind === "beast");
         let link = null;
-        if (kind2.id === "plague" && beast && r() < X9.linkChance) link = { place: "patch", item: "cure", at: beast.roles.lair };
+        if (kind2.id === "plague" && beast && r() < X10.linkChance) link = { place: "patch", item: "cure", at: beast.roles.lair };
         const p = add(kind2, townId(t2), false, link);
         if (p) {
           if (link) p.linked = beast.id;
@@ -13746,7 +13746,7 @@
       if (placeRoles(s, p, r, null)) s.plots.push(p);
     }
     const sides = s.plots.filter((q) => !q.main && q.kind !== "relic");
-    for (let i = 0; i + 1 < sides.length; i++) if (r() < X9.chainChance) sides[i].opens = sides[i + 1].id;
+    for (let i = 0; i + 1 < sides.length; i++) if (r() < X10.chainChance) sides[i].opens = sides[i + 1].id;
     s.track = mp.id;
     if (mp.kind === "relic") mp.known = false;
   });
@@ -13836,7 +13836,7 @@
   function finishPlot(s, p, ending) {
     if (p.done) return;
     p.done = true;
-    const k = kindOf4(p), X9 = P2();
+    const k = kindOf4(p), X10 = P2();
     say(s, fill2(s, p, ending || p.branch === "peace" && k.peaceEnd || k.end), "good");
     if (s.curses) {
       for (const a in s.curses) if (s.curses[a] === p.id) delete s.curses[a];
@@ -13848,9 +13848,9 @@
       s.over = { won: true, ending: fill2(s, p, k.end), plot: k.id };
       return;
     }
-    const coin = X9.reward.coin[0] + Math.floor(srand(s) * (X9.reward.coin[1] - X9.reward.coin[0] + 1));
+    const coin = X10.reward.coin[0] + Math.floor(srand(s) * (X10.reward.coin[1] - X10.reward.coin[0] + 1));
     s.player.coin += coin;
-    gainXp(s, X9.reward.xp);
+    gainXp(s, X10.reward.xp);
     say(s, "They give you " + coin + " coin for it.");
     emit(s, "plotDone", { id: p.id, kind: k.id });
     const next = plotById(s, p.opens);
@@ -14076,11 +14076,11 @@
   function relicSideDone(s) {
     const p = plotsOf(s).find((q) => q.kind === "relic");
     if (p) p.done = true;
-    const X9 = P2().relicSide;
+    const X10 = P2().relicSide;
     s.player.items = s.player.items.filter((i) => i.base !== "relic");
-    s.player.coin += X9.coin;
-    gainXp(s, X9.xp);
-    say(s, "The old story is ended, and this land remembers you for it: " + X9.coin + " coin, and a name in every town.", "good");
+    s.player.coin += X10.coin;
+    gainXp(s, X10.xp);
+    say(s, "The old story is ended, and this land remembers you for it: " + X10.coin + " coin, and a name in every town.", "good");
   }
   SOURCES.push({
     id: "plots",
@@ -14410,8 +14410,9 @@
       used.add(k);
       return k;
     };
-    const inset = o.inset || 0;
-    for (const [k, ch] of spec.wall || []) {
+    const inset = o.inset || 0, rounds = Math.max(1, Math.round(room.tiles.filter((t2) => room.wallSide(t2)).length / (o.perRound || 99))), wallList = [];
+    for (let i = 0; i < rounds; i++) for (const [k, ch] of spec.wall || []) wallList.push([k, i ? ch * 0.55 : ch]);
+    for (const [k, ch] of wallList) {
       if (!(r() < ch)) continue;
       const tile = take((t3) => room.wallSide(t3));
       if (tile === null) break;
@@ -14440,7 +14441,9 @@
       if (tiles.length > 1) t2.tiles = tiles;
       if (kindOf5(k).top) surf.push(t2);
     }
-    for (const [k, ch] of spec.middle || []) {
+    const midRounds = Math.max(1, Math.round((o.floor || 0) / (o.perMiddle || 999))), midList = [];
+    for (let i = 0; i < midRounds; i++) for (const [k, ch] of spec.middle || []) midList.push([k, i ? ch * 0.6 : ch]);
+    for (const [k, ch] of midList) {
       if (!(r() < ch)) continue;
       const tile = take((t3) => !room.wallSide(t3)) ?? take(() => true);
       if (tile === null) break;
@@ -14498,6 +14501,23 @@
         const tile = room.tiles[Math.floor(r() * room.tiles.length)];
         put(k, tile, (r() - 0.5) * 0.7, (r() - 0.5) * 0.7, 0, r() * 6.28);
       }
+    }
+    return out;
+  }
+  function mergeSpec(base, ...adds) {
+    const out = {
+      wall: (base.wall || []).slice(),
+      middle: (base.middle || []).slice(),
+      small: (base.small || []).slice(),
+      n: base.n
+    };
+    out.less = [];
+    for (const a of adds) {
+      if (!a) continue;
+      if (a.wall) out.wall.push(...a.wall);
+      if (a.small) out.small.push(...a.small);
+      if (a.less) out.less.push(...a.less);
+      if (a.noHearth) out.wall = out.wall.filter((e) => e[0] !== "hearth");
     }
     return out;
   }
@@ -14618,7 +14638,7 @@
     const it = makeItem(s, "th_" + t2.k, null, null, true);
     it.thing = { k: t2.k };
     for (const f of ["g", "old", "ware", "sec"]) if (t2[f] !== void 0) it.thing[f] = t2[f];
-    if (t2.ware) it.thing.people = people;
+    if (t2.ware || t2.sec) it.thing.people = people;
     if (t2.sec) it.known = false;
     s.player.items.push(it);
     s.taken = s.taken || {};
@@ -14641,8 +14661,421 @@
     return n ? [{ label: "Things", text: "You have picked up " + n + " thing" + (n === 1 ? "" : "s") + " on your travels." }] : [];
   });
 
+  // src/rules/houses.js
+  var HS = 3;
+  var X9 = () => C.things;
+  var SERVICE_KINDS = ["elder", "inn", "shop", "healer", "temple", "trainer", "smith", "mapmaker", "stable"];
+  var CLIMATE = (biome) => biome && biome.parts && biome.parts.climate || biome && C.townLooks.biomeClimate[biome.id] || "temperate";
+  var townOf = (s, townId2) => townById(s, townId2) || s.town;
+  var cultureOf3 = (s, t2) => (t2 === s.town ? s.townCulture : t2 && t2.culture) || {};
+  var tents = (s, townId2) => {
+    const t2 = townOf(s, townId2), rec = t2 && s.areas[t2.area || "overworld"], biome = rec ? byId(C.biomes, rec.biome) : null, cl = C.townLooks.climates[CLIMATE(biome)];
+    return !!(cl && cl.roof === "dome");
+  };
+  var BUILT = /* @__PURE__ */ new WeakMap();
+  function buildingsOf(s, townId2) {
+    const rec = s.areas[townId2];
+    if (!rec || rec.kind !== "town") return [];
+    const map = mapOf(s, townId2);
+    if (!map || !map.terrain) return [];
+    const T4 = map.terrain;
+    if (BUILT.has(T4)) return BUILT.get(T4);
+    const walled = !!rec.walled, ring2 = (x, y) => walled && (x === 0 || y === 0 || x === W - 1 || y === H - 1), seen3 = new Uint8Array(W * H), out = [], c = 18;
+    for (let i = 0; i < W * H; i++) {
+      const x0 = i % W, y0 = Math.floor(i / W);
+      if (seen3[i] || T4[i] !== WALL || ring2(x0, y0)) continue;
+      const b = { x0, y0, x1: x0, y1: y0 }, stack = [i];
+      seen3[i] = 1;
+      while (stack.length) {
+        const k = stack.pop(), x = k % W, y = Math.floor(k / W);
+        b.x0 = Math.min(b.x0, x);
+        b.x1 = Math.max(b.x1, x);
+        b.y0 = Math.min(b.y0, y);
+        b.y1 = Math.max(b.y1, y);
+        for (const [dx, dy] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1]
+        ]) {
+          const nx = x + dx, ny = y + dy, n = ny * W + nx;
+          if (nx < 0 || ny < 0 || nx >= W || ny >= H || seen3[n] || T4[n] !== WALL || ring2(nx, ny)) continue;
+          seen3[n] = 1;
+          stack.push(n);
+        }
+      }
+      let kind2 = null, site = null;
+      for (let y = b.y0 - 1; y <= b.y1 + 1 && !kind2; y++)
+        for (let x = b.x0 - 1; x <= b.x1 + 1 && !kind2; x++) {
+          if (x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1) continue;
+          const st = map.sites[idx(x, y)];
+          if (st && SERVICE_KINDS.includes(st.kind)) kind2 = st.kind, site = { x, y };
+        }
+      const sides = [
+        ["s", Math.floor((b.x0 + b.x1) / 2), b.y1, 0, 1],
+        ["n", Math.floor((b.x0 + b.x1) / 2), b.y0, 0, -1],
+        ["e", b.x1, Math.floor((b.y0 + b.y1) / 2), 1, 0],
+        ["w", b.x0, Math.floor((b.y0 + b.y1) / 2), -1, 0]
+      ];
+      let door = null;
+      if (site) {
+        const dx = Math.min(b.x1, Math.max(b.x0, site.x)), dy = Math.min(b.y1, Math.max(b.y0, site.y)), side = site.y > b.y1 ? "s" : site.y < b.y0 ? "n" : site.x > b.x1 ? "e" : "w", sd2 = sides.find((e) => e[0] === side);
+        door = { side, x: dx, y: dy, ox: dx + sd2[3], oy: dy + sd2[4] };
+      } else {
+        let best = Infinity;
+        for (const [side, x, y, dx, dy] of sides) {
+          const ox2 = x + dx, oy2 = y + dy;
+          if (ox2 < 1 || oy2 < 1 || ox2 > W - 2 || oy2 > H - 2 || T4[idx(ox2, oy2)] === WALL || map.sites[idx(ox2, oy2)]) continue;
+          const score = Math.min(Math.abs(ox2 - c), Math.abs(oy2 - c)) + Math.hypot(ox2 - c, oy2 - c) / 100;
+          if (score < best) best = score, door = { side, x, y, ox: ox2, oy: oy2 };
+        }
+      }
+      if (!door) continue;
+      b.kind = kind2 || "house";
+      b.door = door;
+      b.id = "h:" + townId2 + ":" + b.x0 + "_" + b.y0;
+      out.push(b);
+    }
+    BUILT.set(T4, out);
+    return out;
+  }
+  var interiorsOn = (s, townId2) => !s.off.interiors && !tents(s, townId2);
+  function buildingAtDoor(s, x, y) {
+    const rec = areaRec(s);
+    if (rec.kind !== "town" || !interiorsOn(s, rec.id)) return null;
+    return buildingsOf(s, rec.id).find((b) => b.door.x === x && b.door.y === y) || null;
+  }
+  var LAYOUTS4 = /* @__PURE__ */ new Map();
+  var wealthBase = { hamlet: 0, village: 0.5, town: 0.9, city: 1.3 };
+  var kindBonus = { elder: 0.8, inn: 0.3, shop: 0.4, temple: 0.5, mapmaker: 0.4, healer: 0.2, trainer: 0.2 };
+  function layoutOf(s, rec) {
+    const key2 = rec.id + "|" + s.seed + "|" + (s.realm || "") + "|" + (s.off.things ? 0 : 1);
+    if (LAYOUTS4.has(key2)) return LAYOUTS4.get(key2);
+    const b = buildingsOf(s, rec.town).find((x) => x.id === rec.id) || rec.b, r = stream(s.seed, "house:" + rec.id), t2 = townOf(s, rec.town), cul = cultureOf3(s, t2), ox2 = b.x0 - 2, oy2 = b.y0 - 2, fx0 = (b.x0 - ox2) * HS, fy0 = (b.y0 - oy2) * HS, fx1 = (b.x1 + 1 - ox2) * HS - 1, fy1 = (b.y1 + 1 - oy2) * HS - 1, terrain = new Array(W * H).fill(WALL), cells = new Array(W * H).fill(-1);
+    for (let y = fy0; y <= fy1; y++)
+      for (let x = fx0; x <= fx1; x++) {
+        cells[idx(x, y)] = 0;
+        if (x > fx0 && x < fx1 && y > fy0 && y < fy1) terrain[idx(x, y)] = FLOOR;
+      }
+    const d = b.door, mx = (d.x - ox2) * HS + 1, my = (d.y - oy2) * HS + 1, door = d.side === "s" ? { x: mx, y: fy1 } : d.side === "n" ? { x: mx, y: fy0 } : d.side === "e" ? { x: fx1, y: my } : { x: fx0, y: my }, dv = { s: [0, 1], n: [0, -1], e: [1, 0], w: [-1, 0] }[d.side], exit = idx(door.x + dv[0], door.y + dv[1]);
+    terrain[idx(door.x, door.y)] = FLOOR;
+    const open = [[idx(door.x, door.y), dv[0], dv[1]]];
+    const kind2 = b.kind || "house", list = X9().buildings[kind2] || X9().buildings.house, spanX = fx1 - fx0 - 1, spanY = fy1 - fy0 - 1, want = Math.max(1, list.length), nX0 = Math.max(1, Math.floor((spanX + 1) / 5)), nY0 = Math.max(1, Math.floor((spanY + 1) / 5)), nX = spanX >= spanY ? Math.min(nX0, want) : Math.min(nX0, Math.max(1, Math.floor(want / Math.min(nY0, want)))), nY = Math.max(1, Math.min(nY0, Math.floor(want / nX))), nRooms = nX * nY, cutsX = [], cutsY = [];
+    const clearOf = (c, at) => c === at ? c + 1 : c;
+    for (let i = 1; i < nX; i++)
+      cutsX.push(clearOf(fx0 + Math.round(i * (spanX + 1) / nX), d.side === "n" || d.side === "s" ? door.x : -1));
+    for (let i = 1; i < nY; i++)
+      cutsY.push(clearOf(fy0 + Math.round(i * (spanY + 1) / nY), d.side === "e" || d.side === "w" ? door.y : -1));
+    const partX = (x) => cutsX.filter((c) => x > c).length, partY = (y) => cutsY.filter((c) => y > c).length;
+    for (let y = fy0; y <= fy1; y++)
+      for (let x = fx0; x <= fx1; x++) {
+        const k = idx(x, y);
+        cells[k] = partX(x) + nX * partY(y);
+        if (cutsX.includes(x) || cutsY.includes(y)) terrain[k] = WALL;
+      }
+    const doorway = (k, dx, dy) => {
+      terrain[k] = FLOOR;
+      open.push([k, dx, dy]);
+    };
+    const stretches = (cuts, lo, hi) => {
+      const ends = [lo].concat(cuts, [hi]), out = [];
+      for (let i = 0; i + 1 < ends.length; i++) out.push([ends[i] + 1, ends[i + 1] - 1]);
+      return out;
+    };
+    for (const c of cutsX)
+      for (const [a0, a1] of stretches(cutsY, fy0, fy1)) {
+        const lo = a0 + 1, hi = Math.max(lo, a1 - 1);
+        doorway(idx(c, lo + Math.floor(r() * (hi - lo + 1))), 1, 0);
+      }
+    for (const c of cutsY)
+      for (const [a0, a1] of stretches(cutsX, fx0, fx1)) {
+        const lo = a0 + 1, hi = Math.max(lo, a1 - 1);
+        doorway(idx(lo + Math.floor(r() * (hi - lo + 1)), c), 0, 1);
+      }
+    const doorPart = cells[idx(door.x - dv[0], door.y - dv[1])], dist = (p) => Math.abs(p % nX - doorPart % nX) + Math.abs(Math.floor(p / nX) - Math.floor(doorPart / nX)), order = Array.from({ length: nRooms }, (_, i) => i).sort((a, b2) => dist(a) - dist(b2) || a - b2), rank = [];
+    order.forEach((p, i) => rank[p] = i);
+    for (let k = 0; k < W * H; k++) if (cells[k] >= 0) cells[k] = rank[cells[k]];
+    const rec2 = s.areas[t2.area || "overworld"], biome = rec2 ? byId(C.biomes, rec2.biome) : null, climate = CLIMATE(biome), empty = kind2 === "house" && r() < 0.07 + (s.year === "lean" ? 0.06 : 0), wealth = (wealthBase[t2.size] !== void 0 ? wealthBase[t2.size] : 0.7) + (kindBonus[kind2] || 0) + (r() - 0.5) * 0.9, grade2 = Math.max(0, Math.min(2, Math.round(wealth))), lost = cul.rare === "unfallen";
+    let fishing = false;
+    {
+      const m = rec2 && mapOf(s, rec2.id);
+      if (m && m.terrain) fishing = m.terrain.filter((v) => v === 4 || v === 9).length >= 30;
+    }
+    const things = [], doorways = new Set(open.map((o) => o[0])), nearDoor = (k) => {
+      for (const dk2 of doorways)
+        if (Math.max(Math.abs(dk2 % W - k % W), Math.abs(Math.floor(dk2 / W) - Math.floor(k / W))) <= 1) return true;
+      return false;
+    }, rooms = [];
+    for (let ri = 0; ri < nRooms; ri++) {
+      const purpose = ri === 0 && kind2 === "house" && nRooms === 1 ? "living" : list[ri % list.length], base = X9().rooms[purpose] || X9().rooms.living, tiles = [];
+      for (let k = 0; k < W * H; k++)
+        if (cells[k] === ri && !doorways.has(k) && !(terrain[k] === WALL && nearDoor(k))) tiles.push(k);
+      const tr = X9().trades[cul.trade], adds = [
+        X9().climates[climate],
+        X9().years[s.year],
+        // a town's trade: its tools in a house's workroom, a little of it in the house's other rooms
+        kind2 !== "house" || !tr ? null : purpose === "workroom" ? tr : { small: tr.small.map(([k, w]) => [k, w * 0.25]) },
+        fishing && kind2 === "house" ? X9().trades.fishing : null,
+        nRooms === 1 && kind2 === "house" ? { wall: [["bed", 1]] } : null,
+        grade2 >= 2 ? {
+          wall: [
+            ["tapestry", 0.5],
+            ["rug", 0.6]
+          ],
+          small: [
+            ["painting", 1],
+            ["mirror", 0.6],
+            ["statuette", 0.6],
+            ["vase", 1],
+            ["book", 1]
+          ]
+        } : null,
+        grade2 === 0 ? { less: ["painting", "mirror", "book", "statuette", "vase", "tapestry"] } : null,
+        empty ? { less: ["bread", "cheese", "apple", "fish", "jug"] } : null
+      ], spec = mergeSpec(base, ...adds);
+      if (grade2 === 0) spec.wall = spec.wall.map(([k, ch]) => [k === "bed" ? "cot" : k, ch]);
+      if (spec.less.includes("tapestry")) spec.wall = spec.wall.filter(([k]) => k !== "tapestry");
+      const room = {
+        tiles,
+        wallSide: (k) => {
+          if (terrain[k] !== WALL) return null;
+          const x = k % W, y = Math.floor(k / W);
+          for (const [dx, dy] of [
+            [0, -1],
+            [1, 0],
+            [0, 1],
+            [-1, 0]
+          ])
+            if (cells[idx(x + dx, y + dy)] !== ri) return [dx, dy];
+          return null;
+        }
+      };
+      const floor = tiles.filter((k) => terrain[k] === FLOOR).length;
+      furnish(
+        s,
+        spec,
+        room,
+        { r, ts: 1.3, inset: 0.45, grade: grade2, old: empty, ware: lost, own: !empty, place: purpose, floor, perRound: 9, perMiddle: 22 },
+        things
+      );
+      rooms.push({ purpose, tiles });
+    }
+    const walkAll = () => {
+      const seen22 = /* @__PURE__ */ new Set([idx(door.x, door.y)]), q = [idx(door.x, door.y)];
+      while (q.length) {
+        const k = q.pop();
+        for (const n of [k - 1, k + 1, k - W, k + W])
+          if (n >= 0 && n < W * H && terrain[n] === FLOOR && !seen22.has(n)) seen22.add(n), q.push(n);
+      }
+      for (let k = 0; k < W * H; k++) if (terrain[k] === FLOOR && !seen22.has(k)) return false;
+      return true;
+    };
+    for (const th of things) {
+      const kd = kindOf5(th.k);
+      if (!kd.fixed || ["rug", "chair", "stool", "bench"].includes(th.k)) continue;
+      for (const k of th.tiles || [idx(th.x, th.y)]) {
+        if (terrain[k] !== FLOOR || doorways.has(k)) continue;
+        terrain[k] = WALL;
+        if (!walkAll()) terrain[k] = FLOOR;
+      }
+    }
+    for (const th of things) delete th.tiles;
+    const L5 = { terrain, cells, rooms, open, entry: door, exit, things, grade: grade2, empty, kind: kind2, ox: ox2, oy: oy2, side: d.side, climate };
+    if (LAYOUTS4.size > 32) LAYOUTS4.delete(LAYOUTS4.keys().next().value);
+    LAYOUTS4.set(key2, L5);
+    return L5;
+  }
+  GENERATORS.house = (s, rec) => {
+    const L5 = layoutOf(s, rec);
+    rec.entry = L5.entry;
+    return { terrain: L5.terrain.slice(), sites: {}, seen: new Array(W * H).fill(1) };
+  };
+  MAKERS.house = (s, rec) => layoutOf(s, rec).things;
+  var NAMES = {
+    house: "a house",
+    elder: "the elder's hall",
+    inn: "the inn",
+    shop: "the shop",
+    healer: "the healer's house",
+    temple: "the temple",
+    trainer: "the old campaigner's house",
+    smith: "the smithy",
+    mapmaker: "the mapmaker's house",
+    stable: "the stable"
+  };
+  function enterHouse(s, b) {
+    const townId2 = s.area, id = b.id, first = !s.areas[id];
+    enterArea(
+      s,
+      id,
+      {
+        kind: "house",
+        indoor: true,
+        town: townId2,
+        b: { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1, kind: b.kind, door: b.door },
+        name: NAMES[b.kind] || "a house"
+      },
+      null
+    );
+    const L5 = layoutOf(s, s.areas[id]);
+    s.player.x = L5.entry.x;
+    s.player.y = L5.entry.y;
+    s.lastGround = FLOOR;
+    if (first)
+      say(
+        s,
+        L5.empty ? "You step into " + NAMES[b.kind] + ". Nobody has lived here for a long while; dust lies on everything." : "You step into " + NAMES[b.kind] + "."
+      );
+    return true;
+  }
+  function leaveHouse(s) {
+    const id = s.area;
+    leaveArea(s);
+    const rec = s.areas[id];
+    if (rec && (!rec.map || !rec.map.depots || !Object.keys(rec.map.depots).length)) delete s.areas[id];
+    return true;
+  }
+  function forgetHouses(s) {
+    for (const id in s.areas) {
+      const a = s.areas[id];
+      if (a.kind !== "house" || id === s.area) continue;
+      if (!a.map || !a.map.depots || !Object.keys(a.map.depots).length) delete s.areas[id];
+    }
+  }
+  MOVES.push((s, nx, ny) => {
+    forgetHouses(s);
+    const rec = areaRec(s);
+    if (rec.kind === "house") {
+      if (idx(nx, ny) === layoutOf(s, rec).exit) return leaveHouse(s);
+      return void 0;
+    }
+    if (rec.kind !== "town" || nx < 0 || ny < 0 || nx >= W || ny >= H) return void 0;
+    const b = buildingAtDoor(s, nx, ny);
+    return b ? enterHouse(s, b) : void 0;
+  });
+  function doorAt(s, x, y) {
+    const rec = areaRec(s);
+    if (rec.kind === "house") return idx(x, y) === layoutOf(s, rec).exit;
+    return !!buildingAtDoor(s, x, y);
+  }
+  function houseOf(s, id) {
+    const rec = s.areas[id] || null;
+    return rec && rec.kind === "house" ? layoutOf(s, rec) : null;
+  }
+  function houseLayout(s, townId2, b) {
+    return layoutOf(s, { id: b.id, town: townId2, b });
+  }
+  SWITCHES.push(["interiors", "Buildings you can walk into"]);
+  NOTES.push(
+    (s) => s.off.interiors ? [] : [
+      {
+        label: "Houses",
+        text: "The doors of the towns are open: walk into any building, and mind what you pick up in someone else\u2019s house."
+      }
+    ]
+  );
+  PLACES.push((s, out) => {
+    if (s.off.interiors || !s.areas.town) return;
+    const bs = buildingsOf(s, "town");
+    for (const kind2 of ["elder", "inn", "house"]) {
+      const b = bs.find((x) => x.kind === kind2);
+      if (!b) continue;
+      out.push({
+        id: "house:" + b.id,
+        group: "Houses",
+        label: "Inside " + (NAMES[kind2] || kind2) + " of " + s.town.name,
+        go(s2) {
+          const P5 = out.find((p) => p.group === "Towns" && p.id === "town:town");
+          if (P5) P5.go(s2);
+          s2.player.x = b.door.ox;
+          s2.player.y = b.door.oy;
+          enterHouse(s2, b);
+        }
+      });
+    }
+  });
+
+  // src/rules/theft.js
+  var HOUSEHOLD = [
+    "the woman of the house",
+    "the man of the house",
+    "a girl of the house",
+    "an old man by the hearth",
+    "a boy of the house"
+  ];
+  var PLACE_PEOPLE = { city: "a cloud-dweller", merhall: "one of the merfolk", raft: "a raftsman" };
+  function ownerOf(s, rec) {
+    if (rec.kind !== "house") return PLACE_PEOPLE[rec.place] || "someone";
+    const t2 = curTown(s), b = rec.b || {};
+    if (b.kind === "elder") return t2.elder + ", the elder,";
+    if (b.kind === "shop") return t2.merchant + ", whose shop it is,";
+    if (b.kind === "house") return HOUSEHOLD[Math.floor(srand(s) * HOUSEHOLD.length)];
+    const m = mapOf(s, rec.town), st = m && b.door ? m.sites[b.door.oy * W + b.door.ox] : null;
+    if (st && st.name) return st.name + ", " + (st.role || "whose house it is") + ",";
+    return b.kind === "inn" ? "the innkeeper" : "someone";
+  }
+  TAKE_CHECKS.push((s, t2, rec, name) => {
+    if (s.off.theft || !t2.own) return false;
+    const who = ownerOf(s, rec);
+    s.stats.caught = (s.stats.caught || 0) + 1;
+    say(s, "You lift the " + name + ", and " + who + " sees you. You put it back.", "bad");
+    emit(s, "caught", {
+      title: "Seen",
+      text: who.charAt(0).toUpperCase() + who.slice(1).replace(/,$/, "") + " sees you lift the " + name + '. "That is not yours." You put it back where it was. In ' + (rec.kind === "house" ? "a house where people live" : "a place where people live") + ", what lies about belongs to someone; in ruins and empty places it is anyone\u2019s."
+    });
+    return true;
+  });
+  SWITCHES.push(["theft", "Taking from houses is theft"]);
+  NOTES.push(
+    (s) => s.off.theft || !s.stats.caught ? [] : [
+      {
+        label: "Seen",
+        text: "You have been caught lifting things " + s.stats.caught + " time" + (s.stats.caught === 1 ? "" : "s") + "."
+      }
+    ]
+  );
+
+  // src/rules/secrets.js
+  var S2 = () => C.things.secrets;
+  FINISH.push((s, t2, o, r) => {
+    const roll3 = r(), pick = r();
+    if (s.off.secrets || !t2.old || kindOf5(t2.k).fixed) return;
+    const can = S2().list.filter((x) => x.of.includes(t2.k));
+    if (!can.length || roll3 >= S2().chance) return;
+    t2.sec = can[Math.floor(pick * can.length)].id;
+  });
+  var secretOf = (it) => it.thing && it.thing.sec ? S2().list.find((x) => x.id === it.thing.sec) : null;
+  ITEM_NAMES.unshift((it) => {
+    const sec = secretOf(it);
+    if (!sec || !it.known) return null;
+    const n = sec.name.replace("{thing}", kindOf5(it.thing.k).name).replace("{people}", it.thing.people || "lost");
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  });
+  ITEM_VALUES.unshift((it) => {
+    const sec = secretOf(it);
+    return sec && it.known ? sec.value : void 0;
+  });
+  SWITCHES.push(["secrets", "Old things that are secretly valuable"]);
+  NOTES.push((s) => {
+    if (s.off.secrets) return [];
+    const found = s.player.items.filter((it) => secretOf(it) && it.known).length;
+    return found ? [
+      {
+        label: "Finds",
+        text: "You carry " + found + " old thing" + (found === 1 ? "" : "s") + " that proved worth far more than they looked."
+      }
+    ] : [];
+  });
+
   // src/rules/index.js
   var api = {
+    secretOf,
+    HOUSE_SCALE: HS,
+    buildingsOf,
+    doorAt,
+    houseLayout,
+    houseOf,
+    interiorsOn,
     makeItem,
     takeThing,
     thingKind: kindOf5,
@@ -14988,7 +15421,7 @@
   var TOWN_TS = (2 * R.TOWN_R + 1) * TS / R.W;
   var G2 = { ts: TS, half: HALF };
   function setGeometry(kind2) {
-    G2.ts = kind2 === "town" ? TOWN_TS : kind2 === "vault" ? INDOOR_TS : TS;
+    G2.ts = kind2 === "town" ? TOWN_TS : kind2 === "house" ? TOWN_TS / 3 : kind2 === "vault" ? INDOOR_TS : TS;
     G2.half = R.W * G2.ts / 2;
   }
   var FR = { x: 0, y: 0, z: 0 };
@@ -15410,14 +15843,14 @@
     if (d) h = mx === r ? (g - b) / d % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
     h = ((h * 60 + deg) % 360 + 360) % 360;
     s = Math.max(0, Math.min(1, s * sat));
-    const C22 = (1 - Math.abs(2 * l - 1)) * s, X9 = C22 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C22 / 2, k = Math.floor(h / 60);
+    const C22 = (1 - Math.abs(2 * l - 1)) * s, X10 = C22 * (1 - Math.abs(h / 60 % 2 - 1)), m = l - C22 / 2, k = Math.floor(h / 60);
     const [r1, g1, b1] = [
-      [C22, X9, 0],
-      [X9, C22, 0],
-      [0, C22, X9],
-      [0, X9, C22],
-      [X9, 0, C22],
-      [C22, 0, X9]
+      [C22, X10, 0],
+      [X10, C22, 0],
+      [0, C22, X10],
+      [0, X10, C22],
+      [X10, 0, C22],
+      [C22, 0, X10]
     ][k % 6];
     return [r1 + m, g1 + m, b1 + m];
   }
@@ -15442,24 +15875,24 @@
     return biome && biome.parts && biome.parts.climate || biome && L3().biomeClimate[biome.id] || "temperate";
   }
   function oddLook(seed, region) {
-    const X9 = L3(), pick = (r) => X9.odd[Math.floor(r * X9.odd.length) % X9.odd.length];
-    if (roll2(seed, "look:world") < X9.worldChance) return pick(roll2(seed, "look:world:which"));
-    if (region && region !== "overworld" && roll2(seed, "look:" + region) < X9.countryChance)
+    const X10 = L3(), pick = (r) => X10.odd[Math.floor(r * X10.odd.length) % X10.odd.length];
+    if (roll2(seed, "look:world") < X10.worldChance) return pick(roll2(seed, "look:world:which"));
+    if (region && region !== "overworld" && roll2(seed, "look:" + region) < X10.countryChance)
       return pick(roll2(seed, "look:which:" + region));
     return null;
   }
   var realmPalette = (seed) => L3().realm.palettes[Math.floor(roll2(seed, "look:realm") * L3().realm.palettes.length)];
-  function lookContext(R2, S2, biome) {
-    const rec = R2.outdoorRec ? R2.outdoorRec(S2) : null, b = biome || R2.biomeOf(S2), realm = S2.realm && S2.realms && S2.realms[S2.realm], rr = rec && R2.regionRareOf ? R2.regionRareOf(S2, rec.id) : null, mp = R2.mainPlot ? R2.mainPlot(S2) : null;
+  function lookContext(R2, S3, biome) {
+    const rec = R2.outdoorRec ? R2.outdoorRec(S3) : null, b = biome || R2.biomeOf(S3), realm = S3.realm && S3.realms && S3.realms[S3.realm], rr = rec && R2.regionRareOf ? R2.regionRareOf(S3, rec.id) : null, mp = R2.mainPlot ? R2.mainPlot(S3) : null;
     return {
-      seed: S2.seed >>> 0,
+      seed: S3.seed >>> 0,
       biome: b ? b.id : "",
       climate: climateOf(b),
       biomeSky: b && b.sky !== void 0 ? b.sky : null,
-      region: rec ? (S2.realm ? S2.realm + ":" : "") + rec.id : "",
-      year: S2.year || "",
+      region: rec ? (S3.realm ? S3.realm + ":" : "") + rec.id : "",
+      year: S3.year || "",
       trouble: mp ? mp.kind : "",
-      cursed: !!(S2.curses && rec && S2.curses[rec.id]),
+      cursed: !!(S3.curses && rec && S3.curses[rec.id]),
       rare: rr ? rr.id : "",
       realm: realm ? realm.seed >>> 0 : null
     };
@@ -15480,8 +15913,8 @@
     ].join("|");
     let o = KEPT.get(key2);
     if (o) return o;
-    const X9 = L3(), cl = X9.climates[ctx.climate] || X9.climates.temperate;
-    o = layer(fresh(X9.base), cl);
+    const X10 = L3(), cl = X10.climates[ctx.climate] || X10.climates.temperate;
+    o = layer(fresh(X10.base), cl);
     o.names = [cl.name];
     const v = cl.vary || { hue: [0, 0], sat: 0 }, dh = v.hue[0] + roll2(ctx.seed, "look:hue:" + ctx.climate) * (v.hue[1] - v.hue[0]), ds = 1 + (roll2(ctx.seed, "look:sat:" + ctx.climate) * 2 - 1) * v.sat;
     if (dh || v.sat)
@@ -15489,33 +15922,33 @@
     o.turned = Math.round(dh);
     if (ctx.biomeSky !== null && ctx.biomeSky !== void 0) {
       const bs = hex(ctx.biomeSky);
-      o.horizon = mix(o.horizon, bs, X9.biomeSky);
-      o.fog = mix(o.fog, bs, X9.biomeSky);
+      o.horizon = mix(o.horizon, bs, X10.biomeSky);
+      o.fog = mix(o.fog, bs, X10.biomeSky);
     }
     const odd = ctx.realm === null ? oddLook(ctx.seed, ctx.region) : null;
     if (odd) layer(o, odd);
     if (ctx.realm !== null && ctx.realm !== void 0) {
-      layer(o, X9.realm.style);
+      layer(o, X10.realm.style);
       layer(o, realmPalette(ctx.realm));
     }
-    layer(o, X9.years[ctx.year]);
-    if (X9.troubles[ctx.trouble]) layer(o, X9.troubles[ctx.trouble], X9.troubleK);
-    if (ctx.cursed) layer(o, X9.troubles.curse, X9.curseK);
-    layer(o, X9.rares[ctx.rare]);
+    layer(o, X10.years[ctx.year]);
+    if (X10.troubles[ctx.trouble]) layer(o, X10.troubles[ctx.trouble], X10.troubleK);
+    if (ctx.cursed) layer(o, X10.troubles.curse, X10.curseK);
+    layer(o, X10.rares[ctx.rare]);
     if (KEPT.size > 64) KEPT.clear();
     KEPT.set(key2, o);
     return o;
   }
   function lookFor(ctx, day, dusk, storm) {
-    const X9 = L3(), d = dayLook(ctx), o = { names: d.names.slice(), turned: d.turned };
+    const X10 = L3(), d = dayLook(ctx), o = { names: d.names.slice(), turned: d.turned };
     for (const c of COLS) o[c] = d[c].slice();
     for (const n of NUMS) o[n] = d[n];
     if (storm !== null && storm !== void 0) {
-      layer(o, X9.weather.storm);
-      layer(o, X9.weather[storm]);
+      layer(o, X10.weather.storm);
+      layer(o, X10.weather[storm]);
     }
-    if (dusk > 0) layer(o, X9.dusk, dusk * (0.4 + 0.6 * day));
-    if (day < 1) layer(o, X9.night, 1 - (day === void 0 ? 1 : day));
+    if (dusk > 0) layer(o, X10.dusk, dusk * (0.4 + 0.6 * day));
+    if (day < 1) layer(o, X10.night, 1 - (day === void 0 ? 1 : day));
     return o;
   }
 
@@ -15527,7 +15960,7 @@
   for (const k of COLS) TC[k] = new THREE.Color();
   function updateLook(day, dusk, at, storm) {
     if (!lookOnNow() || !V.S || R.isDark(V.S) || R.levelLook(V.S)) return NOW.look = null;
-    const S2 = V.S, base = V.base;
+    const S3 = V.S, base = V.base;
     let look2;
     if (base && base.share && base.share.length > 1 && at) {
       look2 = null;
@@ -15535,7 +15968,7 @@
       base.share.forEach((f, i) => {
         const w = f(at.x, at.z);
         if (w <= 1e-3) return;
-        const l = lookFor(lookContext(R, S2, base.land.biomes[i]), day, dusk, storm);
+        const l = lookFor(lookContext(R, S3, base.land.biomes[i]), day, dusk, storm);
         if (!look2) {
           look2 = l;
           total = w;
@@ -15547,7 +15980,7 @@
         for (const k of NUMS) look2[k] += (l[k] - look2[k]) * t2;
       });
     }
-    if (!look2) look2 = lookFor(lookContext(R, S2), day, dusk, storm);
+    if (!look2) look2 = lookFor(lookContext(R, S3), day, dusk, storm);
     for (const k of COLS) TC[k].setRGB(look2[k][0], look2[k][1], look2[k][2]);
     look2.c = TC;
     NOW.look = look2;
@@ -15691,12 +16124,12 @@
   var GROUND = null;
   function groundTexture() {
     if (GROUND && GROUND.image.width === (Q.texPx >= 256 ? 256 : 128)) return GROUND;
-    const px = Q.texPx >= 256 ? 256 : 128, S2 = px / 128, r = rnd(91), big = noiseField(px, 4, 1), mid = noiseField(px, 12, 2), fine = noiseField(px, 40, 3);
+    const px = Q.texPx >= 256 ? 256 : 128, S3 = px / 128, r = rnd(91), big = noiseField(px, 4, 1), mid = noiseField(px, 12, 2), fine = noiseField(px, 40, 3);
     const grass = new Float32Array(px * px);
     for (let i = 0; i < px * px; i++) grass[i] = 0.5 + (big[i] - 0.5) * 0.35 + (mid[i] - 0.5) * 0.3;
-    for (let k = 0; k < 900 * S2 * S2; k++) {
+    for (let k = 0; k < 900 * S3 * S3; k++) {
       const x = r() * px, y = r() * px, lean = (r() - 0.5) * 0.5;
-      stroke(grass, px, x, y, lean, -1, (3 + Math.floor(r() * 4)) * S2, 0, r() < 0.5 ? -0.22 : 0.2);
+      stroke(grass, px, x, y, lean, -1, (3 + Math.floor(r() * 4)) * S3, 0, r() < 0.5 ? -0.22 : 0.2);
     }
     const grains = new Float32Array(px * px);
     for (let y = 0; y < px; y++)
@@ -15704,21 +16137,21 @@
         const i = y * px + x;
         grains[i] = 0.5 + (mid[i] - 0.5) * 0.35 + (fine[i] - 0.5) * 0.45 + 0.07 * Math.sin(y / px * Math.PI * 2 * 6 + big[i] * 5);
       }
-    for (let k = 0; k < 700 * S2 * S2; k++) grains[Math.floor(r() * px * px)] += r() < 0.5 ? -0.25 : 0.2;
+    for (let k = 0; k < 700 * S3 * S3; k++) grains[Math.floor(r() * px * px)] += r() < 0.5 ? -0.25 : 0.2;
     const rock = new Float32Array(px * px);
     for (let i = 0; i < px * px; i++) rock[i] = 0.5 + (Math.round(mid[i] * 4) / 4 - 0.5) * 0.4 + (fine[i] - 0.5) * 0.2;
     for (let k = 0; k < 26; k++) {
       let x = r() * px, y = r() * px, a = r() * Math.PI * 2;
       for (let s = 0; s < 6; s++) {
         a += (r() - 0.5) * 1.2;
-        stroke(rock, px, x, y, Math.cos(a), Math.sin(a), 5 * S2, 0, -0.18);
-        x += Math.cos(a) * 5 * S2;
-        y += Math.sin(a) * 5 * S2;
+        stroke(rock, px, x, y, Math.cos(a), Math.sin(a), 5 * S3, 0, -0.18);
+        x += Math.cos(a) * 5 * S3;
+        y += Math.sin(a) * 5 * S3;
       }
     }
     const snow = new Float32Array(px * px);
     for (let i = 0; i < px * px; i++) snow[i] = 0.5 + (big[i] - 0.5) * 0.25 + (mid[i] - 0.5) * 0.12;
-    for (let k = 0; k < 160 * S2 * S2; k++) snow[Math.floor(r() * px * px)] += 0.25;
+    for (let k = 0; k < 160 * S3 * S3; k++) snow[Math.floor(r() * px * px)] += 0.25;
     const d = new Uint8Array(px * px * 4);
     for (let i = 0; i < px * px; i++) {
       d[i * 4] = toByte(grass[i]);
@@ -16407,10 +16840,10 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     const L5 = R.C.townLooks;
     return biome && biome.parts && biome.parts.climate || biome && L5.biomeClimate[biome.id] || "temperate";
   }
-  function styleOf(S2, townId2, biome) {
-    const L5 = R.C.townLooks, t2 = townId2 ? R.townById(S2, townId2) : null, culture = t2 ? t2 === S2.town ? S2.townCulture : t2.culture : null, area = t2 && t2.area;
-    if (!biome) biome = area && S2.areas[area] ? R.byId(R.C.biomes, S2.areas[area].biome) : R.biomeOf(S2);
-    const climate = climateOf2(biome), st = Object.assign({ climate }, L5.climates[climate] || L5.climates.temperate), off = S2.off && S2.off.towns, tr = culture && !off && L5.trades[culture.trade] || {}, cu = culture && !off && L5.customs[culture.custom] || {}, ra = culture && !off && culture.rare && L5.rares[culture.rare] || {};
+  function styleOf(S3, townId2, biome) {
+    const L5 = R.C.townLooks, t2 = townId2 ? R.townById(S3, townId2) : null, culture = t2 ? t2 === S3.town ? S3.townCulture : t2.culture : null, area = t2 && t2.area;
+    if (!biome) biome = area && S3.areas[area] ? R.byId(R.C.biomes, S3.areas[area].biome) : R.biomeOf(S3);
+    const climate = climateOf2(biome), st = Object.assign({ climate }, L5.climates[climate] || L5.climates.temperate), off = S3.off && S3.off.towns, tr = culture && !off && L5.trades[culture.trade] || {}, cu = culture && !off && L5.customs[culture.custom] || {}, ra = culture && !off && culture.rare && L5.rares[culture.rare] || {};
     Object.assign(st, {
       props: tr.props || ["barrel", "crates"],
       chimneys: tr.chimneys !== void 0 ? tr.chimneys : 0.3,
@@ -16426,12 +16859,12 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     for (const k in ra) st[k] = ra[k];
     if (ra.walls) st.wallMix = [ra.walls];
     if (ra.lost) {
-      const stone = R.trait(S2, "style").stone;
+      const stone = R.trait(S3, "style").stone;
       st.walls = "stone";
       st.wall = [stone, stone];
-      st.banners = [R.trait(S2, "affinity").color];
+      st.banners = [R.trait(S3, "affinity").color];
     }
-    st.banners = st.banners.map((c) => c === "god" ? hex2(R.godOf(S2).color) : c);
+    st.banners = st.banners.map((c) => c === "god" ? hex2(R.godOf(S3).color) : c);
     st.biome = biome;
     return st;
   }
@@ -16579,7 +17012,7 @@ vFade = sin(ph * 3.14159);`
   function building(K2, st, r, b) {
     const { cx, cz, kind: kind2 } = b;
     let { w, d } = b;
-    if (st.roof === "dome") return tents(K2, st, r, b);
+    if (st.roof === "dome") return tents2(K2, st, r, b);
     choose(K2, st, r);
     const storeys = kind2 === "elder" ? 2 : kind2 ? Math.max(1, r.pick(st.storeys)) : r.pick(st.storeys), wallH = storeys * FH + 0.4, wcol = r.pick(st.wall), trim = st.trim;
     K2.stone.add(P4.box(w + 0.3, 0.6, d + 0.3), st.plinth, { x: cx, y: 0.3, z: cz }, { uv: 2 });
@@ -16770,7 +17203,7 @@ vFade = sin(ph * 3.14159);`
     }
     K2.wood.add(P4.box(0.3, 0.3, len + 0.1), st.trim, { x: cx, y: wallH + h + 0.18, z: cz, ry }, { uv: 2 });
   }
-  function tents(K2, st, r, b) {
+  function tents2(K2, st, r, b) {
     choose(K2, st, r);
     const { cx, cz, w, d } = b, along = w >= d, span = Math.min(w, d), n = Math.max(1, Math.round((along ? w : d) / span));
     for (let i = 0; i < n; i++) {
@@ -16977,8 +17410,8 @@ vFade = sin(ph * 3.14159);`
     }
     return out;
   }
-  function townGroup(S2, townId2, map, ts) {
-    const st = styleOf(S2, townId2), r = dice(hash((townId2 || "town") + ":" + S2.seed)), K2 = kits(st), group2 = new THREE.Group(), W3 = R.W, size = W3 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T4 = map.terrain, walled = !!(S2.areas[townId2] && S2.areas[townId2].walled), c = 18;
+  function townGroup(S3, townId2, map, ts) {
+    const st = styleOf(S3, townId2), r = dice(hash((townId2 || "town") + ":" + S3.seed)), K2 = kits(st), group2 = new THREE.Group(), W3 = R.W, size = W3 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T4 = map.terrain, walled = !!(S3.areas[townId2] && S3.areas[townId2].walled), c = 18;
     K2.ground.add(P4.box(size, 0.1, size), st.ground, { y: 0.03 }, { uv: 2.5, jitter: 0.04 });
     K2.cobble.add(P4.box(13 * ts, 0.1, 13 * ts), st.plinth, { y: 0.06 }, { uv: 3, jitter: 0.03 });
     const kindAt = {};
@@ -16986,7 +17419,7 @@ vFade = sin(ph * 3.14159);`
       const s = map.sites[k];
       if (s.kind === "elder" || s.kind === "inn" || s.kind === "shop") kindAt[k] = s.kind;
     }
-    const ruled = R.interiorsOn && R.interiorsOn(S2, townId2 || "town") ? R.buildingsOf(S2, townId2 || "town") : [];
+    const ruled = R.interiorsOn && R.interiorsOn(S3, townId2 || "town") ? R.buildingsOf(S3, townId2 || "town") : [];
     for (const b of blocks(map, walled)) {
       const rb = ruled.find((x) => x.x0 === b.x0 && x.y0 === b.y0);
       if (rb) {
@@ -17125,8 +17558,8 @@ vFade = sin(ph * 3.14159);`
       }
     }
   }
-  function hamletGroup(S2, biome, seed) {
-    const st = styleOf(S2, null, biome), r = dice(seed), K2 = kits(st), group2 = new THREE.Group();
+  function hamletGroup(S3, biome, seed) {
+    const st = styleOf(S3, null, biome), r = dice(seed), K2 = kits(st), group2 = new THREE.Group();
     st.props = ["woodpile", "barrel"];
     st.banners = [];
     for (const [x, z, a] of [
@@ -17275,8 +17708,8 @@ vFade = sin(ph * 3.14159);`
       }
     }
   }
-  function ruinGroup(S2, seed) {
-    const civ = S2.civ, style = R.trait(S2, "style"), st = STYLE[civ.style] || STYLE.river, age = AGE[civ.age] || AGE.old, doom = civ.doom, affinity = R.trait(S2, "affinity"), r = dice2(seed), Z2 = { st, age, r, stone: kit(), wood: kit(), cloth: kit(), dark: kit() }, base = C2(style.stone), moss = C2(5929530), soot = C2(1972760), tmp3 = C2(0);
+  function ruinGroup(S3, seed) {
+    const civ = S3.civ, style = R.trait(S3, "style"), st = STYLE[civ.style] || STYLE.river, age = AGE[civ.age] || AGE.old, doom = civ.doom, affinity = R.trait(S3, "affinity"), r = dice2(seed), Z2 = { st, age, r, stone: kit(), wood: kit(), cloth: kit(), dark: kit() }, base = C2(style.stone), moss = C2(5929530), soot = C2(1972760), tmp3 = C2(0);
     const mossy = Math.min(0.8, age.moss + (st.moss || 0));
     Z2.colAt = (y, rr) => {
       tmp3.copy(base).multiplyScalar(0.85 + rr() * 0.25);
@@ -17797,8 +18230,8 @@ ${rich ? `{
       return g;
     },
     // the god's shrine: a ring of standing stones with lintels, an altar, and the god's light over it
-    shrine(S2) {
-      const g = new THREE.Group(), k = kit(), col = R.godOf(S2).color;
+    shrine(S3) {
+      const g = new THREE.Group(), k = kit(), col = R.godOf(S3).color;
       for (let i = 0; i < 5; i++) {
         const a = i / 5 * Math.PI * 2, x = Math.cos(a) * 4, z = Math.sin(a) * 4;
         k.add(P4.box(0.9, 5.2, 0.7), 9276036, { x, y: 2.6, z, ry: -a, rz: i % 2 * 0.04 }, { uv: 1.5, jitter: 0.08 });
@@ -17877,7 +18310,7 @@ ${rich ? `{
       return g;
     },
     // a door of old stone, carved pillars and a lintel, with another sky showing through
-    door(S2, st) {
+    door(S3, st) {
       const g = new THREE.Group(), k = kit();
       for (const sx of [-2.7, 2.7]) {
         courses(k, 8025192, 0.8, 0.7, 7, 6, sx, 0);
@@ -17893,8 +18326,8 @@ ${rich ? `{
       return g;
     },
     // the locked place, by its kind: a castle of towers, a barrow under turf with a stone door, a stepped temple
-    vault(S2) {
-      const g = new THREE.Group(), k = kit(), turf = kit(), id = S2.quest.vault.id, col = id === "temple" ? 6060664 : id === "barrow" ? 6122058 : 6973022;
+    vault(S3) {
+      const g = new THREE.Group(), k = kit(), turf = kit(), id = S3.quest.vault.id, col = id === "temple" ? 6060664 : id === "barrow" ? 6122058 : 6973022;
       if (id === "castle") {
         for (const [x, z, w, d] of [
           [0, -8, 16, 1.6],
@@ -17959,9 +18392,9 @@ ${rich ? `{
       return g;
     }
   };
-  function landmark(kind2, S2, st) {
+  function landmark(kind2, S3, st) {
     if (!marksOn() || !L4[kind2]) return null;
-    return L4[kind2](S2, st);
+    return L4[kind2](S3, st);
   }
 
   // src/view/grass.js
@@ -19238,10 +19671,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var BIG = null;
   var bigMat = () => BIG || (BIG = kitMat(), BIG.dispose = () => {
   }, BIG);
-  var BUILT = /* @__PURE__ */ new Map();
-  function thingsGroup(S2, id, ts, pos, frame2, list) {
+  var BUILT2 = /* @__PURE__ */ new Map();
+  function thingsGroup(S3, id, ts, pos, frame2, list) {
     if (!thingsOn()) return null;
-    const left = list || R.thingsLeft(S2, id), map = list ? null : R.mapOf(S2, id), dropped = [];
+    const left = list || R.thingsLeft(S3, id), map = list ? null : R.mapOf(S3, id), dropped = [];
     for (const k in map && map.depots || {})
       map.depots[k].items.forEach((it, i) => {
         if (!it.thing) return;
@@ -19262,10 +19695,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         );
       });
     if (!left.length && !dropped.length) return null;
-    const key2 = [id, S2.seed, left.length, dropped.length, Q.label, S2.realm || "", frame2, ts].join("|");
-    let g = BUILT.get(key2);
+    const key2 = [id, S3.seed, left.length, dropped.length, Q.label, S3.realm || "", frame2, ts].join("|");
+    let g = BUILT2.get(key2);
     if (!g) {
-      const mark2 = R.C.civ && S2.civ ? (R.trait(S2, "affinity") || {}).color : void 0, big = [], small = [];
+      const mark2 = R.C.civ && S3.civ ? (R.trait(S3, "affinity") || {}).color : void 0, big = [], small = [];
       for (const t2 of left.concat(dropped)) {
         const kd = R.thingKind(t2.k);
         if (!kd) continue;
@@ -19273,6 +19706,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         (kd.fixed ? big : small).push({ g: modelGeo(t2.k, colourOf(t2, mark2), t2.old), x, y: y + (t2.h || 0), z, ry: t2.ry || 0 });
       }
       g = new THREE.Group();
+      g.userData.things = id;
       if (big.length) {
         const m = new THREE.Mesh(merge(big), bigMat());
         g.add(m);
@@ -19284,15 +19718,792 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         };
         o.frustumCulled = false;
       });
-      BUILT.set(key2, g);
-      if (BUILT.size > 24) {
-        const [k0, old] = BUILT.entries().next().value;
-        BUILT.delete(k0);
+      BUILT2.set(key2, g);
+      if (BUILT2.size > 24) {
+        const [k0, old] = BUILT2.entries().next().value;
+        BUILT2.delete(k0);
         old.traverse((o) => o.geometry && THREE.BufferGeometry.prototype.dispose.call(o.geometry));
       }
     }
     FOLD.value = Q.lite ? 18 : (Q.outline || 0) >= 2 ? 40 : 28;
     if (g.parent) g.parent.remove(g);
+    return g;
+  }
+
+  // src/view/score.js
+  function dice3(seed) {
+    let a = seed | 0;
+    return () => {
+      a = a + 1831565813 | 0;
+      let t2 = Math.imul(a ^ a >>> 15, a | 1);
+      t2 ^= t2 + Math.imul(t2 ^ t2 >>> 7, t2 | 61);
+      return ((t2 ^ t2 >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  var hash3 = (str) => {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+    return h | 0;
+  };
+  function placeOf(X10, key2) {
+    let k = key2;
+    while (k) {
+      if (X10.places[k]) return X10.places[k];
+      k = k.includes(":") ? k.slice(0, k.lastIndexOf(":")) : "";
+    }
+    return X10.places.land;
+  }
+  var PROG_A = [
+    [0, 3, 4, 4, 0, 3, 4, 0],
+    [0, 4, 0, 4, 5, 3, 4, 0],
+    [0, 5, 3, 4, 0, 5, 4, 0],
+    [0, 0, 3, 4, 5, 1, 4, 0]
+  ];
+  var PROG_B = [
+    [4, 0, 4, 4, 5, 1, 4, 0],
+    [5, 2, 5, 4, 3, 1, 4, 0],
+    [3, 0, 3, 4, 2, 5, 4, 0],
+    [0, 3, 6, 2, 5, 1, 4, 0]
+    // round the circle of fifths
+  ];
+  function contour(r, n, start3, down) {
+    const out = [];
+    let d = start3;
+    for (let i = 0; i < n; i++) {
+      out.push(d);
+      const x = r();
+      d += x < 0.62 ? (down ? -1 : 1) * (x < 0.4 ? 1 : -1) : x < 0.8 ? x < 0.71 ? 2 : -2 : x < 0.9 ? 0 : down ? -3 : 3;
+      d = Math.max(-2, Math.min(7, d));
+    }
+    return out;
+  }
+  var notesIn = (cell) => cell.filter((u) => u > 0).length;
+  function themeOf2(X10, key2) {
+    const place = placeOf(X10, key2), dance = X10.dances[place.dance] || X10.dances.drift, r = dice3(hash3("theme:" + key2)), pick = (a) => a[Math.floor(r() * a.length)], c1 = Math.floor(r() * dance.cells.length), c2 = (c1 + 1 + Math.floor(r() * (dance.cells.length - 1))) % dance.cells.length, c3 = Math.floor(r() * dance.cells.length), s1 = pick([0, 2, 4]), m1 = contour(r, notesIn(dance.cells[c1]), s1, false), m2 = contour(r, notesIn(dance.cells[c2]), Math.max(0, m1[m1.length - 1]), true), m3 = contour(r, notesIn(dance.cells[c3]), pick([2, 4]), r() < 0.5);
+    return { key: key2, place, dance, cells: [c1, c2, c3], shapes: [m1, m2, m3], A: pick(PROG_A), B: pick(PROG_B) };
+  }
+  function makeTune(X10, key2, seed) {
+    const th = themeOf2(X10, key2);
+    return Object.assign(th, { bar: 0, r: dice3(hash3("play:" + key2) ^ (seed | 0)), mode: X10.modes[th.place.mode] || X10.modes.ionian });
+  }
+  var deg2m = (mode, root, d, oct) => {
+    const n = mode.length, k = (d % n + n) % n;
+    return root + 12 * (oct || 0) + mode[k] + 12 * Math.floor(d / n);
+  };
+  function nextBar(tu) {
+    const { dance, place, mode } = tu, r = tu.r, root = place.root, bars = 16, i = tu.bar % bars, pass2 = Math.floor(tu.bar / bars), part = i < 8 ? tu.A : tu.B, b = i % 8, chord = part[b], next = part[(b + 1) % 8], sub = dance.sub, beats = dance.beats, units = beats * sub, density = place.density === void 0 ? 1 : place.density, vary = (pass2 + (i < 8 ? 0 : 1)) % 4, notes = [], lead = place.voice, oct = vary === 2 && root < 70 ? 1 : 0;
+    tu.bar++;
+    if (b === 7) {
+      const half = Math.max(1, Math.round(units / 2)) / sub;
+      notes.push({ t: 0, d: half, m: deg2m(mode, root, chord + 1, oct), v: 0.11, voice: lead, trill: place.ornament > 0 });
+      notes.push({ t: half, d: beats - half, m: deg2m(mode, root, chord, oct), v: 0.12, voice: lead });
+    } else {
+      const which = b === 1 || b === 5 ? 1 : b === 2 || b === 6 ? 2 : 0, cell = dance.cells[tu.cells[which]], shape = tu.shapes[which];
+      let t2 = 0, k = 0;
+      for (let j = 0; j < cell.length; j++) {
+        const u = cell[j], dur = Math.abs(u) / sub;
+        if (u < 0) {
+          t2 += dur;
+          continue;
+        }
+        let d = shape[k++ % shape.length];
+        if (vary === 3) d = 4 - d;
+        const m = deg2m(mode, root, chord + d, oct), restHere = density < 1 && j > 0 && r() > density;
+        if (!restHere) {
+          const strong = Math.abs(t2 - Math.round(t2)) < 1e-6 && Math.round(t2) % beats === 0;
+          if (vary === 1 && u >= 2 && r() < 0.6) {
+            const nd = shape[k % shape.length], step2 = nd > d ? 1 : nd < d ? -1 : 1;
+            notes.push({ t: t2, d: dur / 2, m, v: strong ? 0.11 : 0.09, voice: lead });
+            notes.push({ t: t2 + dur / 2, d: dur / 2, m: deg2m(mode, root, chord + d + step2, oct), v: 0.08, voice: lead });
+          } else {
+            const orn = dur >= 1 && place.ornament && r() < place.ornament;
+            notes.push({ t: t2, d: dur, m, v: strong ? 0.11 : 0.09, voice: lead, trill: orn && r() < 0.5, turn: orn });
+          }
+          if (place.inner && Math.abs(t2 - Math.round(t2)) < 1e-6)
+            notes.push({ t: t2, d: Math.min(dur, 1), m: deg2m(mode, root, chord + d - (k % 2 ? 2 : 5), oct), v: 0.05, voice: lead });
+        }
+        t2 += dur;
+      }
+    }
+    const bo = root >= 60 ? -2 : -1, bvoice = lead === "organ" ? "organ" : lead === "bell" || lead === "pipe" ? "pad" : "bass", bass = (d, t2, dur, v) => notes.push({ t: t2, d: dur, m: deg2m(mode, root, d, bo), v, voice: bvoice });
+    if (dance.bass === "beat") {
+      const pat = beats === 3 ? [0, 4, 4] : beats === 2 ? [0, 4] : [0, 4, 2, 4];
+      pat.forEach((o, j) => bass(chord + o, j, 1, j === 0 ? 0.1 : 0.06));
+    } else if (dance.bass === "walk") {
+      let target = next;
+      while (target - chord > 3) target -= 7;
+      while (chord - target > 3) target += 7;
+      for (let j = 0; j < beats; j++) {
+        const f = j / beats, d = j === 0 ? chord : Math.round(chord + (target - chord) * f) + (j === beats - 1 && target === chord ? 1 : 0);
+        bass(d, j, 1, j === 0 ? 0.1 : 0.07);
+      }
+    } else if (dance.bass === "long") {
+      bass(chord, 0, beats === 3 ? 2 : beats, 0.09);
+      if (beats === 3) bass(chord + 4, 2, 1, 0.06);
+    } else if (dance.bass === "drone") {
+      notes.push({ t: 0, d: beats, m: deg2m(mode, root, 0, -1), v: 0.05, voice: "drone" });
+      notes.push({ t: 0, d: beats, m: deg2m(mode, root, 4, -1), v: 0.035, voice: "drone" });
+    }
+    const lo = root - 5 + 12 * oct, hi = root + 16 + 12 * oct;
+    for (const n of notes)
+      if (n.voice === lead) {
+        while (n.m > hi) n.m -= 12;
+        while (n.m < lo) n.m += 12;
+      }
+    return { beats, spb: 60 / dance.tempo, chord: [0, 2, 4].map((o) => deg2m(mode, root, chord + o, -1)), notes };
+  }
+  function eventPiece(X10, kind2, seed) {
+    const e = X10.events[kind2], mode = X10.modes[e.mode], root = e.root, r = dice3(hash3("event:" + kind2) ^ (seed | 0)), out = [], n = (d, o) => deg2m(mode, root, d, o), v = e.voice;
+    if (kind2 === "discovery") {
+      const s = 0.11, steps = r() < 0.5 ? [0, 2, 4, 7] : [0, 4, 2, 7];
+      steps.forEach((d, i) => out.push({ t: i * s, d: s, m: n(d), v: 0.1, voice: v }));
+      out.push({ t: 4 * s, d: 0.7, m: n(8), v: 0.11, voice: v, trill: true });
+      out.push({ t: 0, d: 1.2, m: n(0, -2), v: 0.08, voice: "bass" });
+    } else if (kind2 === "win") {
+      const b = 0.42;
+      for (let i = 0; i < 8; i++) out.push({ t: i * b * 0.5, d: b * 0.5, m: n(i), v: 0.09, voice: v });
+      const close = [
+        [3, 5],
+        [4, 6],
+        [4, 8],
+        [0, 7]
+      ];
+      close.forEach(([ch, top], i) => {
+        out.push({ t: 4 * b + i * 2 * b, d: 2 * b, m: n(top), v: 0.11, voice: v, trill: i === 2 });
+        out.push({ t: 4 * b + i * 2 * b, d: 2 * b, m: n(top - 2), v: 0.06, voice: v });
+        out.push({ t: 4 * b + i * 2 * b, d: 2 * b, m: n(ch, -2), v: 0.1, voice: "bass" });
+      });
+      out.push({ t: 12 * b, d: 3, m: n(7), v: 0.12, voice: v });
+      out.push({ t: 12 * b, d: 3, m: n(0, -2), v: 0.1, voice: "bass" });
+    } else {
+      const b = 1.05, top = root + 12;
+      for (let i = 0; i < 6; i++) {
+        out.push({ t: i * b, d: b, m: root - 12 - i, v: 0.1, voice: "bass" });
+        if (i < 5) {
+          const hi = top + 2 - i * 2 + (r() < 0.3 ? 1 : 0);
+          out.push({ t: i * b, d: b * 0.6, m: hi, v: 0.1, voice: v });
+          out.push({ t: i * b + b * 0.6, d: b * 0.4, m: hi - 1, v: 0.06, voice: v });
+        }
+      }
+      out.push({ t: 6 * b, d: 3, m: root - 17, v: 0.1, voice: "bass" });
+      out.push({ t: 6 * b, d: 3, m: root - 1, v: 0.08, voice: v, trill: true });
+    }
+    return out;
+  }
+
+  // src/view/sound.js
+  LOOK_SWITCHES.push(["sound", "Sound and music"]);
+  if (SET.music === void 0) SET.music = 0.55;
+  if (SET.sfx === void 0) SET.sfx = 0.8;
+  var A2 = null;
+  var master;
+  var musicBus;
+  var sfxBus;
+  var verb;
+  var NOISE;
+  var on2 = () => lookOn("sound") && !SET.mute;
+  function start() {
+    if (A2) {
+      if (A2.state === "suspended" && !document.hidden) A2.resume();
+      return;
+    }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC || !on2()) return;
+    A2 = new AC();
+    master = A2.createGain();
+    master.gain.value = 0.9;
+    master.connect(A2.destination);
+    musicBus = A2.createGain();
+    sfxBus = A2.createGain();
+    musicBus.connect(master);
+    sfxBus.connect(master);
+    verb = A2.createConvolver();
+    const len = Math.floor(A2.sampleRate * 2.6), ir = A2.createBuffer(2, len, A2.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+    }
+    verb.buffer = ir;
+    const wet = A2.createGain();
+    wet.gain.value = 0.55;
+    verb.connect(wet);
+    wet.connect(musicBus);
+    NOISE = A2.createBuffer(1, A2.sampleRate * 2, A2.sampleRate);
+    const nd = NOISE.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    makeAmbience();
+    volumes();
+  }
+  function volumes() {
+    if (!A2) return;
+    const t2 = A2.currentTime;
+    musicBus.gain.setTargetAtTime(on2() ? SET.music * 0.5 : 0, t2, 0.3);
+    sfxBus.gain.setTargetAtTime(on2() ? SET.sfx : 0, t2, 0.1);
+  }
+  ["pointerdown", "keydown", "touchstart"].forEach((e) => document.addEventListener(e, start, { passive: true }));
+  document.addEventListener("visibilitychange", () => {
+    if (!A2) return;
+    if (document.hidden) A2.suspend();
+    else if (on2()) A2.resume();
+  });
+  LOOK_CHANGED.push((id) => {
+    if (id !== "sound") return;
+    if (on2()) start();
+    volumes();
+  });
+  function setVolume(kind2, v) {
+    if (kind2 === "mute") SET.mute = !!v;
+    else SET[kind2] = v;
+    saveSettings();
+    if (on2()) start();
+    volumes();
+  }
+  var env = (g, t2, a, peak, d) => {
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(peak, t2 + a);
+    g.gain.exponentialRampToValueAtTime(1e-4, t2 + a + d);
+  };
+  var mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  function bell(t2, m, vel, out) {
+    for (const [mul, k] of [
+      [1, 1],
+      [2.76, 0.3],
+      [5.4, 0.08]
+    ]) {
+      const o = A2.createOscillator(), g = A2.createGain();
+      o.frequency.value = mtof(m) * mul;
+      env(g, t2, 5e-3, vel * k, 2.8 / mul);
+      o.connect(g).connect(out);
+      o.start(t2);
+      o.stop(t2 + 3.2);
+    }
+  }
+  function pluck(t2, m, vel, out) {
+    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain();
+    o.type = "triangle";
+    o.frequency.value = mtof(m);
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(mtof(m) * 6, t2);
+    f.frequency.exponentialRampToValueAtTime(mtof(m) * 1.2, t2 + 0.6);
+    env(g, t2, 4e-3, vel, 1.1);
+    o.connect(f).connect(g).connect(out);
+    o.start(t2);
+    o.stop(t2 + 1.3);
+  }
+  function pad(t2, m, vel, dur, out, wave) {
+    const f = A2.createBiquadFilter(), g = A2.createGain();
+    f.type = "lowpass";
+    f.frequency.value = Math.min(2400, mtof(m) * 3);
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel, t2 + dur * 0.4);
+    g.gain.linearRampToValueAtTime(1e-4, t2 + dur);
+    for (const det of [-7, 6]) {
+      const o = A2.createOscillator();
+      o.type = wave || "triangle";
+      o.frequency.value = mtof(m);
+      o.detune.value = det;
+      o.connect(f);
+      o.start(t2);
+      o.stop(t2 + dur + 0.1);
+    }
+    f.connect(g).connect(out);
+  }
+  function drum(t2, vel, out, pitch) {
+    const o = A2.createOscillator(), g = A2.createGain();
+    o.frequency.setValueAtTime(pitch || 110, t2);
+    o.frequency.exponentialRampToValueAtTime((pitch || 110) * 0.45, t2 + 0.25);
+    env(g, t2, 3e-3, vel, 0.35);
+    o.connect(g).connect(out);
+    o.start(t2);
+    o.stop(t2 + 0.5);
+    noiseHit(t2, vel * 0.25, 900, 0.08, out);
+  }
+  function noiseHit(t2, vel, freq, dur, out, type, q) {
+    const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
+    s.buffer = NOISE;
+    f.type = type || "bandpass";
+    f.frequency.value = freq;
+    f.Q.value = q || 1;
+    env(g, t2, 4e-3, vel, dur);
+    s.connect(f).connect(g).connect(out);
+    s.start(t2, Math.random() * 1.5);
+    s.stop(t2 + dur + 0.05);
+  }
+  var HARP = null;
+  function harpWave() {
+    if (HARP) return HARP;
+    const n = 32, re = new Float32Array(n), im = new Float32Array(n);
+    for (let k = 1; k < n; k++) im[k] = Math.abs(Math.sin(k * Math.PI * 0.13)) / k * (k < 3 ? 1 : 1.3);
+    return HARP = A2.createPeriodicWave(re, im);
+  }
+  function harpsichord(t2, m, vel, dur, out) {
+    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain(), fr = mtof(m), ring2 = 0.25 + Math.max(0, 84 - m) * 0.018;
+    o.setPeriodicWave(harpWave());
+    o.frequency.value = fr;
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(Math.min(14e3, fr * 12), t2);
+    f.frequency.setTargetAtTime(fr * 2.5, t2 + 0.01, ring2 * 0.6);
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel, t2 + 3e-3);
+    g.gain.setTargetAtTime(1e-4, t2 + 4e-3, ring2);
+    g.gain.setTargetAtTime(1e-4, t2 + Math.max(0.05, dur), 0.03);
+    o.connect(f).connect(g).connect(out);
+    o.start(t2);
+    o.stop(t2 + Math.min(dur + 0.25, ring2 * 5));
+  }
+  function organ(t2, m, vel, dur, out) {
+    const g = A2.createGain();
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel * 0.7, t2 + 0.06);
+    g.gain.setValueAtTime(vel * 0.7, t2 + Math.max(0.07, dur - 0.05));
+    g.gain.linearRampToValueAtTime(1e-4, t2 + dur + 0.15);
+    for (const [mul, type, k] of [
+      [1, "sine", 1],
+      [2, "triangle", 0.35]
+    ]) {
+      const o = A2.createOscillator(), og = A2.createGain();
+      o.type = type;
+      o.frequency.value = mtof(m) * mul;
+      og.gain.value = k;
+      o.connect(og).connect(g);
+      o.start(t2);
+      o.stop(t2 + dur + 0.2);
+    }
+    g.connect(out);
+  }
+  function pipe(t2, m, vel, dur, out) {
+    const o = A2.createOscillator(), lfo = A2.createOscillator(), lg = A2.createGain(), g = A2.createGain();
+    o.frequency.value = mtof(m);
+    lfo.frequency.value = 5.2;
+    lg.gain.value = mtof(m) * 6e-3;
+    lfo.connect(lg).connect(o.frequency);
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel * 0.8, t2 + 0.07);
+    g.gain.setTargetAtTime(1e-4, t2 + Math.max(0.1, dur * 0.9), 0.08);
+    o.connect(g).connect(out);
+    o.start(t2);
+    lfo.start(t2);
+    o.stop(t2 + dur + 0.5);
+    lfo.stop(t2 + dur + 0.5);
+  }
+  function playNote(n, t2, dur, out) {
+    const voice = n.voice, one = (tt, m, v, d) => {
+      if (voice === "harpsichord" || voice === "bass") harpsichord(tt, m, v * (voice === "bass" ? 0.9 : 1), d, out);
+      else if (voice === "lute") pluck(tt, m, v, out);
+      else if (voice === "organ") organ(tt, m, v * 0.8, d, out);
+      else if (voice === "pipe") pipe(tt, m, v, d, out);
+      else if (voice === "pad") pad(tt, m, v * 0.4, Math.max(1, d), out, "sine");
+      else if (voice === "drone") pad(tt, m, v, Math.max(1, d), out, "sine");
+      else bell(tt, m, v * 0.6, out);
+    };
+    if (n.trill && dur > 0.3 && voice !== "bell" && voice !== "organ") {
+      const s = 0.07, k = Math.min(8, Math.floor(dur * 0.6 / s));
+      for (let i = 0; i < k; i++) one(t2 + i * s, i % 2 ? n.m : n.m + 2, n.v * 0.8, s);
+      one(t2 + k * s, n.m, n.v, dur - k * s);
+    } else if (n.turn && dur > 0.4 && voice !== "bell" && voice !== "organ") {
+      const s = 0.08;
+      [n.m + 2, n.m, n.m - 1].forEach((m, i) => one(t2 + i * s, m, n.v * 0.8, s));
+      one(t2 + 3 * s, n.m, n.v, dur - 3 * s);
+    } else one(t2, n.m, n.v, dur);
+  }
+  var KEYS = [];
+  function placeKey() {
+    const S3 = V.S;
+    if (!S3) return "land";
+    if (S3.combat) {
+      const foe2 = S3.creatures.find((c) => c.id === S3.combat.cid);
+      return foe2 && (foe2.lair || foe2.boss || foe2.named) ? "fight:boss" : "fight";
+    }
+    const rec = R.areaRec(S3);
+    for (const f of KEYS) {
+      const k = f(S3, rec);
+      if (k) return k;
+    }
+    if (rec.kind === "deep") return "deep:" + rec.theme;
+    if (rec.kind === "vault") return "vault";
+    if (rec.kind === "sky") return "sky:" + rec.place;
+    if (rec.kind === "sea") return "sea:" + rec.place;
+    if (R.levelLook(S3)) return "deep";
+    if (rec.kind === "town") {
+      const t2 = R.curTown(S3), cul = t2 === S3.town ? S3.townCulture : t2 && t2.culture;
+      return "town:" + (cul && cul.rare || t2 && t2.size || "town");
+    }
+    if (R.aloft && R.aloft(S3)) return "sky";
+    if (S3.weather.storm) return "storm";
+    if (S3.player.swims || S3.terrain[S3.player.y * R.W + S3.player.x] === R.DEEP) return "sea";
+    if (S3.realm) return "elsewhere:" + S3.realm;
+    if (S3.curses && S3.curses[R.outdoorRec(S3).id]) return "blight";
+    const b = R.biomeOf(S3), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", h = R.clock(S3).hour;
+    return "land:" + climate + ":" + (h >= 20 || h < 5 ? "night" : "day") + ":" + b.id;
+  }
+  var M2 = { key: null, tune: null, next: 0, gain: null, duck: 0 };
+  function music(now) {
+    const key2 = placeKey(), X10 = R.C.music;
+    if (key2 !== M2.key) {
+      const old = M2.gain;
+      if (old) {
+        old.gain.setTargetAtTime(0, now, 1.2);
+        setTimeout(() => old.disconnect(), 6e3);
+      }
+      M2.gain = A2.createGain();
+      M2.gain.gain.setValueAtTime(1e-4, now);
+      M2.gain.gain.setTargetAtTime(1, now, 1.5);
+      M2.gain.connect(musicBus);
+      M2.gain.connect(verb);
+      M2.key = key2;
+      M2.tune = makeTune(X10, key2, Math.floor(Math.random() * 1e9));
+      M2.next = Math.max(M2.next, now + 0.1);
+    }
+    const tu = M2.tune, pl = tu.place, out = M2.gain;
+    while (M2.next < now + 0.6) {
+      const t2 = M2.next, bar = nextBar(tu), len = bar.beats * bar.spb;
+      for (const n of bar.notes) playNote(n, t2 + n.t * bar.spb, n.d * bar.spb, out);
+      if (pl.drone && tu.bar % 2 === 1) pad(t2, bar.chord[0] - 12, 0.045, len * 2.1, out, "sine");
+      if (pl.pad && tu.bar % 2 === 0) for (const m of bar.chord) pad(t2, m, 0.024, len * 1.9, out, "triangle");
+      if (pl.drums) {
+        for (let i = 0; i < bar.beats; i++)
+          if (i !== 3 || Math.random() < 0.5) drum(t2 + i * bar.spb, i === 0 ? 0.3 : 0.18, out, i === 0 ? 90 : 120);
+      }
+      M2.next += len;
+    }
+  }
+  var lastEvent = 0;
+  function eventMusic(kind2) {
+    if (!A2 || !on2() || A2.state !== "running") return;
+    const now = A2.currentTime;
+    if (kind2 === "discovery" && now - lastEvent < 4) return;
+    lastEvent = now;
+    const notes = eventPiece(R.C.music, kind2, Math.floor(Math.random() * 1e9)), g = A2.createGain(), end = notes.reduce((a, n) => Math.max(a, n.t + n.d), 0);
+    g.gain.value = 1;
+    g.connect(musicBus);
+    g.connect(verb);
+    for (const n of notes) playNote(n, now + 0.05 + n.t, n.d, g);
+    setTimeout(() => g.disconnect(), (end + 4) * 1e3);
+    if (M2.gain) {
+      M2.gain.gain.setTargetAtTime(kind2 === "discovery" ? 0.45 : 0.1, now, 0.15);
+      M2.gain.gain.setTargetAtTime(1, now + end, 1.2);
+    }
+  }
+  R.on("learned", () => eventMusic("discovery"));
+  R.on("plotDone", () => eventMusic("discovery"));
+  var AMB = {};
+  function loopNoise(type, freq, q) {
+    const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
+    s.buffer = NOISE;
+    s.loop = true;
+    f.type = type;
+    f.frequency.value = freq;
+    f.Q.value = q || 0.7;
+    g.gain.value = 0;
+    s.connect(f).connect(g).connect(sfxBus);
+    s.start();
+    return { f, g };
+  }
+  function makeAmbience() {
+    AMB.wind = loopNoise("bandpass", 500, 0.6);
+    AMB.rain = loopNoise("highpass", 2500, 0.5);
+    AMB.water = loopNoise("bandpass", 1100, 1.2);
+    AMB.bustle = loopNoise("bandpass", 380, 1.5);
+  }
+  var level = (n, v, k) => n.g.gain.setTargetAtTime(v, A2.currentTime, k || 0.6);
+  function waterNear(S3) {
+    if (R.levelLook(S3)) return 0;
+    const { x, y } = S3.player;
+    let best = 0;
+    for (let dy = -2; dy <= 2; dy++)
+      for (let dx = -2; dx <= 2; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= R.W || yy >= R.H) continue;
+        const i = yy * R.W + xx, st = S3.sites[i];
+        if (S3.terrain[i] === 4 || st && (st.kind === "spring" || st.kind === "pool" || st.kind === "well"))
+          best = Math.max(best, 1 - Math.hypot(dx, dy) / 3);
+      }
+    return best;
+  }
+  var gust = 0;
+  var lastWalk = 0;
+  var nextCall = 0;
+  var nextClink = 0;
+  var nextCrackle = 0;
+  var seen2 = { hp: null, chp: null, combat: false };
+  function world(now, dt) {
+    const S3 = V.S, look2 = R.levelLook(S3), rec = R.areaRec(S3), under2 = look2 && !look2.void, storm = S3.weather.storm ? R.stormOfNow(S3) : null, stormName = storm ? (storm.name || "").toLowerCase() : "", up = R.aloft && R.aloft(S3);
+    gust += dt * 0.3;
+    const w = under2 ? 0.01 : (0.035 + 0.025 * Math.sin(gust) * Math.sin(gust * 0.37)) * (storm ? 3 : 1) * (up ? 2.2 : 1);
+    level(AMB.wind, w, 1);
+    AMB.wind.f.frequency.setTargetAtTime(380 + 260 * (0.5 + 0.5 * Math.sin(gust * 0.7)) + (up ? 300 : 0), now, 1);
+    const wet = storm && !under2 && /rain|hail|storm|sleet/.test(stormName) && !/dust|sand|ash/.test(stormName);
+    level(AMB.rain, wet ? rec.kind === "town" ? 0.05 : 0.08 : 0, 1.2);
+    level(AMB.water, waterNear(S3) * 0.06, 0.8);
+    level(AMB.bustle, rec.kind === "town" ? 0.045 + 0.02 * Math.sin(now * 0.5) : 0, 1);
+    if (rec.kind === "town" && now > nextClink) {
+      nextClink = now + 1.5 + Math.random() * 4;
+      if (Math.random() < 0.5) noiseHit(now, 0.05, 2400 + Math.random() * 1200, 0.12, sfxBus, "bandpass", 8);
+      else pluck(now, 72 + Math.floor(Math.random() * 5) * 2, 0.02, sfxBus);
+    }
+    const camp = S3.camp && S3.camp.area === S3.area && Math.abs(S3.camp.i % R.W - S3.player.x) + Math.abs(Math.floor(S3.camp.i / R.W) - S3.player.y) <= 1;
+    if (camp && now > nextCrackle) {
+      nextCrackle = now + 0.05 + Math.random() * 0.4;
+      noiseHit(now, 0.03 + Math.random() * 0.05, 1800 + Math.random() * 3e3, 0.03, sfxBus, "highpass");
+    }
+    const stride = 1.7;
+    if (P3.walked - lastWalk > stride) {
+      lastWalk = P3.walked;
+      step(now, S3, look2);
+    } else if (P3.walked < lastWalk) lastWalk = P3.walked;
+    if (now > nextCall) {
+      nextCall = now + 6 + Math.random() * 10;
+      const c = S3.creatures.find((c2) => Math.abs(c2.x - S3.player.x) + Math.abs(c2.y - S3.player.y) <= 4 && !c2.bound);
+      if (c) call(now, R.spOf(S3, c).form, 0.08);
+    }
+    const cbt = S3.combat, foe2 = cbt && S3.creatures.find((c) => c.id === cbt.cid);
+    if (cbt && !seen2.combat && foe2) call(now, R.spOf(S3, foe2).form, 0.18);
+    seen2.combat = !!cbt;
+    if (seen2.hp !== null && S3.player.hp < seen2.hp) hurt2(now);
+    seen2.hp = S3.player.hp;
+    const chp = foe2 ? foe2.hp : null;
+    if (seen2.chp !== null && chp !== null && chp < seen2.chp) blow(now);
+    seen2.chp = chp;
+  }
+  function step(t2, S3, look2) {
+    const ti = S3.player.y * R.W + S3.player.x, ter = S3.terrain[ti], b = R.biomeOf(S3), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", kind2 = R.areaRec(S3).kind;
+    let ground = "grass";
+    if (look2) ground = look2.kit === "planks" ? "wood" : look2.void && !look2.kit ? "grass" : "stone";
+    else if (kind2 === "town") ground = "stone";
+    else if (ter === 4 || ter === R.DEEP) ground = "water";
+    else if (climate === "cold") ground = "snow";
+    else if (climate === "hot" || climate === "ashen" || climate === "steppe") ground = "sand";
+    else if (ter === 2) ground = "stone";
+    const v = 0.05 + Math.random() * 0.02;
+    if (ground === "grass") noiseHit(t2, v, 500 + Math.random() * 200, 0.09, sfxBus, "lowpass");
+    else if (ground === "sand") noiseHit(t2, v, 2200 + Math.random() * 800, 0.1, sfxBus, "bandpass", 0.8);
+    else if (ground === "snow") {
+      noiseHit(t2, v, 1500, 0.13, sfxBus, "bandpass", 2);
+      noiseHit(t2 + 0.03, v * 0.6, 3500, 0.06, sfxBus, "highpass");
+    } else if (ground === "water") noiseHit(t2, v * 1.3, 900 + Math.random() * 400, 0.18, sfxBus, "bandpass", 3);
+    else if (ground === "wood") drum(t2, v * 0.8, sfxBus, 180 + Math.random() * 30);
+    else noiseHit(t2, v * 1.1, 3e3 + Math.random() * 1500, 0.04, sfxBus, "bandpass", 4);
+  }
+  function call(t2, form, vel) {
+    if (form === "serpent") return noiseHit(t2, vel * 0.8, 5e3, 0.9, sfxBus, "highpass");
+    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain(), [a, b, dur, type] = form === "hound" ? [440, 700, 1.4, "sawtooth"] : form === "brute" ? [90, 60, 0.7, "sawtooth"] : [220, 180, 2.2, "sine"];
+    o.type = type;
+    o.frequency.setValueAtTime(a, t2);
+    o.frequency.linearRampToValueAtTime(b, t2 + dur * 0.4);
+    o.frequency.linearRampToValueAtTime(a * 0.8, t2 + dur);
+    f.type = "lowpass";
+    f.frequency.value = form === "brute" ? 500 : 1400;
+    env(g, t2, dur * 0.25, vel, dur * 0.75);
+    o.connect(f).connect(g).connect(sfxBus);
+    g.connect(verb);
+    o.start(t2);
+    o.stop(t2 + dur + 0.1);
+  }
+  var blow = (t2) => (noiseHit(t2, 0.35, 700, 0.12, sfxBus, "lowpass"), drum(t2, 0.3, sfxBus, 70));
+  var hurt2 = (t2) => (noiseHit(t2, 0.3, 400, 0.2, sfxBus, "lowpass"), pluck(t2, 40, 0.15, sfxBus));
+  R.on("did", (s, d) => {
+    if (!A2 || !on2()) return;
+    const t2 = A2.currentTime;
+    if (d.id === "attack") noiseHit(t2, 0.12, 1600, 0.18, sfxBus, "bandpass", 0.7);
+    else if (d.id === "drink" || d.id === "fill" || d.id === "fillWater") noiseHit(t2, 0.08, 900, 0.4, sfxBus, "bandpass", 4);
+  });
+  R.on("killed", () => {
+    if (!A2 || !on2()) return;
+    const t2 = A2.currentTime;
+    for (const [i, m] of [67, 71, 74].entries()) bell(t2 + i * 0.12, m, 0.06, sfxBus);
+  });
+  document.addEventListener("click", (e) => {
+    if (!A2 || !on2() || !(e.target && e.target.closest && e.target.closest("button"))) return;
+    const t2 = A2.currentTime, o = A2.createOscillator(), g = A2.createGain();
+    o.frequency.setValueAtTime(1300, t2);
+    o.frequency.exponentialRampToValueAtTime(700, t2 + 0.05);
+    env(g, t2, 2e-3, 0.05, 0.06);
+    o.connect(g).connect(sfxBus);
+    o.start(t2);
+    o.stop(t2 + 0.1);
+  });
+  var lastUpdate = 0;
+  function updateSound(dt) {
+    if (!A2 || !V.S || A2.state !== "running") return;
+    if (!on2()) return;
+    const now = A2.currentTime;
+    if (now - lastUpdate < 0.1) return;
+    lastUpdate = now;
+    music(now);
+    world(now, 0.1);
+    const over = V.S.over ? V.S.over.won ? "win" : "death" : null;
+    if (over && over !== seen2.over) eventMusic(over);
+    seen2.over = over;
+  }
+  var METER = null;
+  function soundLevel() {
+    if (!A2) return null;
+    if (!METER) {
+      METER = A2.createAnalyser();
+      METER.fftSize = 2048;
+      master.connect(METER);
+    }
+    const d = new Float32Array(METER.fftSize);
+    METER.getFloatTimeDomainData(d);
+    let peak = 0, sum2 = 0;
+    for (const x of d) peak = Math.max(peak, Math.abs(x)), sum2 += x * x;
+    return { peak, rms: Math.sqrt(sum2 / d.length) };
+  }
+  var soundState = () => ({ running: !!A2 && A2.state === "running", mood: M2.key, level: soundLevel() });
+
+  // src/view/rooms.js
+  var TUNES = { elder: "hall", temple: "temple", inn: "inn", shop: "shop", smith: "smithy", mapmaker: "library" };
+  KEYS.push((S3, rec) => {
+    if (rec.kind !== "house") return null;
+    const L5 = R.houseOf(S3, S3.area);
+    if (!L5) return "in:home";
+    return "in:" + (L5.empty ? "abandoned" : TUNES[L5.kind] || (L5.grade >= 2 ? "rich" : "home"));
+  });
+  var HT = TOWN_TS / 3;
+  var HH = R.W * HT / 2;
+  var TH = R.W * TOWN_TS / 2;
+  var INSET = 0.45;
+  var CEIL = 2.9;
+  var houseOrigin = (L5) => ({ x: (L5.ox + R.W / 6) * TOWN_TS - TH, z: (L5.oy + R.W / 6) * TOWN_TS - TH });
+  var tileC = (i) => (i + 0.5) * HT - HH;
+  var LOOKS2 = {
+    // walls and floor by climate, then by the building
+    temperate: { wall: "plaster", wcol: "#e8dcc0", floor: "wood", fcol: "#a87e56" },
+    cold: { wall: "logs", wcol: "#c09060", floor: "wood", fcol: "#9a7450" },
+    wet: { wall: "stone", wcol: "#a8a294", floor: "wood", fcol: "#7a5c40" },
+    hot: { wall: "adobe", wcol: "#d8b48a", floor: "tiles", fcol: "#b8704a" },
+    steppe: { wall: "plaster", wcol: "#d8c8a0", floor: "dirt", fcol: "#a08060" },
+    ashen: { wall: "stone", wcol: "#8a8278", floor: "stone", fcol: "#6a625a" }
+  };
+  function lookOf(L5) {
+    const lk = Object.assign({}, LOOKS2[L5.climate] || LOOKS2.temperate);
+    if (L5.kind === "temple" || L5.kind === "elder") Object.assign(lk, { floor: "stone", fcol: "#b8b0a0" });
+    if (L5.grade === 0 && L5.kind === "house") Object.assign(lk, { floor: "dirt", fcol: "#8a7058" });
+    if (L5.empty) lk.wcol = "#a89c88";
+    return lk;
+  }
+  var BUILT3 = /* @__PURE__ */ new Map();
+  function houseGroup(S3, id, L5) {
+    const key2 = id + "|" + S3.seed;
+    if (BUILT3.has(key2)) return BUILT3.get(key2);
+    const lk = lookOf(L5), walls = kit(), floor = kit(), ceil = kit(), wood = kit(), glow2 = kit(), W3 = R.W, cells = L5.cells;
+    let x0 = W3, y0 = W3, x1 = -1, y1 = -1;
+    for (let k = 0; k < W3 * W3; k++)
+      if (cells[k] >= 0) {
+        const x = k % W3, y = Math.floor(k / W3);
+        x0 = Math.min(x0, x);
+        y0 = Math.min(y0, y);
+        x1 = Math.max(x1, x);
+        y1 = Math.max(y1, y);
+      }
+    const left = x0 * HT - HH + INSET, right = (x1 + 1) * HT - HH - INSET, top = y0 * HT - HH + INSET, bot = (y1 + 1) * HT - HH - INSET, cx = (left + right) / 2, cz = (top + bot) / 2, w = right - left, d = bot - top;
+    floor.add(P4.box(w + 0.6, 0.1, d + 0.6), lk.fcol, { x: cx, y: 0.04, z: cz }, { uv: 1.6, jitter: 0.04 });
+    ceil.add(P4.box(w + 0.6, 0.12, d + 0.6), "#6a5038", { x: cx, y: CEIL + 0.06, z: cz }, { uv: 2 });
+    const along = w < d;
+    for (let i = 1, n = Math.max(2, Math.round((along ? d : w) / 1.6)); i < n; i++) {
+      const o = (along ? top : left) + i * (along ? d : w) / n;
+      wood.add(
+        P4.box(along ? w : 0.2, 0.22, along ? 0.2 : d),
+        "#5a4030",
+        along ? { x: cx, y: CEIL - 0.11, z: o } : { x: o, y: CEIL - 0.11, z: cz }
+      );
+    }
+    const door = L5.entry, doorX = tileC(door.x), doorZ = tileC(door.y), T4 = 0.14;
+    const wallLine = (ax, az, bx, bz, gaps, windows) => {
+      const horiz = az === bz, lo = horiz ? Math.min(ax, bx) : Math.min(az, bz), hi = horiz ? Math.max(ax, bx) : Math.max(az, bz), cuts = gaps.slice().sort((a, b) => a[0] - b[0]);
+      let p = lo;
+      const piece = (from, to, y02, y12) => {
+        if (to - from < 0.02) return;
+        const m = (from + to) / 2, len = to - from;
+        walls.add(
+          P4.box(horiz ? len : T4, y12 - y02, horiz ? T4 : len),
+          lk.wcol,
+          horiz ? { x: m, y: (y02 + y12) / 2, z: az } : { x: ax, y: (y02 + y12) / 2, z: m },
+          { uv: 2.2, shade: (yy) => 0.86 + 0.14 * yy }
+        );
+      };
+      for (const [c, gw] of cuts) {
+        piece(p, c - gw / 2, 0, CEIL);
+        piece(c - gw / 2, c + gw / 2, 2.15, CEIL);
+        for (const sg of [-1, 1])
+          wood.add(
+            P4.box(horiz ? 0.1 : T4 + 0.06, 2.15, horiz ? T4 + 0.06 : 0.1),
+            "#5a4030",
+            horiz ? { x: c + sg * gw / 2, y: 1.075, z: az } : { x: ax, y: 1.075, z: c + sg * gw / 2 }
+          );
+        wood.add(
+          P4.box(horiz ? gw + 0.2 : T4 + 0.06, 0.12, horiz ? T4 + 0.06 : gw + 0.2),
+          "#5a4030",
+          horiz ? { x: c, y: 2.15, z: az } : { x: ax, y: 2.15, z: c }
+        );
+        p = c + gw / 2;
+      }
+      piece(p, hi, 0, CEIL);
+      if (windows)
+        for (let q = lo + 1.4; q < hi - 1.2; q += 2.8) {
+          if (cuts.some(([c, gw]) => Math.abs(q - c) < gw / 2 + 0.9)) continue;
+          glow2.add(
+            P4.box(horiz ? 0.75 : 0.04, 0.95, horiz ? 0.04 : 0.75),
+            16769712,
+            horiz ? { x: q, y: 1.55, z: az } : { x: ax, y: 1.55, z: q }
+          );
+          wood.add(
+            P4.box(horiz ? 0.9 : 0.08, 0.08, horiz ? 0.08 : 0.9),
+            "#5a4030",
+            horiz ? { x: q, y: 1.04, z: az } : { x: ax, y: 1.04, z: q }
+          );
+        }
+    };
+    const gapOn = (side) => L5.side === side ? [[side === "n" || side === "s" ? doorX : doorZ, 1.1]] : [];
+    wallLine(left, top, right, top, gapOn("n"), true);
+    wallLine(left, bot, right, bot, gapOn("s"), true);
+    wallLine(left, top, left, bot, gapOn("w"), true);
+    wallLine(right, top, right, bot, gapOn("e"), true);
+    const lines = /* @__PURE__ */ new Map();
+    for (let k = 0; k < W3 * W3; k++) {
+      if (cells[k] < 0) continue;
+      const x = k % W3, y = Math.floor(k / W3);
+      for (const [dx, dy] of [
+        [1, 0],
+        [0, 1]
+      ]) {
+        const n = k + dy * W3 + dx;
+        if (cells[n] < 0 || cells[n] === cells[k]) continue;
+        const horiz = dy === 1, at = horiz ? (y + 1) * HT - HH : (x + 1) * HT - HH, key3 = (horiz ? "h" : "v") + at.toFixed(2), e = lines.get(key3) || { horiz, at, from: Infinity, to: -Infinity, gaps: [] };
+        const a = (horiz ? x : y) * HT - HH;
+        e.from = Math.min(e.from, a);
+        e.to = Math.max(e.to, a + HT);
+        if (L5.open.some(([t2, ox2, oy2]) => (t2 === k || t2 === n) && ox2 === dx && oy2 === dy && t2 !== L5.open[0][0]))
+          e.gaps.push([a + HT / 2, 1.1]);
+        lines.set(key3, e);
+      }
+    }
+    for (const e of lines.values()) {
+      const from = Math.max(e.from, e.horiz ? left : top), to = Math.min(e.to, e.horiz ? right : bot);
+      if (e.horiz) wallLine(from, e.at, to, e.at, e.gaps, false);
+      else wallLine(e.at, from, e.at, to, e.gaps, false);
+    }
+    const g = new THREE.Group(), add = (k, mat, line) => {
+      if (k.empty) return;
+      const m = new THREE.Mesh(k.build(), mat);
+      m.geometry.dispose = () => {
+      };
+      g.add(m);
+      if (line) addOutline(m, 2, 20);
+    };
+    add(floor, kitMat({ map: surface(lk.floor, 1) }));
+    add(walls, kitMat({ map: surface(lk.wall, 1) }));
+    add(ceil, kitMat({ map: surface("wood", 2) }));
+    add(wood, kitMat({ map: surface("wood", 0) }), true);
+    add(glow2, GLOW);
+    g.traverse((o) => o.frustumCulled = false);
+    g.userData.room = id;
+    BUILT3.set(key2, g);
+    if (BUILT3.size > 12) {
+      const [k0, old] = BUILT3.entries().next().value;
+      BUILT3.delete(k0);
+      old.traverse((o) => o.geometry && THREE.BufferGeometry.prototype.dispose.call(o.geometry));
+    }
     return g;
   }
 
@@ -19430,8 +20641,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   })();
   var BUILD = {
     // the shadow of a place in the sky, and the place itself hanging high above it, seen from far off
-    shadow(S2, st) {
-      const g = new THREE.Group(), k = (S2.skies || []).find((x) => x.id === st.sky), kind2 = k ? k.kind : "isle", d = new THREE.Mesh(new THREE.CircleGeometry(16, 20).rotateX(-Math.PI / 2), glow(1909808, 0.35, true));
+    shadow(S3, st) {
+      const g = new THREE.Group(), k = (S3.skies || []).find((x) => x.id === st.sky), kind2 = k ? k.kind : "isle", d = new THREE.Mesh(new THREE.CircleGeometry(16, 20).rotateX(-Math.PI / 2), glow(1909808, 0.35, true));
       d.position.y = 0.4;
       g.add(d);
       const up = new THREE.Group(), far = (c) => std(c, { fog: false, transparent: true, opacity: 0.85 });
@@ -19461,7 +20672,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       return g;
     },
     // someone at a small fire in the wilds (only the ashes, once they have gone on)
-    wayfarer(S2, st) {
+    wayfarer(S3, st) {
       const g = new THREE.Group();
       if (fxOn()) {
         if (st.gone) g.add(box2(1.4, 0.15, 1.4, std(3813415), 0, 0.08, 0));
@@ -19488,7 +20699,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       return g;
     },
     // a door of old stone, alone in the land, with another sky showing through it
-    door(S2, st) {
+    door(S3, st) {
       const g = new THREE.Group(), stone = std(7828330);
       g.add(box2(1.2, 7, 1.2, stone, -2.6, 3.5, 0), box2(1.2, 7, 1.2, stone, 2.6, 3.5, 0), box2(6.6, 1.2, 1.4, stone, 0, 7.4, 0));
       const sky = new THREE.Mesh(new THREE.PlaneGeometry(4, 6.8), glow(st.back ? 12572912 : 11832544, 0.85));
@@ -19499,8 +20710,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     },
     // a place in the water: a mast for a wreck, a cluster of hulls for a floating town, a ring of standing stones for
     // the merfolk's halls or a drowned shrine, and a dark cave mouth on the shore
-    seaplace(S2, st) {
-      const g = new THREE.Group(), p = (S2.seaPlaces || []).find((x) => x.id === st.place), kind2 = p ? p.kind : "wreck";
+    seaplace(S3, st) {
+      const g = new THREE.Group(), p = (S3.seaPlaces || []).find((x) => x.id === st.place), kind2 = p ? p.kind : "wreck";
       if (kind2 === "wreck") g.add(box2(0.5, 9, 0.5, std(4864554), 0, 2.5, 0), box2(4, 0.3, 0.3, std(4864554), 0, 5.5, 0));
       else if (kind2 === "raft") {
         for (let i = 0; i < 7; i++) g.add(box2(3, 1.2, 7, std(6965808), Math.cos(i * 0.9) * 7, 0.2, Math.sin(i * 0.9) * 7));
@@ -19538,9 +20749,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       g.add(m, d);
       return g;
     },
-    hamlet(S2, st, at) {
+    hamlet(S3, st, at) {
       if (townsOn() && at)
-        return cachedModel("hamlet" + S2.seed + ":" + at.seed, () => hamletGroup(S2, at.biome, at.seed).add(BUILD.well()));
+        return cachedModel("hamlet" + S3.seed + ":" + at.seed, () => hamletGroup(S3, at.biome, at.seed).add(BUILD.well()));
       const g = new THREE.Group(), wall2 = std(12101768), roof2 = std(6965810);
       g.add(BUILD.well());
       for (const [x, z, r] of [
@@ -19996,13 +21207,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     return g;
   }
   function applyFrame() {
-    const kind2 = R.areaRec(V.S).kind, inTown2 = kind2 === "town" && V.townAt;
+    const kind2 = R.areaRec(V.S).kind, inTown2 = (kind2 === "town" || kind2 === "house") && V.townAt, house = kind2 === "house" && V.townAt ? houseOrigin(R.houseOf(V.S, V.S.area)) : null;
     if (R.isLevel(V.S)) return;
     const was = { x: FR.x, y: FR.y, z: FR.z };
-    FR.x = inTown2 ? V.townAt.x : 0;
+    FR.x = inTown2 ? V.townAt.x + (house ? house.x : 0) : 0;
     FR.y = inTown2 ? V.townAt.y : 0;
-    FR.z = inTown2 ? V.townAt.z : 0;
-    setGeometry(inTown2 ? "town" : "region");
+    FR.z = inTown2 ? V.townAt.z + (house ? house.z : 0) : 0;
+    setGeometry(house ? "house" : inTown2 ? "town" : "region");
     if (was.x !== FR.x || was.y !== FR.y || was.z !== FR.z) shiftActors(was.x - FR.x, was.z - FR.z, was.y - FR.y);
     const sh = V.shift || { x: 0, z: 0 };
     staticGroup.position.set(-FR.x - sh.x, -FR.y, -FR.z - sh.z);
@@ -20087,7 +21298,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     buildDynamic();
     return true;
   }
-  function* buildLand(S2, timed) {
+  function* buildLand(S3, timed) {
     const group2 = new THREE.Group();
     let tp = performance.now();
     const part = (k) => {
@@ -20096,7 +21307,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       PF.parts[k] = n - tp;
       tp = n;
     };
-    const base = yield* makeTerrainG(S2);
+    const base = yield* makeTerrainG(S3);
     part("land");
     yield;
     const T4 = base, land2 = T4.land, pal = land2.biomes.map((b) => ({
@@ -20315,7 +21526,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         pal.map((p) => p.lush),
         towns,
         townHalf,
-        S2.seed
+        S3.seed
       );
       if (gr) group2.userData.grass = gr;
     }
@@ -20354,16 +21565,16 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       }
       if (st.kind === "town") {
         const id = st.town || "town", tw = towns.find((t2) => t2.id === id);
-        if (!S2.areas[id] || !R.mapOf(S2, id) || !tw) continue;
-        const g2 = interiorGroup(R.mapOf(S2, id), S2.areas[id], TOWN_TS, id);
+        if (!S3.areas[id] || !R.mapOf(S3, id) || !tw) continue;
+        const g2 = interiorGroup(R.mapOf(S3, id), S3.areas[id], TOWN_TS, id);
         g2.position.set(tw.x, tw.y, tw.z);
         group2.add(g2);
         continue;
       }
       if (!BUILD[st.kind]) continue;
-      const g = st.kind !== "well" && st.kind !== "cave" && landmark(st.kind, S2, st) || BUILD[st.kind](S2, st, {
+      const g = st.kind !== "well" && st.kind !== "cave" && landmark(st.kind, S3, st) || BUILD[st.kind](S3, st, {
         biome: land2.biomes[land2.biome[(site.y + MARGIN) * EW + site.x + MARGIN]],
-        seed: S2.seed ^ Math.imul(site.k + 1, 2654435761) ^ land2.cx * 977 + land2.cy * 131
+        seed: S3.seed ^ Math.imul(site.k + 1, 2654435761) ^ land2.cx * 977 + land2.cy * 131
       });
       g.position.set(x, T4.height(x, z), z);
       if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
@@ -20410,6 +21621,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       const rec = R.outdoorRec(V.S);
       drawArea(rec.id, "region");
       if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, "town");
+      if (V.townAt && V.townId) drawHouses();
       if (actorsOn())
         for (let dy = -1; dy <= 1; dy++)
           for (let dx = -1; dx <= 1; dx++) {
@@ -20422,13 +21634,53 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     facet(dynGroup);
     settleActors(dynGroup);
   }
-  function drawArea(id, kind2, nb) {
-    const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind2 !== "region", ts = kind2 === "town" ? TOWN_TS : kind2 === "vault" ? G2.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
+  function drawHouses() {
+    const S3 = V.S, here2 = R.areaRec(S3), inHouse = here2.kind === "house", list = [];
+    if (inHouse) list.push({ id: S3.area, L: R.houseOf(S3, S3.area) });
+    if (R.interiorsOn(S3, V.townId)) {
+      const tsz = TOWN_TS, th = R.W * tsz / 2;
+      for (const b of R.buildingsOf(S3, V.townId)) {
+        if (inHouse && b.id === S3.area) continue;
+        const dx = (b.door.x + 0.5) * tsz - th + V.townAt.x - FR.x - P3.x, dz = (b.door.y + 0.5) * tsz - th + V.townAt.z - FR.z - P3.z;
+        if (dx * dx + dz * dz < 22 * 22) list.push({ id: b.id, L: R.houseLayout(S3, V.townId, b) });
+      }
+    }
+    for (const { id, L: L5 } of list.slice(0, 4)) {
+      if (!L5) continue;
+      const o = houseOrigin(L5), g = houseGroup(S3, id, L5);
+      g.position.set(V.townAt.x + o.x - FR.x, V.townAt.y + 0.08 - FR.y, V.townAt.z + o.z - FR.z);
+      if (g.parent) g.parent.remove(g);
+      dynGroup.add(g);
+      if (S3.areas[id]) drawArea(id, "house", null, L5);
+      else {
+        const gone = new Set(S3.taken && S3.taken[id] || []), hh = R.W * HT / 2, tg = thingsGroup(
+          S3,
+          id,
+          HT,
+          (t2) => [
+            (t2.x + 0.5 + t2.px) * HT - hh + V.townAt.x + o.x - FR.x,
+            V.townAt.y + 0.08 - FR.y,
+            (t2.y + 0.5 + t2.pz) * HT - hh + V.townAt.z + o.z - FR.z
+          ],
+          [FR.x, FR.y, FR.z].join(),
+          L5.things.filter((t2) => !gone.has(t2.id))
+        );
+        if (tg) dynGroup.add(tg);
+      }
+    }
+  }
+  function drawArea(id, kind2, nb, L5) {
+    const map = R.mapOf(V.S, id), current = id === V.S.area, indoor = kind2 !== "region", ts = kind2 === "town" ? TOWN_TS : kind2 === "house" ? HT : kind2 === "vault" ? G2.ts : TS, half = R.W * ts / 2, off = indoor ? ts / 28 : 1;
     const at = (k, dx, dz) => {
       let x = (k % R.W + 0.5) * ts - half + (dx || 0) + (nb ? nb.x : 0), z = (Math.floor(k / R.W) + 0.5) * ts - half + (dz || 0) + (nb ? nb.z : 0), y = 0;
       if (kind2 === "town") {
         x += V.townAt.x;
         z += V.townAt.z;
+        y = V.townAt.y + 0.08;
+      } else if (kind2 === "house") {
+        const o = houseOrigin(L5);
+        x += V.townAt.x + o.x;
+        z += V.townAt.z + o.z;
         y = V.townAt.y + 0.08;
       } else if (kind2 === "region") y = V.base.height(x, z);
       return [x - FR.x, y - FR.y, z - FR.z];
@@ -20641,7 +21893,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     return m;
   }
   function build() {
-    const S2 = V.S, b = R.biomeOf(S2), rough = Math.max(0, Math.min(1, (b.mountains || 0) * 4 + (b.hills || 0) * 0.8)), rec = R.outdoorRec ? R.outdoorRec(S2) : null, k = [S2.seed, rec ? rec.id : "", S2.realm || "", b.id, Q.skyline].join("|");
+    const S3 = V.S, b = R.biomeOf(S3), rough = Math.max(0, Math.min(1, (b.mountains || 0) * 4 + (b.hills || 0) * 0.8)), rec = R.outdoorRec ? R.outdoorRec(S3) : null, k = [S3.seed, rec ? rec.id : "", S3.realm || "", b.id, Q.skyline].join("|");
     if (k === key && group) return;
     key = k;
     if (group) {
@@ -20649,7 +21901,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       group.traverse((o) => o.geometry && (o.geometry.dispose(), o.material.dispose()));
     }
     group = new THREE.Group();
-    const n = Math.min(RINGS.length, Q.skyline), base = S2.seed ^ (rec ? rec.cx * 7919 + rec.cy * 104729 : 0) | 0;
+    const n = Math.min(RINGS.length, Q.skyline), base = S3.seed ^ (rec ? rec.cx * 7919 + rec.cy * 104729 : 0) | 0;
     for (let i = 0; i < n; i++) group.add(ring(RINGS[i], base + i * 977, rough));
     scene.add(group);
   }
@@ -21009,627 +22261,6 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     hemi.groundColor.setHex(lookOn("light") ? 2761760 : 5920076);
   }
 
-  // src/view/score.js
-  function dice3(seed) {
-    let a = seed | 0;
-    return () => {
-      a = a + 1831565813 | 0;
-      let t2 = Math.imul(a ^ a >>> 15, a | 1);
-      t2 ^= t2 + Math.imul(t2 ^ t2 >>> 7, t2 | 61);
-      return ((t2 ^ t2 >>> 14) >>> 0) / 4294967296;
-    };
-  }
-  var hash3 = (str) => {
-    let h = 2166136261;
-    for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
-    return h | 0;
-  };
-  function placeOf(X9, key2) {
-    let k = key2;
-    while (k) {
-      if (X9.places[k]) return X9.places[k];
-      k = k.includes(":") ? k.slice(0, k.lastIndexOf(":")) : "";
-    }
-    return X9.places.land;
-  }
-  var PROG_A = [
-    [0, 3, 4, 4, 0, 3, 4, 0],
-    [0, 4, 0, 4, 5, 3, 4, 0],
-    [0, 5, 3, 4, 0, 5, 4, 0],
-    [0, 0, 3, 4, 5, 1, 4, 0]
-  ];
-  var PROG_B = [
-    [4, 0, 4, 4, 5, 1, 4, 0],
-    [5, 2, 5, 4, 3, 1, 4, 0],
-    [3, 0, 3, 4, 2, 5, 4, 0],
-    [0, 3, 6, 2, 5, 1, 4, 0]
-    // round the circle of fifths
-  ];
-  function contour(r, n, start3, down) {
-    const out = [];
-    let d = start3;
-    for (let i = 0; i < n; i++) {
-      out.push(d);
-      const x = r();
-      d += x < 0.62 ? (down ? -1 : 1) * (x < 0.4 ? 1 : -1) : x < 0.8 ? x < 0.71 ? 2 : -2 : x < 0.9 ? 0 : down ? -3 : 3;
-      d = Math.max(-2, Math.min(7, d));
-    }
-    return out;
-  }
-  var notesIn = (cell) => cell.filter((u) => u > 0).length;
-  function themeOf2(X9, key2) {
-    const place = placeOf(X9, key2), dance = X9.dances[place.dance] || X9.dances.drift, r = dice3(hash3("theme:" + key2)), pick = (a) => a[Math.floor(r() * a.length)], c1 = Math.floor(r() * dance.cells.length), c2 = (c1 + 1 + Math.floor(r() * (dance.cells.length - 1))) % dance.cells.length, c3 = Math.floor(r() * dance.cells.length), s1 = pick([0, 2, 4]), m1 = contour(r, notesIn(dance.cells[c1]), s1, false), m2 = contour(r, notesIn(dance.cells[c2]), Math.max(0, m1[m1.length - 1]), true), m3 = contour(r, notesIn(dance.cells[c3]), pick([2, 4]), r() < 0.5);
-    return { key: key2, place, dance, cells: [c1, c2, c3], shapes: [m1, m2, m3], A: pick(PROG_A), B: pick(PROG_B) };
-  }
-  function makeTune(X9, key2, seed) {
-    const th = themeOf2(X9, key2);
-    return Object.assign(th, { bar: 0, r: dice3(hash3("play:" + key2) ^ (seed | 0)), mode: X9.modes[th.place.mode] || X9.modes.ionian });
-  }
-  var deg2m = (mode, root, d, oct) => {
-    const n = mode.length, k = (d % n + n) % n;
-    return root + 12 * (oct || 0) + mode[k] + 12 * Math.floor(d / n);
-  };
-  function nextBar(tu) {
-    const { dance, place, mode } = tu, r = tu.r, root = place.root, bars = 16, i = tu.bar % bars, pass2 = Math.floor(tu.bar / bars), part = i < 8 ? tu.A : tu.B, b = i % 8, chord = part[b], next = part[(b + 1) % 8], sub = dance.sub, beats = dance.beats, units = beats * sub, density = place.density === void 0 ? 1 : place.density, vary = (pass2 + (i < 8 ? 0 : 1)) % 4, notes = [], lead = place.voice, oct = vary === 2 && root < 70 ? 1 : 0;
-    tu.bar++;
-    if (b === 7) {
-      const half = Math.max(1, Math.round(units / 2)) / sub;
-      notes.push({ t: 0, d: half, m: deg2m(mode, root, chord + 1, oct), v: 0.11, voice: lead, trill: place.ornament > 0 });
-      notes.push({ t: half, d: beats - half, m: deg2m(mode, root, chord, oct), v: 0.12, voice: lead });
-    } else {
-      const which = b === 1 || b === 5 ? 1 : b === 2 || b === 6 ? 2 : 0, cell = dance.cells[tu.cells[which]], shape = tu.shapes[which];
-      let t2 = 0, k = 0;
-      for (let j = 0; j < cell.length; j++) {
-        const u = cell[j], dur = Math.abs(u) / sub;
-        if (u < 0) {
-          t2 += dur;
-          continue;
-        }
-        let d = shape[k++ % shape.length];
-        if (vary === 3) d = 4 - d;
-        const m = deg2m(mode, root, chord + d, oct), restHere = density < 1 && j > 0 && r() > density;
-        if (!restHere) {
-          const strong = Math.abs(t2 - Math.round(t2)) < 1e-6 && Math.round(t2) % beats === 0;
-          if (vary === 1 && u >= 2 && r() < 0.6) {
-            const nd = shape[k % shape.length], step2 = nd > d ? 1 : nd < d ? -1 : 1;
-            notes.push({ t: t2, d: dur / 2, m, v: strong ? 0.11 : 0.09, voice: lead });
-            notes.push({ t: t2 + dur / 2, d: dur / 2, m: deg2m(mode, root, chord + d + step2, oct), v: 0.08, voice: lead });
-          } else {
-            const orn = dur >= 1 && place.ornament && r() < place.ornament;
-            notes.push({ t: t2, d: dur, m, v: strong ? 0.11 : 0.09, voice: lead, trill: orn && r() < 0.5, turn: orn });
-          }
-          if (place.inner && Math.abs(t2 - Math.round(t2)) < 1e-6)
-            notes.push({ t: t2, d: Math.min(dur, 1), m: deg2m(mode, root, chord + d - (k % 2 ? 2 : 5), oct), v: 0.05, voice: lead });
-        }
-        t2 += dur;
-      }
-    }
-    const bo = root >= 60 ? -2 : -1, bvoice = lead === "organ" ? "organ" : lead === "bell" || lead === "pipe" ? "pad" : "bass", bass = (d, t2, dur, v) => notes.push({ t: t2, d: dur, m: deg2m(mode, root, d, bo), v, voice: bvoice });
-    if (dance.bass === "beat") {
-      const pat = beats === 3 ? [0, 4, 4] : beats === 2 ? [0, 4] : [0, 4, 2, 4];
-      pat.forEach((o, j) => bass(chord + o, j, 1, j === 0 ? 0.1 : 0.06));
-    } else if (dance.bass === "walk") {
-      let target = next;
-      while (target - chord > 3) target -= 7;
-      while (chord - target > 3) target += 7;
-      for (let j = 0; j < beats; j++) {
-        const f = j / beats, d = j === 0 ? chord : Math.round(chord + (target - chord) * f) + (j === beats - 1 && target === chord ? 1 : 0);
-        bass(d, j, 1, j === 0 ? 0.1 : 0.07);
-      }
-    } else if (dance.bass === "long") {
-      bass(chord, 0, beats === 3 ? 2 : beats, 0.09);
-      if (beats === 3) bass(chord + 4, 2, 1, 0.06);
-    } else if (dance.bass === "drone") {
-      notes.push({ t: 0, d: beats, m: deg2m(mode, root, 0, -1), v: 0.05, voice: "drone" });
-      notes.push({ t: 0, d: beats, m: deg2m(mode, root, 4, -1), v: 0.035, voice: "drone" });
-    }
-    const lo = root - 5 + 12 * oct, hi = root + 16 + 12 * oct;
-    for (const n of notes)
-      if (n.voice === lead) {
-        while (n.m > hi) n.m -= 12;
-        while (n.m < lo) n.m += 12;
-      }
-    return { beats, spb: 60 / dance.tempo, chord: [0, 2, 4].map((o) => deg2m(mode, root, chord + o, -1)), notes };
-  }
-  function eventPiece(X9, kind2, seed) {
-    const e = X9.events[kind2], mode = X9.modes[e.mode], root = e.root, r = dice3(hash3("event:" + kind2) ^ (seed | 0)), out = [], n = (d, o) => deg2m(mode, root, d, o), v = e.voice;
-    if (kind2 === "discovery") {
-      const s = 0.11, steps = r() < 0.5 ? [0, 2, 4, 7] : [0, 4, 2, 7];
-      steps.forEach((d, i) => out.push({ t: i * s, d: s, m: n(d), v: 0.1, voice: v }));
-      out.push({ t: 4 * s, d: 0.7, m: n(8), v: 0.11, voice: v, trill: true });
-      out.push({ t: 0, d: 1.2, m: n(0, -2), v: 0.08, voice: "bass" });
-    } else if (kind2 === "win") {
-      const b = 0.42;
-      for (let i = 0; i < 8; i++) out.push({ t: i * b * 0.5, d: b * 0.5, m: n(i), v: 0.09, voice: v });
-      const close = [
-        [3, 5],
-        [4, 6],
-        [4, 8],
-        [0, 7]
-      ];
-      close.forEach(([ch, top], i) => {
-        out.push({ t: 4 * b + i * 2 * b, d: 2 * b, m: n(top), v: 0.11, voice: v, trill: i === 2 });
-        out.push({ t: 4 * b + i * 2 * b, d: 2 * b, m: n(top - 2), v: 0.06, voice: v });
-        out.push({ t: 4 * b + i * 2 * b, d: 2 * b, m: n(ch, -2), v: 0.1, voice: "bass" });
-      });
-      out.push({ t: 12 * b, d: 3, m: n(7), v: 0.12, voice: v });
-      out.push({ t: 12 * b, d: 3, m: n(0, -2), v: 0.1, voice: "bass" });
-    } else {
-      const b = 1.05, top = root + 12;
-      for (let i = 0; i < 6; i++) {
-        out.push({ t: i * b, d: b, m: root - 12 - i, v: 0.1, voice: "bass" });
-        if (i < 5) {
-          const hi = top + 2 - i * 2 + (r() < 0.3 ? 1 : 0);
-          out.push({ t: i * b, d: b * 0.6, m: hi, v: 0.1, voice: v });
-          out.push({ t: i * b + b * 0.6, d: b * 0.4, m: hi - 1, v: 0.06, voice: v });
-        }
-      }
-      out.push({ t: 6 * b, d: 3, m: root - 17, v: 0.1, voice: "bass" });
-      out.push({ t: 6 * b, d: 3, m: root - 1, v: 0.08, voice: v, trill: true });
-    }
-    return out;
-  }
-
-  // src/view/sound.js
-  LOOK_SWITCHES.push(["sound", "Sound and music"]);
-  if (SET.music === void 0) SET.music = 0.55;
-  if (SET.sfx === void 0) SET.sfx = 0.8;
-  var A2 = null;
-  var master;
-  var musicBus;
-  var sfxBus;
-  var verb;
-  var NOISE;
-  var on2 = () => lookOn("sound") && !SET.mute;
-  function start() {
-    if (A2) {
-      if (A2.state === "suspended" && !document.hidden) A2.resume();
-      return;
-    }
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC || !on2()) return;
-    A2 = new AC();
-    master = A2.createGain();
-    master.gain.value = 0.9;
-    master.connect(A2.destination);
-    musicBus = A2.createGain();
-    sfxBus = A2.createGain();
-    musicBus.connect(master);
-    sfxBus.connect(master);
-    verb = A2.createConvolver();
-    const len = Math.floor(A2.sampleRate * 2.6), ir = A2.createBuffer(2, len, A2.sampleRate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = ir.getChannelData(ch);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
-    }
-    verb.buffer = ir;
-    const wet = A2.createGain();
-    wet.gain.value = 0.55;
-    verb.connect(wet);
-    wet.connect(musicBus);
-    NOISE = A2.createBuffer(1, A2.sampleRate * 2, A2.sampleRate);
-    const nd = NOISE.getChannelData(0);
-    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
-    makeAmbience();
-    volumes();
-  }
-  function volumes() {
-    if (!A2) return;
-    const t2 = A2.currentTime;
-    musicBus.gain.setTargetAtTime(on2() ? SET.music * 0.5 : 0, t2, 0.3);
-    sfxBus.gain.setTargetAtTime(on2() ? SET.sfx : 0, t2, 0.1);
-  }
-  ["pointerdown", "keydown", "touchstart"].forEach((e) => document.addEventListener(e, start, { passive: true }));
-  document.addEventListener("visibilitychange", () => {
-    if (!A2) return;
-    if (document.hidden) A2.suspend();
-    else if (on2()) A2.resume();
-  });
-  LOOK_CHANGED.push((id) => {
-    if (id !== "sound") return;
-    if (on2()) start();
-    volumes();
-  });
-  function setVolume(kind2, v) {
-    if (kind2 === "mute") SET.mute = !!v;
-    else SET[kind2] = v;
-    saveSettings();
-    if (on2()) start();
-    volumes();
-  }
-  var env = (g, t2, a, peak, d) => {
-    g.gain.setValueAtTime(1e-4, t2);
-    g.gain.linearRampToValueAtTime(peak, t2 + a);
-    g.gain.exponentialRampToValueAtTime(1e-4, t2 + a + d);
-  };
-  var mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
-  function bell(t2, m, vel, out) {
-    for (const [mul, k] of [
-      [1, 1],
-      [2.76, 0.3],
-      [5.4, 0.08]
-    ]) {
-      const o = A2.createOscillator(), g = A2.createGain();
-      o.frequency.value = mtof(m) * mul;
-      env(g, t2, 5e-3, vel * k, 2.8 / mul);
-      o.connect(g).connect(out);
-      o.start(t2);
-      o.stop(t2 + 3.2);
-    }
-  }
-  function pluck(t2, m, vel, out) {
-    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain();
-    o.type = "triangle";
-    o.frequency.value = mtof(m);
-    f.type = "lowpass";
-    f.frequency.setValueAtTime(mtof(m) * 6, t2);
-    f.frequency.exponentialRampToValueAtTime(mtof(m) * 1.2, t2 + 0.6);
-    env(g, t2, 4e-3, vel, 1.1);
-    o.connect(f).connect(g).connect(out);
-    o.start(t2);
-    o.stop(t2 + 1.3);
-  }
-  function pad(t2, m, vel, dur, out, wave) {
-    const f = A2.createBiquadFilter(), g = A2.createGain();
-    f.type = "lowpass";
-    f.frequency.value = Math.min(2400, mtof(m) * 3);
-    g.gain.setValueAtTime(1e-4, t2);
-    g.gain.linearRampToValueAtTime(vel, t2 + dur * 0.4);
-    g.gain.linearRampToValueAtTime(1e-4, t2 + dur);
-    for (const det of [-7, 6]) {
-      const o = A2.createOscillator();
-      o.type = wave || "triangle";
-      o.frequency.value = mtof(m);
-      o.detune.value = det;
-      o.connect(f);
-      o.start(t2);
-      o.stop(t2 + dur + 0.1);
-    }
-    f.connect(g).connect(out);
-  }
-  function drum(t2, vel, out, pitch) {
-    const o = A2.createOscillator(), g = A2.createGain();
-    o.frequency.setValueAtTime(pitch || 110, t2);
-    o.frequency.exponentialRampToValueAtTime((pitch || 110) * 0.45, t2 + 0.25);
-    env(g, t2, 3e-3, vel, 0.35);
-    o.connect(g).connect(out);
-    o.start(t2);
-    o.stop(t2 + 0.5);
-    noiseHit(t2, vel * 0.25, 900, 0.08, out);
-  }
-  function noiseHit(t2, vel, freq, dur, out, type, q) {
-    const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
-    s.buffer = NOISE;
-    f.type = type || "bandpass";
-    f.frequency.value = freq;
-    f.Q.value = q || 1;
-    env(g, t2, 4e-3, vel, dur);
-    s.connect(f).connect(g).connect(out);
-    s.start(t2, Math.random() * 1.5);
-    s.stop(t2 + dur + 0.05);
-  }
-  var HARP = null;
-  function harpWave() {
-    if (HARP) return HARP;
-    const n = 32, re = new Float32Array(n), im = new Float32Array(n);
-    for (let k = 1; k < n; k++) im[k] = Math.abs(Math.sin(k * Math.PI * 0.13)) / k * (k < 3 ? 1 : 1.3);
-    return HARP = A2.createPeriodicWave(re, im);
-  }
-  function harpsichord(t2, m, vel, dur, out) {
-    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain(), fr = mtof(m), ring2 = 0.25 + Math.max(0, 84 - m) * 0.018;
-    o.setPeriodicWave(harpWave());
-    o.frequency.value = fr;
-    f.type = "lowpass";
-    f.frequency.setValueAtTime(Math.min(14e3, fr * 12), t2);
-    f.frequency.setTargetAtTime(fr * 2.5, t2 + 0.01, ring2 * 0.6);
-    g.gain.setValueAtTime(1e-4, t2);
-    g.gain.linearRampToValueAtTime(vel, t2 + 3e-3);
-    g.gain.setTargetAtTime(1e-4, t2 + 4e-3, ring2);
-    g.gain.setTargetAtTime(1e-4, t2 + Math.max(0.05, dur), 0.03);
-    o.connect(f).connect(g).connect(out);
-    o.start(t2);
-    o.stop(t2 + Math.min(dur + 0.25, ring2 * 5));
-  }
-  function organ(t2, m, vel, dur, out) {
-    const g = A2.createGain();
-    g.gain.setValueAtTime(1e-4, t2);
-    g.gain.linearRampToValueAtTime(vel * 0.7, t2 + 0.06);
-    g.gain.setValueAtTime(vel * 0.7, t2 + Math.max(0.07, dur - 0.05));
-    g.gain.linearRampToValueAtTime(1e-4, t2 + dur + 0.15);
-    for (const [mul, type, k] of [
-      [1, "sine", 1],
-      [2, "triangle", 0.35]
-    ]) {
-      const o = A2.createOscillator(), og = A2.createGain();
-      o.type = type;
-      o.frequency.value = mtof(m) * mul;
-      og.gain.value = k;
-      o.connect(og).connect(g);
-      o.start(t2);
-      o.stop(t2 + dur + 0.2);
-    }
-    g.connect(out);
-  }
-  function pipe(t2, m, vel, dur, out) {
-    const o = A2.createOscillator(), lfo = A2.createOscillator(), lg = A2.createGain(), g = A2.createGain();
-    o.frequency.value = mtof(m);
-    lfo.frequency.value = 5.2;
-    lg.gain.value = mtof(m) * 6e-3;
-    lfo.connect(lg).connect(o.frequency);
-    g.gain.setValueAtTime(1e-4, t2);
-    g.gain.linearRampToValueAtTime(vel * 0.8, t2 + 0.07);
-    g.gain.setTargetAtTime(1e-4, t2 + Math.max(0.1, dur * 0.9), 0.08);
-    o.connect(g).connect(out);
-    o.start(t2);
-    lfo.start(t2);
-    o.stop(t2 + dur + 0.5);
-    lfo.stop(t2 + dur + 0.5);
-  }
-  function playNote(n, t2, dur, out) {
-    const voice = n.voice, one = (tt, m, v, d) => {
-      if (voice === "harpsichord" || voice === "bass") harpsichord(tt, m, v * (voice === "bass" ? 0.9 : 1), d, out);
-      else if (voice === "lute") pluck(tt, m, v, out);
-      else if (voice === "organ") organ(tt, m, v * 0.8, d, out);
-      else if (voice === "pipe") pipe(tt, m, v, d, out);
-      else if (voice === "pad") pad(tt, m, v * 0.4, Math.max(1, d), out, "sine");
-      else if (voice === "drone") pad(tt, m, v, Math.max(1, d), out, "sine");
-      else bell(tt, m, v * 0.6, out);
-    };
-    if (n.trill && dur > 0.3 && voice !== "bell" && voice !== "organ") {
-      const s = 0.07, k = Math.min(8, Math.floor(dur * 0.6 / s));
-      for (let i = 0; i < k; i++) one(t2 + i * s, i % 2 ? n.m : n.m + 2, n.v * 0.8, s);
-      one(t2 + k * s, n.m, n.v, dur - k * s);
-    } else if (n.turn && dur > 0.4 && voice !== "bell" && voice !== "organ") {
-      const s = 0.08;
-      [n.m + 2, n.m, n.m - 1].forEach((m, i) => one(t2 + i * s, m, n.v * 0.8, s));
-      one(t2 + 3 * s, n.m, n.v, dur - 3 * s);
-    } else one(t2, n.m, n.v, dur);
-  }
-  var KEYS = [];
-  function placeKey() {
-    const S2 = V.S;
-    if (!S2) return "land";
-    if (S2.combat) {
-      const foe2 = S2.creatures.find((c) => c.id === S2.combat.cid);
-      return foe2 && (foe2.lair || foe2.boss || foe2.named) ? "fight:boss" : "fight";
-    }
-    const rec = R.areaRec(S2);
-    for (const f of KEYS) {
-      const k = f(S2, rec);
-      if (k) return k;
-    }
-    if (rec.kind === "deep") return "deep:" + rec.theme;
-    if (rec.kind === "vault") return "vault";
-    if (rec.kind === "sky") return "sky:" + rec.place;
-    if (rec.kind === "sea") return "sea:" + rec.place;
-    if (R.levelLook(S2)) return "deep";
-    if (rec.kind === "town") {
-      const t2 = R.curTown(S2), cul = t2 === S2.town ? S2.townCulture : t2 && t2.culture;
-      return "town:" + (cul && cul.rare || t2 && t2.size || "town");
-    }
-    if (R.aloft && R.aloft(S2)) return "sky";
-    if (S2.weather.storm) return "storm";
-    if (S2.player.swims || S2.terrain[S2.player.y * R.W + S2.player.x] === R.DEEP) return "sea";
-    if (S2.realm) return "elsewhere:" + S2.realm;
-    if (S2.curses && S2.curses[R.outdoorRec(S2).id]) return "blight";
-    const b = R.biomeOf(S2), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", h = R.clock(S2).hour;
-    return "land:" + climate + ":" + (h >= 20 || h < 5 ? "night" : "day") + ":" + b.id;
-  }
-  var M2 = { key: null, tune: null, next: 0, gain: null, duck: 0 };
-  function music(now) {
-    const key2 = placeKey(), X9 = R.C.music;
-    if (key2 !== M2.key) {
-      const old = M2.gain;
-      if (old) {
-        old.gain.setTargetAtTime(0, now, 1.2);
-        setTimeout(() => old.disconnect(), 6e3);
-      }
-      M2.gain = A2.createGain();
-      M2.gain.gain.setValueAtTime(1e-4, now);
-      M2.gain.gain.setTargetAtTime(1, now, 1.5);
-      M2.gain.connect(musicBus);
-      M2.gain.connect(verb);
-      M2.key = key2;
-      M2.tune = makeTune(X9, key2, Math.floor(Math.random() * 1e9));
-      M2.next = Math.max(M2.next, now + 0.1);
-    }
-    const tu = M2.tune, pl = tu.place, out = M2.gain;
-    while (M2.next < now + 0.6) {
-      const t2 = M2.next, bar = nextBar(tu), len = bar.beats * bar.spb;
-      for (const n of bar.notes) playNote(n, t2 + n.t * bar.spb, n.d * bar.spb, out);
-      if (pl.drone && tu.bar % 2 === 1) pad(t2, bar.chord[0] - 12, 0.045, len * 2.1, out, "sine");
-      if (pl.pad && tu.bar % 2 === 0) for (const m of bar.chord) pad(t2, m, 0.024, len * 1.9, out, "triangle");
-      if (pl.drums) {
-        for (let i = 0; i < bar.beats; i++)
-          if (i !== 3 || Math.random() < 0.5) drum(t2 + i * bar.spb, i === 0 ? 0.3 : 0.18, out, i === 0 ? 90 : 120);
-      }
-      M2.next += len;
-    }
-  }
-  var lastEvent = 0;
-  function eventMusic(kind2) {
-    if (!A2 || !on2() || A2.state !== "running") return;
-    const now = A2.currentTime;
-    if (kind2 === "discovery" && now - lastEvent < 4) return;
-    lastEvent = now;
-    const notes = eventPiece(R.C.music, kind2, Math.floor(Math.random() * 1e9)), g = A2.createGain(), end = notes.reduce((a, n) => Math.max(a, n.t + n.d), 0);
-    g.gain.value = 1;
-    g.connect(musicBus);
-    g.connect(verb);
-    for (const n of notes) playNote(n, now + 0.05 + n.t, n.d, g);
-    setTimeout(() => g.disconnect(), (end + 4) * 1e3);
-    if (M2.gain) {
-      M2.gain.gain.setTargetAtTime(kind2 === "discovery" ? 0.45 : 0.1, now, 0.15);
-      M2.gain.gain.setTargetAtTime(1, now + end, 1.2);
-    }
-  }
-  R.on("learned", () => eventMusic("discovery"));
-  R.on("plotDone", () => eventMusic("discovery"));
-  var AMB = {};
-  function loopNoise(type, freq, q) {
-    const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
-    s.buffer = NOISE;
-    s.loop = true;
-    f.type = type;
-    f.frequency.value = freq;
-    f.Q.value = q || 0.7;
-    g.gain.value = 0;
-    s.connect(f).connect(g).connect(sfxBus);
-    s.start();
-    return { f, g };
-  }
-  function makeAmbience() {
-    AMB.wind = loopNoise("bandpass", 500, 0.6);
-    AMB.rain = loopNoise("highpass", 2500, 0.5);
-    AMB.water = loopNoise("bandpass", 1100, 1.2);
-    AMB.bustle = loopNoise("bandpass", 380, 1.5);
-  }
-  var level = (n, v, k) => n.g.gain.setTargetAtTime(v, A2.currentTime, k || 0.6);
-  function waterNear(S2) {
-    if (R.levelLook(S2)) return 0;
-    const { x, y } = S2.player;
-    let best = 0;
-    for (let dy = -2; dy <= 2; dy++)
-      for (let dx = -2; dx <= 2; dx++) {
-        const xx = x + dx, yy = y + dy;
-        if (xx < 0 || yy < 0 || xx >= R.W || yy >= R.H) continue;
-        const i = yy * R.W + xx, st = S2.sites[i];
-        if (S2.terrain[i] === 4 || st && (st.kind === "spring" || st.kind === "pool" || st.kind === "well"))
-          best = Math.max(best, 1 - Math.hypot(dx, dy) / 3);
-      }
-    return best;
-  }
-  var gust = 0;
-  var lastWalk = 0;
-  var nextCall = 0;
-  var nextClink = 0;
-  var nextCrackle = 0;
-  var seen2 = { hp: null, chp: null, combat: false };
-  function world(now, dt) {
-    const S2 = V.S, look2 = R.levelLook(S2), rec = R.areaRec(S2), under2 = look2 && !look2.void, storm = S2.weather.storm ? R.stormOfNow(S2) : null, stormName = storm ? (storm.name || "").toLowerCase() : "", up = R.aloft && R.aloft(S2);
-    gust += dt * 0.3;
-    const w = under2 ? 0.01 : (0.035 + 0.025 * Math.sin(gust) * Math.sin(gust * 0.37)) * (storm ? 3 : 1) * (up ? 2.2 : 1);
-    level(AMB.wind, w, 1);
-    AMB.wind.f.frequency.setTargetAtTime(380 + 260 * (0.5 + 0.5 * Math.sin(gust * 0.7)) + (up ? 300 : 0), now, 1);
-    const wet = storm && !under2 && /rain|hail|storm|sleet/.test(stormName) && !/dust|sand|ash/.test(stormName);
-    level(AMB.rain, wet ? rec.kind === "town" ? 0.05 : 0.08 : 0, 1.2);
-    level(AMB.water, waterNear(S2) * 0.06, 0.8);
-    level(AMB.bustle, rec.kind === "town" ? 0.045 + 0.02 * Math.sin(now * 0.5) : 0, 1);
-    if (rec.kind === "town" && now > nextClink) {
-      nextClink = now + 1.5 + Math.random() * 4;
-      if (Math.random() < 0.5) noiseHit(now, 0.05, 2400 + Math.random() * 1200, 0.12, sfxBus, "bandpass", 8);
-      else pluck(now, 72 + Math.floor(Math.random() * 5) * 2, 0.02, sfxBus);
-    }
-    const camp = S2.camp && S2.camp.area === S2.area && Math.abs(S2.camp.i % R.W - S2.player.x) + Math.abs(Math.floor(S2.camp.i / R.W) - S2.player.y) <= 1;
-    if (camp && now > nextCrackle) {
-      nextCrackle = now + 0.05 + Math.random() * 0.4;
-      noiseHit(now, 0.03 + Math.random() * 0.05, 1800 + Math.random() * 3e3, 0.03, sfxBus, "highpass");
-    }
-    const stride = 1.7;
-    if (P3.walked - lastWalk > stride) {
-      lastWalk = P3.walked;
-      step(now, S2, look2);
-    } else if (P3.walked < lastWalk) lastWalk = P3.walked;
-    if (now > nextCall) {
-      nextCall = now + 6 + Math.random() * 10;
-      const c = S2.creatures.find((c2) => Math.abs(c2.x - S2.player.x) + Math.abs(c2.y - S2.player.y) <= 4 && !c2.bound);
-      if (c) call(now, R.spOf(S2, c).form, 0.08);
-    }
-    const cbt = S2.combat, foe2 = cbt && S2.creatures.find((c) => c.id === cbt.cid);
-    if (cbt && !seen2.combat && foe2) call(now, R.spOf(S2, foe2).form, 0.18);
-    seen2.combat = !!cbt;
-    if (seen2.hp !== null && S2.player.hp < seen2.hp) hurt2(now);
-    seen2.hp = S2.player.hp;
-    const chp = foe2 ? foe2.hp : null;
-    if (seen2.chp !== null && chp !== null && chp < seen2.chp) blow(now);
-    seen2.chp = chp;
-  }
-  function step(t2, S2, look2) {
-    const ti = S2.player.y * R.W + S2.player.x, ter = S2.terrain[ti], b = R.biomeOf(S2), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", kind2 = R.areaRec(S2).kind;
-    let ground = "grass";
-    if (look2) ground = look2.kit === "planks" ? "wood" : look2.void && !look2.kit ? "grass" : "stone";
-    else if (kind2 === "town") ground = "stone";
-    else if (ter === 4 || ter === R.DEEP) ground = "water";
-    else if (climate === "cold") ground = "snow";
-    else if (climate === "hot" || climate === "ashen" || climate === "steppe") ground = "sand";
-    else if (ter === 2) ground = "stone";
-    const v = 0.05 + Math.random() * 0.02;
-    if (ground === "grass") noiseHit(t2, v, 500 + Math.random() * 200, 0.09, sfxBus, "lowpass");
-    else if (ground === "sand") noiseHit(t2, v, 2200 + Math.random() * 800, 0.1, sfxBus, "bandpass", 0.8);
-    else if (ground === "snow") {
-      noiseHit(t2, v, 1500, 0.13, sfxBus, "bandpass", 2);
-      noiseHit(t2 + 0.03, v * 0.6, 3500, 0.06, sfxBus, "highpass");
-    } else if (ground === "water") noiseHit(t2, v * 1.3, 900 + Math.random() * 400, 0.18, sfxBus, "bandpass", 3);
-    else if (ground === "wood") drum(t2, v * 0.8, sfxBus, 180 + Math.random() * 30);
-    else noiseHit(t2, v * 1.1, 3e3 + Math.random() * 1500, 0.04, sfxBus, "bandpass", 4);
-  }
-  function call(t2, form, vel) {
-    if (form === "serpent") return noiseHit(t2, vel * 0.8, 5e3, 0.9, sfxBus, "highpass");
-    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain(), [a, b, dur, type] = form === "hound" ? [440, 700, 1.4, "sawtooth"] : form === "brute" ? [90, 60, 0.7, "sawtooth"] : [220, 180, 2.2, "sine"];
-    o.type = type;
-    o.frequency.setValueAtTime(a, t2);
-    o.frequency.linearRampToValueAtTime(b, t2 + dur * 0.4);
-    o.frequency.linearRampToValueAtTime(a * 0.8, t2 + dur);
-    f.type = "lowpass";
-    f.frequency.value = form === "brute" ? 500 : 1400;
-    env(g, t2, dur * 0.25, vel, dur * 0.75);
-    o.connect(f).connect(g).connect(sfxBus);
-    g.connect(verb);
-    o.start(t2);
-    o.stop(t2 + dur + 0.1);
-  }
-  var blow = (t2) => (noiseHit(t2, 0.35, 700, 0.12, sfxBus, "lowpass"), drum(t2, 0.3, sfxBus, 70));
-  var hurt2 = (t2) => (noiseHit(t2, 0.3, 400, 0.2, sfxBus, "lowpass"), pluck(t2, 40, 0.15, sfxBus));
-  R.on("did", (s, d) => {
-    if (!A2 || !on2()) return;
-    const t2 = A2.currentTime;
-    if (d.id === "attack") noiseHit(t2, 0.12, 1600, 0.18, sfxBus, "bandpass", 0.7);
-    else if (d.id === "drink" || d.id === "fill" || d.id === "fillWater") noiseHit(t2, 0.08, 900, 0.4, sfxBus, "bandpass", 4);
-  });
-  R.on("killed", () => {
-    if (!A2 || !on2()) return;
-    const t2 = A2.currentTime;
-    for (const [i, m] of [67, 71, 74].entries()) bell(t2 + i * 0.12, m, 0.06, sfxBus);
-  });
-  document.addEventListener("click", (e) => {
-    if (!A2 || !on2() || !(e.target && e.target.closest && e.target.closest("button"))) return;
-    const t2 = A2.currentTime, o = A2.createOscillator(), g = A2.createGain();
-    o.frequency.setValueAtTime(1300, t2);
-    o.frequency.exponentialRampToValueAtTime(700, t2 + 0.05);
-    env(g, t2, 2e-3, 0.05, 0.06);
-    o.connect(g).connect(sfxBus);
-    o.start(t2);
-    o.stop(t2 + 0.1);
-  });
-  var lastUpdate = 0;
-  function updateSound(dt) {
-    if (!A2 || !V.S || A2.state !== "running") return;
-    if (!on2()) return;
-    const now = A2.currentTime;
-    if (now - lastUpdate < 0.1) return;
-    lastUpdate = now;
-    music(now);
-    world(now, 0.1);
-    const over = V.S.over ? V.S.over.won ? "win" : "death" : null;
-    if (over && over !== seen2.over) eventMusic(over);
-    seen2.over = over;
-  }
-  var METER = null;
-  function soundLevel() {
-    if (!A2) return null;
-    if (!METER) {
-      METER = A2.createAnalyser();
-      METER.fftSize = 2048;
-      master.connect(METER);
-    }
-    const d = new Float32Array(METER.fftSize);
-    METER.getFloatTimeDomainData(d);
-    let peak = 0, sum2 = 0;
-    for (const x of d) peak = Math.max(peak, Math.abs(x)), sum2 += x * x;
-    return { peak, rms: Math.sqrt(sum2 / d.length) };
-  }
-  var soundState = () => ({ running: !!A2 && A2.state === "running", mood: M2.key, level: soundLevel() });
-
   // src/view/post.js
   LOOK_SWITCHES.push(["post", "Bloom and colour grading"]);
   LOOK_SWITCHES.push(["ink", "Ink lines in other worlds"]);
@@ -21977,7 +22608,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const sn = Math.sin(P3.yaw), cs = Math.cos(P3.yaw), dx = -sn * fy + cs * fx, dz = -cs * fy - sn * fx, mc = R.moveCost(V.S, V.S.player.x, V.S.player.y), indoor = R.indoors(V.S), sp = VIEW.speed * (indoor ? 0.65 : clamp2(mc.base / mc.mins, 0.3, 1.15));
     const inTown2 = R.areaRec(V.S).kind === "town", open = R.inOverworld(V.S) || inTown2, lim = open ? G2.half + 1 : G2.half - 1, tileOf = open ? (x) => Math.floor((x + G2.half) / G2.ts) : toTile;
     let nx = clamp2(P3.x + dx * sp * dt, -lim, lim), nz = clamp2(P3.z + dz * sp * dt, -lim, lim);
-    const pad2 = indoor ? 0.6 : 0, blocked = (x, z) => !R.passable(V.S, toTile(x + Math.sign(x - P3.x) * pad2), toTile(z)) || !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P3.z) * pad2));
+    const inHouse = R.areaRec(V.S).kind === "house", pad2 = inHouse ? 0.35 : indoor ? 0.6 : 0, open1 = (tx2, tz2) => R.passable(V.S, tx2, tz2) || R.doorAt(V.S, tx2, tz2), blocked = (x, z) => !open1(toTile(x + Math.sign(x - P3.x) * pad2), toTile(z)) || !open1(toTile(x), toTile(z + Math.sign(z - P3.z) * pad2));
     if (indoor && blocked(nx, nz)) {
       if (!blocked(nx, P3.z)) nz = P3.z;
       else if (!blocked(P3.x, nz)) nx = P3.x;
@@ -22104,6 +22735,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     sunDir.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
     lamp2.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
     lamp2.position.set(P3.x, P3.y + 0.3, P3.z);
+    if (R.areaRec(V.S).kind === "house") {
+      sun.intensity *= 0.35;
+      hemi.intensity = Math.max(hemi.intensity * 0.9, 0.42);
+      lamp2.intensity = 0.9 + 0.6 * nightNow;
+      lamp2.distance = 14;
+      lamp2.position.set(P3.x, P3.y + 0.9, P3.z);
+    }
     setWaterSky(scene.fog.color);
     updateSky(skyC, sunDir, day, storm ? R.stormOfNow(V.S) : null, frameDt);
     finishFrame();
@@ -22226,6 +22864,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     input.fx = input.fy = 0;
     input.keys = {};
   }
+  R.on("caught", (s, d) => openModal(d.title, [el("p", { text: d.text })]));
   function closeModal() {
     $("modal").hidden = true;
   }
@@ -22855,19 +23494,19 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     cv2.style.display = "block";
     const css = cv2.clientWidth || 300;
     cv2.style.height = css + "px";
-    const S2 = V.S, w = S2.world, WW = w.cols * R.W, HH = w.rows * R.H, dpr = window.devicePixelRatio || 1, n = mapView.zoom, ts = css / n, wrapN = (v, m) => (v % m + m) % m;
+    const S3 = V.S, w = S3.world, WW = w.cols * R.W, HH2 = w.rows * R.H, dpr = window.devicePixelRatio || 1, n = mapView.zoom, ts = css / n, wrapN = (v, m) => (v % m + m) % m;
     cv2.width = cv2.height = Math.round(css * dpr);
     const g = cv2.getContext("2d");
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = "#10151d";
     g.fillRect(0, 0, css, css);
-    const wp = R.worldPos(S2), fx = R.inOverworld(S2) ? (P3.x + G2.half) / G2.ts - S2.player.x : 0.5, fy = R.inOverworld(S2) ? (P3.z + G2.half) / G2.ts - S2.player.y : 0.5, youX = wp.x + fx, youY = wp.y + fy, x0 = youX + mapView.dx - n / 2, y0 = youY + mapView.dy - n / 2;
+    const wp = R.worldPos(S3), fx = R.inOverworld(S3) ? (P3.x + G2.half) / G2.ts - S3.player.x : 0.5, fy = R.inOverworld(S3) ? (P3.z + G2.half) / G2.ts - S3.player.y : 0.5, youX = wp.x + fx, youY = wp.y + fy, x0 = youX + mapView.dx - n / 2, y0 = youY + mapView.dy - n / 2;
     mapView.last = { x0, y0, ts };
     const regions = {};
     const regionAt = (gx, gy) => {
-      const rx = Math.floor(gx / R.W), ry = Math.floor(gy / R.H), cx = wrapN(w.home.cx + rx, w.cols), cy = wrapN(w.home.cy + ry, w.rows), id = R.regionId(S2, cx, cy);
+      const rx = Math.floor(gx / R.W), ry = Math.floor(gy / R.H), cx = wrapN(w.home.cx + rx, w.cols), cy = wrapN(w.home.cy + ry, w.rows), id = R.regionId(S3, cx, cy);
       if (!(id in regions)) {
-        const rec = S2.areas[id], m = rec ? R.mapOf(S2, id) : null;
+        const rec = S3.areas[id], m = rec ? R.mapOf(S3, id) : null;
         regions[id] = m && m.terrain ? { m, cols: R.byId(R.C.biomes, rec.biome).colors, id } : null;
       }
       return { r: regions[id], x: gx - rx * R.W, y: gy - ry * R.H };
@@ -22891,13 +23530,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           g.fillStyle = st.kind === "spring" && st.known && st.foul ? "#6f6a35" : MAPC[st.kind];
           g.fillRect(px + ts / 2 - big / 2, py + ts / 2 - big / 2, big, big);
         }
-        if (m.depots[i] && !(S2.camp && S2.camp.area === r.id && S2.camp.i === i)) {
+        if (m.depots[i] && !(S3.camp && S3.camp.area === r.id && S3.camp.i === i)) {
           g.fillStyle = "#000";
           g.beginPath();
           g.arc(px + ts / 2, py + ts / 2, Math.max(1.5, ts * 0.3), 0, 7);
           g.fill();
         }
-        if (S2.camp && S2.camp.area === r.id && S2.camp.i === i) {
+        if (S3.camp && S3.camp.area === r.id && S3.camp.i === i) {
           g.fillStyle = "#e0a84a";
           g.beginPath();
           g.moveTo(px + ts / 2 - 6, py + ts + 2);
@@ -22907,20 +23546,20 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           g.fill();
         }
       }
-    if (R.inOverworld(S2)) {
-      for (const c of S2.creatures)
-        if (c.seen && Math.max(Math.abs(c.x - S2.player.x), Math.abs(c.y - S2.player.y)) <= 4) {
+    if (R.inOverworld(S3)) {
+      for (const c of S3.creatures)
+        if (c.seen && Math.max(Math.abs(c.x - S3.player.x), Math.abs(c.y - S3.player.y)) <= 4) {
           g.fillStyle = "#e0302a";
           g.beginPath();
-          g.arc((wp.x + c.x - S2.player.x + 0.5 - x0) * ts, (wp.y + c.y - S2.player.y + 0.5 - y0) * ts, 4, 0, 7);
+          g.arc((wp.x + c.x - S3.player.x + 0.5 - x0) * ts, (wp.y + c.y - S3.player.y + 0.5 - y0) * ts, 4, 0, 7);
           g.fill();
         }
     }
-    const gm = R.inOverworld(S2) ? R.goalMark(S2) : null;
+    const gm = R.inOverworld(S3) ? R.goalMark(S3) : null;
     if (gm) {
-      let gx = wrapN(wp.x + gm.x - S2.player.x + 0.5 - x0, WW), gy = wrapN(wp.y + gm.y - S2.player.y + 0.5 - y0, HH);
+      let gx = wrapN(wp.x + gm.x - S3.player.x + 0.5 - x0, WW), gy = wrapN(wp.y + gm.y - S3.player.y + 0.5 - y0, HH2);
       if (gx > n + 1) gx -= WW;
-      if (gy > n + 1) gy -= HH;
+      if (gy > n + 1) gy -= HH2;
       const cx = n / 2 - mapView.dx, cy = n / 2 - mapView.dy, m = 1.2;
       if (gx < m || gy < m || gx > n - m || gy > n - m) {
         const dx = gx - cx, dy = gy - cy, k = Math.min(
@@ -22933,9 +23572,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       }
       goalAt(g, gx * ts, gy * ts);
     }
-    let ux = wrapN(youX - x0, WW), uy = wrapN(youY - y0, HH);
+    let ux = wrapN(youX - x0, WW), uy = wrapN(youY - y0, HH2);
     if (ux > n + 1) ux -= WW;
-    if (uy > n + 1) uy -= HH;
+    if (uy > n + 1) uy -= HH2;
     youAt(g, ux * ts, uy * ts);
   }
   function godPanel() {

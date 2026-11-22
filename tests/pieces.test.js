@@ -856,6 +856,162 @@ const findSeed = (fn, from = 1) => {
   R.jumpTo(off, R.places(off).find((p) => p.group === 'Below').id);
   need(R.thingsIn(off, off.area).length === 0, 'NO=things still makes things');
 }
+// Interiors (commission 7): every building of a town has a door on a street and rooms inside; walking into the door
+// is being inside, walking out of it is the street again; the house is the same every time, and forgotten when left.
+{
+  let houses = 0,
+    rooms = 0,
+    worlds = 0;
+  for (let seed = 1; seed <= 25; seed++) {
+    const s = R.newGame(seed);
+    R.setGodMode(s, true);
+    for (const p of R.places(s).filter((q) => q.group === 'Towns')) {
+      R.jumpTo(s, p.id);
+      if (!R.interiorsOn(s, s.area)) continue;
+      worlds++;
+      const bs = R.buildingsOf(s, s.area),
+        town = s.area;
+      need(bs.length >= 3, 'a town with few buildings: ' + bs.length);
+      need(
+        ['elder', 'inn', 'shop'].every((k) => bs.some((b) => b.kind === k)),
+        'a town whose hall, inn or shop has no door',
+      );
+      for (const b of bs) {
+        need(s.terrain[b.door.y * R.W + b.door.x] === R.WALL && R.passable(s, b.door.ox, b.door.oy), 'a door into nowhere');
+        const L = R.houseLayout(s, town, b),
+          L2 = R.houseLayout(s, town, b);
+        need(JSON.stringify(L.things) === JSON.stringify(L2.things), 'a house is not the same twice');
+        houses++;
+        rooms += L.rooms.length;
+        // every floor tile can be reached from the door
+        const seen = new Set([L.entry.y * R.W + L.entry.x]),
+          q = [...seen];
+        while (q.length) {
+          const k = q.pop();
+          for (const n of [k - 1, k + 1, k - R.W, k + R.W]) if (L.terrain[n] === R.FLOOR && !seen.has(n)) seen.add(n), q.push(n);
+        }
+        need(
+          L.terrain.every((v, k) => v !== R.FLOOR || seen.has(k)),
+          'a room that cannot be reached in ' + b.id,
+        );
+        need(L.things.length >= 6, 'an empty room: ' + b.id + ' has ' + L.things.length + ' things');
+      }
+      // walk in through one door and out again
+      s.godMode = false;
+      const b = bs.find((x) => x.kind === 'house') || bs[0];
+      s.player.x = b.door.ox;
+      s.player.y = b.door.oy;
+      need(R.move(s, b.door.x - b.door.ox, b.door.y - b.door.oy) && s.area === b.id, 'could not walk into ' + b.id);
+      need(R.indoors(s) && R.curTown(s) && s.player.x === R.houseOf(s, s.area).entry.x, 'not inside the door');
+      const back = R.deserialize(R.serialize(s)).state;
+      need(back.area === b.id && R.houseOf(back, back.area), 'a save inside a house does not load');
+      const L = R.houseOf(s, s.area),
+        ex = L.exit % R.W,
+        ey = Math.floor(L.exit / R.W);
+      need(R.move(s, ex - s.player.x, ey - s.player.y) && s.area === town, 'could not walk out of ' + b.id);
+      need(s.player.x === b.door.ox && s.player.y === b.door.oy, 'not in the street before the door after walking out');
+      need(!s.areas[b.id], 'a house left with nothing put down in it is kept in the save');
+      s.godMode = true;
+    }
+  }
+  need(
+    worlds >= 20 && houses > 150 && rooms > houses * 1.5,
+    'interiors: ' + worlds + ' towns, ' + houses + ' buildings, ' + rooms + ' rooms',
+  );
+  // switched off: solid buildings
+  const off = R.newGame(11, { interiors: true });
+  R.setGodMode(off, true);
+  R.jumpTo(off, R.places(off).find((p) => p.group === 'Towns').id);
+  need(!R.interiorsOn(off, off.area) && !R.places(off).some((p) => p.group === 'Houses'), 'NO=interiors still opens buildings');
+}
+// Theft: in a house where people live, taking a thing is seen and undone; in an empty one, or with theft off, it is not.
+{
+  const s = R.newGame(11);
+  R.setGodMode(s, true);
+  R.jumpTo(s, R.places(s).filter((p) => p.group === 'Houses')[2].id);
+  s.godMode = false;
+  const seen = [];
+  R.on('caught', (st, d) => st === s && seen.push(d));
+  const reach = (t) => {
+    for (let j = -1; j <= 1; j++)
+      for (let i = -1; i <= 1; i++)
+        if (R.passable(s, t.x + i, t.y + j)) {
+          s.player.x = t.x + i;
+          s.player.y = t.y + j;
+          return true;
+        }
+    return false;
+  };
+  const t = R.thingsLeft(s, s.area).find((x) => !R.thingKind(x.k).fixed && reach(x)),
+    n = s.player.items.length;
+  need(t && t.own, 'a thing in a lived-in house is not owned');
+  need(R.takeThing(s, t.id) && s.player.items.length === n && seen.length === 1 && seen[0].text, 'theft was not seen');
+  need(
+    R.thingsLeft(s, s.area).some((x) => x.id === t.id),
+    'a thing put back is gone',
+  );
+  s.off.theft = true;
+  need(R.takeThing(s, t.id) && s.player.items.length === n + 1, 'with theft off, a thing could not be taken');
+  // things where nobody lives are nobody's
+  for (let seed = 1; seed <= 3; seed++) {
+    const w = R.newGame(seed);
+    R.setGodMode(w, true);
+    R.jumpTo(w, R.places(w).find((p) => p.group === 'Below').id);
+    need(!R.thingsIn(w, w.area).some((x) => x.own), 'a dungeon has owned things');
+  }
+}
+// Secret value: some old things are worth far more once a town's merchant has looked at them; never in a lived-in house.
+{
+  let found = null,
+    old = 0,
+    secrets = 0;
+  for (let seed = 1; seed <= 8 && !found; seed++) {
+    const s = R.newGame(seed);
+    R.setGodMode(s, true);
+    for (const p of R.places(s)) {
+      if (p.group !== 'Below' && p.group !== 'Regions') continue;
+      R.jumpTo(s, p.id);
+      for (const t of R.thingsIn(s, s.area)) {
+        if (t.old && !R.thingKind(t.k).fixed) old++;
+        if (!t.sec) continue;
+        secrets++;
+        need(t.old && !t.own, 'a secret in a lived-in place');
+        if (!found) found = { s, t, pid: p.id };
+      }
+    }
+  }
+  need(found && secrets > old * 0.01 && secrets < old * 0.1, 'secrets: ' + secrets + ' of ' + old + ' old things');
+  const { s, t, pid } = found;
+  R.jumpTo(s, pid);
+  s.godMode = false;
+  s.player.x = t.x;
+  s.player.y = t.y;
+  need(R.takeThing(s, t.id), 'could not take a secret');
+  const it = s.player.items[s.player.items.length - 1],
+    plain = R.itemName(it),
+    low = R.itemValue(it);
+  need(!it.known && R.secretOf(it), 'a secret is known on finding');
+  // to a town, to the merchant
+  s.godMode = true;
+  R.jumpTo(s, R.places(s).find((p) => p.group === 'Towns').id);
+  const f = R.findHere(s, 'shop');
+  s.player.x = f.x;
+  s.player.y = f.y;
+  s.player.coin = 50;
+  need(R.appraise(s, it.id), 'could not have a secret appraised');
+  need(
+    R.itemName(it) !== plain && R.itemValue(it) > low * 5,
+    'appraised, a secret is still ' + R.itemName(it) + ' worth ' + R.itemValue(it),
+  );
+  need(!R.study(s, it.id), 'a thing could be studied');
+  // switched off: the same things, none secret
+  const a = R.newGame(31),
+    b = R.newGame(31, { secrets: true });
+  for (const w of [a, b]) R.setGodMode(w, true), R.jumpTo(w, R.places(w).find((p) => p.group === 'Below').id);
+  const strip = (l) => JSON.stringify(l.map((x) => [x.id, x.k, x.px, x.pz]));
+  need(strip(R.thingsIn(a, a.area)) === strip(R.thingsIn(b, b.area)), 'NO=secrets moves things');
+  need(!R.thingsIn(b, b.area).some((x) => x.sec), 'NO=secrets still makes secrets');
+}
 // The look (commission 6, view only): built from layers of content/looks.js by src/view/look.js, which needs no screen.
 async function lookChecks() {
   const L = await import('../src/view/look.js'),
@@ -993,6 +1149,6 @@ lookChecks()
       process.exit(1);
     }
     console.log(
-      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting, trade, the look, the score, things',
+      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting, trade, the look, the score, things, interiors, theft, secrets',
     );
   });

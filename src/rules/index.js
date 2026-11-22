@@ -166,8 +166,18 @@ import { bestMarket, buyGood, market, sellGood, sellMat } from './trade.js';
 import { jumpMap, jumpTo, places, rescue, setGodMode } from './godmode.js';
 import { genOf, parseSet, settings } from './worldset.js';
 import { takeThing, thingKind, thingsIn, thingsInReach, thingsLeft } from './things.js'; // commission 7
+import { HOUSE_SCALE, buildingsOf, doorAt, houseLayout, houseOf, interiorsOn } from './houses.js';
+import './theft.js';
+import { secretOf } from './secrets.js';
 
 const api = {
+  secretOf,
+  HOUSE_SCALE,
+  buildingsOf,
+  doorAt,
+  houseLayout,
+  houseOf,
+  interiorsOn,
   makeItem,
   takeThing,
   thingKind,

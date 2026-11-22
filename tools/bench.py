@@ -8,7 +8,7 @@ from playwright.async_api import async_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 THREE = os.path.join(ROOT, 'node_modules/three/build/three.min.js')
 SEEDS = [11, 222, 3333]
-QUALS = [a for a in sys.argv[1:] if not a.startswith('-') and a != 'places'] or ['default']
+QUALS = [a for a in sys.argv[1:] if not a.startswith('-') and a not in ('places', 'rooms')] or ['default']
 # `places`: also measure the new kinds of place (commission 4), each reached by god mode on Medium:
 # a dungeon level, a floating castle, the open sea, a place under it, and another world
 PLACES = [
@@ -76,6 +76,30 @@ async def main():
                   return { area: S.area, build: Math.round(build), calls, tris, frame: +(dts.reduce((a, b) => a + b, 0) / dts.length).toFixed(1), save: Rules.serialize(S).length };
                 }""", [seed, setting, where])
                 print('%-14s %-14s build %4d ms  calls %4d  triangles %7d  frame %6.1f ms  save %4.0f KB' % (label, r['area'][:14], r['build'], r['calls'], r['tris'], r['frame'], r['save'] / 1024))
+        # `rooms` (commission 7): inside the elder's hall and a house of seed 11's town, on each quality: the whole frame,
+        # and the room's own share (its walls, floor, ceiling and things, outlines included)
+        if 'rooms' in sys.argv:
+            for q in QUALS:
+                for n, label in [(0, 'hall'), (2, 'house')]:
+                    r = await pg.evaluate("""async ([q, n]) => {
+                      const g = window.__g, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+                      if (q !== 'default') g.setQuality(q); g.newWorld(11);
+                      document.querySelectorAll('#modal-close').forEach((b) => b.click());
+                      const S = g.S; S.time = 6 * 60; S.weather.storm = false; S.weather.changeAt = 1e9; Rules.setGodMode(S, true);
+                      Rules.jumpTo(S, Rules.places(S).filter((p) => p.group === 'Houses')[n].id);
+                      const t0 = performance.now(); g.buildStatic(); g.refresh(); const build = performance.now() - t0;
+                      g.P.pitch = -0.15; await wait(500);
+                      const info = g.renderer.info.render, calls = info.calls, tris = info.triangles;
+                      let own = 0, ownTris = 0, things = 0;
+                      g.scene.traverse((o) => { if (!(o.userData.room === S.area || o.userData.things === S.area)) return;
+                        o.traverse((m) => { if (!m.isMesh) return; own++; const pc = m.geometry.attributes.position.count; ownTris += m.geometry.index ? m.geometry.index.count / 3 : pc / 3; }); });
+                      things = Rules.thingsLeft(S, S.area).length;
+                      const dts = []; let last = performance.now();
+                      await new Promise((res) => { const f = (now) => { dts.push(now - last); last = now; g.P.yaw += 0.02; if (dts.length < 60) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+                      dts.shift();
+                      return { build: Math.round(build), calls, tris, own, ownTris: Math.round(ownTris), things, frame: +(dts.reduce((a, b) => a + b, 0) / dts.length).toFixed(1) };
+                    }""", [q, n])
+                    print('%-8s %-6s frame: calls %4d  triangles %7d  %6.1f ms | the room: %3d things, %2d draw calls, %6d triangles' % (q, label, r['calls'], r['tris'], r['frame'], r['things'], r['own'], r['ownTris']))
         if '--json' in sys.argv: print(json.dumps(out))
         if errs: print('page errors:', errs[:3]); sys.exit(1)
         await b.close()

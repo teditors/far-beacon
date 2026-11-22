@@ -46,7 +46,21 @@ THING = """const L = Rules.thingsLeft(S, S.area).filter((t) => %s || !Rules.thin
   const T = L.slice().sort((a, b) => L.filter((u) => Math.abs(u.x - b.x) + Math.abs(u.y - b.y) <= 1).length - L.filter((u) => Math.abs(u.x - a.x) + Math.abs(u.y - a.y) <= 1).length)[0]; if (!T) return false;
   const ts = Rules.isLevel(S) ? 4 : 28, hw = 18 * ts, mx = (T.x + 0.5) * ts - hw, mz = (T.y + 0.5) * ts - hw, qx = mx + T.px * ts, qz = mz + T.pz * ts;
   S.player.x = T.x; S.player.y = T.y; g.refresh(); const d = %s, l = Math.hypot(qx - mx, qz - mz) || 1;
-  g.P.x = qx - ((qx - mx) / l) * d + 0.01; g.P.z = qz - ((qz - mz) / l) * d; g.P.yaw = Math.atan2(-(qx - g.P.x), -(qz - g.P.z)); g.P.pitch = %s; g.refresh(); await wait(800);"""
+  g.P.x = qx - ((qx - mx) / l) * d + 0.01; g.P.z = qz - ((qz - mz) / l) * d; g.P.yaw = Math.atan2(-(qx - g.P.x), -(qz - g.P.z)); g.P.pitch = %s; await wait(800);"""
+HOUSE = """const p = Rules.places(S).filter((p) => p.group === 'Houses')[%d]; if (!p) return false;
+  Rules.jumpTo(S, p.id); %s g.refresh(); g.buildStatic(); g.refresh();
+  // stand toward one end of the room and look across it, at the side with the most furniture
+  const L = Rules.houseOf(S, S.area), ts = 5 * 28 / 36 / 3, h = 18 * ts; let x0 = 99, x1 = 0, y0 = 99, y1 = 0;
+  for (let k = 0; k < 36 * 36; k++) if (L.cells[k] === 0) { x0 = Math.min(x0, k %% 36); x1 = Math.max(x1, k %% 36); y0 = Math.min(y0, Math.floor(k / 36)); y1 = Math.max(y1, Math.floor(k / 36)); }
+  const cx = ((x0 + x1 + 1) / 2) * ts - h, cz = ((y0 + y1 + 1) / 2) * ts - h, F = L.things.filter((t) => Rules.thingKind(t.k).fixed && L.cells[t.y * 36 + t.x] === 0);
+  let ax = 0, az = 0; for (const t of F) { ax += (t.x + 0.5) * ts - h - cx; az += (t.y + 0.5) * ts - h - cz; }
+  const l = Math.hypot(ax, az) || 1; g.P.x = cx - (ax / l) * 2.5 + (az / l) * 1.5; g.P.z = cz - (az / l) * 2.5 - (ax / l) * 1.5;
+  g.P.yaw = Math.atan2(-(ax / l) - (az / l) * 0.5, -(az / l) + (ax / l) * 0.5); g.P.pitch = -0.22; await wait(600);"""
+DOOR = """const bs = Rules.buildingsOf(S, S.area); const b = bs.find((x) => x.kind === 'house') || bs[0]; if (!b) return false;
+  const ts = 5 * 28 / 36, h = 18 * ts, dx = b.door.ox - b.door.x, dy = b.door.oy - b.door.y;
+  const qx = (b.door.x + 0.5) * ts - h, qz = (b.door.y + 0.5) * ts - h;
+  S.player.x = b.door.ox; S.player.y = b.door.oy; g.refresh();
+  g.P.x = qx + dx * 7 + dy * 2.5; g.P.z = qz + dy * 7 + dx * 2.5; g.P.yaw = Math.atan2(-(qx - g.P.x), -(qz - g.P.z)); g.P.pitch = -0.05; await wait(800);"""
 SHOTS = [
     ('salt-day', 11, {}, region('Salt', DAY)),
     ('salt-night', 11, {}, region('Salt', NIGHT)),
@@ -69,6 +83,11 @@ SHOTS = [
     # things (C7.3): a dungeon's level with its furniture and small things, close to, and old things round a ruin
     ('things-level', 31, {}, place('Below', '') + THING % ('true', 2.2, -0.3)),
     ('things-ruin', 11, {}, RUIN % DAY + THING % ('false', -3, -0.45)),
+    # inside buildings (C7.4): the elder's hall, a house, the inn; and a house's open door from the street
+    ('house-hall', 11, {}, HOUSE % (0, DAY)),
+    ('house-home', 11, {}, HOUSE % (2, DAY)),
+    ('house-inn', 222, {}, HOUSE % (1, 'S.time = 21 * 60 - 360;')),
+    ('house-door', 11, {}, town(0, DAY) + DOOR),
     ('rare-sepia', 9, {}, region('Home', DAY)),
     ('rare-reds', 251, {}, region('Home', 'S.time = 17.8 * 60 - 360;')),
     ('storm', 222, {}, region('(1, 1)', DAY + 'S.weather.storm = Rules.stormOfNow ? true : true;')),
