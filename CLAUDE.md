@@ -40,6 +40,8 @@ easy to change. Read `ARCHITECTURE.md` before changing anything structural; `CHA
   `git push origin HEAD:refs/heads/version/vX.Y`. Pushing tags has been refused by the git proxy in cloud sessions,
   so frozen branches stand in for tags; do not try to work around a refusal.
 - To roll back, restore the old files as a new commit. Never rewrite history on `main`.
+- A commission branch is deleted once it is merged into `main` (its history lives on in `main`). The git proxy in
+  cloud sessions refuses branch deletion, so Andrew deletes merged branches on GitHub (Branches page).
 
 ## How features are built: pieces
 
