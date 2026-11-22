@@ -148,6 +148,7 @@ SHOTS = [
     ('shop', 222, {}, KIND % ("x.kind === 'shop'", DAY, 0)),
     ('smithy', 11, {}, KIND % ("x.kind === 'smith'", DAY, 0)),
     ('hamlet', 11, {}, HAMLET % DAY),
+    ('fields', 11, {}, "const d = Rules.townDoor(S); Rules.travelTo(S, Rules.townArea(S), d.x, d.y + 2); " + DAY + " g.refresh(); g.buildStatic(); g.refresh(); let f = null; g.scene.traverse((o) => { if (!f && o.userData.fields === true) f = o; }); if (!f) return false; const p = f.geometry.attributes.position, w = new THREE.Vector3(p.getX(0), 0, p.getZ(0)).applyMatrix4(f.matrixWorld), c = new THREE.Vector3(p.getX(40), 0, p.getZ(40)).applyMatrix4(f.matrixWorld); g.P.x = w.x - 12; g.P.z = w.z - 12; g.P.yaw = Math.atan2(-(c.x - g.P.x), -(c.z - g.P.z)); g.P.pitch = -0.12; await wait(800);"),
     ('rare-sepia', 9, {}, region('Home', DAY)),
     ('rare-reds', 251, {}, region('Home', 'S.time = 17.8 * 60 - 360;')),
     ('storm', 222, {}, region('(1, 1)', DAY + 'S.weather.storm = Rules.stormOfNow ? true : true;')),

@@ -5,9 +5,10 @@ import { EW, MARGIN, PAD, SINK, makeTerrainG } from './terrain.js';
 import { LOOK_SWITCHES, Q, SET, lookOn } from './quality.js';
 import { PF, perfBuild } from './perf.js';
 import { groundMaterial, paintOn, surface, surfaceOf } from './paint.js';
-import { groundsMaterial, groundsOn, kindsOf, specialKind } from './grounds.js';
+import { groundsMaterial, groundsOn, kindsOf, macroAt, specialKind } from './grounds.js';
 import { climateOf } from './buildings.js';
 import { roadsGroup, roadsOn } from './roads.js';
+import { fieldsGroup } from './fields.js';
 import { hamletGroup, townGroup, townsOn } from './buildings.js';
 import { levelFloor, levelKit, levelMat, levelWalls } from './levels.js';
 import { ruinGroup, ruinsOn } from './ruins.js';
@@ -1073,6 +1074,8 @@ function* buildLand(S, timed) {
       NR = smooth ? new Float32Array(cnt * 3) : null,
       SF = painted ? new Float32Array(cnt * 4) : null,
       SF2 = painted && chars ? new Float32Array(cnt * 4) : null,
+      MAC = SF2 ? new Float32Array(cnt * 4) : null,
+      m4 = [0, 0, 0, 0],
       sw = [0, 0, 0, 0],
       k8 = new Float32Array(8),
       H = (ix, iz) => g.h[clampI(iz, n) * N1 + clampI(ix, n)];
@@ -1108,6 +1111,7 @@ function* buildLand(S, timed) {
             // what kind of ground this is, for its painted grain (paint.js)
             if (SF2) {
               kindsOf(c, steep, here, k8);
+              MAC.set(macroAt(x, z, m4), k * 4);
               SF.set(k8.subarray(0, 4), k * 4);
               SF2.set(k8.subarray(4, 8), k * 4);
             } else {
@@ -1156,6 +1160,7 @@ function* buildLand(S, timed) {
     if (smooth) geo.setAttribute('normal', new THREE.BufferAttribute(NR, 3));
     if (painted) geo.setAttribute('surf', new THREE.BufferAttribute(SF, 4));
     if (SF2) geo.setAttribute('surf2', new THREE.BufferAttribute(SF2, 4));
+    if (MAC) geo.setAttribute('mac', new THREE.BufferAttribute(MAC, 4));
     const mat = smooth
       ? SF2
         ? groundsMaterial()
@@ -1231,7 +1236,12 @@ function* buildLand(S, timed) {
         y: T.height(centre(q.x), centre(q.y)),
         z: centre(q.y),
       }));
+  // fields round the towns (fields.js), where no tree or rock stands
+  const fd = fieldsGroup(S, T, towns, townHalf);
+  group.add(fd.group);
+  T.inField = fd.inField;
   const nearSite = (x, z) => {
+    if (fd.inField(x, z)) return true;
     for (const t of towns) if (Math.abs(x - t.x) < townHalf + 4 && Math.abs(z - t.z) < townHalf + 4) return true;
     const site = land.siteAt[T.etile(x, z)];
     return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;

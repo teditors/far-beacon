@@ -1638,6 +1638,7 @@ window.__g = {
     return V.S;
   },
   sound: soundState,
+  SET, // the look's switches, for the measuring tools (bench.py)
   P,
   V,
   VIEW,

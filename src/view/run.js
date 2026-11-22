@@ -353,9 +353,9 @@ function frame() {
   if (R.areaRec(V.S).kind === 'house') {
     // indoors (C7): the sky's light comes in at the windows and the door, and a hearth or a candle is always lit
     sun.intensity *= 0.35;
-    hemi.intensity = Math.max(hemi.intensity * 0.9, 0.42);
-    lamp.intensity = 0.9 + 0.6 * nightNow;
-    lamp.distance = 14;
+    hemi.intensity = Math.max(hemi.intensity * 0.9, 0.55); // C8.6: rooms a little lighter, so what is in them reads
+    lamp.intensity = 1.2 + 0.5 * nightNow;
+    lamp.distance = 18;
     lamp.position.set(P.x, P.y + 0.9, P.z);
   }
   setWaterSky(scene.fog.color);

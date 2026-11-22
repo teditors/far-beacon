@@ -7,7 +7,7 @@
    Quality: none on Low; a ring of `Q.grass` metres on Medium and High (High denser). Switch: `grass`. */
 import { R, mulberry } from './ctx.js';
 import { Q, LOOK_SWITCHES, lookOn } from './quality.js';
-import { swaying } from './kit.js';
+import { frontLit, swaying } from './kit.js';
 
 LOOK_SWITCHES.push(['grass', 'Grass and flowers underfoot']);
 const grassOn = () => lookOn('grass') && lookOn('light') && Q.grass > 0;
@@ -64,6 +64,22 @@ function bloomGeo() {
   g.dispose = () => {};
   return (BLOOM = g);
 }
+// a pebble: a lumpy stone, lit as the ball it is (made once)
+let PEBBLE = null;
+function pebbleGeo() {
+  if (PEBBLE) return PEBBLE;
+  const g = new THREE.IcosahedronGeometry(1, 0),
+    p = g.attributes.position,
+    col = new Float32Array(p.count * 3).fill(1);
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const nrm = g.attributes.normal;
+  for (let i = 0; i < p.count; i++) {
+    const l = Math.hypot(p.getX(i), p.getY(i), p.getZ(i)) || 1;
+    nrm.setXYZ(i, p.getX(i) / l, p.getY(i) / l, p.getZ(i) / l);
+  }
+  g.dispose = () => {};
+  return (PEBBLE = g);
+}
 const SUNLIT = new THREE.Color(0xc8d070); // grass catches the light a little yellower than the ground
 const FLOWERS = [0xe8d040, 0xd04a5a, 0xf2f0f0, 0x8a6ad0, 0xe08a3a];
 // how much grows on a biome, and its colour: from its climate
@@ -87,15 +103,27 @@ function makeGrass(group, T, lush, towns, townHalf, seed) {
   const max = Q.grassMax,
     tufts = new THREE.InstancedMesh(
       tuftGeo(),
-      swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.18),
+      frontLit(swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.18)),
       max,
     ),
     blooms = new THREE.InstancedMesh(
       bloomGeo(),
-      swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.3),
+      frontLit(swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.3)),
       Math.ceil(max / 6),
     );
   tufts.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);
+  // High (C8.6): stones and fallen leaves underfoot, most where little grass grows
+  const pmax = Q.pebbles || 0,
+    pebbles = pmax ? new THREE.InstancedMesh(pebbleGeo(), new THREE.MeshLambertMaterial({ vertexColors: true }), pmax) : null;
+  if (pebbles) {
+    pebbles.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(pmax * 3), 3);
+    pebbles.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    pebbles.frustumCulled = false;
+    pebbles.count = 0;
+    pebbles.userData.grass = true;
+    pebbles.receiveShadow = true;
+    group.add(pebbles);
+  }
   blooms.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(Math.ceil(max / 6) * 3), 3);
   for (const m of [tufts, blooms]) {
     m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -118,7 +146,8 @@ function makeGrass(group, T, lush, towns, townHalf, seed) {
     if (!force && at && Math.abs(at.x - px) + Math.abs(at.z - pz) < 6) return;
     at = { x: px, z: pz };
     let n = 0,
-      nb = 0;
+      nb = 0,
+      np = 0;
     const i0 = Math.floor((px - rad) / CELL),
       i1 = Math.floor((px + rad) / CELL),
       j0 = Math.floor((pz - rad) / CELL),
@@ -139,6 +168,7 @@ function makeGrass(group, T, lush, towns, townHalf, seed) {
           ter = T.land.terrain[e0];
         if (ter === 4 || ter === R.DEEP || ter === 2 || (T.roadNear ? T.roadNear(x, z) < 3.4 : T.roadAt(x, z))) continue;
         if (T.water && T.water.mask(x, z) > 0.05) continue;
+        if (T.inField && T.inField(x, z)) continue; // a field's rows (fields.js)
         if (T.level(x, z) > 1.6) continue;
         let inTown = false;
         for (const t of towns) if (Math.abs(x - t.x) < townHalf + 2 && Math.abs(z - t.z) < townHalf + 2) inTown = true;
@@ -147,6 +177,26 @@ function makeGrass(group, T, lush, towns, townHalf, seed) {
           rich = (ter === 3 ? 1.3 : ter === 5 ? 1.2 : 1) * g.n,
           // thinning toward the edge of the ring, so it fades rather than stops
           edge = 1 - Math.max(0, (Math.sqrt(d2) - rad * 0.7) / (rad * 0.3));
+        // a stone or two, or a leaf, where the ground is bare: more of them where the grass is thin
+        if (pebbles && np < pmax && d2 < rad * rad * 0.5 && r() < 0.35 + (1 - Math.min(1, rich)) * 0.5) {
+          const sx = x + (r() - 0.5) * 1.1,
+            sz = z + (r() - 0.5) * 1.1,
+            ps = 0.05 + r() * r() * 0.22,
+            leaf = ter === 3 && r() < 0.6;
+          e.set(r() * 3, r() * 6.28, r() * 3);
+          q.setFromEuler(e);
+          sc.set(ps * (0.8 + r() * 0.6), ps * (0.45 + r() * 0.3) * (leaf ? 0.15 : 1), ps);
+          v.set(sx, T.height(sx, sz) - ps * 0.15, sz);
+          mat.compose(v, q, sc);
+          mat.toArray(pebbles.instanceMatrix.array, np * 16);
+          c.setHex(
+            leaf
+              ? [0x9a6a2a, 0xb8843a, 0x7a5a2a][Math.floor(r() * 3)]
+              : [0x8a8478, 0x9a9284, 0x6e6a62, 0xa8a090][Math.floor(r() * 4)],
+          );
+          c.toArray(pebbles.instanceColor.array, np * 3);
+          np++;
+        }
         if (r() > rich * edge) continue;
         const y = T.height(x, z) - 0.03,
           s = 0.7 + r() * 0.6;
@@ -174,6 +224,7 @@ function makeGrass(group, T, lush, towns, townHalf, seed) {
       }
     tufts.count = n;
     blooms.count = nb;
+    if (pebbles) (pebbles.count = np), (pebbles.instanceMatrix.needsUpdate = pebbles.instanceColor.needsUpdate = true);
     tufts.instanceMatrix.needsUpdate = tufts.instanceColor.needsUpdate = true;
     blooms.instanceMatrix.needsUpdate = blooms.instanceColor.needsUpdate = true;
   }

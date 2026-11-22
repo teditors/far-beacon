@@ -4,6 +4,69 @@ The brief (COMMISSION.md): character. Surfaces you can tell apart at a glance an
 made, made things that read as made, rooms furnished by what they are for, High pushed much further, and two bugs (the
 traveller at the fire, small towns that are only a menu). Pieces with switches, as before.
 
+## C8.7: fields round the towns
+
+**What it is** (`view/fields.js`). Round every town in sight lie five to nine fields, squared to the town's streets,
+on level open ground away from water, woods, roads and other places: ploughed in rows of a crop of the climate (wheat,
+barley, cabbages, flax in flower and fallow in temperate lands; hay in the wet; barley and turnips in the cold;
+millet and watered beans in the heat; grazing on the steppe), each bounded by what its people build with: a drystone
+wall in the cold, wet and ashen lands, a hedge in temperate ones, a low mud-brick wall in the heat, a post-and-rail
+fence on the steppe, with a gap for the gate on the side toward the town. Trees, rocks and grass keep off them. View
+only: the rules know nothing of them and they never block the way. A town now sits in worked land, so it reads as a
+place people live from, and it answers "field boundaries" in the brief's list of made things.
+
+**Cost.** One mesh for the fields' ground and one instanced mesh per kind of boundary (four draw calls at most); 4 m
+cells and plain hedges below High, 2 m cells and rounder hedges on High; only towns within about 560 m (900 m on High).
+Not on the hidden Fallback.
+
+**Switch.** `fields` (Settings, the look). Picture: `docs/look/after/fields.jpg`.
+
+## C8.6: High pushed further, and the cheaper levels kept as they were
+
+**What changed on High** (`quality.js`): more land drawn (30 tiles round the region, was 26), trees whole out to
+720 m (560), a deeper and denser ring of grass and flowers (74 m and 42,000 tufts; 56 m and 20,000), and **stones and
+fallen leaves underfoot** (`pebbles`, grass.js: up to 9,000 small stones, lit as balls, and leaves under trees, most
+where little grass grows). High alone reads the ground's macro per pixel, adds a second, turned reading of the grain,
+a finer one close to, and the meadow's flowers; and has finer roads (a point every 1.2 m, close-set kerbs) and fields.
+
+**For every level:**
+- **Grass blades are green from behind** (kit.js `frontLit`): three's two-sided Lambert material lit a blade's back as
+  if it faced the ground, so half of every tuft was black: the dark spikes all over the fields in the pictures.
+- **Rooms a little lighter** (run.js): the sky's light through the windows and the lamp are stronger indoors, so what
+  is in a room reads.
+
+**Keeping Low and Medium as they were.** Measured as the work went (the probe below), the new ground, roads and fields
+first cost Low and Medium about 45% more frame time on this renderer. Brought back: on Low and Medium the ground's
+macro noise is given to each point of the land (`macroAt`) rather than read per pixel, and there is no finer reading
+or flowers, so the ground is two texture reads a pixel as before; roads are laid coarser with longer kerb stones, and
+their edges and the fields only near the player's region; hedges are plainer; the hidden Fallback keeps the old grey
+road tiles and has no fields. The macro's tile is 168 m (a region is six) and the grain's 4.8 m (210 to a region), so
+neither jumps when the land is rebuilt across a border.
+
+**Numbers** (`python3 tools/bench.py fallback low medium high rooms`, software renderer at 412 x 915, seeds 11 / 222 /
+3333, about 8% noise; before is v0.18 measured the same day):
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| before, Fallback | 80 | 75 | 110,521 | 63.7 |
+| after, Fallback | 74 | 70 | 109,635 | 66.8 |
+| before, Low | 307 | 124 | 583,226 | 361.3 |
+| after, Low | 447 | 124 | 594,852 | 367.6 |
+| before, Medium | 320 | 145 | 595,388 | 359.5 |
+| after, Medium | 418 | 141 | 606,908 | 378.9 |
+| before, High | 343 | 154 | 767,856 | 464.7 |
+| after, High | 539 | 161 | 1,089,715 | 893.7 |
+
+Low and Medium draw within the noise of before (+2% and +5%), with the same draw calls. Their land takes about 100 ms
+more to build (the ground's eight kinds and macro per point, the roads and fields), but it is built in slices over
+frames while the old land stands, so it is not a pause. High spends about twice the frame of before on this
+renderer, which is where Andrew asked for it to go; on the Pixel the software renderer's cost per texture read and per
+pixel is far higher than a phone GPU's, so expect much less. **A full room** (seed 11's elder's hall, 68 things, and a
+house, 97 things): 108 / 113 ms on Low (was 113 / 113), 110 / 116 on Medium (121 / 118), 145 / 148 on High (153 /
+152): more things, a little cheaper, since the room's floor is no longer hidden under the building's plinth.
+
+**Switches.** None of its own: the quality levels, and `grass`, `grounds`, `roads`, `fields` (Settings).
+
 ## C8.5: rooms furnished by what they are for
 
 **What it was.** Commission 7's rooms had the right kinds of things, but placed at random along the walls and over

@@ -71,10 +71,13 @@ const QUALITY = {
   high: Object.assign({}, OLD_HIGH, {
     label: 'High',
     ratio: 2.5,
-    margin: 26,
-    treeNear: 560,
-    grass: 56,
-    grassMax: 20000,
+    // commission 8: High pushed further, where it shows: more land, trees whole further off, a deeper and denser ring
+    // of grass and flowers, and stones and fallen leaves underfoot (`pebbles`, grass.js)
+    margin: 30,
+    treeNear: 720,
+    grass: 74,
+    grassMax: 42000,
+    pebbles: 9000,
     shadowPx: 4096,
     toon: true,
     outline: 3,

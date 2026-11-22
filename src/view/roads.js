@@ -20,7 +20,7 @@ import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { rnd, noiseField, stones, cellOf, dataTexture, toByte, fbm } from './paint.js';
 
 LOOK_SWITCHES.push(['roads', 'Roads that look made']);
-const roadsOn = () => lookOn('roads') && lookOn('light');
+const roadsOn = () => lookOn('roads') && lookOn('light') && !Q.lite; // not on the hidden Fallback
 
 /* The kinds of road: width of the made surface (m), verge each side, colour, and what lines its edges. */
 const KINDS = {
@@ -195,7 +195,9 @@ function roadsGroup(S, T, colourAt) {
       .filter((q) => q.st.kind === 'town')
       .map((q) => ({ x: (q.x + 0.5) * TS - HALF, z: (q.y + 0.5) * TS - HALF })),
     lines = roadLines(T),
-    step = Q.ratio > 2 ? 1.2 : 1.6,
+    hi = Q.ratio > 2,
+    step = hi ? 1.2 : 2.2,
+    edgeReach = hi ? 900 : 480, // edge stones and posts only this far from the middle of the player's region
     buckets = new Map(), // for near(): the line points by 16 m cell
     bk = (x, z) => Math.floor(x / 16) + ',' + Math.floor(z / 16),
     built = {}, // kind -> { pos, col, gcol, ru, idx }
@@ -284,6 +286,7 @@ function roadsGroup(S, T, colourAt) {
       const lx = (o) => p.x + nx * o,
         lz = (o) => p.z + nz * o,
         yaw = Math.atan2(dx, dz);
+      if (Math.max(Math.abs(p.x), Math.abs(p.z)) > edgeReach) continue;
       if (bridge[i] > 0.75) {
         // a bridge: stone parapets for the made roads, a rail of posts and a plank for a track
         if (i % 2 === 0)
@@ -301,7 +304,7 @@ function roadsGroup(S, T, colourAt) {
       }
       if (K.edge === 'kerb') {
         // dressed kerb stones, close set, both sides
-        const n = Math.max(1, Math.round(step / 0.62));
+        const n = Math.max(1, Math.round(step / (hi ? 0.62 : 0.9)));
         for (let j = 0; j < n; j++) {
           const t = j / n - 0.5,
             bx = p.x + dx * t * step,
@@ -352,7 +355,7 @@ function roadsGroup(S, T, colourAt) {
   const stone = new THREE.MeshLambertMaterial({ color: 0xffffff }),
     wood = new THREE.MeshLambertMaterial({ color: 0xffffff }),
     sets = {
-      kerb: [new THREE.BoxGeometry(0.24, 0.26, 0.6), stone, 0xb3ada2, 0.14],
+      kerb: [new THREE.BoxGeometry(0.24, 0.26, hi ? 0.6 : 0.88), stone, 0xb3ada2, 0.14],
       block: [new THREE.BoxGeometry(0.45, 0.5, 0.9), stone, 0x9d9584, 0.2],
       post: [new THREE.BoxGeometry(0.16, 1.2, 0.16), wood, 0x6b5238, 0.15],
       parapet: [new THREE.BoxGeometry(0.4, 0.75, 1), stone, 0xa59f92, 0.12],

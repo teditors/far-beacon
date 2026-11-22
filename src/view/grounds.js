@@ -7,14 +7,15 @@
    - WHICH KIND each point of the land is (kindsOf) comes from its colour (the biome's palette, so generated biomes work),
      how steep it is, and what the rules say lies there: a bog is mud, a salt pan crust, a frozen lake snow, scree gravel,
      a wood's floor earth and leaf, a stream's bank mud.
-   - NO TILING: a macro texture (four noises, one 190 m tile) warps where the grain is read, so its repeat slides and
+   - NO TILING: a macro texture (four noises, one 168 m tile) warps where the grain is read, so its repeat slides and
      never lines up; on High a second, rotated reading at another scale is blended in by the macro noise. The same macro
      colours the land in patches a painter would lay in: lusher and drier grass, bare earth, and a meadow's flowers close
      to (a few dots of white, yellow and violet).
    - EDGES: where two kinds meet, the weights are sharpened and wobbled by noise, so a sand bank or a bare patch has a
      crisp, irregular edge, and a thin darker line runs along it, like an outline in a storybook.
 
-   Cost: five texture reads a pixel on Low and Medium (two before), seven on High. Switch: the look's `grounds`
+   Cost: on Low and Medium two texture reads a pixel, as before (the macro is given to each point of the ground,
+   and there is no finer second reading or flowers); on High seven, and the flowers. Switch: the look's `grounds`
    (Settings): off, the ground of commission 7. */
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { rnd, noiseField, stroke, fbm, stones, dataTexture, toByte } from './paint.js';
@@ -103,7 +104,7 @@ function textures() {
     for (let x = 0; x < px; x++) {
       const i = y * px + x,
         c = clods(x, y);
-      earth[i] = 0.18 + (0.3 + (c.b - 0.5) * 0.22 - c.dy * 0.28 + F[i] * 0.2) * sm(0.05, 0.11, c.edge);
+      earth[i] = 0.34 + (0.18 + (c.b - 0.5) * 0.16 - c.dy * 0.16 + F[i] * 0.2) * sm(0.03, 0.08, c.edge);
     }
   for (let k = 0; k < 600 * S * S; k++) earth[Math.floor(r() * N)] += r() < 0.5 ? -0.25 : 0.15;
   // gravel: round pebbles packed close, each lit on top and shaded below, dark between
@@ -148,8 +149,31 @@ function textures() {
   }
   const macro = dataTexture(mac, M);
   macro.dispose = () => {};
-  TEX = { px, a: pack(px, grass, sand, rock, snow), b: pack(px, earth, gravel, mud, crust), macro };
+  TEX = { px, a: pack(px, grass, sand, rock, snow), b: pack(px, earth, gravel, mud, crust), macro, mac, M };
   return TEX;
+}
+
+// The macro noise at a point of the land (metres, the land's frame), as the shader reads it: for Low and Medium it is
+// given to each point of the ground instead (one texture read a pixel fewer). 168 m a tile: a region is six, so the
+// pattern does not jump when the land is rebuilt across a border.
+const MACRO_M = 168;
+function macroAt(x, z, out) {
+  const T = textures(),
+    n = T.M,
+    u = (((x / MACRO_M) % 1) + 1) % 1,
+    v = (((z / MACRO_M) % 1) + 1) % 1,
+    fx = u * n - 0.5,
+    fz = v * n - 0.5,
+    x0 = Math.floor(fx),
+    z0 = Math.floor(fz),
+    tx = fx - x0,
+    tz = fz - z0,
+    at = (i, j, c) => T.mac[((((j % n) + n) % n) * n + (((i % n) + n) % n)) * 4 + c] / 255;
+  for (let c = 0; c < 4; c++)
+    out[c] =
+      (at(x0, z0, c) * (1 - tx) + at(x0 + 1, z0, c) * tx) * (1 - tz) +
+      (at(x0, z0 + 1, c) * (1 - tx) + at(x0 + 1, z0 + 1, c) * tx) * tz;
+  return out;
 }
 
 /* ---------- which kinds a point is ---------- */
@@ -205,7 +229,7 @@ function kindsOf(c, steep, ctx, out) {
 function groundsMaterial() {
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true }),
     T = textures(),
-    hi = !!Q.shadows && Q.ratio > 2; // High: the second, rotated reading
+    hi = !!Q.shadows && Q.ratio > 2; // High: the macro and the fine detail read per pixel, a second rotated reading, flowers
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.gA = { value: T.a };
     sh.uniforms.gB = { value: T.b };
@@ -213,24 +237,24 @@ function groundsMaterial() {
     sh.vertexShader = sh.vertexShader
       .replace(
         '#include <common>',
-        '#include <common>\nattribute vec4 surf;\nattribute vec4 surf2;\nvarying vec4 vSurf;\nvarying vec4 vSurf2;\nvarying vec2 vGround;\nvarying float vNear;',
+        '#include <common>\nattribute vec4 surf;\nattribute vec4 surf2;\nattribute vec4 mac;\nvarying vec4 vSurf;\nvarying vec4 vSurf2;\nvarying vec4 vMac;\nvarying vec2 vGround;\nvarying float vNear;',
       )
       .replace(
         '#include <project_vertex>',
-        '#include <project_vertex>\nvSurf = surf;\nvSurf2 = surf2;\nvGround = position.xz / 5.0;\nvNear = clamp(1.0 - (-mvPosition.z - 50.0) / 170.0, 0.0, 1.0);',
+        '#include <project_vertex>\nvSurf = surf;\nvSurf2 = surf2;\nvMac = mac;\nvGround = position.xz / 4.8;\nvNear = clamp(1.0 - (-mvPosition.z - 50.0) / 170.0, 0.0, 1.0);',
       );
     sh.fragmentShader = sh.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
 uniform sampler2D gA; uniform sampler2D gB; uniform sampler2D gM;
-varying vec4 vSurf; varying vec4 vSurf2; varying vec2 vGround; varying float vNear;
+varying vec4 vSurf; varying vec4 vSurf2; varying vec4 vMac; varying vec2 vGround; varying float vNear;
 float maxOf(vec4 v) { return max(max(v.x, v.y), max(v.z, v.w)); }`,
       )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
-vec4 M = texture2D(gM, vGround * (5.0 / 190.0));
+${hi ? 'vec4 M = texture2D(gM, vGround * (4.8 / 168.0));' : 'vec4 M = vMac;'}
 // crisp, wobbling edges between kinds: each weight nudged by noise, then cubed, so the stronger kind wins
 vec4 w1 = vSurf * (0.55 + 0.9 * vec4(M.a, M.g, 1.0 - M.a, M.b));
 vec4 w2 = vSurf2 * (0.55 + 0.9 * vec4(1.0 - M.g, M.a, M.b, 1.0 - M.b));
@@ -250,7 +274,7 @@ float grain2 = dot(texture2D(gA, uv2), w1) + dot(texture2D(gB, uv2), w2);
 grain = mix(grain, grain2, smoothstep(0.3, 0.7, M.g));`
     : ''
 }
-float fineG = dot(texture2D(gA, uv * 4.37 + 0.31), w1) + dot(texture2D(gB, uv * 4.37 + 0.31), w2);
+${hi ? 'float fineG = dot(texture2D(gA, uv * 4.37 + 0.31), w1) + dot(texture2D(gB, uv * 4.37 + 0.31), w2);' : 'float fineG = 0.5;'}
 // each kind's own tint over the biome's colour
 vec3 tint = w1.x * vec3(0.97, 1.01, 0.92) + w1.y * vec3(1.03, 0.99, 0.86) + w1.z * vec3(0.9, 0.94, 1.02) + w1.w * vec3(1.03, 1.04, 1.08)
   + w2.x * vec3(1.02, 0.88, 0.74) + w2.y * vec3(0.93, 0.95, 1.0) + w2.z * vec3(0.72, 0.68, 0.62) + w2.w * vec3(1.08, 1.06, 1.02);
@@ -265,17 +289,19 @@ diffuseColor.rgb *= mix(1.0, 0.5 + 1.0 * grain, 0.4 + 0.6 * vNear) * mix(1.0, 0.
 // a thin darker line where two kinds meet
 float edge = 1.0 - max(maxOf(w1), maxOf(w2));
 diffuseColor.rgb *= 1.0 - 0.22 * smoothstep(0.32, 0.46, edge) * (0.5 + 0.5 * vNear);
+${hi ? '' : '/*'}
 // a meadow's flowers, close to: a few dots in the grass where the patch noise is low
 vec2 fp = vGround * 30.0, fc = floor(fp);
 float h = fract(sin(dot(fc, vec2(12.9898, 78.233))) * 43758.5453);
 vec2 fo = fract(fp) - 0.5 - (vec2(fract(h * 17.0), fract(h * 31.0)) - 0.5) * 0.5;
 float fl = step(0.97, h) * (1.0 - smoothstep(0.12, 0.2, length(fo))) * smoothstep(0.34, 0.22, M.b) * step(0.5, w1.x) * vNear * vNear;
 vec3 petal = h > 0.99 ? vec3(0.62, 0.48, 0.86) : h > 0.98 ? vec3(1.0, 0.84, 0.3) : vec3(1.0, 0.98, 0.92);
-diffuseColor.rgb = mix(diffuseColor.rgb, petal * 0.9, fl * 0.85);`,
+diffuseColor.rgb = mix(diffuseColor.rgb, petal * 0.9, fl * 0.85);
+${hi ? '' : '*/'}`,
       );
   };
-  mat.customProgramCacheKey = () => 'ground-grounds' + (hi ? '-hi' : '');
+  mat.customProgramCacheKey = () => 'ground-grounds' + (hi ? '-hi' : '-lo');
   return mat;
 }
 
-export { groundsOn, groundsMaterial, kindsOf, specialKind, KINDS, textures as groundsTextures };
+export { groundsOn, groundsMaterial, kindsOf, specialKind, macroAt, KINDS, textures as groundsTextures };
