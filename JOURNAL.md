@@ -49,9 +49,10 @@ on (floor: 8%).
    wall tiles round a hearth).
 5. On the Pixel: walk an open field and a road on High with the meter on, and compare Medium with v0.18.
 
-**About the browser test.** Its walk over a border failed now and then all commission, with no page error: in some
-rolled worlds the character, carrying what the test had picked up and a full skin of water, was over their carry limit
-and could not move. The test now leaves the extras behind and carries four measures for that walk; its assertions say
+**About the browser test.** Its walk over a border, and once its walk into a house, failed now and then all
+commission, with no page error: in some rolled worlds the character, carrying what the test had bought and picked up
+and a full skin of water, was over their carry limit and could not move. The test now leaves the extras behind and
+carries four measures for those walks; its assertions say
 what they saw when they fail.
 
 **CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):

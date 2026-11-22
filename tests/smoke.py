@@ -88,7 +88,7 @@ async def main():
         await goto('inn'); await press('The inn'); await pg.locator('#modal-body button', has_text='A bed').click(); await pg.wait_for_timeout(150); await pg.click('#modal-close'); steps.append('inn')
         # into a house on foot (C7.4): in the street before a building's door, facing it, walk in; take something; walk out
         hid = await pg.evaluate("""()=>{const g=window.__g,S=g.S,bs=Rules.buildingsOf(S,S.area),b=bs.find(x=>x.kind==='house')||bs[0];if(!b)return null;
-          S.player.x=b.door.ox;S.player.y=b.door.oy;g.refresh();const ts=5*28/36,h=18*ts,dx=b.door.ox-b.door.x,dy=b.door.oy-b.door.y;
+          S.player.items=S.player.items.filter(i=>i.eq);S.player.water=Math.min(4,Rules.waterCap(S));S.player.x=b.door.ox;S.player.y=b.door.oy;g.refresh();const ts=5*28/36,h=18*ts,dx=b.door.ox-b.door.x,dy=b.door.oy-b.door.y;
           g.P.x=(b.door.x+0.5)*ts-h+dx*ts*0.9;g.P.z=(b.door.y+0.5)*ts-h+dy*ts*0.9;g.P.yaw=Math.atan2(dx,dy);g.P.pitch=0;window.__door=b;return b.id}""")
         assert hid, 'the town has no building to walk into'
         await pg.keyboard.down('w')
