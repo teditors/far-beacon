@@ -1,6 +1,7 @@
 /* Run control: saving, starting, acting, and the per-frame loop. */
 import { $, CODEX, EYE, FR, G, KEY, OLD_KEYS, P, R, TOWN_TS, TS, V, VIEW, clamp, lerp, smooth, tileX, toTile } from './ctx.js';
 import {
+  indoorView,
   applyFrame,
   buildDynamic,
   buildStatic,
@@ -26,7 +27,7 @@ import { animateActors, forgetActors, shiftActors } from './actors.js';
 import { updateSound } from './sound.js';
 import { updateFx } from './fx.js';
 import { setWaterSky } from './water.js';
-import { setGroundFlat, warmSurfaces } from './paint.js';
+import { warmSurfaces } from './paint.js';
 import { draw as drawFrame } from './post.js';
 import { updateLook } from './mood.js';
 import { fogBandsOn, setBands } from './toon.js';
@@ -195,10 +196,12 @@ function tick(dt, now) {
   let nx = clamp(P.x + dx * sp * dt, -lim, lim),
     nz = clamp(P.z + dz * sp * dt, -lim, lim);
   // walls: keep a little distance from them, and slide along them instead of stopping dead
-  const pad = indoor ? 0.6 : 0,
+  const inHouse = R.areaRec(V.S).kind === 'house',
+    pad = inHouse ? 0.35 : indoor ? 0.6 : 0,
+    // a building's door (C7) is a wall to everything but the traveller walking through it
+    open1 = (tx, tz) => R.passable(V.S, tx, tz) || R.doorAt(V.S, tx, tz),
     blocked = (x, z) =>
-      !R.passable(V.S, toTile(x + Math.sign(x - P.x) * pad), toTile(z)) ||
-      !R.passable(V.S, toTile(x), toTile(z + Math.sign(z - P.z) * pad));
+      !open1(toTile(x + Math.sign(x - P.x) * pad), toTile(z)) || !open1(toTile(x), toTile(z + Math.sign(z - P.z) * pad));
   if (indoor && blocked(nx, nz)) {
     if (!blocked(nx, P.z)) nz = P.z;
     else if (!blocked(P.x, nz)) nx = P.x;
@@ -336,7 +339,6 @@ function frame() {
   if (lk) setBands(lk.bands, lk.soft);
   else setBands(3, 0.45);
   setOutline(lk, window.innerHeight);
-  setGroundFlat(lk ? Math.min(1, lk.line) * 0.75 : 0); // other worlds: the land in flat colour
   lightOutdoors(h, day, dusk, skyC, !!storm, sight, lk);
   // the sun shines the same way from wherever the player is, so its shadows follow them
   sun.position.x += P.x;
@@ -348,11 +350,20 @@ function frame() {
   sunDir.set(-Math.cos(sa) * 300, Math.max(20, Math.sin(sa) * 300), 120);
   lamp.intensity = sight && day < 0.5 ? 1.4 * (1 - day * 2) : 0;
   lamp.position.set(P.x, P.y + 0.3, P.z);
+  if (R.areaRec(V.S).kind === 'house') {
+    // indoors (C7): the sky's light comes in at the windows and the door, and a hearth or a candle is always lit
+    sun.intensity *= 0.35;
+    hemi.intensity = Math.max(hemi.intensity * 0.9, 0.42);
+    lamp.intensity = 0.9 + 0.6 * nightNow;
+    lamp.distance = 14;
+    lamp.position.set(P.x, P.y + 0.9, P.z);
+  }
   setWaterSky(scene.fog.color);
   updateSky(skyC, sunDir, day, storm ? R.stormOfNow(V.S) : null, frameDt);
   finishFrame();
 }
 function finishFrame() {
+  indoorView(R.areaRec(V.S).kind === 'house');
   treesNear();
   animateActors(frameDt, P.x, P.z, still);
   guard('sound', () => updateSound(frameDt));

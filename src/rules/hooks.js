@@ -42,6 +42,13 @@ const ENTRANCES = [];
 const AFTER_LOAD = [];
 // LEVELS: for levels a piece owns, by area kind: LEVELS[kind](s) takes the stair down (goDown calls it).
 const LEVELS = {};
+// MOVES: functions (s, nx, ny, dx, dy) run as a step begins, before the usual rules; one that handles the step (going
+// through a door into a building, or out of one: commission 7) returns true or false, others undefined.
+const MOVES = [];
+// ITEM_NAMES / ITEM_VALUES: functions (item) giving its name or worth in coin, or null / undefined to leave it to the usual
+// rules (things picked up, and what they really are: commission 7).
+const ITEM_NAMES = [];
+const ITEM_VALUES = [];
 const SWITCHES = [];
 const worldNotes = (s) => NOTES.flatMap((fn) => fn(s) || []);
 export {
@@ -63,5 +70,8 @@ export {
   ACTIONS,
   TALK,
   ITEM_HOOKS,
+  ITEM_NAMES,
+  ITEM_VALUES,
+  MOVES,
   worldNotes,
 };

@@ -109,6 +109,8 @@ function openModal(title, body) {
   input.fx = input.fy = 0;
   input.keys = {};
 }
+// Seen taking something in someone's house (C7, the theft piece): a window says so
+R.on('caught', (s, d) => openModal(d.title, [el('p', { text: d.text })]));
 function closeModal() {
   $('modal').hidden = true;
 }
@@ -221,7 +223,7 @@ function itemRow(it, side) {
               'small sel',
             ),
       );
-    if (!it.known && V.S.char.cls === 'wizard' && !V.S.combat)
+    if (!it.known && !it.thing && V.S.char.cls === 'wizard' && !V.S.combat)
       acts.push(
         btn('Identify, 2 mana', () => {
           act(() => R.identify(V.S, it.id));
@@ -230,12 +232,21 @@ function itemRow(it, side) {
       );
     if (b.consumable)
       acts.push(
-        btn('Drink', () => {
-          act(() => R.useItem(V.S, it.id));
-          if (!V.S.over) openPack();
-        }),
+        btn(
+          b.use && b.use.light
+            ? 'Light'
+            : b.thing && b.use && b.use.stamina
+              ? 'Eat'
+              : b.thing && b.use && b.use.hp
+                ? 'Use'
+                : 'Drink',
+          () => {
+            act(() => R.useItem(V.S, it.id));
+            if (!V.S.over) openPack();
+          },
+        ),
       );
-    if (!it.known && R.atCamp(V.S))
+    if (!it.known && !it.thing && R.atCamp(V.S))
       acts.push(
         btn('Study ' + f1(2 * R.stat(V.S, 'studyTime', 1)) + ' h', () => {
           act(() => R.study(V.S, it.id));

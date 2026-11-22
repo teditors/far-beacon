@@ -3,8 +3,7 @@
    stack in bands like a painting (Firewatch, Journey). The land drawn nearer has already faded into the air by its
    edge, so even the nearest ring is only a little darker than the horizon: they show above the land's own skyline and
    across open water, as far coasts. They are flat silhouettes, a few hundred triangles each, kept
-   round the traveller like the sky, coloured each frame from the look; taller where the land is mountainous. In other
-   worlds the ink draws their edges. Rings: Q.skyline (Low 2, Medium 3, High 4). Switch: `skyline`. */
+   round the traveller like the sky, coloured each frame from the look; taller where the land is mountainous. Rings: Q.skyline (Low 2, Medium 3, High 4). Switch: `skyline`. */
 import { R, V, mulberry } from './ctx.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { camera, scene } from './scene.js';

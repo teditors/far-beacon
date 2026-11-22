@@ -36,7 +36,12 @@ function walkTo(s, tx, ty) {
   prev[start] = start;
   while (q.length && prev[goal] < 0) {
     const i = q.shift();
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
       const x = (i % W) + dx,
         y = Math.floor(i / W) + dy,
         j = y * W + x;
@@ -75,7 +80,8 @@ for (let seed = 1; seed <= 200; seed++) {
   // from the west: in if the town's west edge is open there, turned back by a wall if not, and out the same way
   go(s, s.town.x - 3, s.town.y, ta);
   const westOpen = R.mapOf(s, 'town').terrain[18 * W] !== R.WALL;
-  if (!!R.move(s, 1, 0) !== westOpen || (s.area === 'town') !== westOpen) trouble('the west side of the town did not do what its edge says');
+  if (!!R.move(s, 1, 0) !== westOpen || (s.area === 'town') !== westOpen)
+    trouble('the west side of the town did not do what its edge says');
   if (s.area === 'town') {
     R.move(s, -1, 0);
     if (s.area !== ta || s.player.x !== s.town.x - 3 || s.player.y !== s.town.y) trouble('did not come out where I went in');
@@ -167,5 +173,7 @@ for (let seed = 1; seed <= 200; seed++) {
   }
 }
 if (problems.length) console.log(problems.slice(0, 12).join('\n'));
-console.log('quest: ' + Object.keys(tally).length + ' quest shapes, 200 worlds, failures ' + fail + ', problems ' + problems.length);
+console.log(
+  'quest: ' + Object.keys(tally).length + ' quest shapes, 200 worlds, failures ' + fail + ', problems ' + problems.length,
+);
 if (fail || problems.length) process.exit(1);

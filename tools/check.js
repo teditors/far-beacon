@@ -20,9 +20,20 @@ let failed = 0;
 for (const [name, cmd, args] of steps) {
   const t0 = Date.now();
   try {
-    const out = execFileSync(cmd, args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 600000 });
+    const out = execFileSync(cmd, args, {
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: name === 'browser' ? 1200000 : 600000,
+    }); // the browser test is slow on a software renderer
     const lines = out.trim().split('\n');
-    console.log('PASS ' + name.padEnd(9) + ((Date.now() - t0) / 1000).toFixed(1).padStart(5) + 's  ' + (name === 'playtest' ? lines.slice(0, 2).join(' | ') : lines.slice(-2).join(' | ')));
+    console.log(
+      'PASS ' +
+        name.padEnd(9) +
+        ((Date.now() - t0) / 1000).toFixed(1).padStart(5) +
+        's  ' +
+        (name === 'playtest' ? lines.slice(0, 2).join(' | ') : lines.slice(-2).join(' | ')),
+    );
   } catch (e) {
     failed++;
     console.log('FAIL ' + name + '\n' + ((e.stdout || '') + (e.stderr || '')).split('\n').slice(-15).join('\n'));

@@ -1,5 +1,7 @@
 // One-off: split CONTENT into themed data files. Each file exports a plain object; index.js merges them.
-const fs = require('fs'), path = require('path'), acorn = require('acorn');
+const fs = require('fs'),
+  path = require('path'),
+  acorn = require('acorn');
 const ROOT = path.join(__dirname, '..');
 const src = fs.readFileSync(path.join(ROOT, 'legacy/content.js'), 'utf8');
 const ast = acorn.parse(src, { ecmaVersion: 2022 });
@@ -40,7 +42,9 @@ for (const f in parts) {
   fs.writeFileSync(path.join(ROOT, 'src/content', f), `/* ${titles[f]} */\nexport default {\n${body},\n};\n`);
 }
 const names = Object.keys(groups).map((f) => f.replace('.js', ''));
-fs.writeFileSync(path.join(ROOT, 'src/content/index.js'),
+fs.writeFileSync(
+  path.join(ROOT, 'src/content/index.js'),
   `/* CONTENT: every biome, people, god, creature, item and quest part is data. Adding an entry needs no code change.\n   Each file below holds one theme; this file merges them into the single CONTENT object the rules read. */\n` +
-  names.map((n) => `import ${n} from './${n}.js';`).join('\n') +
-  `\n\nexport const CONTENT = Object.assign({}, ${names.join(', ')});\n`);
+    names.map((n) => `import ${n} from './${n}.js';`).join('\n') +
+    `\n\nexport const CONTENT = Object.assign({}, ${names.join(', ')});\n`,
+);

@@ -93,17 +93,6 @@ const disc = (r, color) => {
   m.frustumCulled = false;
   return m;
 };
-// A thin inked ring round a disc, shown only where the look draws ink lines.
-const rim = (r) => {
-  const m = new THREE.Mesh(
-    new THREE.RingGeometry(r, r * 1.06, 40),
-    new THREE.MeshBasicMaterial({ color: 0x2a2a3a, fog: false, transparent: true, depthWrite: false }),
-  );
-  m.renderOrder = -8;
-  m.frustumCulled = false;
-  m.userData.rim = true;
-  return m;
-};
 // What falls in a storm, from its name.
 function kindOf(name) {
   const n = (name || '').toLowerCase();
@@ -253,16 +242,11 @@ function updateClouds(on, skyColor, sunPos, day, storm, dt) {
 function updateSky(skyColor, sunPos, day, storm, dt) {
   const on = Q.sky && !R.isDark(V.S);
   updateSkyline(on, scene.fog ? scene.fog.far : 600); // far hills (C6)
-  // other worlds drawn in clean line have big empty skies (C6): no soft clouds in them
-  const inked = NOW.look && NOW.look.line > 0.5;
-  updateClouds(on && !inked && lookOn('clouds') && lookOn('light'), skyColor, sunPos, day, storm, dt);
+  updateClouds(on && lookOn('clouds') && lookOn('light'), skyColor, sunPos, day, storm, dt);
   if (on && !dome) {
     dome = makeDome();
     sunDisc = disc(70, 0xfff2c8);
-    // in other worlds drawn in clean line the sun and moon get an inked rim (C6)
-    sunDisc.add(rim(70));
     moonDisc = disc(40, 0xdfe6f0);
-    moonDisc.add(rim(40));
     scene.add(dome, sunDisc, moonDisc);
   }
   if (dome) {
@@ -277,16 +261,9 @@ function updateSky(skyColor, sunPos, day, storm, dt) {
       sunDisc.position.copy(camera.position).add(d);
       sunDisc.lookAt(camera.position);
       sunDisc.material.opacity = storm ? 0 : Math.max(0, Math.min(1, day * 1.5));
-      const ink = NOW.look ? NOW.look.line : 0;
-      for (const dsc of [sunDisc, moonDisc])
-        for (const r of dsc.children) {
-          r.visible = ink > 0.5;
-          if (r.visible) r.material.color.setRGB(NOW.look.ink[0], NOW.look.ink[1], NOW.look.ink[2]);
-        }
       moonDisc.position.copy(camera.position).sub(d.setY(Math.abs(d.y)));
       moonDisc.lookAt(camera.position);
       moonDisc.material.opacity = storm ? 0 : Math.max(0, 0.9 - day * 1.6);
-      for (const dsc of [sunDisc, moonDisc]) for (const r of dsc.children) r.material.opacity = dsc.material.opacity * 0.8;
     }
   }
   // what falls in the storm

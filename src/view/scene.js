@@ -19,6 +19,8 @@ import { kitMat } from './kit.js';
 import { toonMat } from './toon.js';
 import { smoothNormals } from './outline.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
+import { thingsGroup } from './things.js';
+import { HOUSE_TS, houseGroup, houseOrigin } from './rooms.js';
 
 /* ---------- scene ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: Q.aa, powerPreference: 'high-performance' });
@@ -108,8 +110,9 @@ function rockGeo() {
   g.faceted = true;
   return g;
 }
-const glow = (color, opacity) =>
-  new THREE.MeshBasicMaterial({ color, fog: false, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
+// unlit; lights skip the fog, dark or coloured things pass fog = true so they fade with distance like the land (C7.1)
+const glow = (color, opacity, fog) =>
+  new THREE.MeshBasicMaterial({ color, fog: !!fog, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
 const box = (w, h, d, mat, x, y, z) => {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   m.position.set(x || 0, y || 0, z || 0);
@@ -178,7 +181,7 @@ const BUILD = {
     const g = new THREE.Group(),
       k = (S.skies || []).find((x) => x.id === st.sky),
       kind = k ? k.kind : 'isle',
-      d = new THREE.Mesh(new THREE.CircleGeometry(16, 20).rotateX(-Math.PI / 2), glow(0x1d2430, 0.35));
+      d = new THREE.Mesh(new THREE.CircleGeometry(16, 20).rotateX(-Math.PI / 2), glow(0x1d2430, 0.35, true));
     d.position.y = 0.4;
     g.add(d);
     // seen from far off, through any haze: drawn without fog, a little faded, like a mountain on the skyline
@@ -346,7 +349,7 @@ const BUILD = {
     g.add(
       fxOn() ? FX.fire(1.3) : fire,
       box(0.15, 4, 0.15, std(0x3a2a1a), 2, 2, 1),
-      box(1.4, 0.9, 0.05, glow(0xb03a2a, 1), 2.7, 3.4, 1),
+      box(1.4, 0.9, 0.05, glow(0xb03a2a, 1, true), 2.7, 3.4, 1),
     );
     return g;
   },
@@ -830,13 +833,14 @@ function interiorSite(st, ts, inTown, k) {
 // when this changes; the same scene is simply looked at from the other origin.
 function applyFrame() {
   const kind = R.areaRec(V.S).kind,
-    inTown = kind === 'town' && V.townAt;
+    inTown = (kind === 'town' || kind === 'house') && V.townAt,
+    house = kind === 'house' && V.townAt ? houseOrigin(R.houseOf(V.S, V.S.area)) : null;
   if (R.isLevel(V.S)) return;
   const was = { x: FR.x, y: FR.y, z: FR.z };
-  FR.x = inTown ? V.townAt.x : 0;
+  FR.x = inTown ? V.townAt.x + (house ? house.x : 0) : 0;
   FR.y = inTown ? V.townAt.y : 0;
-  FR.z = inTown ? V.townAt.z : 0;
-  setGeometry(inTown ? 'town' : 'region');
+  FR.z = inTown ? V.townAt.z + (house ? house.z : 0) : 0;
+  setGeometry(house ? 'house' : inTown ? 'town' : 'region'); // a house (C7): its own grid, where the building stands
   // everyone remembered moves with the frame, however it moved (the gate, an action, a jump): they walk on
   if (was.x !== FR.x || was.y !== FR.y || was.z !== FR.z) shiftActors(was.x - FR.x, was.z - FR.z, was.y - FR.y);
   const sh = V.shift || { x: 0, z: 0 };
@@ -856,6 +860,7 @@ function buildStaticInner() {
   if (R.isLevel(V.S)) {
     dispose(staticGroup);
     staticGroup = new THREE.Group();
+    shut = false;
     scene.add(staticGroup);
     V.townAt = V.townId = null;
     V.towns = [];
@@ -870,8 +875,17 @@ function buildStaticInner() {
   while (!(r = g.next()).done);
   install(r.value);
 }
+/* Inside a building (C7), only the town is drawn of the land: through the door you see the street and the houses
+   across it, and nothing of the land behind the walls costs anything. */
+let shut = false;
+function indoorView(on) {
+  if (!staticGroup || on === shut) return;
+  shut = on;
+  for (const o of staticGroup.children) o.visible = !on || o.userData.townGroup === V.townId;
+}
 // Put a finished land on screen in place of the old one.
 function install(res) {
+  shut = false;
   dispose(staticGroup);
   staticGroup = res.group;
   scene.add(staticGroup);
@@ -1309,6 +1323,7 @@ function* buildLand(S, timed) {
       if (!S.areas[id] || !R.mapOf(S, id) || !tw) continue;
       const g = interiorGroup(R.mapOf(S, id), S.areas[id], TOWN_TS, id);
       g.position.set(tw.x, tw.y, tw.z);
+      g.userData.townGroup = id;
       group.add(g);
       continue;
     }
@@ -1370,6 +1385,7 @@ function buildDynamic() {
     const rec = R.outdoorRec(V.S);
     drawArea(rec.id, 'region');
     if (V.townAt && V.townId && V.S.areas[V.townId]) drawArea(V.townId, 'town');
+    if (V.townAt && V.townId) drawHouses(); // inside a building, and the rooms seen through the open doors near you (C7)
     // the creatures of the regions round about, near the borders (built ahead by the rules; never built here)
     if (actorsOn())
       for (let dy = -1; dy <= 1; dy++)
@@ -1385,11 +1401,57 @@ function buildDynamic() {
 }
 // nb: for a neighbouring region, its offset in metres; only its creatures near the border are drawn, so that they are
 // already there, and walking, when the border is crossed.
-function drawArea(id, kind, nb) {
+/* The rooms of the buildings about the traveller (C7, rooms.js): the one they are in, and any whose door is near enough
+   to see in at, each with its things, standing where the building is. */
+function drawHouses() {
+  const S = V.S,
+    here = R.areaRec(S),
+    inHouse = here.kind === 'house',
+    list = [];
+  if (inHouse) list.push({ id: S.area, L: R.houseOf(S, S.area) });
+  if (R.interiorsOn(S, V.townId)) {
+    const tsz = TOWN_TS,
+      th = (R.W * tsz) / 2;
+    for (const b of R.buildingsOf(S, V.townId)) {
+      if (inHouse && b.id === S.area) continue;
+      const dx = (b.door.x + 0.5) * tsz - th + V.townAt.x - FR.x - P.x,
+        dz = (b.door.y + 0.5) * tsz - th + V.townAt.z - FR.z - P.z;
+      if (dx * dx + dz * dz < 22 * 22) list.push({ id: b.id, L: R.houseLayout(S, V.townId, b) });
+    }
+  }
+  for (const { id, L } of list.slice(0, 4)) {
+    if (!L) continue;
+    const o = houseOrigin(L),
+      g = houseGroup(S, id, L);
+    g.position.set(V.townAt.x + o.x - FR.x, V.townAt.y + 0.08 - FR.y, V.townAt.z + o.z - FR.z);
+    if (g.parent) g.parent.remove(g);
+    dynGroup.add(g);
+    if (S.areas[id]) drawArea(id, 'house', null, L);
+    else {
+      // a house not walked into: its things straight from its layout, less any taken before
+      const gone = new Set((S.taken && S.taken[id]) || []),
+        hh = (R.W * HOUSE_TS) / 2,
+        tg = thingsGroup(
+          S,
+          id,
+          HOUSE_TS,
+          (t) => [
+            (t.x + 0.5 + t.px) * HOUSE_TS - hh + V.townAt.x + o.x - FR.x,
+            V.townAt.y + 0.08 - FR.y,
+            (t.y + 0.5 + t.pz) * HOUSE_TS - hh + V.townAt.z + o.z - FR.z,
+          ],
+          [FR.x, FR.y, FR.z].join(),
+          L.things.filter((t) => !gone.has(t.id)),
+        );
+      if (tg) dynGroup.add(tg);
+    }
+  }
+}
+function drawArea(id, kind, nb, L) {
   const map = R.mapOf(V.S, id),
     current = id === V.S.area,
     indoor = kind !== 'region',
-    ts = kind === 'town' ? TOWN_TS : kind === 'vault' ? G.ts : TS,
+    ts = kind === 'town' ? TOWN_TS : kind === 'house' ? HOUSE_TS : kind === 'vault' ? G.ts : TS,
     half = (R.W * ts) / 2,
     off = indoor ? ts / 28 : 1;
   // a tile of this area, plus an offset in metres, as a point in the frame the player is in
@@ -1400,6 +1462,11 @@ function drawArea(id, kind, nb) {
     if (kind === 'town') {
       x += V.townAt.x;
       z += V.townAt.z;
+      y = V.townAt.y + 0.08;
+    } else if (kind === 'house') {
+      const o = houseOrigin(L);
+      x += V.townAt.x + o.x;
+      z += V.townAt.z + o.z;
       y = V.townAt.y + 0.08;
     } else if (kind === 'region') y = V.base.height(x, z);
     return [x - FR.x, y - FR.y, z - FR.z];
@@ -1455,10 +1522,22 @@ function drawArea(id, kind, nb) {
         );
     }
   const camp = !nb && V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
+  // the things of the place (C7): furniture, cups, bones..., and things put down again where they were left
+  if (!nb) {
+    const tg = thingsGroup(
+      V.S,
+      id,
+      ts,
+      (t) => at(t.y * R.W + t.x, t.px * ts, t.pz * ts),
+      [FR.x, FR.y, FR.z, V.shift ? V.shift.x + ',' + V.shift.z : ''].join(), // where the frame stands: built in it
+    );
+    if (tg) dynGroup.add(tg);
+  }
   for (const k in nb ? {} : map.depots) {
     if (+k === camp) continue;
-    const d = map.depots[k],
-      relic = d.items.some((i) => i.base === 'relic'),
+    const d = map.depots[k];
+    if (d.items.length && d.items.every((i) => i.thing) && !(d.water > 0) && !(d.fuel > 0)) continue; // drawn as themselves
+    const relic = d.items.some((i) => i.base === 'relic'),
       [x, y, z] = at(+k, 3.5 * off, 2.5 * off);
     if (relic) {
       dynGroup.add(box(1.2, 1, 1.2, std(0x77716a), x, y + 0.5, z));
@@ -1589,6 +1668,7 @@ function resize() {
 }
 
 export {
+  indoorView,
   renderer,
   scene,
   camera,

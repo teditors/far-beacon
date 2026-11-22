@@ -1,3 +1,295 @@
+# Commission 7
+
+**On merging (v0.18):** Andrew kept everything except the ink lines over everything in other worlds (C6.5, switch
+`ink`), which he felt did not work. They were taken out on the merge: the ink pass in `post.js`, the look's `line`, the
+inked rims of the sun and moon, the flat land, and the wisps that kept grass out of the ink. Other worlds keep their own
+palettes, two bands, the wash and the paper grain, and their clouds again. Outlines keep the look's `ink` colour as their tint.
+
+The brief (COMMISSION.md): visual fixes Andrew found on his Pixel 9 (townspeople's outlines, far shimmer, black boxes
+far off), more music (a harpsichord and Baroque pieces, a tune for each kind of place and event), and the main work:
+buildings you can walk into, full of ordinary things you can pick up, with theft in houses and secret value in
+abandoned places. Pieces with switches, as before.
+
+**Measuring.** As commission 6: `python3 tools/bench.py fallback low medium high` and `python3 tools/look.py`, with
+`CHROME=/opt/pw-browsers/chromium` (the full `node tools/check.js` needs it too for the browser test in a cloud session).
+
+## Summary
+
+Seven entries, newest first below, in four commits (C7.4 to C7.6 went in together: they were built and checked as one,
+each with its own switch). Every check passes, the full one with the browser test, which now walks into a house through
+its door, takes something (and, seen, is made to put it back first), and walks out. No save migration: the new state
+(`s.taken`, areas of kind `house`, `s.stats.caught`) is optional, and old saves load as they were.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C7.1 | Outlines only outside the figure (stencil), thin; caves fade into the air far off; bands and far outlines that do not crawl | `outlines` | a needed fix |
+| C7.2 | A harpsichord, Baroque dances and a tune of its own for every kind of place; pieces for a discovery, a win and a death | `sound` | pearl |
+| C7.3 | Ninety kinds of ordinary things in levels and round ruins and caves, made from the seed, to pick up, carry, eat, light or sell | `things` | groundwork, and a pleasure to poke about in |
+| C7.4 | Every town building is a place you walk into, with rooms that suit it, drawn where it stands | `interiors` | pearl |
+| C7.5 | Taking in someone's house is seen and undone; a window says who saw you | `theft` | small, replaceable |
+| C7.6 | Some old things are secretly valuable, until a merchant appraises them | `secrets` | small pearl |
+| C7.7 | Inside a building only the town of the land is drawn; measurements | (none) | pearl for the phone |
+
+**Numbers, before and after** (`python3 tools/bench.py fallback low medium high rooms`, software renderer at 412 x 915,
+seeds 11 / 222 / 3333; slow in absolute terms, comparable across rows, about 8% noise). Before is the end of
+commission 6.
+
+| | build ms | draw calls | triangles | frame ms | page |
+| --- | --- | --- | --- | --- | --- |
+| before, Fallback | 82 | 73 | 106,484 | 75.4 | 818 KB |
+| after, Fallback | 74 | 75 | 110,521 | 72.9 | 935 KB |
+| before, Low | 362 | 124 | 578,686 | 401.7 | |
+| after, Low | 389 | 124 | 583,226 | 403.9 | |
+| before, Medium | 381 | 146 | 590,024 | 405.6 | |
+| after, Medium | 362 | 145 | 595,389 | 401.0 | |
+| before, High | 389 | 154 | 762,489 | 513.3 | |
+| after, High | 435 | 153 | 767,854 | 525.0 | |
+
+Outdoors nothing changed but a few thousand triangles of old things round the ruins. **A full room** (seed 11's
+elder's hall, 54 things, and a house of four rooms, 86 things):
+
+| | the room's draw calls | the room's triangles | the whole frame inside: calls, triangles, ms |
+| --- | --- | --- | --- |
+| Fallback | 7 | 4,502 / 9,312 | 67 / 58 calls; 135k / 145k; 112 / 119 ms (before C7.7) |
+| Low | 7 | 4,502 / 9,312 | 120 / 95 calls; 698k / 705k; 555 / 538 ms (before C7.7) |
+| Medium | 8 to 9 | 6,766 / 14,232 | 144 / 104 calls; 709k / 722k; 526 / 552 ms (before C7.7) |
+| Medium, after C7.7 | 9 | 7,114 / 14,796 | **65 / 68 calls; 29k / 47k; 183 / 199 ms** |
+| High | 8 | 6,766 / 14,232 | 148 / 106 calls; 976k / 978k; 735 / 733 ms (before C7.7) |
+
+A room is cheap (walls, floor, ceiling, woodwork, window glow, furniture, small things, two outlines); what cost was the
+land behind its walls, which C7.7 stops drawing indoors: inside a building is now the cheapest place in the game.
+
+**Saves and memory** (Node, a world's every place visited by god mode, three worlds): a new world's save is the same
+(77 / 57 / 56 KB); after every place, 157 → 159, 108 → 109 and 124 → 126 KB (the god-mode jumps into a house each leave
+an area a few hundred bytes, which C7.4's `forgetHouses` now removes); thirty things taken add 0.3 to 0.9 KB (about 30
+bytes each). Making every thing of a whole world at once (3,500 to 5,000 things in every level and round every ruin,
+and 41 to 57 buildings' rooms) costs some 2 to 8 MB of memory more than before; in play only the places near you are
+made, and the caches keep at most 64 places' things and 32 houses.
+
+The bot: 30 / 150 (20%), 19 / 150 (13%) and 22 / 150 (15%) over three seed sets, every piece on (floor: 8%).
+
+**My three best.**
+1. **The town's buildings opened (C7.4)**: no loading, no jump, the same trick as the town's gate. The room is made
+   from the seed, drawn where the building stands within its walls, and forgotten when you leave; the house's trade,
+   wealth, climate and year decide its rooms and things, so a hamlet's cottage and a city merchant's house really are
+   different places, and none of it is stored.
+2. **Tunes with identity (C7.2)**: a theme per place, varied each time round, so the city's minuet is the city's, and
+   the Baroque's own devices (sequence, walking bass, a lament over a chromatic bass) make it sound composed, for a few
+   oscillators.
+3. **Outlines in the stencil (C7.1)**: one line of state per material fixed the masks on faces for good, for nothing.
+
+**What I would do next.**
+1. People inside: the smith at the forge, the innkeeper at the counter, a family at the table (the actors exist; they
+   need a place to stand and a reason).
+2. A real crime system in place of C7.5: unseen at night or with the household asleep, a fine or a night in the cells,
+   a bad name in the town that raises its prices.
+3. Rooms in the steppe's tents and the hamlets on the land; upper floors and cellars.
+4. More things for the strange places (the moon's, other worlds'), and the lost people's wares drawn in their own
+   style (their marks and shapes), not only their colour.
+5. On the Pixel: walk into a few houses with the meter on; if the room's things cost, `FOLD` in view/things.js is the
+   lever.
+
+**CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
+
+| v0.18 | Commission 7: rooms full of things. Every building in a town is a place you walk into through its open door, with rooms that suit it (a house's living room, bedroom, kitchen and workroom; the inn's taproom; the elder's hall; the temple's chapel; the smithy), furnished by the town's trade, size, climate and the year. Ninety kinds of ordinary things in rooms, levels, ruins and caves, made from the seed and never stored, to pick up and carry, eat, light or sell; taking in someone's house is seen; some old things are secretly valuable until appraised. Music: a harpsichord, Baroque dances and a tune of its own for every kind of place, and pieces for a discovery, a win and a death. Fixes: thin outlines only round the outside of people (no masks on faces), caves that fade into the distance, less shimmer far off. See `JOURNAL.md` |
+
+## C7.7: indoors, only the town; measurements
+
+**What it is.** Inside a building the land behind its walls was still drawn: 700,000 triangles to look at a wall. Now,
+while the traveller is in a house, only the town of the whole land is drawn (`indoorView` in scene.js, each frame, a
+flag on the land's parts); through the open door you see the street and the houses across it, and haze beyond. The frame
+inside a house went from 526 to 183 ms on Medium on this renderer, 144 to 65 draw calls. Also: `tools/bench.py rooms`
+measures a full room on each quality; `tools/nofog.py` lists dark things that skip the fog; `tools/look.py` has the new
+pictures (`person-*`, `things-*`, `house-*`).
+
+**About the browser test.** It now takes eight minutes here, so `tools/check.js` gives that step twenty (it was cut off
+at ten once); and its walk over a border starts 5 m from the edge instead of 14, since on this software renderer the
+walk manages about a metre a second (frames are capped at 0.05 s of walking each), so 15 seconds was borderline. It
+failed that way twice in this commission, both times with no error but the timeout; neither is a fault in the game.
+
+## C7.6: secret value
+
+**What it is.** A few old things are not what they seem. In ruins, caves, dungeons and empty houses, about one old
+thing in twenty-five that could be one (rings, cups, bowls, plates, statuettes, lockets, vases, urns, books, scrolls,
+maps, dolls, combs, holy symbols, skulls, paintings, lutes, flutes, mirrors, bones) is a secret: a dull ring that is
+**old gold** (60), a cracked bowl **of rare Tokhirut make** (40), a mouldering book that is a **lost book of the
+Tokhirut** (50), a rag doll **with a gem hidden in it** (45), **a saint's bones** (35), a painting **by a master's
+hand** (55). It is picked up as its plain self, and a merchant who has not looked at it pays as for anything unknown
+(3 coin). **Appraised** in a town (the shop's "appraise", 4 coin), it takes its true name and worth. Studying it by the
+fire or a wizard's spell learns nothing (there is nothing to study in a bowl); the merchant's eye does. The lost
+people's name comes from the world's own (`s.civ`), so their wares and their secrets are theirs.
+
+Which things are secrets is rolled with the rest of a place's things (`THING_FINISH`), from the seed; the roll is
+always drawn, so turning the piece off leaves every place exactly as it was. Some 25 to 30 secrets a world.
+
+**Switch.** `secrets`.
+
+## C7.5: theft
+
+**What it is.** In someone's house or shop, and in the places people live (a cloud city, a merfolk hall, a floating
+town), every thing belongs to someone. Taking one: you are always seen, a window says who saw you ("Tamsin, the smith,
+sees you lift the iron hammer. 'That is not yours.' You put it back where it was."), the thing stays, and the journal
+counts the times. The owner is named where the town knows them (the elder, the merchant, the person at a service's
+door) and otherwise is the woman or the man of the house, a child, an old man by the hearth. Where nobody lives
+(ruins, caves, dungeons, the wild, an empty house) things are anyone's.
+
+**Choices.** Kept deliberately small, as the brief asks: one check on taking (`TAKE_CHECKS` in things.js) and one
+event (`'caught'`) the view shows as a window. A real crime system (being unseen at night, a fine, a bad name in the
+town, the watch) can replace this module without touching anything else.
+
+**Switch.** `theft` (off: take anything anywhere).
+
+## C7.4: buildings you can walk into
+
+**What it is.** Every building in a town is a place you walk into, with no menu and no jump.
+- **The door** (rules/houses.js): each block of wall in a town's grid is a building (as the view has always drawn
+  them); one beside the elder's, inn's, shop's or a service's door is theirs, the rest are houses, and each has its
+  door on the side facing a main street. The building's wall there is open: a doorway with its door standing open
+  against the wall, a step, a lintel (buildings.js). Walk into it and you are inside (`MOVES` in hooks.js, run at the
+  start of `move()`); walk back out of it and you are in the street before it.
+- **Inside**: the building's own small map (an area of kind `house`), three tiles to a town tile (about 1.3 m), over a
+  window of the town round the building. Its outer ring is the room's edge, where furniture stands against the walls;
+  inner walls with doorways part it into rooms of five to eight tiles a side, both ways for a big building, as many as
+  its kind has: a house a living room, a bedroom, a kitchen and a store or workroom; the inn a taproom, kitchen and
+  bedrooms; the elder's hall a hall and a study; the temple a chapel; the healer a sickroom; the smith a smithy; the
+  mapmaker a study; the stable a stable and store. What stands in a room's middle (a table, a counter, an anvil) is in
+  the way, so long as every corner can still be reached.
+- **What it holds** follows from the building, the town's trade (looms in the weavers' town, drying racks among the
+  herbalists, anvils among the smiths, nets and floats and dried fish in a town by the water), its size and so its
+  wealth (a hamlet's cot and rush mat and wooden cups; a city's curtained bed, fine carpet, tapestry, painting and
+  silver), its climate (a stove and firewood in the cold, water jars in the heat), the year (no food in a lean year,
+  firewood in a hard winter, candles in the long dark), and in the unfallen town the lost people's own wares under
+  their mark. About one house in fourteen stands empty, its things old, dusty and free to take.
+- **Seamless**: the view (rooms.js) draws the room where the building stands, within its outer walls, with the town
+  round it: a floor of boards (earth in a poor house, stone in a hall or a temple), walls of plaster, logs, stone or
+  adobe by climate, a beamed ceiling, windows bright by day and glowing at night, door frames. Walking through the door
+  only moves the frame's origin (as the town's gate does); nothing is rebuilt. The rooms of the buildings whose doors
+  are near you are drawn too, so you see in through an open door before you step through it. Inside, the light is the
+  sky's through the windows and a warm lamp, and the score plays the room's own tune (a march in the hall, a chorale in
+  the temple, a gigue at the inn, a minuet in a rich house, a drifting air in an empty one).
+- **Memory and saves**: nothing of a house is stored. Its layout and things are made from the seed when wanted; the
+  house's area is forgotten when you walk out, unless you put something down there. A save made inside a house loads
+  inside it. Measured below (C7.7).
+
+**Not done.** Tents (a steppe town) stay closed: a round tent and a square room do not fit; hamlets on the land have
+no interiors yet. Upper floors are not walked (a house's upper storey is roof space as before).
+
+**Switch.** `interiors` (off: solid buildings, as before). God mode lists the story town's hall, inn and a house
+("Houses"). Tests (pieces.test.js, `interiors`): in 25 worlds' towns every building has a door into a street and rooms
+with things, every floor tile can be reached from the door, a house is the same twice, walking in and out puts you
+where you should be, a save inside a house loads, a house left is forgotten, and the switch closes the doors. The
+browser test walks in through a door, takes something (and, seen, is made to put it back), and walks out.
+Pictures: `docs/look/after/house-hall.jpg`, `house-home.jpg`, `house-inn.jpg`, `house-door.jpg`.
+
+## C7.3: things in levels, ruins and caves, and picking them up
+
+**What it is.** The first half of the commission's main work: ordinary things, made in code and in the style, put
+where they belong, that you can pick up.
+- **Ninety kinds** (`content/things.js`): furniture (beds, tables, benches, chests, shelves, hearths, barrels, crates,
+  rugs, tapestries, looms, spinning wheels, anvils, forges, altars, lecterns, coffins, ore carts...), the kitchen
+  (cups, plates, bowls, jugs, pots, pans, kettles, spoons, knives, bread, cheese, apples, dried fish, herbs), light
+  (candles, oil lamps), tools (brooms, buckets, hammers, tongs, saws, scythes, picks, shovels, horseshoes, chains,
+  nets and floats, spindles and yarn), and keepsakes (books, scrolls, maps, paintings, vases, dolls, wooden horses,
+  flutes, lutes, drums, statuettes, holy symbols, lockets, rings, combs, mirrors, dice, urns, bones, skulls, shells,
+  coral, old helmets and shields). Many come in three grades by wealth (a wooden, pewter or silver cup), old ones have
+  a word of their own (cracked, rusted, mouldering, moth-eaten), and the lost people's wares carry their name and a
+  touch of their colour.
+- **Where they are**: every level has its theme's things (a crypt's coffins, urns, bones and candles; a mine's carts,
+  picks and lamps; a wreck's barrels, bottles and maps; a merfolk hall's shells and coral; a cloud city's vases and
+  flutes; a sky castle's racks, shields and silver cups), furniture against the walls and small things on it or on
+  the floor; round every ruin and cave a few old things lie a stone's throw off. All of it **from the seed**:
+  `thingsIn` makes a place's things the same every time, and only `s.taken` (ids per place) is saved. A world's 70 or
+  so levels and regions hold some thousands of things; a save holds a few bytes for each one taken.
+- **Picking up**: standing by things, up to three buttons offer the nearest ("Take the cracked Tokhirut bowl", with
+  its weight); taking makes an item of the same name and weight, so the carry limit applies (too heavy: refused).
+  Most are worth a coin or two, bones and skulls nothing; food can be eaten (bread, cheese, apples, dried fish,
+  mushrooms), herbs make a poultice, a candle or an oil lamp lights the dark for an hour or three, a jug of water is
+  drunk. Put down, a thing lies where it was dropped, drawn as itself (not a crate). There is nothing to study in a
+  cup: studying and the wizard's identifying pass things by.
+- **Drawing** (`view/things.js`): sixty-odd models from the kit, a few strong shapes each, banded like everything
+  else; a place's things are merged into two meshes (furniture, outlined on Medium and up; small things, which fold
+  away to nothing past 28 to 40 m in the vertex shader, so far cups neither cost nor crawl). Kept per place and what is
+  left, so walking rebuilds nothing.
+
+Hooks for the next pieces: `THING_MAKERS` (houses), `TAKE_CHECKS` (theft), `THING_FINISH` (secret value),
+`ITEM_NAMES` / `ITEM_VALUES`. Tests (pieces.test.js, `things`): every name in the content is a thing, furniture has a
+size and the rest can be carried, things are the same twice and never stored, ids are unique, nothing stands in a wall,
+taking makes the right item and weight, a taken thing stays gone after loading, a thing put down is kept, the carry
+limit holds, and the switch makes none. Pictures: `docs/look/after/things-level.jpg`, `things-ruin.jpg`.
+
+**Switch.** `things` (Tinker; `NO=things`), and `thingsDrawn` (Settings) to compare the drawing.
+
+## C7.2: a harpsichord, Baroque dances, and a tune for every place
+
+**What it is.** The score is composed now, not wandered. `src/view/score.js` writes it a bar at a time from
+`content/music.js`:
+- **A theme per place**, rolled from the place's key (`town:city`, `land:cold:night:taiga`, `deep:crypt`,
+  `sea:merhall`, `elsewhere:<world>`...): a motif and its answer (two bars of rhythm and melodic shape), a third shape,
+  and two chord progressions. The tune states the motif over the A part's chords, carries it through them in sequence,
+  and closes with a trilled cadence; then the B part (to the fifth, the relative, or round the circle of fifths); then A
+  again. **Each time round it varies**: passing notes, an octave up, the shape turned over, trills and turns on long
+  notes, rests. So the city's minuet is recognisably the city's, every visit, and does not wear thin.
+- **Baroque dances**: minuet, sarabande, gigue (in threes), gavotte, bourrée, musette (over a drone), air, chorale,
+  march, with a bass of a note a beat, a walking line to the next chord, long notes or a drone, and an inner voice in
+  thirds and sixths under the tune (simple counterpoint). The land keeps slow airs (`drift`) over the old washes and
+  drone, but now each biome by day and by night has its own air in its climate's mode (hot lands in a hijaz mode,
+  cold days lydian, ashen phrygian...).
+- **Voices** (sound.js): a **harpsichord** (one oscillator with the spectrum of a string plucked near its end, a filter
+  that closes as it dies, the damper falling when the note ends: cheap), a lute (the old pluck), an organ for temples,
+  chorales and crypts, a wooden pipe for wet lands and steppes, the old bells and pads.
+- **Who plays what**: hamlets a musette on the lute, villages a bourrée, towns a gavotte and cities a minuet on the
+  harpsichord; the unfallen town a sarabande in the dorian mode, a pilgrims' town a chorale on the organ; a cloud city
+  a lydian minuet, a sky castle a sarabande, a merfolk hall a sarabande, a floating town a gigue; crypts an organ
+  sarabande, mines a lute air, the locked place a harpsichord sarabande in the minor; fights in a driving four with
+  drums, and a lair's beast or a named foe on a harpsichord in the harmonic minor. Halls, temples, libraries, inns,
+  shops, smithies, rich and poor homes and abandoned buildings have entries ready for the interiors piece.
+- **Events**: a discovery (a trait of the lost people learned, a plot's step done) gets a rising trilled figure; a
+  win a run up the scale and a full close; a death a lament over the falling chromatic bass (the Baroque's own sign of
+  mourning). The score bows out under them for a moment.
+
+The Almanac lists every dance and place (`The score`). Tests (pieces.test.js, `the score`): every place's dance, mode
+and voice exist, every rhythm fills its bar, themes are stable and distinct, every tune plays 64 bars of good notes and
+varies, and the city has its minuet. In the browser the music's level is what it was (peak about 0.05).
+
+**Cost.** A note is one to three oscillators living a second or so; a minuet with its bass and inner voice is about
+eight notes a second. Scheduled a bar ahead, ten times a second, as before.
+
+**Switch.** `sound` (Settings), as before; the music volume.
+
+**Verdict.** Pearl, I think: the town now sounds like a town in an old storybook. Andrew: listen in a city and a
+hamlet, and at night on the land.
+
+## C7.1: outlines that stay outside the figure, far things that fade and do not crawl
+
+**What it was.** Andrew's screenshot (`docs/bugs/c7-townsperson-outlines.jpg`) showed a townsperson with fat dark
+lines, a dark shell round the head and a hexagonal mask round the eyes and nose. Reproduced in `docs/look/before/
+person-close.jpg`: C6.4's inverted hull is drawn for every part of a merged model, so the hull of a small part sunk
+into a bigger one (an eye, the nose, the buckle) pokes out of the face as a dark ring of its own. And the line was
+1 + 1.1 x the look's strength wide, about two CSS pixels: five of a Pixel 9's.
+
+**What changed.**
+- **Outlines only outside the silhouette** (outline.js): everything outlined marks the stencil where it is drawn, and
+  the outline is drawn after it only where the stencil is clear. So a line follows the outside of a figure (or a house,
+  a tree) and can never fall on a face, an arm across the body, or a part sunk into another. The finish's picture and
+  the ink's depth keep a stencil now (post.js). No extra draw calls.
+- **Thinner**: about one CSS pixel (0.55 + 0.5 x the look's strength), two or three of a phone's.
+- Eyes and noses have a few more faces, so they read as round, not hexagonal.
+- **No black boxes far off**: cave mouths were drawn unlit *and without fog*, so every cave in sight stayed pitch black
+  at any distance while the land round it faded. Unlit things now take fog unless they are lights (landmarks.js,
+  scene.js `glow`). `tools/nofog.py` lists every dark opaque material that skips the fog in four worlds' places: 600 to
+  900 before (all cave mouths), none after.
+- **Less crawl far off**: the toon bands soften from 60 m and are smooth light past 200 m (toon.js), since a band's
+  edge finer than a pixel on a far tree crawls as you turn; outlines on buildings and ruins are gone by 70 m (was
+  90) and on landmarks by 80 m (was 120). Textures already had mipmaps.
+- The stray diagonal line at the left of Andrew's picture: I could not reproduce it; it looks like one more poke of a
+  hull past the near plane, which the stencil also stops where it would cross the figure.
+
+Pictures: `docs/look/{before,after}/person-close.jpg`, `person-near.jpg`.
+
+**Switch.** `outlines` (Settings), as before.
+
+**Verdict.** A needed fix; the stencil is the right tool and cost nothing.
+
 # Commission 6
 
 The brief (COMMISSION.md): an art direction. Painted atmosphere as the base (Firewatch, Journey: palette, light and

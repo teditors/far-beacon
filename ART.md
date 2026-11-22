@@ -6,9 +6,10 @@ look"). Pictures of each part of the world, before and after, are in `docs/look/
 
 ## In one line
 
-**Painted atmosphere, with the best touches of toon; a clean-line comic for other worlds.** Think of *Firewatch* and
-*Journey* at home: simple soft shapes in layers that fade into the air, the mood carried by colour and light. Through
-a door, *Sable* and Moebius: pale flat colour, thin ink on everything, big empty skies.
+**Painted atmosphere, with the best touches of toon; another artist's palette for other worlds.** Think of *Firewatch*
+and *Journey*: simple soft shapes in layers that fade into the air, the mood carried by colour and light. Through a
+door, pale flat colour in its own palette. (Ink lines over everything in other worlds were tried in commission 6 and
+taken out in v0.18: they did not work.)
 
 ## The rules
 
@@ -41,14 +42,12 @@ a door, *Sable* and Moebius: pale flat colour, thin ink on everything, big empty
   leaning toward the look's `ink`. On people and creatures (Low), buildings, ruins and landmarks (Medium), near trees
   (High). Never on the land at home. They fade out past 45 to 120 m.
 
-## Other worlds: clean line
+## Other worlds
 
-- Ink lines on everything, land included, found where depth jumps or bends (`post.js`), fainter with distance.
 - Two hard bands, a weak sun and a strong fill (`sunK` 0.65, `fillK` 1.45): little shading, flat colour.
 - Pale: saturation 0.72, the picture washed 16% toward the palette's paper colour (`wash`), a stronger paper grain.
-- Big empty skies: no clouds. A palette of their own, rolled per world (peach and teal, Sable noon, mint and rose,
-  lilac desert, ochre and slate, cold paper, ember and bone).
-- Grass, reeds, ferns and twiggy scrub are drawn without ink (they would scribble).
+- A palette of their own, rolled per world (peach and teal, Sable noon, mint and rose, lilac desert, ochre and slate,
+  cold paper, ember and bone).
 
 ## Palettes
 
@@ -59,7 +58,7 @@ Layers, in order (each names only what it changes, and pulls by `k`):
 | climate by day | temperate clear and green; wet grey-green and soft; hot bleached gold, lilac shade; cold steel blue; ashen ash and ember; steppe wide and straw-gold |
 | the world's turn | every colour turned in hue and saturation by the world's seed within a range per climate (one world's taiga steel blue, another's violet-grey) |
 | rare look | a whole world (5%) or a country (4%): sepia, all reds, verdigris, the violet hour, ivory, indigo noon |
-| another world | clean-line style and its own palette |
+| another world | its own style (two bands, pale) and its own palette |
 | the year | drought bleached, hard winter blue, long summer golden, long nights violet... |
 | the great trouble | faintly everywhere (20%): tyrant iron red, plague fevered yellow, deep king violet... |
 | a curse | strongly on the cursed country (75%): sickly green |
@@ -82,7 +81,7 @@ land in it.
 - **A creature**: a `creatureModel` in `actors.js` with joints; a strong silhouette (horns, a tail, a hump) matters
   more than detail; two or three colours; eyes that glow (bone 8). It is banded and outlined automatically.
 - **A tree shape**: a function in `SHAPES` in `plants.js`. A crown in two or three clumps reads better than many
-  leaves. If it is thin and twiggy, add its shape to the wisps (no ink in other worlds).
+  leaves.
 - **A place in the sky or under the sea**: the same kit; keep it in the look's palette (do not hard-code bright
   colours; let the light colour it).
 - **A palette**: an entry in `content/looks.js` (see above). It appears in the Almanac.
@@ -92,7 +91,7 @@ land in it.
 | Level | What it draws |
 | --- | --- |
 | Fallback (hidden) | the old Low: plain light, no sky, no finish, fog in steps; chosen by itself when frames stay slow |
-| Low (the old High) | the look's palettes, bands, outlines on people and creatures, the finish and grade, ink in other worlds, shadows, two rings of far hills |
+| Low (the old High) | the look's palettes, bands, outlines on people and creatures, the finish and grade, shadows, two rings of far hills |
 | Medium | Low, and outlines on buildings, ruins and landmarks, the paper grain, three rings of far hills |
 | High | Medium, a finer picture (2.5 pixels per point), more land, grass and shadow detail, outlines on near trees, four rings of far hills |
 

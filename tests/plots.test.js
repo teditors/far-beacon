@@ -32,7 +32,21 @@ function toElder(s, id) {
     R.move(s, 0, -1);
   }
   const e = R.findHere(s, 'elder');
-  if (!e) throw new Error('seed ' + s.seed + ': could not get into ' + t.name + ' (area ' + s.area + ', log: ' + s.log.slice(-2).map((l) => l.msg).join(' / ') + ')');
+  if (!e)
+    throw new Error(
+      'seed ' +
+        s.seed +
+        ': could not get into ' +
+        t.name +
+        ' (area ' +
+        s.area +
+        ', log: ' +
+        s.log
+          .slice(-2)
+          .map((l) => l.msg)
+          .join(' / ') +
+        ')',
+    );
   s.player.x = e.x;
   s.player.y = e.y;
   return R.talkElder(s);
@@ -108,7 +122,8 @@ function play(s, p) {
     }
     s.combat = null;
   }
-  if (!p.done && !p.failed && !(s.over && s.over.won)) trouble(s, p, 'not finished, at step ' + p.step + ' (' + (R.stepOf(p) || {}).do + ')');
+  if (!p.done && !p.failed && !(s.over && s.over.won))
+    trouble(s, p, 'not finished, at step ' + p.step + ' (' + (R.stepOf(p) || {}).do + ')');
 }
 let wins = 0,
   links = 0,
@@ -148,14 +163,15 @@ for (let seed = 1; seed <= 120; seed++) {
     } else if (s.over) trouble(s, p, 'a side trouble ended the world');
     if (s.over) break;
   }
-  if (s.curses && Object.keys(s.curses).some((a) => R.plotsOf(s).find((p) => p.id === s.curses[a]).done)) problems.push('seed ' + seed + ': a curse outlived its plot');
+  if (s.curses && Object.keys(s.curses).some((a) => R.plotsOf(s).find((p) => p.id === s.curses[a]).done))
+    problems.push('seed ' + seed + ': a curse outlived its plot');
 }
 // switching plots off gives the old story alone
 if (R.plotsOf(R.newGame(7, { plots: true })).length) problems.push('NO=plots still made plots');
 const away = ['deepking', 'tyrant', 'drowned', 'beyond']; // always below, above, under or beyond: tests/c4.test.js
 const kinds = R.C.plots.kinds.filter((k) => k.id !== 'relic' && !away.includes(k.id)).map((k) => k.id);
 for (const k of kinds) if (!done[k]) problems.push('no ' + k + ' plot was finished in 120 worlds (seen ' + (seen[k] || 0) + ')');
-if (!links) problems.push('no cure in a beast\'s hoard in 120 worlds');
+if (!links) problems.push("no cure in a beast's hoard in 120 worlds");
 if (!hostile) problems.push('no feud chose a side in 120 worlds');
 if (!cursed) problems.push('no cursed land in 120 worlds');
 if (problems.length) {
@@ -163,5 +179,17 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(
-  'plots ok: ' + Object.keys(done).map((k) => k + ' ' + done[k]).join(', ') + '; ' + wins + ' great troubles won, ' + links + ' cures in a hoard, ' + hostile + ' feuds taken sides in, ' + cursed + ' cursed lands',
+  'plots ok: ' +
+    Object.keys(done)
+      .map((k) => k + ' ' + done[k])
+      .join(', ') +
+    '; ' +
+    wins +
+    ' great troubles won, ' +
+    links +
+    ' cures in a hoard, ' +
+    hostile +
+    ' feuds taken sides in, ' +
+    cursed +
+    ' cursed lands',
 );

@@ -10,7 +10,7 @@ const KEY = 'farbeacon.settings';
    painted look (toon bands, outlines, far hills, grain). The old Low lives on hidden, as Fallback, for weak devices:
    the game drops to it by itself if the frame rate stays poor (perf.js), and says so.
    The look's own fields: toon (banded light on things), outline (0 none, 1 people and creatures, 2 and buildings,
-   ruins and landmarks, 3 and near trees), ink (clean ink lines in other worlds), skyline (bands of far hills),
+   ruins and landmarks, 3 and near trees), skyline (bands of far hills),
    paper (a painted grain over the picture), fogBands (distance fades in steps). */
 const OLD_HIGH = {
   ratio: 2,
@@ -58,12 +58,12 @@ const QUALITY = {
     treeNear: 0, // metres round the player within which trees have their full shape (C5.3); 0: nowhere
     fogBands: true,
   },
-  low: Object.assign({}, OLD_HIGH, { label: 'Low', toon: true, outline: 1, ink: true, skyline: 2, fogBands: true }),
+  low: Object.assign({}, OLD_HIGH, { label: 'Low', toon: true, outline: 1, skyline: 2, fogBands: true }),
   medium: Object.assign({}, OLD_HIGH, {
     label: 'Medium',
     toon: true,
     outline: 2,
-    ink: true,
+
     skyline: 3,
     paper: true,
     fogBands: true,
@@ -78,7 +78,7 @@ const QUALITY = {
     shadowPx: 4096,
     toon: true,
     outline: 3,
-    ink: true,
+
     skyline: 4,
     paper: true,
     fogBands: true,

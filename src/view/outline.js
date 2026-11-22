@@ -1,6 +1,5 @@
 /* Light outlines (commission 6): a thin line round people, creatures and nearby things of interest, tinted rather than
-   black, so they stand out from the land on a small screen. Never on the land itself (other worlds draw ink lines on
-   everything another way: post.js).
+   black, so they stand out from the land on a small screen. Never on the land itself.
    How: the old trick of the inverted hull. Each outlined model gets a second copy of itself drawn from the inside,
    pushed out a little along its smoothed normals, in the dark of its own colour leaning toward the look's ink: what
    shows round the edges is the line. The push grows with distance so the line stays about one and a half pixels wide,
@@ -23,11 +22,11 @@ const U = {
 function setOutline(lk, screenH) {
   if (lk) {
     U.olInk.value.setRGB(lk.ink[0], lk.ink[1], lk.ink[2]);
-    U.olW.value = 1 + lk.outline * 1.1;
+    U.olW.value = 0.55 + lk.outline * 0.5; // C7.1: about one CSS pixel (two or three of a phone's), not four
     U.olK.value = 0.35 + lk.outline * 0.4;
   } else {
     U.olInk.value.setHex(0x2a2a3a);
-    U.olW.value = 1.6;
+    U.olW.value = 0.85;
     U.olK.value = 0.5;
   }
   // a pixel at one metre: the camera's view is 70 degrees high
@@ -108,18 +107,39 @@ function outlineMat(far, patch, key) {
         'gl_FragColor.rgb = mix(diffuseColor.rgb * 0.32, olInk, olK);\n#include <fog_fragment>',
       );
   };
+  // C7.1: drawn only outside the silhouettes of outlined things (they mark the stencil: addOutline), so a part inside
+  // the figure (an eye, a nose, a buckle, an arm across the body) never shows its own line on the figure
+  Object.assign(m, {
+    stencilWrite: true,
+    stencilRef: 1,
+    stencilFunc: THREE.NotEqualStencilFunc,
+    stencilFail: THREE.KeepStencilOp,
+    stencilZFail: THREE.KeepStencilOp,
+    stencilZPass: THREE.KeepStencilOp,
+  });
   m.customProgramCacheKey = () => 'outline' + k;
   m.dispose = () => {}; // shared
   if (!patch) MATS.set(k, m);
   return m;
 }
 
+// An outlined thing marks where it is drawn in the stencil (the outline is drawn only where nothing outlined is)
+function markStencil(mat) {
+  for (const m of Array.isArray(mat) ? mat : [mat])
+    Object.assign(m, {
+      stencilWrite: true,
+      stencilRef: 1,
+      stencilFunc: THREE.AlwaysStencilFunc,
+      stencilZPass: THREE.ReplaceStencilOp,
+    });
+}
 /* Give mesh an outline: a child drawn from the inside with the outline material. For an instanced mesh the child is
    instanced too, sharing the same places and count. Returns the outline mesh, or null when off. */
 function addOutline(mesh, level, far, mat) {
   if (!mesh || !outlineOn(level)) return null;
   smoothNormals(mesh.geometry);
   const m = mat || outlineMat(far || 60);
+  markStencil(mesh.material);
   let o;
   if (mesh.isInstancedMesh) {
     o = new THREE.InstancedMesh(mesh.geometry, m, 1);
@@ -130,6 +150,7 @@ function addOutline(mesh, level, far, mat) {
   o.userData.outline = true;
   o.castShadow = o.receiveShadow = false;
   o.raycast = () => {};
+  o.renderOrder = 1; // after everything that marks the stencil
   mesh.add(o);
   return o;
 }

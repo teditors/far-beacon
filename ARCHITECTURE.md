@@ -134,6 +134,30 @@ Every place you walk into is an area; commission 4 added four kinds of level and
   list, which every piece fills through `PLACES`; world settings are plain options, `newGame(seed, off, set)`, kept
   in `s.gen` where they differ from `content/worldset.js`, and read with `genOf(s)` (the playtest takes `SET=`).
 
+## Things and rooms (commission 7)
+
+- **Things** (`rules/things.js`, content `content/things.js`, drawn by `view/things.js`): ordinary objects in rooms,
+  ruins, caves and levels. Never stored: `thingsIn(s, area)` makes an area's things from the seed whenever asked (the
+  same every time, cached), `s.taken[area]` lists the ids of those taken (an id is the tile and its place in that
+  tile's list), and `thingsLeft` is what the view draws. Each kind of area has a maker in `THING_MAKERS` (levels by
+  their theme or kind, regions round their ruins and caves, houses from the interiors piece); `furnish(s, spec, room,
+  o)` places a room's furniture along its walls and in its middle and sets small things on their tops or the floor.
+  A thing taken is an item of base `th_<kind>` with `item.thing` (kind, grade, age, people's mark, secret); its name
+  and worth come through `ITEM_NAMES` / `ITEM_VALUES` (hooks.js). `TAKE_CHECKS` may stop a taking (theft),
+  `THING_FINISH` may change a thing as it is made (secret value). The view merges a place's things into two meshes
+  (furniture, small things), kept per place and what is left; small things fold away with distance in the shader.
+- **Interiors** (`rules/houses.js`, drawn by `view/rooms.js`): `buildingsOf(s, town)` finds a town's buildings, their
+  kinds and doors; walking into a door (`MOVES` in hooks.js, first thing in `move()`) enters an area of kind `house`, a
+  grid three tiles to a town tile laid over the town (`layoutOf`: rooms, inner walls, furniture that blocks, things,
+  all from the seed; nothing stored, and the area is deleted on leaving unless something was put down in it). The view
+  shifts the frame's origin to the house's grid (`applyFrame`, `houseOrigin`), as it does at the town's gate, and
+  draws the room within the building's walls, which have a doorway (`open` in buildings.js). `doorAt` tells the view a
+  door is walkable. Rooms near the player are drawn too, to be seen through their doors. Indoors only the town of
+  the land is drawn (`indoorView` in scene.js).
+- **Theft** (`rules/theft.js`): one check in `TAKE_CHECKS` and the `'caught'` event (a window in ui.js). Replaceable.
+- **Secret value** (`rules/secrets.js`): rolled in `THING_FINISH`, revealed by appraisal through `ITEM_NAMES` /
+  `ITEM_VALUES`.
+
 ## The look (commission 6)
 
 The art direction is in `ART.md`. What a place looks like is content (`content/looks.js`): layers of palette and style
@@ -149,7 +173,7 @@ commission 5 did" (indoors, or the `look` switch off).
 | `toon.js` | soft bands of light (`toonMat`, used by `kitMat`, actors and `std`), fog in steps (the shared fog shader), wisps |
 | `outline.js` | thin tinted outlines by the inverted hull (`addOutline`), with an actor's joints or a tree's sway |
 | `skyline.js` | rings of far hills beyond the drawn land |
-| `post.js` | the finish: bloom, the look's grade and wash, ink lines in other worlds, the paper grain |
+| `post.js` | the finish: bloom, the look's grade and wash, the paper grain |
 
 `tools/look.py` photographs the look into `docs/look/` (before and after); `tools/sheet.py` makes a contact sheet.
 
@@ -172,7 +196,8 @@ a few shared bricks. Every piece of the look has a switch of its own, a setting 
 | `actors.js` | people and creatures as jointed models worked in the vertex shader; they walk from where they were drawn (never jump), wander, rise in, fall when killed; `shiftActors` when the frame moves |
 | `fx.js` | fires, pools of water and blob shadows |
 | `water.js` | rivers, lakes and the sea: a surface over beds carved by terrain.js (`T.water`, `waterAt`), rippling and mirroring the sky in its shader |
-| `sound.js` | the generative score (`MOODS`) and the sounds of the world, Web Audio only, started by the first tap |
+| `sound.js` | the voices (harpsichord, lute, organ, pipe, bells, pads, drums) and the sounds of the world, Web Audio only, started by the first tap |
+| `score.js` | the composer (C7.2): Baroque dances and slow airs from a theme per place (content/music.js), bar by bar, as notes; event pieces; pure, tested in Node |
 
 Rules for the look: generate, never ship files (textures, models and sounds are all code); anything costly reads `Q`
 and is lighter or absent on Low; models of places are kept between builds (`cachedModel` in scene.js), so their key
@@ -263,12 +288,13 @@ Players can copy a run out of Menu and paste it into another device.
 | To add | Do this |
 | --- | --- |
 | An item base or affix | an entry in content/items.js, a value in content/tuning.js |
+| A thing (a cup, a loom) | an entry in `kinds` in content/things.js (a size if it is furniture), a model in `MODELS` in view/things.js, and its name in the rooms or places that hold it |
 | A trait of the lost peoples | an entry in the right list in content/peoples.js, then make the rules read its fields in civOf() |
 | A creature form | an entry in content/creatures.js, and a model in `creatureModel` in view/actors.js |
 | A way towns look | an entry (climate, trade or custom) in content/townlooks.js; a new street prop is a function in `PROPS` in view/buildings.js |
 | A tree shape | a function in `SHAPES` in view/plants.js, and `tree.shape` on the woodland in content |
 | A look for a level | a `kit` name on its `look` in content (view/levels.js lists them) |
-| A mood of the music | an entry in `MOODS` in view/sound.js, and a case in `moodNow` |
+| A tune for a kind of place | an entry in `places` in content/music.js (its dance, mode, key and voice); `placeKey` in view/sound.js (or a function pushed onto its `MUSIC_KEYS`) names where the traveller is |
 | A biome | an entry in content/biomes.js (the content test lists every field it needs), and name prefixes in content/creatures.js |
 | A god | an entry in content/gods.js |
 | A new kind of modifier | use a new stat name in content, read it with stat() in the rules, and add it to the known list in tests/content.test.js |

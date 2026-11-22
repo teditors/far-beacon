@@ -51,6 +51,15 @@ setBands(3, 0.45);
 const toonMat = (extra) =>
   toonOn() ? new THREE.MeshToonMaterial(Object.assign({ vertexColors: true, gradientMap: BANDS }, extra || {})) : null;
 
+/* Bands fade to smooth light with distance (C7.1): on a far tree a band's edge is finer than a pixel, and hard edges
+   finer than a pixel crawl as the camera moves. From 60 m the bands soften, and past 200 m the light is smooth. The
+   distance is 1 / gl_FragCoord.w (the depth in the view), so this needs no extra varying or uniform. */
+THREE.ShaderChunk.gradientmap_pars_fragment = THREE.ShaderChunk.gradientmap_pars_fragment.replace(
+  'return texture2D( gradientMap, coord ).rgb;',
+  `vec3 bandLit = texture2D( gradientMap, coord ).rgb;
+		return mix( bandLit, vec3( clamp( dotNL, 0.0, 1.0 ) ), smoothstep( 60.0, 200.0, 1.0 / gl_FragCoord.w ) );`,
+);
+
 /* ---------- fog in steps ---------- */
 const STEPS = 5;
 THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
@@ -66,18 +75,4 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
   #endif
   gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );
 #endif`;
-/* ---------- wisps ---------- */
-// Thin things (grass, reeds, ferns) would be scribbled over by the ink of other worlds (post.js), every blade an edge.
-// While the ink is on they are drawn after everything solid without writing their depth, so the ink never sees them.
-const WISPS = new Set();
-let wispsInked = false;
-const wisp = (mat) => (WISPS.add(mat), mat);
-function setWisps(inked) {
-  if (inked === wispsInked) return;
-  wispsInked = inked;
-  for (const m of WISPS) {
-    m.transparent = inked;
-    m.depthWrite = !inked;
-  }
-}
-export { toonOn, toonMat, setBands, fogBandsOn, BANDS, wisp, setWisps };
+export { toonOn, toonMat, setBands, fogBandsOn, BANDS };

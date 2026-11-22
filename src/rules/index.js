@@ -60,7 +60,7 @@ import {
 } from './core.js';
 import { aOrAn } from './core.js';
 import { active, equip, slotOf, unequip } from './equipment.js';
-import { describeItem, genItem, isCursed, itemAffixes, itemName, itemWeight, weight } from './items.js';
+import { describeItem, genItem, isCursed, itemAffixes, itemName, itemWeight, makeItem, weight } from './items.js';
 import { atCamp, bearing, groundHere, inShelter, passable, reveal, siteHere, siteName, terrainInfo } from './map.js';
 import {
   areaRec,
@@ -165,8 +165,25 @@ import { craft, recipes } from './crafting.js';
 import { bestMarket, buyGood, market, sellGood, sellMat } from './trade.js';
 import { jumpMap, jumpTo, places, rescue, setGodMode } from './godmode.js';
 import { genOf, parseSet, settings } from './worldset.js';
+import { takeThing, thingKind, thingsIn, thingsInReach, thingsLeft } from './things.js'; // commission 7
+import { HOUSE_SCALE, buildingsOf, doorAt, houseLayout, houseOf, interiorsOn } from './houses.js';
+import './theft.js';
+import { secretOf } from './secrets.js';
 
 const api = {
+  secretOf,
+  HOUSE_SCALE,
+  buildingsOf,
+  doorAt,
+  houseLayout,
+  houseOf,
+  interiorsOn,
+  makeItem,
+  takeThing,
+  thingKind,
+  thingsIn,
+  thingsInReach,
+  thingsLeft,
   setGodMode,
   nearestUnknown,
   rescue,
@@ -432,6 +449,7 @@ const ACTIONS = [
   'flyDown',
   'enterWater',
   'stepThrough',
+  'takeThing',
 ];
 for (const k of ACTIONS) {
   const fn = api[k];

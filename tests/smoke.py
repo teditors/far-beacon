@@ -86,6 +86,43 @@ async def main():
         await goto('elder'); await press('Talk to'); await shot('4-elder'); await pg.click('#modal-close'); steps.append('elder')
         await goto('shop'); await press('Trade'); await pg.locator('#modal-body button', has_text='Buy').first.click(); await pg.click('#modal-close'); steps.append('shop')
         await goto('inn'); await press('The inn'); await pg.locator('#modal-body button', has_text='A bed').click(); await pg.wait_for_timeout(150); await pg.click('#modal-close'); steps.append('inn')
+        # into a house on foot (C7.4): in the street before a building's door, facing it, walk in; take something; walk out
+        hid = await pg.evaluate("""()=>{const g=window.__g,S=g.S,bs=Rules.buildingsOf(S,S.area),b=bs.find(x=>x.kind==='house')||bs[0];if(!b)return null;
+          S.player.x=b.door.ox;S.player.y=b.door.oy;g.refresh();const ts=5*28/36,h=18*ts,dx=b.door.ox-b.door.x,dy=b.door.oy-b.door.y;
+          g.P.x=(b.door.x+0.5)*ts-h+dx*ts*0.9;g.P.z=(b.door.y+0.5)*ts-h+dy*ts*0.9;g.P.yaw=Math.atan2(dx,dy);g.P.pitch=0;window.__door=b;return b.id}""")
+        assert hid, 'the town has no building to walk into'
+        await pg.keyboard.down('w')
+        for _ in range(60):
+            await pg.wait_for_timeout(200)
+            if await pg.evaluate("()=>window.__g.S.area") == hid: break
+        await pg.wait_for_timeout(600); await pg.keyboard.up('w')
+        assert await pg.evaluate("()=>window.__g.S.area") == hid, 'did not walk in through the door: %r' % await pg.evaluate("()=>[window.__g.S.area,window.__g.S.player,window.__g.P.x,window.__g.P.z]")
+        await shot('3-house'); steps.append('walk into a house')
+        # stand by something that can be carried, and take it with its button
+        took = await pg.evaluate("""()=>{const g=window.__g,S=g.S,L=Rules.houseOf(S,S.area);
+          for(const t of Rules.thingsLeft(S,S.area)){if(Rules.thingKind(t.k).fixed)continue;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const x=t.x+i,y=t.y+j;
+            if(Rules.passable(S,x,y)){S.player.x=x;S.player.y=y;g.refresh();return [S.player.items.length,t.id]}}}return null}""")
+        assert took, 'nothing in the house to take'
+        await press('Take the'); await pg.wait_for_timeout(300)
+        if await pg.evaluate("()=>!document.getElementById('modal').hidden"): await pg.click('#modal-close')
+        n = await pg.evaluate("()=>window.__g.S.player.items.length")
+        if n == took[0]:  # seen and made to put it back (the theft piece): it can be taken where no one lives
+            await pg.evaluate("()=>{const g=window.__g;g.S.off.theft=true;g.refresh()}")
+            await press('Take the'); await pg.wait_for_timeout(300)
+            n = await pg.evaluate("()=>window.__g.S.player.items.length")
+            await pg.evaluate("()=>{const g=window.__g;delete g.S.off.theft;g.refresh()}")
+        assert n == took[0] + 1, 'could not pick a thing up in a house'
+        steps.append('took ' + await pg.evaluate("()=>{const S=window.__g.S;return Rules.itemName(S.player.items[S.player.items.length-1])}"))
+        # and out of the door again
+        await pg.evaluate("""()=>{const g=window.__g,S=g.S,L=Rules.houseOf(S,S.area),e=L.exit,ex=e%36,ey=Math.floor(e/36),dx=ex-L.entry.x,dy=ey-L.entry.y;
+          S.player.x=L.entry.x-dx;S.player.y=L.entry.y-dy;g.refresh();g.P.yaw=Math.atan2(-dx,-dy);g.P.pitch=0}""")
+        await pg.keyboard.down('w')
+        for _ in range(60):
+            await pg.wait_for_timeout(200)
+            if await pg.evaluate("()=>window.__g.S.area") == 'town': break
+        await pg.wait_for_timeout(400); await pg.keyboard.up('w')
+        assert await pg.evaluate("()=>window.__g.S.area") == 'town', 'did not walk out of the house'
+        steps.append('walk out of the house')
         # and out again on foot: from just inside the gate, south through the gateway
         await pg.evaluate("()=>{const g=window.__g,S=g.S;S.player.x=18;S.player.y=34;g.refresh();g.P.x=1.9;g.P.z=62;g.P.yaw=Math.PI;g.P.pitch=0;}")
         await pg.keyboard.down('w')
@@ -128,7 +165,7 @@ async def main():
         await pg.evaluate("()=>{const g=window.__g,S=g.S;Rules.travelTo(S,'overworld',18,18);g.refresh();S.combat=null;S.creatures.length=0;S.player.stamina=100;S.player.water=Rules.waterCap(S);document.getElementById('modal').hidden=true;}")
         crossed = False
         for y in range(4, 32, 3):
-            ok = await pg.evaluate("y=>{const g=window.__g,S=g.S;if(S.area!=='overworld')return true;if(!Rules.passable(S,35,y))return false;S.player.x=35;S.player.y=y;g.refresh();g.P.x=35.5*28-504;g.P.z=(y+0.5)*28-504;g.P.yaw=-Math.PI/2;return true}", y)
+            ok = await pg.evaluate("y=>{const g=window.__g,S=g.S;if(S.area!=='overworld')return true;if(!Rules.passable(S,35,y))return false;S.player.x=35;S.player.y=y;g.refresh();g.P.x=35.5*28-504+9;g.P.z=(y+0.5)*28-504;g.P.yaw=-Math.PI/2;return true}", y)
             if not ok: continue
             await pg.keyboard.down('w')
             for _ in range(60):

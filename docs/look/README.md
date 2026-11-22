@@ -17,11 +17,14 @@ makes a contact sheet of a set.
 | `creature` | a creature close up: banded light and an outline |
 | `ruin` | a ruin of a fieldstone people, its stones rounded and softly banded |
 | `storm` | a storm: every palette greys |
+| `person-close`, `person-near` | a townsperson up close and from a few steps (C7.1: no lines on the face, thin outlines) |
+| `things-level`, `things-ruin` | things (C7.3): a chest and what stands on it in a dungeon, old things by a ruin |
+| `house-hall`, `house-home`, `house-inn`, `house-door`, `house-out` | inside buildings (C7.4): an elder's hall, a house, an inn at night, a house's open door seen from the street, and the street seen through it |
 | `rare-sepia`, `rare-reds` | worlds that rolled a rare look: sepia, and all reds (at dusk) |
 | `dungeon` | a dungeon level (levels keep their own look) |
 | `sky` | a castle in the sky |
 | `sea`, `under-sea` | a coast in a world with a sea, and a drowned place under it |
-| `other-world`, `other-world-2`, `other-world-3` | through a door: clean line, ink on everything, pale flat colour, empty skies, a palette per world |
+| `other-world`, `other-world-2`, `other-world-3` | through a door: pale flat colour, a palette per world |
 
 The meter (Menu, Settings, "Show the performance meter") names the look's layers wherever you stand, for example
 "look: Steel blue, Hard blue, Gold dusk (turned 12°)".

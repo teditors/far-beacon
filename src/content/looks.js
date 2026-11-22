@@ -14,13 +14,12 @@
      bounce           light thrown back up from the ground
      cloud            the clouds' colour
      lift, gain       the colour grade: what the darks lean toward, and what the lights lean toward
-     ink              outlines and ink lines
+     ink              the colour outlines lean toward
    Numbers:
      sunK, fillK      how strong the sun and the sky's fill light are (1 as made)
      sat, contrast    the colour grade's saturation and contrast (1 as drawn)
      bands, soft      toon shading: light in this many bands, with edges this soft (0 hard to 1 smooth)
      reach            how far the eye sees, against the usual
-     line             ink lines on everything, land included: 0 none, 1 full (other worlds)
      outline          the strength of the outlines on people, creatures and nearby things
      paper            a painted grain over the picture
      vignette         the corners darkened
@@ -46,7 +45,6 @@ export default {
       bands: 3,
       soft: 0.45,
       reach: 1,
-      line: 0,
       outline: 0.6,
       paper: 0.35,
       vignette: 0.55,
@@ -344,12 +342,11 @@ export default {
         sat: 0.85,
       },
     ],
-    // other worlds: another artist's book. A clean-line style (ink lines on everything, land too; flat pale colour;
-    // two bands; a big empty sky), and one of these palettes, rolled from that world's seed
+    // other worlds: another artist's book. Flat pale colour in two bands, a strong outline round things, and one of
+    // these palettes, rolled from that world's seed
     realm: {
       style: {
-        name: 'Clean line',
-        line: 1,
+        name: 'Another book',
         outline: 1,
         bands: 2,
         soft: 0.12,

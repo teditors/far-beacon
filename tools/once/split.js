@@ -89,12 +89,20 @@ function emit(srcLines, modules, extra) {
       })
       .join('\n');
     const exp = declared[i].length ? `\nexport { ${declared[i].join(', ')} };\n` : '\n';
-    const text = (m.comment ? m.comment + '\n' : '') + head + (head ? '\n\n' : '') + (m.prelude ? m.prelude + '\n' : '') + bodies[i].trim() + '\n' + exp;
+    const text =
+      (m.comment ? m.comment + '\n' : '') +
+      head +
+      (head ? '\n\n' : '') +
+      (m.prelude ? m.prelude + '\n' : '') +
+      bodies[i].trim() +
+      '\n' +
+      exp;
     fs.mkdirSync(path.dirname(path.join(ROOT, m.file)), { recursive: true });
     fs.writeFileSync(path.join(ROOT, m.file), text);
     // anything used, not declared anywhere, and not a known global is probably a mistake
     const loc = localNames(bodies[i]);
-    for (const n of used) if (!owner[n] && !GLOBALS.has(n) && !loc.has(n) && !(extra.locals || []).includes(n)) problems.push(m.file + ': ' + n);
+    for (const n of used)
+      if (!owner[n] && !GLOBALS.has(n) && !loc.has(n) && !(extra.locals || []).includes(n)) problems.push(m.file + ': ' + n);
   });
   return problems;
 }

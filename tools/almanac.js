@@ -507,6 +507,82 @@ section('How towns look', ['townLooks'], () => {
   );
 });
 
+section('Things', ['things'], () => {
+  const X = C.things;
+  line(
+    'Commission 7: the ordinary things in rooms, ruins, caves and levels, made from the seed when a place is seen ' +
+      '(src/rules/things.js) and never stored; only what is taken is kept. Furniture stays put; the rest can be carried. ' +
+      'Old things (in ruins, caves, levels and empty houses) are worth half, and ' +
+      Math.round(X.secrets.chance * 100) +
+      '% of those that could be are secretly valuable.',
+  );
+  line();
+  table(
+    ['Thing', 'Weight', 'Worth', 'Grades', 'Old', 'Use'],
+    X.kinds.map((k) => [
+      k.name,
+      k.fixed ? 'furniture' : k.wt,
+      k.fixed ? '' : k.value,
+      k.grades ? k.grades.join(' / ') : '',
+      k.fixed ? '' : k.old || X.oldWord,
+      k.use
+        ? Object.entries(k.use)
+            .map(([a, b]) => a + ' ' + b)
+            .join(', ')
+        : '',
+    ]),
+  );
+  line();
+  const list = (l) => (l || []).map(([k]) => k).join(', ');
+  table(
+    ['Room', 'Along the walls', 'In the middle', 'Small things'],
+    Object.entries(X.rooms).map(([k, r]) => [k, list(r.wall), list(r.middle), list(r.small)]),
+  );
+  line();
+  table(
+    ['Building', 'Rooms, the first by the door'],
+    Object.entries(X.buildings).map(([k, r]) => [k, r.join(', ')]),
+  );
+  line();
+  table(
+    ['Place', 'Furniture', 'Things', 'Abandoned'],
+    Object.entries(X.places).map(([k, r]) => [k, list(r.wall), list(r.small), r.old ? 'yes' : 'lived in']),
+  );
+  line();
+  table(
+    ['Secret', 'Hidden in', 'Appraised as', 'Worth'],
+    X.secrets.list.map((x) => [x.id, x.of.join(', '), x.name, x.value]),
+  );
+  line();
+});
+section('The score', ['music'], () => {
+  const X = C.music;
+  line(
+    'For the view only (commission 7): a tune for each kind of place, composed bar by bar from a theme rolled from the ' +
+      "place's name (src/view/score.js), so a place always sounds like itself and never quite the same. A place with " +
+      'no entry of its own takes the nearest along its name. Events: ' +
+      Object.keys(X.events).join(', ') +
+      '.',
+  );
+  line();
+  table(
+    ['Dance', 'Beats a bar', 'Tempo', 'Bass'],
+    Object.entries(X.dances).map(([k, d]) => [k, d.beats + (d.sub === 3 ? ' (in threes)' : ''), d.tempo, d.bass]),
+  );
+  line();
+  table(
+    ['Place', 'Dance', 'Mode', 'Key', 'Voice', 'Also'],
+    Object.entries(X.places).map(([k, p]) => [
+      k,
+      p.dance,
+      p.mode,
+      p.root,
+      p.voice,
+      ['inner', 'pad', 'drone', 'drums'].filter((f) => p[f]).join(', '),
+    ]),
+  );
+  line();
+});
 section('The look', ['looks'], () => {
   const X = C.looks,
     sw = (e) =>
@@ -532,7 +608,7 @@ section('The look', ['looks'], () => {
     Object.entries(X.climates).map(([id, c]) => [
       id,
       c.name,
-      (c.vary ? 'hue ' + c.vary.hue[0] + '° to +' + c.vary.hue[1] + '°, saturation ±' + Math.round(c.vary.sat * 100) + '%' : 'no'),
+      c.vary ? 'hue ' + c.vary.hue[0] + '° to +' + c.vary.hue[1] + '°, saturation ±' + Math.round(c.vary.sat * 100) + '%' : 'no',
       sw(c),
     ]),
   );
@@ -552,9 +628,7 @@ section('The look', ['looks'], () => {
   line(
     'Other worlds: ' +
       st.name +
-      ' (ink lines ' +
-      st.line +
-      ', ' +
+      ' (' +
       st.bands +
       ' bands, sun ' +
       st.sunK +
@@ -566,7 +640,7 @@ section('The look', ['looks'], () => {
   );
   line();
   table(
-    ['Palette', 'Colours', 'Ink'],
+    ['Palette', 'Colours', 'Outline tint'],
     X.realm.palettes.map((e) => [e.name, sw(e), e.ink]),
   );
   const layers = [

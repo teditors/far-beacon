@@ -45,7 +45,7 @@ const INDOOR_TS = 4,
   TOWN_TS = ((2 * R.TOWN_R + 1) * TS) / R.W; // the town's own grid exactly fills its block of outdoor tiles
 const G = { ts: TS, half: HALF };
 function setGeometry(kind) {
-  G.ts = kind === 'town' ? TOWN_TS : kind === 'vault' ? INDOOR_TS : TS;
+  G.ts = kind === 'town' ? TOWN_TS : kind === 'house' ? TOWN_TS / 3 : kind === 'vault' ? INDOOR_TS : TS; // a house: C7
   G.half = (R.W * G.ts) / 2;
 }
 // Where the origin of the view is, measured in the region's own coordinates. Outdoors it is the region's centre

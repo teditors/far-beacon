@@ -30,7 +30,7 @@ import {
 import { gainXp, roll } from './progress.js';
 import { stat } from './stats.js';
 import { advance } from './systems.js';
-import { LEVELS, OBJECTIVES } from './hooks.js';
+import { ITEM_VALUES, LEVELS, OBJECTIVES } from './hooks.js';
 
 /* Quest, town and vault */
 const hasItem = (s, base) => s.player.items.some((i) => i.base === base);
@@ -76,6 +76,10 @@ function findHere(s, kind) {
   return null;
 }
 function itemValue(it) {
+  for (const f of ITEM_VALUES) {
+    const v = f(it);
+    if (v !== undefined) return v;
+  }
   const b = byId(C.bases, it.base);
   if (b.quest || b.id === 'campkit') return 0;
   let v = C.value[it.base] || 5;
