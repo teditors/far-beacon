@@ -507,6 +507,90 @@ section('How towns look', ['townLooks'], () => {
   );
 });
 
+section('The look', ['looks'], () => {
+  const X = C.looks,
+    sw = (e) =>
+      ['zenith', 'horizon', 'sun', 'shade', 'lift', 'gain']
+        .filter((k) => e[k])
+        .map((k) => k + ' ' + e[k])
+        .join(', ');
+  line(
+    'For the view only (commission 6): the palette and style a place is seen in, built in layers: the climate by day, ' +
+      "this world's turn of it, a rare look, another world's style, the year, the great trouble (faintly, " +
+      Math.round(X.troubleK * 100) +
+      '%), a curse (' +
+      Math.round(X.curseK * 100) +
+      "%), the country's rare trait, the weather, dusk and night. See ART.md. Hand-made biomes' climates: " +
+      Object.entries(X.biomeClimate)
+        .map(([b, c]) => b + ' ' + c)
+        .join(', ') +
+      '.',
+  );
+  line();
+  table(
+    ['Climate', 'Mood', 'Varies by world', 'Colours'],
+    Object.entries(X.climates).map(([id, c]) => [
+      id,
+      c.name,
+      (c.vary ? 'hue ' + c.vary.hue[0] + '° to +' + c.vary.hue[1] + '°, saturation ±' + Math.round(c.vary.sat * 100) + '%' : 'no'),
+      sw(c),
+    ]),
+  );
+  line(
+    'Rare looks: a whole world ' +
+      Math.round(X.worldChance * 100) +
+      '% of the time, otherwise one country ' +
+      Math.round(X.countryChance * 100) +
+      '% of the time (never home).',
+  );
+  line();
+  table(
+    ['Rare look', 'Pull', 'Colours'],
+    X.odd.map((e) => [e.name, Math.round(e.k * 100) + '%', sw(e)]),
+  );
+  const st = X.realm.style;
+  line(
+    'Other worlds: ' +
+      st.name +
+      ' (ink lines ' +
+      st.line +
+      ', ' +
+      st.bands +
+      ' bands, sun ' +
+      st.sunK +
+      ', fill ' +
+      st.fillK +
+      ', saturation ' +
+      st.sat +
+      '), in one of these palettes, by the world:',
+  );
+  line();
+  table(
+    ['Palette', 'Colours', 'Ink'],
+    X.realm.palettes.map((e) => [e.name, sw(e), e.ink]),
+  );
+  const layers = [
+    ['Hour', 'dusk', X.dusk],
+    ['Hour', 'night', X.night],
+  ]
+    .concat(Object.entries(X.weather).map(([k, e]) => ['Weather', k, e]))
+    .concat(Object.entries(X.years).map(([k, e]) => ['Year', k, e]))
+    .concat(Object.entries(X.troubles).map(([k, e]) => ['Trouble', k, e]))
+    .concat(Object.entries(X.rares).map(([k, e]) => ['Rare country', k, e]));
+  table(
+    ['Layer', 'Of', 'Name', 'Pull', 'Changes'],
+    layers.map(([a, b, e]) => [
+      a,
+      b,
+      e.name,
+      e.k === undefined ? '-' : Math.round(e.k * 100) + '%',
+      Object.keys(e)
+        .filter((k) => k !== 'name' && k !== 'k')
+        .join(', '),
+    ]),
+  );
+});
+
 section('Errands', ['errands'], () => {
   const X = C.errands;
   line(

@@ -270,7 +270,7 @@ function* makeTerrainG(s) {
         if (Math.abs(x) < hole && Math.abs(z) < hole) continue;
         h[iz * (n + 1) + ix] = water ? carve(x, z, raw(x, z)) : raw(x, z);
       }
-      if ((iz & 7) === 7) yield; // a pause every eight rows, for a build spread over frames
+      if ((iz & 3) === 3) yield; // a pause every four rows, for a build spread over frames
     }
     return { h, n, half, cell };
   };

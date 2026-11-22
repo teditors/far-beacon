@@ -5,6 +5,7 @@
    and wet lands and on flower meadows, sparse and straw-coloured in hot ones, none on snow, water, roads, bare rock,
    high mountains or in towns.
    Quality: none on Low; a ring of `Q.grass` metres on Medium and High (High denser). Switch: `grass`. */
+import { wisp } from './toon.js';
 import { R, mulberry } from './ctx.js';
 import { Q, LOOK_SWITCHES, lookOn } from './quality.js';
 import { swaying } from './kit.js';
@@ -87,12 +88,12 @@ function makeGrass(group, T, lush, towns, townHalf, seed) {
   const max = Q.grassMax,
     tufts = new THREE.InstancedMesh(
       tuftGeo(),
-      swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.18),
+      wisp(swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.18)),
       max,
     ),
     blooms = new THREE.InstancedMesh(
       bloomGeo(),
-      swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.3),
+      wisp(swaying(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.3)),
       Math.ceil(max / 6),
     );
   tufts.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);

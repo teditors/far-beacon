@@ -3,13 +3,18 @@
    ruins. Each returns a group standing on its own foot, or null to keep the old model. */
 import { R } from './ctx.js';
 import { P, kit, kitMat } from './kit.js';
+import { addOutline } from './outline.js';
 import { surface } from './paint.js';
 import { fire } from './fx.js';
 import { LOOK_SWITCHES, lookOn } from './quality.js';
 
 LOOK_SWITCHES.push(['landmarks', 'Landmarks in the style']);
 const marksOn = () => lookOn('landmarks') && lookOn('light');
-const mesh = (k, tex) => new THREE.Mesh(k.build(), kitMat({ map: tex ? surface(tex) : null }));
+const mesh = (k, tex) => {
+  const m = new THREE.Mesh(k.build(), kitMat({ map: tex ? surface(tex) : null }));
+  addOutline(m, 2, 120); // outlined (C6)
+  return m;
+};
 const glowMat = (c, o) =>
   new THREE.MeshBasicMaterial({ color: c, transparent: o < 1, opacity: o, depthWrite: o >= 1, fog: false });
 

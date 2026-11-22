@@ -10,6 +10,8 @@
    the arms, 5 the head, 6 a tail, 7 a serpent's body, 8 the eyes (on the head, and always bright). */
 import { P as PT, kit } from './kit.js';
 import { LOOK_SWITCHES, lookOn } from './quality.js';
+import { toonMat } from './toon.js';
+import { addOutline, outlineMat, outlineOn } from './outline.js';
 
 LOOK_SWITCHES.push(['actors', 'People and creatures that move']);
 const actorsOn = () => lookOn('actors') && lookOn('light');
@@ -38,28 +40,42 @@ vec3 joint(vec3 p, float b) {
   return p;
 }
 `;
-function actorMat(opts) {
-  const m = new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, opts || {})),
-    u = { aPhase: { value: 0 }, aSwing: { value: 0 }, aHead: { value: 0 }, aArm: { value: 0 }, aTail: { value: 0 } };
-  m.userData.u = u;
-  m.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, u);
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\n' + COMMON)
-      .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nobjectNormal = joint(objectNormal, bone);')
-      .replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>
+// Work the joints into a shader (the actor's own, or its outline's: outline.js), from the actor's numbers u.
+function joints(sh, u, glow) {
+  Object.assign(sh.uniforms, u);
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\n#define OUTLINE_JOINTS\n' + COMMON)
+    .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nobjectNormal = joint(objectNormal, bone);')
+    .replace(
+      '#include <begin_vertex>',
+      `#include <begin_vertex>
 vec3 q = transformed - pivot;
 if (bone > 6.5 && bone < 7.5) q.x += sin(aPhase * 0.8 + pivot.z * 1.3) * (0.15 + aSwing * 0.5);
 transformed = joint(q, bone) + pivot;
 vGlow = bone > 7.5 ? 1.0 : 0.0;`,
-      );
+    );
+  if (glow)
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying float vGlow;')
       .replace('#include <fog_fragment>', '#include <fog_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, vColor, vGlow);');
-  };
-  m.customProgramCacheKey = () => 'actor' + (opts && opts.transparent ? 't' : '');
+}
+// A thin outline round an actor (C6), moving with its joints.
+function outlineActor(mesh) {
+  if (!outlineOn(1) || mesh.material.transparent) return;
+  const u = mesh.material.userData.u;
+  addOutline(
+    mesh,
+    1,
+    60,
+    outlineMat(60, (sh) => joints(sh, u, false), 'actor'),
+  );
+}
+function actorMat(opts) {
+  const m = toonMat(opts) || new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, opts || {})),
+    u = { aPhase: { value: 0 }, aSwing: { value: 0 }, aHead: { value: 0 }, aArm: { value: 0 }, aTail: { value: 0 } };
+  m.userData.u = u;
+  m.onBeforeCompile = (sh) => joints(sh, u, true);
+  m.customProgramCacheKey = () => 'actor' + (opts && opts.transparent ? 't' : '') + (m.isMeshToonMaterial ? 'b' : '');
   return m;
 }
 
@@ -246,6 +262,7 @@ function personActor(cloth, hat, seed, outfit) {
     mesh = new THREE.Mesh(personModel(cloth, SKIN[s % 5], hat || 0, HAIR[(s >> 3) % 5], look), actorMat());
   mesh.scale.set(0.9 + r(6) * 0.25, 0.92 + r(7) * 0.16, 0.9 + r(6) * 0.25);
   mesh.userData.actor = { kind: 'person', seed: s };
+  outlineActor(mesh);
   return mesh;
 }
 function creatureActor(form, color, eye) {
@@ -255,6 +272,7 @@ function creatureActor(form, color, eye) {
       actorMat(ghost ? { color, transparent: true, opacity: 0.8, depthWrite: false } : { color }),
     );
   mesh.userData.actor = { kind: form };
+  outlineActor(mesh);
   return mesh;
 }
 

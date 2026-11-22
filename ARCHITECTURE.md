@@ -134,6 +134,25 @@ Every place you walk into is an area; commission 4 added four kinds of level and
   list, which every piece fills through `PLACES`; world settings are plain options, `newGame(seed, off, set)`, kept
   in `s.gen` where they differ from `content/worldset.js`, and read with `genOf(s)` (the playtest takes `SET=`).
 
+## The look (commission 6)
+
+The art direction is in `ART.md`. What a place looks like is content (`content/looks.js`): layers of palette and style
+for the climate, the world's turn of it, rare looks, other worlds, the year, troubles, rare countries, the weather and
+the hour. `view/look.js` resolves them with plain numbers (no Three.js, tested in Node); `view/mood.js` puts the result
+in `NOW.look` each frame, which light.js, sky.js, run.js (fog) and post.js (the grade) read; null means "do as
+commission 5 did" (indoors, or the `look` switch off).
+
+| Module | What it does |
+| --- | --- |
+| `look.js` | resolves the look's layers into numbers (pure, tested in tests/pieces.test.js) |
+| `mood.js` | the look for this frame (`NOW.look`), blended across borders |
+| `toon.js` | soft bands of light (`toonMat`, used by `kitMat`, actors and `std`), fog in steps (the shared fog shader), wisps |
+| `outline.js` | thin tinted outlines by the inverted hull (`addOutline`), with an actor's joints or a tree's sway |
+| `skyline.js` | rings of far hills beyond the drawn land |
+| `post.js` | the finish: bloom, the look's grade and wash, ink lines in other worlds, the paper grain |
+
+`tools/look.py` photographs the look into `docs/look/` (before and after); `tools/sheet.py` makes a contact sheet.
+
 ## The look (commission 5)
 
 The view is painted in one style (a storybook of about 2005: see the top of JOURNAL.md's commission 5) and built from
@@ -169,11 +188,14 @@ the player sends on are worth a test in `tests/explore.js` or `tests/c4.test.js`
 
 ## The phone budget
 
-The game must run on a phone. `src/view/quality.js` holds the graphics presets (Low / Medium / High) and the device's
-settings (`farbeacon.settings` in browser storage, not in the run). Anything visual that costs reads `Q` (the preset in
+The game must run on a phone. `src/view/quality.js` holds the graphics presets (Low / Medium / High, and a hidden
+Fallback below them; since commission 6 Low is what was High) and the device's settings (`farbeacon.settings` in
+browser storage, not in the run). `perf.js` steps the quality down a level by itself when frames stay slow for a dozen
+seconds (`autoQuality`), and ui.js says so. Anything visual that costs reads `Q` (the preset in
 use) rather than a constant: `terrain.js` takes the drawn margin and the ground's fineness from it (`setDetail`), the
 scene takes tree and rock density, the renderer its pixel ratio. `src/view/perf.js` is the on-screen meter. Measure a
-change with `python3 tools/bench.py low medium high` before and after. Saves write map grids as run-length text
+change with `python3 tools/bench.py fallback low medium high` before and after, and photograph it with
+`python3 tools/look.py` (pictures in `docs/look/`). Saves write map grids as run-length text
 (`packGrid` in save.js).
 
 ## Plugging a piece in

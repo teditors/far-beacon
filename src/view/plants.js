@@ -5,7 +5,9 @@
 
    The shape comes from the woodland's `tree.shape` in content if it has one, else from its name, so generated biomes
    (which reuse the named woodlands) need nothing new. A new shape is a function in SHAPES. */
-import { P, kit, kitMat, swaying } from './kit.js';
+import { wisp } from './toon.js';
+import { P, kit, kitMat, swayPatch, swaying } from './kit.js';
+import { addOutline, outlineMat, outlineOn } from './outline.js';
 import { LOOK_SWITCHES, lookOn } from './quality.js';
 
 LOOK_SWITCHES.push(['plants', 'Trees with shapes']);
@@ -166,6 +168,7 @@ function treeMat(forest) {
     amt = { conifer: 0.025, birch: 0.04, broad: 0.03, dead: 0.015, thorn: 0.02, fern: 0.06, grass: 0.12 }[shape] || 0.03;
   if (MATS[shape]) return MATS[shape];
   const m = swaying(kitMat(), amt);
+  if (['grass', 'fern', 'thorn', 'dead'].includes(shape)) wisp(m); // no ink on blades and twigs (toon.js)
   m.dispose = () => {};
   return (MATS[shape] = m);
 }
@@ -188,6 +191,15 @@ function makeLOD(group, forest, list, tint) {
   };
   const near = mk(treeModel(forest, false));
   near.userData.near = true; // casts a shadow on High (scene.js)
+  // outlined on High (C6): the trees about you, the line swaying with them
+  const sway = near.material.userData.sway || 0;
+  if (outlineOn(3))
+    addOutline(
+      near,
+      3,
+      45,
+      outlineMat(45, (sh) => swayPatch(sh, sway), 'sway' + sway),
+    );
   return {
     list: new Float32Array(list),
     tint: new Float32Array(tint),

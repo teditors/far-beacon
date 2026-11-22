@@ -2,6 +2,7 @@
    colour and place, merged into one geometry with the colours in its vertices. One merged model is one draw call, and
    with instancing a whole forest of them is one draw call too. Trees, buildings, people and creatures are all built
    with it. Parts with few sides keep cut faces; round parts are smooth. */
+import { toonMat } from './toon.js';
 
 const PREP = new Map(); // parts already made non-indexed, by shape and size
 const _m = new THREE.Matrix4(),
@@ -24,7 +25,7 @@ function placeMatrix(p) {
 
 /* A model being put together. add(geometry, colour, place, opts) puts in one part: opts.flat gives it cut faces,
    opts.shade(y) darkens it by height (for a crown darker underneath), opts.jitter varies the colour a little by
-   vertex. build() gives one non-indexed BufferGeometry with position, normal and colour. */
+   vertex, opts.round lights a blob as the ball it stands for. build() gives one non-indexed BufferGeometry with position, normal and colour. */
 function kit() {
   const parts = [];
   let anyBone = false;
@@ -41,6 +42,19 @@ function kit() {
         if (pre.attributes.normal) g.setAttribute('normal', pre.attributes.normal.clone());
       } else g = geo.index ? geo.toNonIndexed() : geo.clone();
       geo.dispose();
+      if (opts.round) {
+        // a blob lit as the ball it stands for: each point's normal points out from the middle (C6: few faces, no facets)
+        const p = g.attributes.position,
+          nn = new Float32Array(p.count * 3);
+        for (let i = 0; i < p.count; i++) {
+          const x = p.getX(i),
+            y = p.getY(i),
+            z = p.getZ(i),
+            l = Math.hypot(x, y, z) || 1;
+          nn.set([x / l, y / l, z / l], i * 3);
+        }
+        g.setAttribute('normal', new THREE.BufferAttribute(nn, 3));
+      }
       g.applyMatrix4(placeMatrix(place));
       if (opts.flat || !g.attributes.normal) g.computeVertexNormals();
       if (opts.flat) {
@@ -185,21 +199,21 @@ function prism(w, h, d) {
   g.computeVertexNormals();
   return g;
 }
-// A material for kit models: white Lambert reading the vertex colours (and, if given, a painted texture).
-const kitMat = (extra) => new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, extra || {}));
+// A material for kit models: white Lambert reading the vertex colours (and, if given, a painted texture); toon bands
+// from Low up (C6, toon.js).
+const kitMat = (extra) => toonMat(extra) || new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, extra || {}));
 
 /* Wind: a shared clock, and a material change that sways the top of an instanced model (trees, grass, banners) while
    its foot stays put. Each instance sways in its own time, from where it stands. */
 const WIND = { time: { value: 0 }, strength: { value: 1 } };
-function swaying(mat, amount) {
-  mat.onBeforeCompile = (sh) => {
-    sh.uniforms.windTime = WIND.time;
-    sh.uniforms.windStrength = WIND.strength;
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nuniform float windTime;\nuniform float windStrength;')
-      .replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>
+function swayPatch(sh, amount) {
+  sh.uniforms.windTime = WIND.time;
+  sh.uniforms.windStrength = WIND.strength;
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\nuniform float windTime;\nuniform float windStrength;')
+    .replace(
+      '#include <begin_vertex>',
+      `#include <begin_vertex>
 #ifdef USE_INSTANCING
 float wph = instanceMatrix[3].x * 0.071 + instanceMatrix[3].z * 0.053;
 #else
@@ -209,9 +223,12 @@ float wk = max(transformed.y, 0.0);
 wk *= wk * ${amount.toFixed(3)} * windStrength;
 transformed.x += sin(windTime * 1.3 + wph) * wk;
 transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`,
-      );
-  };
+    );
+}
+function swaying(mat, amount) {
+  mat.onBeforeCompile = (sh) => swayPatch(sh, amount);
   mat.customProgramCacheKey = () => 'sway' + amount;
+  mat.userData.sway = amount; // for its outline (outline.js), which sways with it
   return mat;
 }
-export { kit, P, kitMat, placeMatrix, WIND, swaying };
+export { kit, P, kitMat, placeMatrix, WIND, swaying, swayPatch };

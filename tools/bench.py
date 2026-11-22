@@ -27,6 +27,7 @@ async def main():
         await pg.route('**/three.min.js', lambda r: r.fulfill(path=THREE))
         await pg.route('**/fonts.googleapis.com/**', lambda r: r.abort())
         await pg.goto('file://' + os.path.join(ROOT, 'dist/index.html')); await pg.wait_for_timeout(1500)
+        await pg.evaluate("()=>window.__g.autoQuality(false)")  # software drawing is slow: no stepping down
         out = {}
         for q in QUALS:
             rows = []

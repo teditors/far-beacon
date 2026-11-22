@@ -4,6 +4,8 @@
 import { P, R, V } from './ctx.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { camera, scene } from './scene.js';
+import { NOW } from './mood.js';
+import { hideSkyline, updateSkyline } from './skyline.js';
 
 const SKY_R = 1800;
 let dome = null,
@@ -15,7 +17,7 @@ let dome = null,
 // A dome whose vertices are the fog's colour at the horizon, so the land fades into it exactly, shading to a deeper blue
 // overhead and warming round the sun. Its few vertices are recoloured each frame (paintDome), which costs nothing.
 function makeDome() {
-  const g = new THREE.SphereGeometry(SKY_R, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2 + 0.15),
+  const g = new THREE.SphereGeometry(SKY_R, 24, 18, 0, Math.PI * 2, 0, Math.PI / 2 + 0.15),
     pos = g.attributes.position;
   g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
   const m = new THREE.Mesh(
@@ -31,6 +33,7 @@ const ZENITH_DAY = new THREE.Color(0x4f86cf),
   GLOW_LOW = new THREE.Color(0xffb070),
   GLOW_HIGH = new THREE.Color(0xfff4dc),
   zen = new THREE.Color(),
+  haze = new THREE.Color(),
   glowC = new THREE.Color(),
   vc = new THREE.Color(),
   sd = new THREE.Vector3();
@@ -39,10 +42,20 @@ function paintDome(skyColor, sunPos, day, storm) {
     pos = g.attributes.position,
     col = g.attributes.color,
     painted = lookOn('light');
-  zen
-    .copy(ZENITH_NIGHT)
-    .lerp(ZENITH_DAY, day)
-    .lerp(skyColor, storm ? 0.85 : 0.35);
+  if (NOW.look)
+    zen.copy(NOW.look.c.zenith); // the look's own sky (C6)
+  else
+    zen
+      .copy(ZENITH_NIGHT)
+      .lerp(ZENITH_DAY, day)
+      .lerp(skyColor, storm ? 0.85 : 0.35);
+  if (NOW.look) {
+    // the band between: the zenith lightened toward the horizon's brightness, keeping the zenith's hue
+    const lz = zen.r * 0.3 + zen.g * 0.59 + zen.b * 0.11,
+      lh = skyColor.r * 0.3 + skyColor.g * 0.59 + skyColor.b * 0.11;
+    haze.copy(zen).multiplyScalar(Math.min(2.5, (lz * 0.4 + lh * 0.6) / Math.max(0.02, lz)));
+    haze.lerp(skyColor, 0.25);
+  }
   sd.copy(sunPos).normalize();
   const low = 1 - Math.min(1, Math.max(0, sd.y) * 2.5); // 1 when the sun is on the horizon
   glowC.copy(GLOW_HIGH).lerp(GLOW_LOW, low);
@@ -57,7 +70,13 @@ function paintDome(skyColor, sunPos, day, storm) {
       const k = 1 - 0.38 * Math.pow(up, 0.8);
       vc.setRGB(skyColor.r * k * 0.92, skyColor.g * k * 0.97, Math.min(1, skyColor.b * k * 1.08));
     } else {
-      vc.copy(skyColor).lerp(zen, Math.pow(up, 0.6));
+      if (NOW.look) {
+        // three stops (C6): the horizon, a pale band of the zenith's own colour, the zenith; a straight mix of a warm
+        // horizon and a blue zenith would pass through a muddy green
+        const t = Math.pow(up, 0.55);
+        if (t < 0.35) vc.copy(skyColor).lerp(haze, t / 0.35);
+        else vc.copy(haze).lerp(zen, (t - 0.35) / 0.65);
+      } else vc.copy(skyColor).lerp(zen, Math.pow(up, 0.6));
       const toward = Math.max(0, x * sd.x + y * sd.y + z * sd.z);
       vc.lerp(glowC, glowK * Math.pow(toward, 6));
     }
@@ -72,6 +91,17 @@ const disc = (r, color) => {
   );
   m.renderOrder = -9;
   m.frustumCulled = false;
+  return m;
+};
+// A thin inked ring round a disc, shown only where the look draws ink lines.
+const rim = (r) => {
+  const m = new THREE.Mesh(
+    new THREE.RingGeometry(r, r * 1.06, 40),
+    new THREE.MeshBasicMaterial({ color: 0x2a2a3a, fog: false, transparent: true, depthWrite: false }),
+  );
+  m.renderOrder = -8;
+  m.frustumCulled = false;
+  m.userData.rim = true;
   return m;
 };
 // What falls in a storm, from its name.
@@ -194,11 +224,15 @@ function updateClouds(on, skyColor, sunPos, day, storm, dt) {
   if (!on) return;
   const t = performance.now() / 1000,
     low = 1 - Math.min(1, Math.max(0, sunPos.y / 300) * 2.5);
-  cTint
-    .setRGB(1, 1, 1)
-    .lerp(cDusk, low * day * 0.7)
-    .lerp(cNight, 1 - day);
-  if (storm) cTint.lerp(cStorm, 0.7);
+  if (NOW.look)
+    cTint.copy(NOW.look.c.cloud).lerp(NOW.look.c.horizon, 0.3); // clouds in the air's colour
+  else {
+    cTint
+      .setRGB(1, 1, 1)
+      .lerp(cDusk, low * day * 0.7)
+      .lerp(cNight, 1 - day);
+    if (storm) cTint.lerp(cStorm, 0.7);
+  }
   for (const m of clouds.children) {
     const a = m.userData.a + t * 0.004; // drifting round, slowly
     m.position.set(
@@ -218,11 +252,17 @@ function updateClouds(on, skyColor, sunPos, day, storm, dt) {
 }
 function updateSky(skyColor, sunPos, day, storm, dt) {
   const on = Q.sky && !R.isDark(V.S);
-  updateClouds(on && lookOn('clouds') && lookOn('light'), skyColor, sunPos, day, storm, dt);
+  updateSkyline(on, scene.fog ? scene.fog.far : 600); // far hills (C6)
+  // other worlds drawn in clean line have big empty skies (C6): no soft clouds in them
+  const inked = NOW.look && NOW.look.line > 0.5;
+  updateClouds(on && !inked && lookOn('clouds') && lookOn('light'), skyColor, sunPos, day, storm, dt);
   if (on && !dome) {
     dome = makeDome();
     sunDisc = disc(70, 0xfff2c8);
+    // in other worlds drawn in clean line the sun and moon get an inked rim (C6)
+    sunDisc.add(rim(70));
     moonDisc = disc(40, 0xdfe6f0);
+    moonDisc.add(rim(40));
     scene.add(dome, sunDisc, moonDisc);
   }
   if (dome) {
@@ -237,9 +277,16 @@ function updateSky(skyColor, sunPos, day, storm, dt) {
       sunDisc.position.copy(camera.position).add(d);
       sunDisc.lookAt(camera.position);
       sunDisc.material.opacity = storm ? 0 : Math.max(0, Math.min(1, day * 1.5));
+      const ink = NOW.look ? NOW.look.line : 0;
+      for (const dsc of [sunDisc, moonDisc])
+        for (const r of dsc.children) {
+          r.visible = ink > 0.5;
+          if (r.visible) r.material.color.setRGB(NOW.look.ink[0], NOW.look.ink[1], NOW.look.ink[2]);
+        }
       moonDisc.position.copy(camera.position).sub(d.setY(Math.abs(d.y)));
       moonDisc.lookAt(camera.position);
       moonDisc.material.opacity = storm ? 0 : Math.max(0, 0.9 - day * 1.6);
+      for (const dsc of [sunDisc, moonDisc]) for (const r of dsc.children) r.material.opacity = dsc.material.opacity * 0.8;
     }
   }
   // what falls in the storm
@@ -273,6 +320,7 @@ function updateSky(skyColor, sunPos, day, storm, dt) {
   }
 }
 function hideSky() {
+  hideSkyline();
   if (dome) dome.visible = sunDisc.visible = moonDisc.visible = false;
   if (clouds) clouds.visible = halo.visible = false;
   if (fall) fall.visible = false;

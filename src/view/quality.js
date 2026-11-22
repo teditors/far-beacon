@@ -6,9 +6,38 @@ const KEY = 'farbeacon.settings';
 // coarse: how many fine cells one cell of the far ground spans. trees, rocks: share drawn near (n) and far (f).
 // sky: a shaded sky with a sun and moon. grain: a fine pattern on the ground. weather: how many drops or flakes fall.
 // ratio: the most screen pixels per CSS pixel. fog: how far the eye sees by day, as a share of the drawn margin.
+/* Commission 6: what was High is now the least the game offers (Low), and new Medium and High sit above it for the
+   painted look (toon bands, outlines, far hills, grain). The old Low lives on hidden, as Fallback, for weak devices:
+   the game drops to it by itself if the frame rate stays poor (perf.js), and says so.
+   The look's own fields: toon (banded light on things), outline (0 none, 1 people and creatures, 2 and buildings,
+   ruins and landmarks, 3 and near trees), ink (clean ink lines in other worlds), skyline (bands of far hills),
+   paper (a painted grain over the picture), fogBands (distance fades in steps). */
+const OLD_HIGH = {
+  ratio: 2,
+  aa: true,
+  margin: 24,
+  fine: 288,
+  coarse: 2,
+  treesN: 1,
+  treesF: 0.5,
+  rocksN: 1,
+  rocksF: 1,
+  sky: true,
+  grain: true,
+  weather: 1600,
+  treeNear: 420,
+  grass: 45,
+  grassMax: 14000,
+  texPx: 256,
+  aniso: 8,
+  post: true, // bloom, colour grading and a vignette (C5.19)
+  shadows: true, // real-time shadows from the sun, near the player (C5.10)
+  shadowPx: 2048,
+};
 const QUALITY = {
-  low: {
-    label: 'Low',
+  fallback: {
+    label: 'Fallback',
+    hidden: true, // offered only while in use
     ratio: 1,
     aa: false,
     margin: 12,
@@ -27,53 +56,42 @@ const QUALITY = {
     aniso: 1,
     lite: true, // towns without their small things (shutters, flowers, street props)
     treeNear: 0, // metres round the player within which trees have their full shape (C5.3); 0: nowhere
+    fogBands: true,
   },
-  medium: {
+  low: Object.assign({}, OLD_HIGH, { label: 'Low', toon: true, outline: 1, ink: true, skyline: 2, fogBands: true }),
+  medium: Object.assign({}, OLD_HIGH, {
     label: 'Medium',
-    ratio: 1.5,
-    aa: true,
-    margin: 17,
-    fine: 180,
-    coarse: 3,
-    treesN: 1,
-    treesF: 0.5,
-    rocksN: 1,
-    rocksF: 0.5,
-    sky: true,
-    grain: true,
-    weather: 700,
-    treeNear: 140,
-    grass: 26,
-    grassMax: 4000,
-    texPx: 128,
-    aniso: 4,
-  },
-  high: {
+    toon: true,
+    outline: 2,
+    ink: true,
+    skyline: 3,
+    paper: true,
+    fogBands: true,
+  }),
+  high: Object.assign({}, OLD_HIGH, {
     label: 'High',
-    ratio: 2,
-    aa: true,
-    margin: 24,
-    fine: 288,
-    coarse: 2,
-    treesN: 1,
-    treesF: 0.5,
-    rocksN: 1,
-    rocksF: 1,
-    sky: true,
-    grain: true,
-    weather: 1600,
-    treeNear: 420,
-    grass: 45,
-    grassMax: 14000,
-    texPx: 256,
-    aniso: 8,
-    post: true, // bloom, colour grading and a vignette (C5.19)
-    shadows: true, // real-time shadows from the sun, near the player (C5.10)
-  },
+    ratio: 2.5,
+    margin: 26,
+    treeNear: 560,
+    grass: 56,
+    grassMax: 20000,
+    shadowPx: 4096,
+    toon: true,
+    outline: 3,
+    ink: true,
+    skyline: 4,
+    paper: true,
+    fogBands: true,
+  }),
 };
-const SET = { quality: 'medium', meter: false, off: {} };
+const ORDER = ['fallback', 'low', 'medium', 'high'];
+const SET = { quality: 'medium', meter: false, off: {}, qv: 2 };
 try {
-  Object.assign(SET, JSON.parse(localStorage.getItem(KEY) || '{}') || {});
+  const old = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
+  // settings from before commission 6 named the old levels: old Low is Fallback now, old Medium is the new Low
+  if (old.quality && old.qv !== 2) old.quality = { low: 'fallback', medium: 'low', high: 'high' }[old.quality];
+  old.qv = 2;
+  Object.assign(SET, old);
 } catch (e) {
   /* storage is optional */
 }
@@ -89,6 +107,7 @@ function saveSettings() {
 function setQuality(name) {
   if (!QUALITY[name]) return;
   SET.quality = name;
+  for (const k of Object.keys(Q)) delete Q[k]; // nothing of the last level may linger (shadows, outlines...)
   Object.assign(Q, QUALITY[name]);
   saveSettings();
 }
@@ -99,4 +118,4 @@ const lookOn = (id) => !SET.off[id];
 // functions (id) told when a look switch is changed, for pieces that keep running state (the sound)
 const LOOK_CHANGED = [];
 const lookChanged = (id) => LOOK_CHANGED.forEach((fn) => fn(id));
-export { QUALITY, Q, SET, setQuality, saveSettings, LOOK_SWITCHES, lookOn, LOOK_CHANGED, lookChanged };
+export { ORDER, QUALITY, Q, SET, setQuality, saveSettings, LOOK_SWITCHES, lookOn, LOOK_CHANGED, lookChanged };

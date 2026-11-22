@@ -1,3 +1,390 @@
+# Commission 6
+
+The brief (COMMISSION.md): an art direction. Painted atmosphere as the base (Firewatch, Journey: palette, light and
+fog do the work; distance is colour), the best touches of toon (soft bands, light tinted outlines on things), and a
+clean-line comic look (Sable, Moebius) for other worlds; the look as data that can be rolled; today's High as the new
+minimum, with new Medium and High above it and a hidden fallback.
+
+**Measuring.** `python3 tools/bench.py fallback low medium high` (seeds 11 / 222 / 3333, software renderer at 412 x 915
+and a device pixel ratio of 1, so the pixel ratio of a level does not show in it), and `python3 tools/look.py` for the
+pictures in `docs/look/`. This machine is slower again than commission 5's: its High (now Low) measured 312 ms a frame
+there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session.
+
+| before (v0.16) | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| old Low (now Fallback) | 97 | 77 | 106,492 | 111.8 |
+| old High (now Low) | 369 | 117 | 571,366 | 395.9 |
+
+The page was 774 KB.
+
+## Summary
+
+Nine entries, newest first below. Every check passes (the full one, with the browser test). The rules are untouched;
+everything is in `src/view/`, `src/content/looks.js` (read only by the view) and the tools. No save changes. The page
+went from 774 KB to 818 KB.
+
+**The style as built.** Painted atmosphere at home: each place has a small palette rolled in layers (climate, this
+world's turn of it, rare looks, the year, troubles, curses, rare countries, weather, dusk and night) that sets the sun,
+the shade's fill, the sky, the fog and the colour grade; distance fades into the air in soft steps and on into rings of
+far hills; shade is the colour of the air, never black. Toon touches: soft two- or three-band light on people,
+creatures, buildings, ruins, rocks and trees, and thin outlines tinted from each thing's own colour. Through a door,
+clean line: ink on everything, land included, two hard bands, pale washed palettes of their own on flat land, empty
+skies, an inked sun, and music in a whole-tone scale. All of it in data and with switches; `ART.md` is the style guide.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C6.1 | Old High is the new Low; new Medium and High; a hidden Fallback that comes by itself; pictures in `docs/look/` | (settings) | groundwork |
+| C6.2 | The look in data: palettes in layers from climate, world, rare looks, year, troubles, curses, rare countries, weather, hour | `look` | pearl |
+| C6.3 | Soft toon bands on things; distance fading in steps | `toon`, `fogbands` | small pearl |
+| C6.4 | Thin tinted outlines on people, creatures, buildings, ruins, landmarks, near trees; a fix to switching quality | `outlines` | pearl |
+| C6.5 | Other worlds in clean line: ink on everything, pale palettes, empty skies; a paper grain; ART.md | `ink`, `paper` | pearl |
+| C6.6 | Far hills in bands beyond the drawn land | `skyline` | small pearl |
+| C6.7 | Stones without facets; flat land and an inked sun in other worlds | (`toon`, `ink`) | pearl (flat land) |
+| C6.8 | At most 60 frames a second, 30 with Save battery, 10 behind a panel | (setting) | pearl for the phone |
+| C6.9 | Music for other worlds and cursed lands; dusty reds; clouds in the air's colour; smoother border builds | (`sound`) | small pearl |
+
+**Numbers, before and after** (`python3 tools/bench.py fallback low medium high`, software renderer at 412 x 915,
+seeds 11 / 222 / 3333; slow in absolute terms, comparable across rows; about 8% noise). "Before" is v0.16's levels by
+their new names, measured cleanly (C6.4 found the benchmark had been carrying settings from one level to the next):
+
+| | build ms | draw calls | triangles | frame ms | page |
+| --- | --- | --- | --- | --- | --- |
+| before, old Low (now Fallback) | 78 | 73 | 106,484 | 74.8 | 774 KB |
+| after, Fallback | 82 | 73 | 106,484 | 75.4 | 818 KB |
+| before, old High (now Low) | 369 | 117 | 571,366 | 395.9 | |
+| after, Low | 362 | 124 | 578,686 | 401.7 | |
+| after, Medium | 381 | 146 | 590,024 | 405.6 | |
+| after, High | 389 | 154 | 762,489 | 513.3 | |
+
+Low, the new least, costs what old High did (the look is colour, a few instructions a pixel, and two extra draw calls
+for the far hills). Medium adds the buildings' outlines and the paper for about 1%. High adds 30%: the near trees'
+outlines (170,000 triangles, cheap on a phone's chip, dear on this renderer), finer shadows and more grass, and draws
+at 2.5 pixels per point (which the benchmark at a pixel ratio of 1 does not show). Against all that, the frame cap
+(C6.8) halves the work on a 120 Hz phone. Another world on Medium: 268 ms a frame here. **Andrew: on the Pixel, turn
+the meter on and compare High and Medium in a forest and in a town; if High runs warm, `outline: 2` and `ratio: 2` in
+quality.js's High are the levers, and "Save battery" in Settings halves the work again.**
+
+**My three best.**
+1. **The look as layered data (C6.2)**: a palette is a few colours and numbers per layer, each pulling the look its
+   own way by its own amount, resolved in plain arithmetic that is tested in Node. It is why a drought, a curse, a
+   storm at dusk and a rare violet world all come out coherent without anyone painting each case, and why a new
+   mood is one entry in `looks.js`.
+2. **Clean line through the door (C6.5, C6.7)**: ink from the bend of one-over-distance (no false lines on slanted
+   ground), wisps that the ink does not see, flat land and a washed palette: one full-screen pass, and stepping
+   through a door really is turning the page into another artist's book.
+3. **Tinted outlines with joints (C6.4)**: the inverted hull reuses each model's own joints and sway, so people,
+   creatures and trees keep their thin line as they walk and bend, in the dark of their own colour, for one draw
+   call each.
+
+**What I would do next.**
+1. Measure on the Pixel (above), and tune High's levers from it.
+2. Build a newly seen town or ruin a part at a time, so crossing into a country with one never holds a frame (C6.9).
+3. Other worlds: hatching in the shade (a screen pattern in the ink pass), and stranger skies (two suns, banded
+   skies) as more of the realm's palettes.
+4. The look in levels: dungeons and sky places still use commission 5's fixed colours; give each kind of level a
+   palette layer in `looks.js`.
+5. A cursed country is coloured but not yet changed in shape: withered trees and a low sickly mist would carry it
+   further.
+
+**CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
+
+| v0.17 | Commission 6: an art direction. Painted atmosphere: every place has a palette rolled from its climate, the world, the year, troubles, curses, rare countries, the weather and the hour; distance fades in steps into bands of far hills; rare worlds in sepia or all reds. Toon touches: soft bands of light and thin tinted outlines on people, creatures, buildings and things. Other worlds in clean line: ink on everything, pale flat palettes of their own, empty skies, music of their own. Old High is the new Low, with new Medium and High above it and a hidden Fallback that comes by itself when frames stay slow; at most 60 frames a second, 30 with Save battery. ART.md is the style guide; pictures before and after in docs/look/. |
+
+## C6.9: music for other worlds and cursed lands, rare looks seen, and smoother border builds
+
+**What it is.**
+- **Two moods of the score** (sound.js): through a door, *elsewhere*, on a whole-tone scale with no home key at all,
+  slow and swelling, as the look turns to another artist's book; and on a cursed country, *blight*, a low phrygian
+  drone with sparse bells.
+- **Rare looks in the pictures**: a sepia world and an all-reds one (`rare-sepia`, `rare-reds`). All reds read as candy
+  pink; it is now a dusty red (zenith #6e3c3a, saturation 0.95).
+- **Clouds take the air's colour**: 30% of the horizon, so a sepia or red world's clouds are not pure white.
+- **Fieldstones** are twenty-faced again, lit as the balls they stand for (`round` in the kit: each normal points out
+  from the middle), a quarter of the work of C6.7's eighty faces for nearly the same look.
+- **Border builds in finer slices**: the ground now pauses every two rows and the height field every four, since
+  Medium draws the old High's finer ground; a slice is a few milliseconds again.
+- `docs/look/README.md` lists the pictures.
+
+**About the browser test.** A town or ruin seen for the first time is built in one step (it is cached after), and at
+Medium (the old High) that can take 150 ms on this software renderer; before C6.4 the test unknowingly crossed on a
+"lite" Medium. Measured old page on High against new on Medium, same worlds: building the places costs the same (20 to
+47 ms both), so this is the level, not the look. The test's bound for one step is 250 ms now, and says why. **Next
+thing worth doing for the phone**: build a newly seen town or ruin a part at a time.
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 82 | 73 | 106,484 | 75.4 |
+| Low | 362 | 124 | 578,686 | 401.7 |
+| Medium | 381 | 146 | 590,024 | 405.6 |
+| High | 389 | 154 | 762,489 | 513.3 |
+
+**Verdict.** Small pearl (the music through the door).
+
+## C6.8: a cooler phone, and the browser test kept honest
+
+**What it is.**
+- **A frame cap** (run.js): a phone's screen may ask for 120 frames a second (the Pixel 9's does), and the game drew
+  every one. Now it draws at most 60, or 30 with **"Save battery: 30 frames a second"** (Menu, Settings, a setting of
+  the device), and 10 while a panel is open over the scene (the pack, the map, a town's shop: nothing moves behind
+  them). The skipped frames cost nothing. For a long session this is the biggest saving of heat and battery there is:
+  half the work at 60, three quarters at 30, with the look unchanged.
+- The automatic step down ignores the slow frames behind a panel, and choosing a quality by hand no longer turns the
+  watching back on when it was turned off (the tests turn it off).
+- **Outlines are built faster**: the smoothing of normals for the outlines used a text key per point; it uses a number
+  now. A town's build no longer holds a frame for 170 ms on the software renderer; a border crossed is built over 68
+  frames at most 8 ms each.
+
+**Fix to the browser test.** Since C6.4's fix to switching quality, the test's Medium is a real Medium (before, it had
+kept Fallback's "lite" towns), so building the next region over several frames takes longer than the six seconds the
+test waited on this software renderer; it waits up to thirty now. I should have run the full check (with the browser
+test) before every commit since C6.1, not the quick one; from here on it is.
+
+**Switch.** The setting "Save battery".
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 79 | 73 | 106,484 | 69.8 |
+| Low | 343 | 124 | 590,406 | 392.8 |
+| Medium | 367 | 146 | 613,465 | 404.6 |
+| High | 412 | 154 | 785,930 | 518.5 |
+
+(The benchmark measures a slow software renderer, never near the cap, so the cap does not show here.)
+
+**Verdict.** Pearl for the phone: Andrew, with the meter on, High should read about 60 fps where it read up to 120.
+
+## C6.7: stones without facets, flat land through the door, an inked sun
+
+**What it is.**
+- **Rocks** (from Low): the same twenty faces as before (there are thousands of them), but a little squashed and
+  dented, with their normals smoothed, so their light falls in the toon's soft bands instead of cut facets. A first
+  try with eighty faces each looked rounder but put 213,000 triangles on the land (16% on the frame here), so it was
+  taken back.
+- **Fieldstone ruins** (the "rough" style of building): their blocks are rounded stones softly banded, not a heap of
+  dice.
+- **Other worlds' land** is drawn in flat colour: the ground's painted grain is flattened 75% toward its plain colour
+  while the ink is on (`setGroundFlat`, paint.js), so the clean line has clean colour to sit on.
+- **An inked rim** round the sun and the moon in other worlds.
+
+**Switches.** Part of `toon` (rocks, stones) and `ink` (flat land, rims).
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 84 | 73 | 106,484 | 74.7 |
+| Low | 346 | 124 | 590,406 | 409.8 |
+| Medium | 348 | 146 | 613,464 | 412.8 |
+| High | 398 | 154 | 785,930 | 531.3 |
+
+(12,000 triangles more than C6.6 is the rounded fieldstones of ruins in view.)
+
+**Verdict.** Pearl for the flat land in other worlds (it is what made them look drawn rather than filtered); small for
+the rest.
+
+## C6.6: far hills in bands
+
+**What it is** (`skyline.js`). Beyond the land that is drawn, two to four rings of ridges (Low 2, Medium 3, High 4) at
+860 to 1,750 m stand against the sky, each a step further into the air, so hills stack in bands like a Firewatch vista.
+The land drawn nearer has already faded into the air by its edge, so the rings are only a little darker and cooler
+than the horizon (24%, 17%, 11%, 7% of the way to a tone of the shade and the zenith): they rise above the land's own
+skyline and stand across open water as far coasts. Their ridge lines are a few sine waves from the region's seed,
+sharper and taller where the land is mountainous. They follow the traveller like the sky, take their colour from the
+look each frame (night darkens them with everything else), fade away in a storm or fog, and in other worlds the ink
+draws their edges, which gives the Moebius horizon of pencil ridges. A few hundred triangles each.
+
+Also: the browser pictures' sea is now a coast in the sea world, with a separate picture under the sea; and "before"
+pictures were taken for every new view.
+
+**Switch.** `skyline` ("Far hills in bands").
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 79 | 73 | 106,484 | 71.0 |
+| Low | 383 | 124 | 578,686 | 401.3 |
+| Medium | 389 | 146 | 590,024 | 401.7 |
+| High | 395 | 154 | 762,489 | 506.3 |
+
+**Verdict.** Small pearl: quiet by day, lovely across water and in other worlds.
+
+## C6.5: other worlds in clean line, and paper
+
+**What it is.** Through a door, the look itself changes, as if stepping into another artist's book (Sable, Moebius).
+- **Ink lines on everything**, land included (`post.js`): the scene is drawn into a picture that keeps its depth, and
+  the last pass draws a thin ink line wherever the depth jumps (a silhouette: a hill against the sky, a house against a
+  hill) or bends (a crease: where a wall meets the ground). It looks at one over the distance, which changes evenly
+  across any flat surface, so a plain or a wall seen at a slant gets no false lines however far it runs; only edges
+  and creases do. Lines are about a pixel and a half wide on a phone, in the palette's ink, and drawn lighter with
+  distance, so far ridges are a faint pencil line and near things a firm one. That picture is not multisampled: the
+  ink covers the edges.
+- **The style** (the realm layer in content): two almost hard bands, a weak sun and a strong fill (flat colour, little
+  shading), saturation 0.72, the picture washed 16% toward the palette's paper colour, a stronger paper grain, a small
+  vignette, the eye seeing a quarter further, **no clouds** (big empty skies), and one of seven palettes per world
+  (peach and teal, Sable noon, mint and rose, lilac desert, ochre and slate, cold paper, ember and bone).
+- **Wisps**: grass, reeds, ferns and twiggy scrub would be scribbled black by the ink, every blade an edge; while the
+  ink is on they are drawn after everything solid without writing their depth, so the ink never sees them.
+- **Paper** (Medium and High, everywhere): a fine speckle and soft brush dabs on the slant, fixed to the screen, over
+  the whole picture, a little stronger in the midtones; flat colour reads as paint on paper. 4.5% at most at home,
+  more in other worlds.
+- `ART.md`: the style guide (the rules, the toon touches, clean line, the palettes and how to make one, how to make a
+  building, creature, tree or place, the quality levels).
+- The browser pictures now go through the door (three other worlds).
+
+**Switches.** `ink` ("Ink lines in other worlds"), `paper` ("A painted grain over the picture"); the finish's switch is
+now "Bloom and colour grading" (it runs from Low).
+
+**Numbers.** Home unchanged (the paper is a few instructions a pixel). Another world on Medium (bench `places`):
+
+| place (Medium) | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| other world, in clean line | 896 | 60 | 519,862 | 268.0 |
+| dungeon level | 9 | 14 | 36,440 | 89.3 |
+| sky castle | 5 | 17 | 20,171 | 162.7 |
+| open sea | 1,260 | 97 | 619,015 | 476.0 |
+| under the sea | 6 | 6 | 14,264 | 59.7 |
+
+**Verdict.** Pearl, the one Andrew asked for: stepping through the door now feels like turning the page into another
+book. What I would still do: flatten the land's painted grain in other worlds, and draw the sun as an ink circle.
+
+## C6.4: light outlines, and a fix to switching quality
+
+**What it is** (`outline.js`). A thin line round people and creatures (from Low), buildings, ruins and landmarks (from
+Medium) and the trees about you (High), never round the land. It is the inverted hull: each outlined model gets a
+copy of itself drawn from the inside, pushed out along its normals averaged where its parts meet (so the line closes
+round corners), in the dark of the thing's own colour leaning toward the look's ink: a dark brown line round a brown
+house, a blue-grey one round a blue coat; in other worlds it leans all the way to the ink. The push grows with
+distance, so the line stays about one and a half to two pixels wide on any screen, and fades away past 60 m for
+people, 90 m for buildings, 45 m for trees, so far things stay soft. People and creatures' outlines move with their
+joints, and the trees' sway with them (the sway is one shared piece of shader now, `swayPatch`). One draw call more
+per outlined mesh: a person or creature is two, a town about fourteen, a forest's outlines one.
+
+**Fix.** Changing the quality kept any setting of the last level the new one does not name: going from High to Low
+kept High's shadows and finish, from Low to Medium kept Low's "lite" towns. Now nothing lingers. This also skewed the
+benchmark: it changes level as it goes, so earlier rows here (and in commission 5) measured Fallback with Medium's
+extras, and Medium and High with lite towns. The rows below are clean; Fallback really costs about 75 ms a frame here.
+
+**Switch.** `outlines` ("Light outlines on people, creatures and nearby things").
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 78 | 73 | 106,484 | 74.8 |
+| Low | 346 | 122 | 578,046 | 394.0 |
+| Medium | 385 | 143 | 589,064 | 395.3 |
+| High | 405 | 150 | 761,209 | 513.9 |
+
+High's extra 170,000 triangles are the near trees' outlines (a copy of every near tree); on a phone's graphics chip
+that is cheap, on this software renderer it shows. If it is dear on the Pixel, `outline: 2` in quality.js's High drops
+them.
+
+**Verdict.** Pearl: a person in the street now reads against the cobbles at a glance.
+
+## C6.3: soft bands of light, and distance in steps
+
+**What it is** (`toon.js`).
+- **Soft bands.** From Low up, people, creatures, buildings, ruins, landmarks, trees and the plain props are drawn with a
+  toon material: the sun's light on them falls in bands (three by default: shade, half-lit, full sun; two in other
+  worlds), with soft edges, while the sky's fill light stays smooth beneath, so the shade side of a house or a person is
+  the colour of the sky's light rather than a ramp to black. Form reads at a glance on a small screen; nothing looks
+  like a cartoon for small children. The bands are one 64-pixel texture, rewritten when the look's `bands` or `soft`
+  change (another world's are two and almost hard). The land and the levels' walls keep their smooth light.
+- **Distance in steps.** The fog no longer fades far things in one smooth ramp but in five soft steps, so ridges at
+  different distances sit in distinct bands of haze, the way hills stack in a painting. Every material's fog goes
+  through one shared piece of shader (`fog_fragment`, patched once at start); the frame turns the steps on by giving
+  the fog a negative near distance, which nothing else reads, so it costs no new uniform and nothing is recompiled when
+  it changes. Outdoors and with the look on only.
+- The browser pictures gain a street close up and a creature close up (`tools/look.py`), and the meter and the pictures
+  name the look's layers (`__g.look()`).
+- Wet lands' sky is a softer grey-blue (it read as green).
+
+**Switches.** `toon` ("Soft bands of light on people, creatures and things"), `fogbands` ("Distance fading in steps").
+
+**Numbers.** Per-pixel light on things instead of per-vertex: within the noise on this renderer.
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 102 | 77 | 106,492 | 116.4 |
+| Low | 374 | 117 | 571,746 | 394.9 |
+| Medium | 356 | 116 | 571,744 | 397.5 |
+| High | 394 | 121 | 648,133 | 464.4 |
+
+**Verdict.** Pearl, small: the change is felt more than seen, a house's shaded wall a cool flat blue-grey.
+
+## C6.2: the look in data: palettes rolled from the land, the hour and the world
+
+**What it is.** How a place looks is now content (`src/content/looks.js`), resolved by a small pure module
+(`src/view/look.js`, no Three.js, tested in Node) and put into the frame by `mood.js`. A look is a palette (the sky
+overhead and at the horizon, the fog, the sun, the shade's fill light, the light bounced from the ground, the clouds,
+the colour grade's lift and gain, the ink) and a few numbers of style (sun and fill strength, saturation, contrast,
+bands, softness, how far the eye sees, ink lines, outlines, paper grain, vignette; the later pieces use these). It is
+built in layers, each naming only what it changes and how hard it pulls:
+
+1. **the climate by day**: temperate clear and green, wet grey-green and soft, hot bleached gold with lilac shade (the
+   Journey trick: warm light, cool violet shade), cold steel blue, ashen ash and ember, steppe wide and straw-gold;
+2. **this world's turn of it**: every colour of the climate turned in hue and saturation by a roll of the world's seed,
+   within a range per climate that leans toward pleasing turns (a taiga steel blue in one world, violet-grey in another;
+   a desert toward rose rather than lime);
+3. **a rare look** for a whole world (5%) or one country away from home (4%): sepia, all reds, verdigris, the violet
+   hour, ivory, indigo noon;
+4. **another world's** style and palette (C6.4 makes the style);
+5. **the year** (a drought bleaches, a hard winter blues, a long summer gilds, a year of long nights turns violet...);
+6. **the great trouble**, faintly everywhere (20%: a tyrant's iron red, a plague's fevered yellow, the deep king's
+   violet), and **a curse** strongly on the cursed country (75%, sickly green);
+7. **the country's rare trait** (burned lands ash-grey with an ember sun, hallowed ones gold, silent ones drained of
+   colour, glowing ones teal in the shade...);
+8. **the weather**: every storm greys, then rain, snow, dust, hail, ash or star-fall adds its own;
+9. **dusk** (gold, with a rose horizon and a violet zenith) and **night** (deep blue).
+
+The light takes its sun, shade and bounce colours from it; the sky dome its zenith (with a pale band between horizon
+and zenith, so a gold horizon and a blue zenith do not mix to mud); the fog and the far land its horizon; the clouds
+their colour; the finish (Low and up) its grade: saturation, contrast, the darks leaning toward the lift colour and
+lifted a little into it (shade the colour of the air, never black), the lights toward the gain colour, the vignette.
+Near a border the looks of the biomes either side are mixed by their share of the land, as the sky was. Indoors and in
+levels nothing changes. With the meter on, the look's layers are named under it ("look: Steel blue, Hard blue, Gold
+dusk (turned 12°)").
+
+**Switch.** `look` ("Palettes rolled from the land, the hour and the world"), in Menu, Settings. Its menus are in
+the Almanac ("The look"); `tests/pieces.test.js` checks that every climate, year, rare country and trouble it names is
+real, that a world always rolls the same look and worlds differ, that night is dark, dusk warm, storms grey, curses
+green, other worlds in clean line, and that rare looks come about as often as they should.
+
+**Numbers.** Colour only: the same draw calls and triangles; frames within the noise.
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 87 | 77 | 106,492 | 111.9 |
+| Low | 388 | 117 | 571,746 | 411.4 |
+| Medium | 366 | 116 | 571,744 | 397.9 |
+| High | 362 | 121 | 648,132 | 472.7 |
+
+**Verdict.** Pearl, and the base of everything after it.
+
+## C6.1: the levels moved up, a fallback that comes by itself, and pictures for the phone
+
+**What it is.**
+- **The levels** (quality.js): what was High is now **Low**, the least the game offers. **Medium** and **High** sit
+  above it and will carry the new look's extras as they come (outlines, far hills, a painted grain); High already draws
+  at up to 2.5 screen pixels per point instead of 2, a little more land (26 tiles round), trees in full shape to 560 m,
+  grass to 56 m and a shadow map twice as fine each way (4096). The old Low lives on as **Fallback**, hidden from the
+  buttons unless it is in use.
+- **Saved settings** move with them: a device that was on old Low goes to Fallback, old Medium to the new Low, old High
+  to the new High. A new player starts on Medium.
+- **The fallback comes by itself** (perf.js `autoQuality`): when frames stay under about 22 a second for twelve seconds
+  of play, the game steps down a level and says so in a note ("The game was running slowly, so the graphics are now
+  Low. Menu, Settings to change it."). A single long frame, a scene being built or a hidden page counts for nothing, and
+  there is a grace of eight seconds after every change. The benchmark and the tests turn it off (software drawing is
+  slow); the browser test checks the step down and its note.
+- **Pictures** (`tools/look.py`, `tools/sheet.py`): nineteen views (each biome by day and night, dusk, three towns and
+  one at night, a ruin, a storm, a dungeon, a sky castle, the sea and two other worlds) taken in god mode at phone size,
+  looking the way the land is most open. The "before" set is in `docs/look/before/` (211 KB).
+
+**Switch.** None (settings). **Numbers.** Unchanged for each preset; Medium measures as Low for now.
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 97 | 77 | 106,492 | 111.8 |
+| Low | 369 | 117 | 571,366 | 395.9 |
+| Medium | 359 | 116 | 571,364 | 391.2 |
+| High | 385 | 121 | 647,753 | 468.1 |
+
+**Verdict.** Groundwork.
+
 # Commission 5
 
 ## Summary

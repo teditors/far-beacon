@@ -16,6 +16,8 @@ import { blob, fire, water } from './fx.js';
 import { actorsOn, clearActors, creatureActor, markKilled, personActor, settleActors, shiftActors, track } from './actors.js';
 R.on('killed', (s, d) => d && d.c && markKilled(d.c.id));
 import { kitMat } from './kit.js';
+import { toonMat } from './toon.js';
+import { smoothNormals } from './outline.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 
 /* ---------- scene ---------- */
@@ -41,6 +43,11 @@ function setShadows() {
   renderer.shadowMap.enabled = on;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap; // soft edges (C5.18)
   sun.castShadow = on;
+  const px = Q.shadowPx || 2048; // finer on High (C6)
+  if (sun.shadow.mapSize.x !== px) {
+    sun.shadow.mapSize.set(px, px);
+    if (sun.shadow.map) sun.shadow.map.dispose(), (sun.shadow.map = null);
+  }
 }
 scene.fog = new THREE.Fog(0xb9c7d1, 40, 600);
 scene.background = new THREE.Color(0xb9c7d1);
@@ -50,7 +57,8 @@ let staticGroup = null,
 // the cheapest light there is. Faceted shapes (roofs, rocks) get their facets from their geometry instead (facet()).
 const std = (color, extra) =>
   lookOn('light')
-    ? new THREE.MeshLambertMaterial(Object.assign({ color }, extra || {}))
+    ? toonMat(Object.assign({ color, vertexColors: false }, extra || {})) ||
+      new THREE.MeshLambertMaterial(Object.assign({ color }, extra || {}))
     : new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 1 }, extra || {}));
 // Shapes with few sides (a four-sided roof, a six-sided tower, a rock) read as cut faces, not as a blur: each face gets
 // its own normals. Run over a finished group; shared geometry (marked kept) is left alone.
@@ -77,6 +85,28 @@ function facet(group) {
     }
   });
   return group;
+}
+/* A rock. With the toon bands on (C6), a stone a little squashed and dented the same way every time, with its normals
+   smoothed so its light falls in soft bands rather than facets (polygons should not read as polygons); otherwise the
+   old cut-faced one. Twenty faces either way: there are thousands of rocks. */
+function rockGeo() {
+  const smooth = !!toonMat(),
+    g = new THREE.IcosahedronGeometry(1, 0); // twenty faces: there are thousands of rocks
+  if (smooth) {
+    const p = g.attributes.position,
+      v = new THREE.Vector3();
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i);
+      const k = 1 + 0.12 * Math.sin(v.x * 3.1 + 1.3) * Math.cos(v.z * 2.7) + 0.07 * Math.sin(v.y * 4.3 + 0.5);
+      p.setXYZ(i, v.x * k, v.y * k * 0.85, v.z * k);
+    }
+    g.computeVertexNormals();
+    smoothNormals(g);
+    g.setAttribute('normal', g.attributes.outN);
+    g.deleteAttribute('outN');
+  } else g.computeVertexNormals(); // one normal per face: a rock with cut faces
+  g.faceted = true;
+  return g;
 }
 const glow = (color, opacity) =>
   new THREE.MeshBasicMaterial({ color, fog: false, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
@@ -1047,7 +1077,7 @@ function* buildLand(S, timed) {
         col[k * 3 + 1] = c.g * shade;
         col[k * 3 + 2] = c.b * shade;
       }
-      if ((iz & 3) === 3) yield;
+      if (iz & 1) yield; // every two rows: the fine ground of Medium and High is long (C6)
     }
     const idx = new Uint32Array(n * n * 6);
     let m = 0;
@@ -1248,9 +1278,7 @@ function* buildLand(S, timed) {
   };
   yield;
   pal.forEach((p, bi) => {
-    const rock = new THREE.IcosahedronGeometry(1, 0);
-    rock.computeVertexNormals(); // one normal per face: a rock with cut faces
-    rock.faceted = true;
+    const rock = rockGeo();
     instances(rock, std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
     const forest = land.biomes[bi].forest;
     if (shaped) {

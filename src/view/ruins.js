@@ -13,6 +13,10 @@
    or five meshes: stone, wood, cloth, and the dark of doorways. */
 import { R } from './ctx.js';
 import { P, kit, kitMat } from './kit.js';
+import { addOutline } from './outline.js';
+import { toonOn } from './toon.js';
+// fieldstones: rounded and softly banded with the toon bands on (C6), cut-faced otherwise
+const ROUND = () => toonOn();
 import { surface } from './paint.js';
 import { LOOK_SWITCHES, lookOn } from './quality.js';
 
@@ -82,7 +86,7 @@ function wall(Z, x0, z0, x1, z1, h, t, o) {
           P.blob(bh * 0.75, 0),
           Z.colAt(y, r),
           { x, y, z, ry: r() * 6, sx: (w / bh) * 0.7, sz: t * 0.8 },
-          { flat: true, uv: 1.5 },
+          { flat: !ROUND(), round: ROUND(), uv: 1.5 },
         );
       else Z.stone.add(P.box(w, bh * 0.97, t * taper), Z.colAt(y, r), { x, y, z, ry: ry + (r() - 0.5) * 0.05 }, { uv: 1.5 });
     }
@@ -286,9 +290,14 @@ function ruinGroup(S, seed) {
   if (dh > 1 && civ.habit !== 'cistern')
     for (const [dx, dz] of doors) Z.dark.add(P.box(1.7, dh, 0.3), 0x0b0c0e, { x: dx, y: dh / 2, z: dz - 0.2 });
   const g = new THREE.Group(),
-    add = (k, mat) => !k.empty && g.add(new THREE.Mesh(k.build(), mat));
-  add(Z.stone, kitMat({ map: surface(st.tex, seed >>> 3) })); // each ruin's stone a variant of its people's
-  add(Z.wood, kitMat({ map: surface('wood') }));
+    add = (k, mat, line) => {
+      if (k.empty) return;
+      const m = new THREE.Mesh(k.build(), mat);
+      g.add(m);
+      if (line) addOutline(m, 2, 90); // outlined (C6)
+    };
+  add(Z.stone, kitMat({ map: surface(st.tex, seed >>> 3) }), true); // each ruin's stone a variant of its people's
+  add(Z.wood, kitMat({ map: surface('wood') }), true);
   add(Z.cloth, kitMat({ side: THREE.DoubleSide }));
   add(Z.dark, new THREE.MeshBasicMaterial({ vertexColors: true }));
   g.scale.y = 1; // height already follows age
