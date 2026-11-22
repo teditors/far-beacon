@@ -403,6 +403,11 @@
         align-items: center;
         margin-top: 4px;
       }
+      p.said {
+        font-style: italic;
+        border-left: 3px solid var(--ink-dim);
+        padding-left: 8px;
+      }
       .note {
         font-size: 12.5px;
         color: var(--ink-dim);
@@ -23075,10 +23080,26 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       ])
     ]);
   }
-  function openService() {
-    const info = R.serviceInfo(V.S);
-    if (!info) return;
+  var heard = null;
+  R.on("log", (s, d) => heard && heard.push(d));
+  function listening(fn) {
+    heard = [];
+    try {
+      act(fn);
+      return heard;
+    } finally {
+      heard = null;
+    }
+  }
+  function openService(said, lastTitle) {
+    const info = R.serviceInfo(V.S), words = (said || []).map((d) => el("p", { cls: "said " + (d.tone || ""), text: d.msg }));
+    if (!info) {
+      if (words.length) openModal(lastTitle || "", [...words, el("div", { cls: "row" }, [btn("Go on", closeModal, "primary")])]);
+      else closeModal();
+      return;
+    }
     openModal(info.title, [
+      ...words,
       ...info.text.map((t2) => el("p", { text: t2 })),
       info.options.length ? el("p", { cls: "note", text: "You have " + V.S.player.coin + " coin." }) : null,
       el(
@@ -23091,8 +23112,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
               btn(
                 o.price ? o.price + " coin" : "Yes",
                 () => {
-                  act(() => R.useService(V.S, o.id, o.arg));
-                  if (!V.S.over) openService();
+                  const said2 = listening(() => R.useService(V.S, o.id, o.arg));
+                  if (!V.S.over) openService(said2, info.title);
                 },
                 "small" + (V.S.player.coin >= o.price ? " sel" : "")
               )

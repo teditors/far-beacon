@@ -1,3 +1,24 @@
+# Commission 8
+
+The brief (COMMISSION.md): character. Surfaces you can tell apart at a glance and no visible tiling, roads that look
+made, made things that read as made, rooms furnished by what they are for, High pushed much further, and two bugs (the
+traveller at the fire, small towns that are only a menu). Pieces with switches, as before.
+
+## C8.1: the traveller at the fire answers
+
+**What it was.** At a wayfarer's fire, "Sit and listen" (and any choice after which the wayfarer moves on: a measure of
+water that was the last, the map, sharing water with the lost traveller) did its work in the rules, but the window
+asked the rules again what the wayfarer offered, got nothing (they had gone on), and returned without changing: the
+same window, the same "Yes", and the answer hidden in the log behind it. It looked like nothing happened.
+
+**What changed.** A choice in any of these windows (a wayfarer, a hamlet, a town's healer, priest, trainer, smith,
+mapmaker or stable, the sky's people) now shows what it brought at the top of the window, in italics: the pilgrim's
+news, the price paid, "You cannot afford that". When the person has gone on, the window stays on what they said, with
+a "Go on" button. The browser test now sits down at a wayfarer's fire, takes the first choice and checks the answer is
+in the window.
+
+**Switch.** None (a fix).
+
 # Commission 7
 
 **On merging (v0.18):** Andrew kept everything except the ink lines over everything in other worlds (C6.5, switch

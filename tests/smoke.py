@@ -204,6 +204,16 @@ async def main():
         left = await pg.evaluate("()=>{const g=window.__g,S=g.S;for(let x=0;x<Rules.W;x++){if(!Rules.passable(S,x,Rules.H-1))continue;S.player.x=x;S.player.y=Rules.H-1;S.combat=null;S.player.stamina=100;if(Rules.move(S,0,1)){g.refresh();return x}}return -1}")
         assert left >= 0, 'no open tile on the south edge of the other town'
         assert await pg.evaluate("()=>Rules.inOverworld(window.__g.S)"), 'could not leave the other town'
+        # a wayfarer at a fire: the first choice answers in the window (C8.1: "Yes" used to do nothing)
+        wf = await pg.evaluate("""()=>{const g=window.__g,S=g.S;for(let cy=0;cy<S.world.rows;cy++)for(let cx=0;cx<S.world.cols;cx++)Rules.ensureRegion(S,cx,cy);
+          for(const id in S.areas){const m=Rules.mapOf(S,id);if(!m||!m.sites||S.areas[id].kind!=='region')continue;for(const k in m.sites){const st=m.sites[k];if(st.kind!=='wayfarer'||st.gone)continue;
+          Rules.travelTo(S,id,(+k)%36,Math.floor(+k/36));S.creatures.length=0;S.combat=null;S.player.coin=100;S.player.water=Rules.waterCap(S);g.refresh();return st.name}}return null}""")
+        if wf:
+            await press('Talk to')
+            await pg.locator('#modal-body ul.items button').first.click(); await pg.wait_for_timeout(200)
+            said = await pg.evaluate("()=>!document.getElementById('modal').hidden&&document.querySelectorAll('#modal-body p.said').length")
+            assert said, 'a wayfarer\'s choice did nothing in the window'
+            await pg.click('#modal-close'); steps.append('a wayfarer (' + wf + ')')
         await pg.click('#btn-map'); await pg.wait_for_timeout(200); await shot('8-world-map')
         assert await pg.evaluate("()=>document.getElementById('worldcv').width>0"), 'no world map'
         await pg.click('#modal-close'); steps.append('world map')
