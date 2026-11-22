@@ -1,7 +1,7 @@
 /* Items: generation, names, weight and descriptions. */
 import { trait } from './civ.js';
 import { C, byId, srand } from './core.js';
-import { ITEM_HOOKS, WEIGHTS } from './hooks.js';
+import { ITEM_HOOKS, ITEM_NAMES, WEIGHTS } from './hooks.js';
 
 /* Items */
 function makeItem(s, baseId, pre, suf, known) {
@@ -43,6 +43,10 @@ function genItem(s, o) {
   return it;
 }
 function itemName(it) {
+  for (const f of ITEM_NAMES) {
+    const n = f(it);
+    if (n) return n;
+  }
   const b = byId(C.bases, it.base);
   if (it.label) return it.label;
   if (it.artName) return it.artName;

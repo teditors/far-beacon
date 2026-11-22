@@ -39,7 +39,7 @@ import {
 } from './areas.js';
 import { carryCap, stat, waterCap } from './stats.js';
 import { advance } from './systems.js';
-import { ACTIONS as ACTION_HOOKS, COSTS } from './hooks.js';
+import { ACTIONS as ACTION_HOOKS, COSTS, MOVES } from './hooks.js';
 
 /* Actions */
 // How much foul water hurts you: not at all if something makes you safe from it.
@@ -70,6 +70,11 @@ function move(s, dx, dy, at) {
   if (weight(s) > carryCap(s) + 1e-9 && !s.godMode) {
     say(s, 'You are carrying too much to move. Leave something here.', 'bad');
     return false;
+  }
+  // a door into a building, or out of one (commission 7: interiors)
+  for (const f of MOVES) {
+    const r = f(s, nx, ny, dx, dy);
+    if (r !== undefined) return r;
   }
   // The town: walk into its block from any side and you are in it, unless a wall stands there; walk off any edge of
   // it and you are back outside. `at` is where the view says you arrive, so its picture and the rules agree.
@@ -624,7 +629,7 @@ function makeCamp(s) {
 function study(s, id) {
   if (s.over || !atCamp(s)) return false;
   const it = s.player.items.find((i) => i.id === id);
-  if (!it || it.known) return false;
+  if (!it || it.known || it.thing) return false; // a thing picked up has nothing to study (a merchant may know more)
   advance(s, 120 * stat(s, 'studyTime', 1), 'rest');
   if (s.over) return true;
   it.known = true;
@@ -653,7 +658,11 @@ function useItem(s, id) {
       ? 'You light the '
       : use.hp && !b.mystery && it.base === 'bandage'
         ? 'You bind your wounds with the '
-        : 'You drink the ') +
+        : b.thing && use.stamina
+          ? 'You eat the '
+          : b.thing && use.hp
+            ? 'You make a poultice of the '
+            : 'You drink the ') +
       itemName(it) +
       '.',
     (use.stamina || 0) < -5 ? 'bad' : 'good',

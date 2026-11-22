@@ -19,6 +19,7 @@ import { kitMat } from './kit.js';
 import { toonMat } from './toon.js';
 import { smoothNormals } from './outline.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
+import { thingsGroup } from './things.js';
 
 /* ---------- scene ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: Q.aa, powerPreference: 'high-performance' });
@@ -1456,10 +1457,22 @@ function drawArea(id, kind, nb) {
         );
     }
   const camp = !nb && V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
+  // the things of the place (C7): furniture, cups, bones..., and things put down again where they were left
+  if (!nb) {
+    const tg = thingsGroup(
+      V.S,
+      id,
+      ts,
+      (t) => at(t.y * R.W + t.x, t.px * ts, t.pz * ts),
+      [FR.x, FR.y, FR.z, V.shift ? V.shift.x + ',' + V.shift.z : ''].join(), // where the frame stands: built in it
+    );
+    if (tg) dynGroup.add(tg);
+  }
   for (const k in nb ? {} : map.depots) {
     if (+k === camp) continue;
-    const d = map.depots[k],
-      relic = d.items.some((i) => i.base === 'relic'),
+    const d = map.depots[k];
+    if (d.items.length && d.items.every((i) => i.thing) && !(d.water > 0) && !(d.fuel > 0)) continue; // drawn as themselves
+    const relic = d.items.some((i) => i.base === 'relic'),
       [x, y, z] = at(+k, 3.5 * off, 2.5 * off);
     if (relic) {
       dynGroup.add(box(1.2, 1, 1.2, std(0x77716a), x, y + 0.5, z));

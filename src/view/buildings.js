@@ -240,6 +240,8 @@ function finish(K, st, group) {
   return group;
 }
 
+// along a face, as turn() measures it, which way the x (s, n) or z (e, w) of the world runs
+const FACE_SIGN = { s: 1, n: -1, e: -1, w: 1 };
 /* A building on a block of ground: cx, cz its middle, w along x, d along z (metres), door: the side its door is on
    ('n', 's', 'e', 'w'), kind: 'elder', 'inn', 'shop' or a house. */
 function building(K, st, r, b) {
@@ -253,13 +255,37 @@ function building(K, st, r, b) {
     trim = st.trim;
   K.stone.add(P.box(w + 0.3, 0.6, d + 0.3), st.plinth, { x: cx, y: 0.3, z: cz }, { uv: 2 });
   // grime and splash toward the foot, weathering a little higher on some houses than others
-  const grime = 0.2 + r() * 0.15;
-  K.wall.add(
-    P.box(w, wallH, d),
-    wcol,
-    { x: cx, y: wallH / 2, z: cz },
-    { uv: 3, jitter: 0.05, shade: (y) => 1 - grime * Math.max(0, 1 - y * 3) },
-  );
+  const grime = 0.2 + r() * 0.15,
+    wopt = { uv: 3, jitter: 0.05, shade: (y) => 1 - grime * Math.max(0, 1 - y * 3) },
+    doorOff = b.doorOff || 0;
+  if (!b.open) K.wall.add(P.box(w, wallH, d), wcol, { x: cx, y: wallH / 2, z: cz }, wopt);
+  else {
+    // a building you can walk into (C7): four walls, with a doorway where its door is, and nothing inside (the room
+    // is drawn by rooms.js, a little within these walls)
+    const t = 0.3,
+      gw = 1.2,
+      gh = 2.4;
+    for (const [side, fx, fz, len, ry] of [
+      ['s', 0, d / 2 - t / 2, w, 0],
+      ['n', 0, -d / 2 + t / 2, w, 0],
+      ['e', w / 2 - t / 2, 0, d - 2 * t, Math.PI / 2],
+      ['w', -w / 2 + t / 2, 0, d - 2 * t, Math.PI / 2],
+    ]) {
+      const seg = (a, bb, y0, y1) => {
+        if (bb - a < 0.01) return;
+        const [ox, oz] = turn((a + bb) / 2, 0, ry);
+        K.wall.add(P.box(bb - a, y1 - y0, t), wcol, { x: cx + fx + ox, y: (y0 + y1) / 2, z: cz + fz + oz, ry }, wopt);
+      };
+      // along the face, measured the way turn() measures it
+      const o = side === b.door ? (side === 'n' || side === 's' ? doorOff : -doorOff) * (ry ? 1 : 1) : null;
+      if (o === null) seg(-len / 2, len / 2, 0, wallH);
+      else {
+        seg(-len / 2, o - gw / 2, 0, wallH);
+        seg(o + gw / 2, len / 2, 0, wallH);
+        seg(o - gw / 2, o + gw / 2, gh, wallH);
+      }
+    }
+  }
   if (st.timber) {
     // dark beams over the plaster: corner posts, a beam at each storey, and posts between
     for (const [sx, sz] of [
@@ -302,7 +328,7 @@ function building(K, st, r, b) {
     for (let s = 0; s < storeys; s++)
       for (let i = 0; i < n; i++) {
         const o = -len / 2 + ((i + 0.5) * len) / n;
-        if (s === 0 && side === b.door && Math.abs(o) < 1.6) continue; // the door is here
+        if (s === 0 && side === b.door && Math.abs(o - doorOff * FACE_SIGN[side]) < 1.6) continue; // the door is here
         if (r() < 0.12) continue;
         const [ox, oz] = turn(o, 0.06, ry),
           y = s * FH + 1.9;
@@ -329,11 +355,29 @@ function building(K, st, r, b) {
         }
       }
     if (side === b.door) {
-      const [ox, oz] = turn(0, 0.08, ry);
-      K.wood.add(P.box(1.4, 2.4, 0.16), '#4a3424', { x: cx + fx + ox, y: 1.2 + 0.3, z: cz + fz + oz, ry }, { uv: 1.5 });
-      const [lx, lz] = turn(0, 0.2, ry);
-      K.stone.add(P.box(1.9, 0.3, 0.4), st.plinth, { x: cx + fx + lx, y: 2.85, z: cz + fz + lz, ry }, { uv: 2 });
-      b.doorAt = { x: cx + fx, z: cz + fz, ry };
+      const along = doorOff * FACE_SIGN[side],
+        at = (lx, lz) => {
+          const [ox, oz] = turn(along + lx, lz, ry);
+          return { x: cx + fx + ox, z: cz + fz + oz };
+        };
+      if (b.open) {
+        // the door stands open against the wall beside its doorway, under a lintel, over a step
+        const leaf = at(-0.6 - 0.62, 0.12),
+          step = at(0, 0.35);
+        K.wood.add(P.box(1.2, 2.3, 0.08), '#4a3424', { x: leaf.x, y: 1.15 + 0.3, z: leaf.z, ry }, { uv: 1.5 });
+        K.stone.add(P.box(1.5, 0.12, 0.5), st.plinth, { x: step.x, y: 0.34, z: step.z, ry }, { uv: 2 });
+        for (const sg of [-1, 1]) {
+          const j = at(sg * 0.68, 0.05);
+          K.wood.add(P.box(0.16, 2.5, 0.22), '#4a3424', { x: j.x, y: 1.25, z: j.z, ry }, { uv: 1.5 });
+        }
+      } else {
+        const p = at(0, 0.08);
+        K.wood.add(P.box(1.4, 2.4, 0.16), '#4a3424', { x: p.x, y: 1.2 + 0.3, z: p.z, ry }, { uv: 1.5 });
+      }
+      const l = at(0, 0.2);
+      K.stone.add(P.box(1.9, 0.3, 0.4), st.plinth, { x: l.x, y: 2.85, z: l.z, ry }, { uv: 2 });
+      const a0 = at(0, 0);
+      b.doorAt = { x: a0.x, z: a0.z, ry };
     }
   }
   roof(K, st, r, cx, cz, w, d, wallH, wcol, kind);
@@ -693,7 +737,27 @@ function townGroup(S, townId, map, ts) {
     const s = map.sites[k];
     if (s.kind === 'elder' || s.kind === 'inn' || s.kind === 'shop') kindAt[k] = s.kind;
   }
+  // buildings you can walk into (C7): the rules say where each one's door is
+  const ruled = R.interiorsOn && R.interiorsOn(S, townId || 'town') ? R.buildingsOf(S, townId || 'town') : [];
   for (const b of blocks(map, walled)) {
+    const rb = ruled.find((x) => x.x0 === b.x0 && x.y0 === b.y0);
+    if (rb) {
+      const cx = (edge(b.x0) + edge(b.x1 + 1)) / 2,
+        cz = (edge(b.y0) + edge(b.y1 + 1)) / 2,
+        // the door: the middle of its tile, along the face, from the face's middle
+        off = rb.door.side === 'n' || rb.door.side === 's' ? at(rb.door.x) - cx : at(rb.door.y) - cz;
+      building(K, st, r, {
+        cx,
+        cz,
+        w: (b.x1 - b.x0 + 1) * ts - 0.5,
+        d: (b.y1 - b.y0 + 1) * ts - 0.5,
+        kind: ['elder', 'inn', 'shop'].includes(rb.kind) ? rb.kind : null,
+        door: rb.door.side,
+        doorOff: off,
+        open: true,
+      });
+      continue;
+    }
     // which special building is this (its site is on the floor beside it), and which way its door faces
     let kind = null,
       door = null;
@@ -876,4 +940,4 @@ function hamletGroup(S, biome, seed) {
   lamp(K, st, 2.4, 2.4);
   return finish(K, st, group);
 }
-export { townGroup, hamletGroup, styleOf, setNight, townsOn, PROPS, climateOf };
+export { townGroup, hamletGroup, styleOf, setNight, townsOn, PROPS, climateOf, GLOW };

@@ -779,6 +779,83 @@ const findSeed = (fn, from = 1) => {
   s.player.mats = { hide: 2 };
   need(R.sellMat(s, 'hide') && s.player.mats.hide === 1, 'could not sell a hide');
 }
+// Things (commission 7): made from the seed the same every time, in levels and round ruins and caves, never stored;
+// taking one makes an item of it, remembered by id; the switch makes none.
+{
+  const X = R.C.things,
+    kinds = new Set(X.kinds.map((k) => k.id));
+  const all = [X.rooms, X.places, X.trades, X.climates, X.years];
+  for (const group of all)
+    for (const k in group)
+      for (const f of ['wall', 'middle', 'small'])
+        for (const [id] of group[k][f] || []) need(kinds.has(id), 'things: ' + k + ' names no thing ' + id);
+  for (const k in X.buildings) for (const room of X.buildings[k]) need(X.rooms[room], 'things: ' + k + ' has no room ' + room);
+  for (const sec of X.secrets.list) for (const id of sec.of) need(kinds.has(id), 'things: a secret names no thing ' + id);
+  for (const k of X.kinds) {
+    if (k.fixed) need(X.sizes[k.id], 'things: furniture ' + k.id + ' has no size');
+    else need(k.wt > 0 && k.value >= 0 && R.byId(R.C.bases, 'th_' + k.id), 'things: ' + k.id + ' cannot be carried');
+  }
+  let levels = 0,
+    regions = 0;
+  for (let seed = 1; seed <= 6; seed++) {
+    const s = R.newGame(seed);
+    R.setGodMode(s, true);
+    for (const p of R.places(s)) {
+      if (p.group !== 'Below' && p.group !== 'Regions' && p.group !== 'Above' && p.group !== 'Water') continue;
+      R.jumpTo(s, p.id);
+      const a = R.thingsIn(s, s.area),
+        b = R.thingsIn(s, s.area);
+      need(a === b || JSON.stringify(a) === JSON.stringify(b), 'things are not the same twice');
+      need(new Set(a.map((t) => t.id)).size === a.length, 'two things share an id in ' + s.area);
+      for (const t of a) {
+        need(
+          t.x >= 0 && t.y >= 0 && t.x < R.W && t.y < R.H && Math.abs(t.px) <= 0.75 && Math.abs(t.pz) <= 0.75,
+          'a thing out of place',
+        );
+        need(
+          R.passable(s, t.x, t.y) || R.areaRec(s).kind === 'region' || s.terrain[t.y * R.W + t.x] === R.FLOOR,
+          'a thing in a wall',
+        );
+      }
+      if (R.areaRec(s).kind === 'region') regions += a.length;
+      else levels += a.length;
+    }
+    need(!JSON.stringify(R.serialize(s)).includes('"k":"cup"'), 'things are stored in the save');
+  }
+  need(levels > 200 && regions > 200, 'too few things: ' + levels + ' in levels, ' + regions + ' round ruins and caves');
+  // taking: an item of the same name, gone from the place, remembered across a save, and weighing what it should
+  const s = R.newGame(11);
+  R.setGodMode(s, true);
+  R.jumpTo(s, R.places(s).find((p) => p.group === 'Below').id);
+  s.godMode = false;
+  const t = R.thingsLeft(s, s.area).find((x) => !R.thingKind(x.k).fixed),
+    w0 = R.weight(s);
+  s.player.x = t.x;
+  s.player.y = t.y;
+  const btn = R.actions(s).find((a) => a.id === 'takeThing' && a.arg === t.id);
+  need(btn, 'no button to take a thing in reach');
+  need(R.takeThing(s, t.id), 'could not take a thing');
+  const it = s.player.items[s.player.items.length - 1];
+  need(
+    it.thing && it.thing.k === t.k && btn.label.toLowerCase().includes(R.itemName(it).toLowerCase()),
+    'the item is not the thing: ' + R.itemName(it),
+  );
+  need(Math.abs(R.weight(s) - w0 - R.thingKind(t.k).wt) < 1e-6, 'a thing weighs nothing');
+  need(!R.thingsLeft(s, s.area).some((x) => x.id === t.id) && !R.takeThing(s, t.id), 'a thing taken is still there');
+  const back = R.deserialize(R.serialize(s)).state;
+  need(!R.thingsLeft(back, back.area).some((x) => x.id === t.id), 'a taken thing comes back after loading');
+  // put down, it lies there as an item
+  need(R.leaveItem(s, it.id) && s.depots[s.player.y * R.W + s.player.x].items.some((i) => i.thing), 'a thing put down is lost');
+  // too heavy: refused
+  s.player.items.push(...Array.from({ length: 40 }, () => R.makeItem(s, 'th_pick')));
+  const heavy = R.thingsLeft(s, s.area).find((x) => !R.thingKind(x.k).fixed && x.x === s.player.x && x.y === s.player.y);
+  if (heavy) need(!R.takeThing(s, heavy.id), 'took a thing past the carry limit');
+  // switched off: none
+  const off = R.newGame(11, { things: true });
+  R.setGodMode(off, true);
+  R.jumpTo(off, R.places(off).find((p) => p.group === 'Below').id);
+  need(R.thingsIn(off, off.area).length === 0, 'NO=things still makes things');
+}
 // The look (commission 6, view only): built from layers of content/looks.js by src/view/look.js, which needs no screen.
 async function lookChecks() {
   const L = await import('../src/view/look.js'),
@@ -916,6 +993,6 @@ lookChecks()
       process.exit(1);
     }
     console.log(
-      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting, trade, the look, the score',
+      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting, trade, the look, the score, things',
     );
   });

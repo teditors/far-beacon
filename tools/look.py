@@ -42,6 +42,11 @@ PERSON = """let a = null, best = 1e9; const w = new THREE.Vector3();
   if (!a) return false; a.getWorldPosition(w); const f = a.getWorldDirection(new THREE.Vector3());
   g.P.x = w.x + f.x * %s; g.P.z = w.z + f.z * %s; g.P.yaw = Math.atan2(-(w.x - g.P.x), -(w.z - g.P.z)); g.P.pitch = %s;
   if (g.P.fixY !== undefined) g.P.fixY = w.y + 1.75; await wait(1500);"""
+THING = """const L = Rules.thingsLeft(S, S.area).filter((t) => %s || !Rules.thingKind(t.k).fixed);
+  const T = L.slice().sort((a, b) => L.filter((u) => Math.abs(u.x - b.x) + Math.abs(u.y - b.y) <= 1).length - L.filter((u) => Math.abs(u.x - a.x) + Math.abs(u.y - a.y) <= 1).length)[0]; if (!T) return false;
+  const ts = Rules.isLevel(S) ? 4 : 28, hw = 18 * ts, mx = (T.x + 0.5) * ts - hw, mz = (T.y + 0.5) * ts - hw, qx = mx + T.px * ts, qz = mz + T.pz * ts;
+  S.player.x = T.x; S.player.y = T.y; g.refresh(); const d = %s, l = Math.hypot(qx - mx, qz - mz) || 1;
+  g.P.x = qx - ((qx - mx) / l) * d + 0.01; g.P.z = qz - ((qz - mz) / l) * d; g.P.yaw = Math.atan2(-(qx - g.P.x), -(qz - g.P.z)); g.P.pitch = %s; g.refresh(); await wait(800);"""
 SHOTS = [
     ('salt-day', 11, {}, region('Salt', DAY)),
     ('salt-night', 11, {}, region('Salt', NIGHT)),
@@ -61,6 +66,9 @@ SHOTS = [
     # a townsperson up close, as Andrew saw one on his phone (C7.1), and from a few steps
     ('person-close', 11, {}, town(0, 'S.time = 16 * 60 - 360;') + PERSON % (0.75, 0.75, 0.0)),
     ('person-near', 11, {}, town(0, 'S.time = 16 * 60 - 360;') + PERSON % (3.0, 3.0, -0.1)),
+    # things (C7.3): a dungeon's level with its furniture and small things, close to, and old things round a ruin
+    ('things-level', 31, {}, place('Below', '') + THING % ('true', 2.2, -0.3)),
+    ('things-ruin', 11, {}, RUIN % DAY + THING % ('false', -3, -0.45)),
     ('rare-sepia', 9, {}, region('Home', DAY)),
     ('rare-reds', 251, {}, region('Home', 'S.time = 17.8 * 60 - 360;')),
     ('storm', 222, {}, region('(1, 1)', DAY + 'S.weather.storm = Rules.stormOfNow ? true : true;')),

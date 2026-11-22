@@ -8,6 +8,44 @@ abandoned places. Pieces with switches, as before.
 **Measuring.** As commission 6: `python3 tools/bench.py fallback low medium high` and `python3 tools/look.py`, with
 `CHROME=/opt/pw-browsers/chromium` (the full `node tools/check.js` needs it too for the browser test in a cloud session).
 
+## C7.3: things in levels, ruins and caves, and picking them up
+
+**What it is.** The first half of the commission's main work: ordinary things, made in code and in the style, put
+where they belong, that you can pick up.
+- **Ninety kinds** (`content/things.js`): furniture (beds, tables, benches, chests, shelves, hearths, barrels, crates,
+  rugs, tapestries, looms, spinning wheels, anvils, forges, altars, lecterns, coffins, ore carts...), the kitchen
+  (cups, plates, bowls, jugs, pots, pans, kettles, spoons, knives, bread, cheese, apples, dried fish, herbs), light
+  (candles, oil lamps), tools (brooms, buckets, hammers, tongs, saws, scythes, picks, shovels, horseshoes, chains,
+  nets and floats, spindles and yarn), and keepsakes (books, scrolls, maps, paintings, vases, dolls, wooden horses,
+  flutes, lutes, drums, statuettes, holy symbols, lockets, rings, combs, mirrors, dice, urns, bones, skulls, shells,
+  coral, old helmets and shields). Many come in three grades by wealth (a wooden, pewter or silver cup), old ones have
+  a word of their own (cracked, rusted, mouldering, moth-eaten), and the lost people's wares carry their name and a
+  touch of their colour.
+- **Where they are**: every level has its theme's things (a crypt's coffins, urns, bones and candles; a mine's carts,
+  picks and lamps; a wreck's barrels, bottles and maps; a merfolk hall's shells and coral; a cloud city's vases and
+  flutes; a sky castle's racks, shields and silver cups), furniture against the walls and small things on it or on
+  the floor; round every ruin and cave a few old things lie a stone's throw off. All of it **from the seed**:
+  `thingsIn` makes a place's things the same every time, and only `s.taken` (ids per place) is saved. A world's 70 or
+  so levels and regions hold some thousands of things; a save holds a few bytes for each one taken.
+- **Picking up**: standing by things, up to three buttons offer the nearest ("Take the cracked Tokhirut bowl", with
+  its weight); taking makes an item of the same name and weight, so the carry limit applies (too heavy: refused).
+  Most are worth a coin or two, bones and skulls nothing; food can be eaten (bread, cheese, apples, dried fish,
+  mushrooms), herbs make a poultice, a candle or an oil lamp lights the dark for an hour or three, a jug of water is
+  drunk. Put down, a thing lies where it was dropped, drawn as itself (not a crate). There is nothing to study in a
+  cup: studying and the wizard's identifying pass things by.
+- **Drawing** (`view/things.js`): sixty-odd models from the kit, a few strong shapes each, banded like everything
+  else; a place's things are merged into two meshes (furniture, outlined on Medium and up; small things, which fold
+  away to nothing past 28 to 40 m in the vertex shader, so far cups neither cost nor crawl). Kept per place and what is
+  left, so walking rebuilds nothing.
+
+Hooks for the next pieces: `THING_MAKERS` (houses), `TAKE_CHECKS` (theft), `THING_FINISH` (secret value),
+`ITEM_NAMES` / `ITEM_VALUES`. Tests (pieces.test.js, `things`): every name in the content is a thing, furniture has a
+size and the rest can be carried, things are the same twice and never stored, ids are unique, nothing stands in a wall,
+taking makes the right item and weight, a taken thing stays gone after loading, a thing put down is kept, the carry
+limit holds, and the switch makes none. Pictures: `docs/look/after/things-level.jpg`, `things-ruin.jpg`.
+
+**Switch.** `things` (Tinker; `NO=things`), and `thingsDrawn` (Settings) to compare the drawing.
+
 ## C7.2: a harpsichord, Baroque dances, and a tune for every place
 
 **What it is.** The score is composed now, not wandered. `src/view/score.js` writes it a bar at a time from

@@ -507,6 +507,54 @@ section('How towns look', ['townLooks'], () => {
   );
 });
 
+section('Things', ['things'], () => {
+  const X = C.things;
+  line(
+    'Commission 7: the ordinary things in rooms, ruins, caves and levels, made from the seed when a place is seen ' +
+      '(src/rules/things.js) and never stored; only what is taken is kept. Furniture stays put; the rest can be carried. ' +
+      'Old things (in ruins, caves, levels and empty houses) are worth half, and ' +
+      Math.round(X.secrets.chance * 100) +
+      '% of those that could be are secretly valuable.',
+  );
+  line();
+  table(
+    ['Thing', 'Weight', 'Worth', 'Grades', 'Old', 'Use'],
+    X.kinds.map((k) => [
+      k.name,
+      k.fixed ? 'furniture' : k.wt,
+      k.fixed ? '' : k.value,
+      k.grades ? k.grades.join(' / ') : '',
+      k.fixed ? '' : k.old || X.oldWord,
+      k.use
+        ? Object.entries(k.use)
+            .map(([a, b]) => a + ' ' + b)
+            .join(', ')
+        : '',
+    ]),
+  );
+  line();
+  const list = (l) => (l || []).map(([k]) => k).join(', ');
+  table(
+    ['Room', 'Along the walls', 'In the middle', 'Small things'],
+    Object.entries(X.rooms).map(([k, r]) => [k, list(r.wall), list(r.middle), list(r.small)]),
+  );
+  line();
+  table(
+    ['Building', 'Rooms, the first by the door'],
+    Object.entries(X.buildings).map(([k, r]) => [k, r.join(', ')]),
+  );
+  line();
+  table(
+    ['Place', 'Furniture', 'Things', 'Abandoned'],
+    Object.entries(X.places).map(([k, r]) => [k, list(r.wall), list(r.small), r.old ? 'yes' : 'lived in']),
+  );
+  line();
+  table(
+    ['Secret', 'Hidden in', 'Appraised as', 'Worth'],
+    X.secrets.list.map((x) => [x.id, x.of.join(', '), x.name, x.value]),
+  );
+  line();
+});
 section('The score', ['music'], () => {
   const X = C.music;
   line(

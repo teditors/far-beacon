@@ -298,7 +298,7 @@ function mend(s) {
 function identify(s, id) {
   const p = s.player,
     it = p.items.find((i) => i.id === id);
-  if (s.over || s.combat || s.char.cls !== 'wizard' || !it || it.known) return false;
+  if (s.over || s.combat || s.char.cls !== 'wizard' || !it || it.known || it.thing) return false;
   if (p.mana < 2) {
     say(s, 'Not enough mana.');
     return false;

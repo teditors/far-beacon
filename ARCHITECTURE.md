@@ -134,6 +134,19 @@ Every place you walk into is an area; commission 4 added four kinds of level and
   list, which every piece fills through `PLACES`; world settings are plain options, `newGame(seed, off, set)`, kept
   in `s.gen` where they differ from `content/worldset.js`, and read with `genOf(s)` (the playtest takes `SET=`).
 
+## Things and rooms (commission 7)
+
+- **Things** (`rules/things.js`, content `content/things.js`, drawn by `view/things.js`): ordinary objects in rooms,
+  ruins, caves and levels. Never stored: `thingsIn(s, area)` makes an area's things from the seed whenever asked (the
+  same every time, cached), `s.taken[area]` lists the ids of those taken (an id is the tile and its place in that
+  tile's list), and `thingsLeft` is what the view draws. Each kind of area has a maker in `THING_MAKERS` (levels by
+  their theme or kind, regions round their ruins and caves, houses from the interiors piece); `furnish(s, spec, room,
+  o)` places a room's furniture along its walls and in its middle and sets small things on their tops or the floor.
+  A thing taken is an item of base `th_<kind>` with `item.thing` (kind, grade, age, people's mark, secret); its name
+  and worth come through `ITEM_NAMES` / `ITEM_VALUES` (hooks.js). `TAKE_CHECKS` may stop a taking (theft),
+  `THING_FINISH` may change a thing as it is made (secret value). The view merges a place's things into two meshes
+  (furniture, small things), kept per place and what is left; small things fold away with distance in the shader.
+
 ## The look (commission 6)
 
 The art direction is in `ART.md`. What a place looks like is content (`content/looks.js`): layers of palette and style
@@ -264,6 +277,7 @@ Players can copy a run out of Menu and paste it into another device.
 | To add | Do this |
 | --- | --- |
 | An item base or affix | an entry in content/items.js, a value in content/tuning.js |
+| A thing (a cup, a loom) | an entry in `kinds` in content/things.js (a size if it is furniture), a model in `MODELS` in view/things.js, and its name in the rooms or places that hold it |
 | A trait of the lost peoples | an entry in the right list in content/peoples.js, then make the rules read its fields in civOf() |
 | A creature form | an entry in content/creatures.js, and a model in `creatureModel` in view/actors.js |
 | A way towns look | an entry (climate, trade or custom) in content/townlooks.js; a new street prop is a function in `PROPS` in view/buildings.js |
