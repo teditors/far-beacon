@@ -451,9 +451,9 @@ function inn(s) {
   s.player.coin -= priceOf(s, 'innPrice');
   const p = s.player,
     w = p.water;
-  for (let i = 0; i < 8 && !s.over; i++) restHour(s);
+  // the inn gives drink with the bed: nobody dies of thirst in a bed at an inn
+  for (let i = 0; i < 8 && !s.over; i++) restHour(s), (p.water = Math.max(p.water, w));
   if (s.over) return true;
-  p.water = Math.max(p.water, w);
   p.hp = p.hpMax;
   p.mana = p.manaMax;
   p.stamina = 100;

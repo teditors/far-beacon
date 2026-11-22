@@ -49,6 +49,7 @@ function rollLife(s, r) {
       size = e;
       break;
     }
+  if (s.town.want) size = byId(X.sizes, s.town.want) || size; // made at a size (a hamlet on the land, C8.2)
   const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === 'string') : [],
     want = X.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id),
     rest = SERVICE_IDS().filter((id) => !want.includes(id));

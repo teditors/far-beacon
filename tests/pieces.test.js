@@ -559,12 +559,12 @@ const findSeed = (fn, from = 1) => {
   need(homeTown >= 5 && homeTown <= 30, 'the town stayed home in ' + homeTown + ' of 60 worlds');
   need(R.findSite(R.newGame(5, { plot: true }), 'vault').area === 'overworld', 'NO=plot still moved the locked place');
 }
-// Hamlets: in some regions away from home, with water, shelter, a bed and goods.
+// Hamlets: in some regions away from home, with water, shelter, a bed and goods (as they were, with steads off).
 {
   let n = 0,
     used = 0;
   for (let i = 1; i <= 20; i++) {
-    const s = R.newGame(i);
+    const s = R.newGame(i, { steads: true });
     for (const id in s.areas) {
       const m = s.areas[id].map;
       if (!m || !m.sites || id === 'overworld') continue;
@@ -591,6 +591,47 @@ const findSeed = (fn, from = 1) => {
     }
   }
   need(n > 20 && used, 'only ' + n + ' hamlets in 20 worlds');
+}
+// Steads (C8.2): every hamlet on the land is a small town you walk into, with its elder, inn and shop and buildings
+// with rooms; none is left a menu; an old save's hamlets become towns as it loads; switched off, they stay hamlets.
+{
+  let n = 0,
+    left = 0,
+    rooms = 0;
+  const fs = require('fs'),
+    path = require('path');
+  for (let i = 1; i <= 16; i++) {
+    const s = R.newGame(i);
+    for (let cy = 0; cy < s.world.rows; cy++) for (let cx = 0; cx < s.world.cols; cx++) R.ensureRegion(s, cx, cy);
+    for (const id in s.areas) {
+      const m = s.areas[id].kind === 'region' && !s.areas[id].realm ? R.mapOf(s, id) : null;
+      if (m) for (const k in m.sites) if (m.sites[k].kind === 'hamlet') left++;
+    }
+    for (const t of (s.towns || []).filter((t) => t.hamlet)) {
+      n++;
+      need(t.size === 'hamlet', t.name + ' is a ' + t.size + ', not a hamlet');
+      need(R.mapOf(s, t.area).sites[t.y * R.W + t.x].town === t.id, t.name + ' has no site on the land');
+      const bs = R.buildingsOf(s, t.id);
+      need(
+        ['elder', 'inn', 'shop'].every((k) => bs.some((b) => b.kind === k)) && bs.some((b) => b.kind === 'house'),
+        t.name + ' lacks a hall, an inn, a shop or a dwelling to walk into',
+      );
+      for (const b of bs) rooms += R.houseLayout(s, t.id, b).rooms.length;
+    }
+  }
+  need(n >= 20 && !left, 'steads: ' + n + ' hamlets made towns in 16 worlds, ' + left + ' left as menus');
+  need(rooms > n * 8, 'steads: only ' + rooms + ' rooms in ' + n + ' hamlets');
+  const off = R.newGame(4, { steads: true });
+  need(!(off.towns || []).some((t) => t.hamlet), 'NO=steads still made a hamlet a town');
+  // an old save: its hamlets were menus; loaded, they are towns
+  let old = 0;
+  for (const f of fs.readdirSync(path.join(__dirname, 'fixtures')).filter((f) => f.startsWith('save-v9'))) {
+    const raw = fs.readFileSync(path.join(__dirname, 'fixtures', f), 'utf8');
+    if (!raw.includes('"hamlet"')) continue;
+    const st = R.deserialize(raw).state;
+    old += (st.towns || []).filter((t) => t.hamlet).length;
+  }
+  need(old > 0, 'no old save\'s hamlet became a town');
 }
 // Tiers: finds away from home are finer, and a finer affix does more.
 {
@@ -653,6 +694,8 @@ const findSeed = (fn, from = 1) => {
       s.creatures = [];
       s.player.stamina = 100;
       s.player.coin = 100;
+      s.player.items = s.player.items.filter((it) => it.eq); // what was bought in the last town would be too heavy
+      s.player.water = Math.max(s.player.water, 6); // and the nights at the inns thirsty
       need(
         R.move(s, 0, -1) && R.areaRec(s).kind === 'town' && s.area === t.id && R.curTown(s) === t,
         'seed ' + i + ': could not walk into ' + t.name,
@@ -684,7 +727,7 @@ const findSeed = (fn, from = 1) => {
     }
   }
   need(cultures === towns, 'some other towns have no culture');
-  need(!(R.newGame(3, { moretowns: true }).towns || []).length, 'NO=moretowns still made towns');
+  need(!(R.newGame(3, { moretowns: true }).towns || []).filter((t) => !t.hamlet).length, 'NO=moretowns still made towns');
 }
 // Crafting: kills, searches and gathering give materials; each recipe makes what it says; a torch lights the dark.
 {
@@ -1145,6 +1188,6 @@ lookChecks()
       process.exit(1);
     }
     console.log(
-      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting, trade, the look, the score, things, interiors, theft, secrets',
+      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, steads, tiers, world size, more towns, crafting, trade, the look, the score, things, interiors, theft, secrets',
     );
   });

@@ -4,6 +4,42 @@ The brief (COMMISSION.md): character. Surfaces you can tell apart at a glance an
 made, made things that read as made, rooms furnished by what they are for, High pushed much further, and two bugs (the
 traveller at the fire, small towns that are only a menu). Pieces with switches, as before.
 
+## C8.2: hamlets are real places (steads)
+
+**What it was.** A hamlet on the land was four little houses you could not enter round a well, and a menu (a bed by
+the fire, a bundle of wood, a few potions, a rumour): a town in name only.
+
+**What it is now.** Every hamlet is a small town of its own, of the size the town life piece already knew as a
+hamlet: lanes and a little square, an elder with news and errands, an inn with a bed, a shop, one more service (a
+healer, a priest, a mapmaker...), a few dwellings, every building one you walk into with rooms and things like any
+town's, and its own culture, people and tune (the hamlet's musette). It stands on its 5 x 5 block of the land like any
+town, is told as a hamlet the first time you walk in ("Coldcroft, a hamlet. Smoke from three chimneys, a dog, a well
+with a bucket on a chain. Every door is open to a traveller."), and keeps the hamlet's name.
+
+**How.** `rules/steads.js`, imported last. The hamlet is still rolled where it always was (with its region), so no
+world changes as it is made; once the world exists (`worldBorn`, last of all), every hamlet becomes a town through
+`townAt` (split out of `addTown` in moretowns.js, so the two make towns the same way) at the size asked for
+(`want`, read by town life's `rollLife`). A region built later has its hamlet made a town as it is built. Where the
+hamlet's own tile has no room for a block (a spring beside it, water), the nearest place within five tiles that has
+room is used; a hamlet in a region that already has a town, or with no room near, is gone (its region's town stands in
+for it). Things left on the block go to the tile below its gate, as when towns first got blocks. **Old saves**: their
+hamlets become towns as they load (`AFTER_LOAD`), except one the traveller is standing among, which waits until they
+have walked off. No change to the shape of the state (a town record has three optional fields, `hamlet`, `talk`,
+`told`), so no migration.
+
+Some 3 to 5 hamlets a world. The largest save with every region visited goes from 153 to 180 KB (a town's streets are
+kept like any town's).
+
+**Also.** A bed at an inn now gives drink through the night: a traveller with nine measures of water died of thirst in
+an inn's bed in a hot land while the tests walked through more towns than before.
+
+**Switch.** `steads` (at creation, and in play: no more hamlets become towns). Tests (pieces.test.js, `steads`): in 16
+worlds every hamlet is a town of size hamlet with a site on the land, a hall, an inn, a shop and a dwelling to walk into
+and plenty of rooms; none is left a menu; an old save's hamlets become towns; NO=steads keeps them hamlets. The
+more-towns test now walks into each of them too. Picture: `docs/look/after/hamlet.jpg`.
+
+**Verdict.** The fix the brief asked for, and more places worth finding.
+
 ## C8.1: the traveller at the fire answers
 
 **What it was.** At a wayfarer's fire, "Sit and listen" (and any choice after which the wayfarer moves on: a measure of

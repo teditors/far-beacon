@@ -51,7 +51,8 @@ const done = [];
   need(!R.newGame(5).gen, 'an ordinary world stores settings');
   const s = R.newGame(5, {}, { size: '4x4', towns: 0, races: ['human', 'dwarf'], nRaces: 2, trouble: 'curse', bogus: 3 });
   need(s.world.cols === 4 && s.world.rows === 4, 'the chosen size was not used');
-  need(!(s.towns || []).length, 'a world with no other towns has ' + (s.towns || []).length);
+  const others = (s.towns || []).filter((t) => !t.hamlet); // hamlets on the land are small towns of their own (C8.2)
+  need(!others.length, 'a world with no other towns has ' + others.length);
   need(
     s.offer.races.length === 2 && s.offer.races.every((r) => r === 'human' || r === 'dwarf'),
     'the chosen races were not offered: ' + s.offer.races,

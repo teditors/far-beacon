@@ -170,9 +170,11 @@ import { takeThing, thingKind, thingsIn, thingsInReach, thingsLeft } from './thi
 import { HOUSE_SCALE, buildingsOf, doorAt, houseLayout, houseOf, interiorsOn } from './houses.js';
 import './theft.js';
 import { secretOf } from './secrets.js';
+import { steadAll } from './steads.js'; // last: hamlets become towns once every other town has its place
 
 const api = {
   secretOf,
+  steadAll,
   HOUSE_SCALE,
   buildingsOf,
   doorAt,

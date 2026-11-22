@@ -7993,9 +7993,8 @@
     }
     s.player.coin -= priceOf(s, "innPrice");
     const p = s.player, w = p.water;
-    for (let i = 0; i < 8 && !s.over; i++) restHour(s);
+    for (let i = 0; i < 8 && !s.over; i++) restHour(s), p.water = Math.max(p.water, w);
     if (s.over) return true;
-    p.water = Math.max(p.water, w);
     p.hp = p.hpMax;
     p.mana = p.manaMax;
     p.stamina = 100;
@@ -10304,6 +10303,7 @@
         size = e;
         break;
       }
+    if (s.town.want) size = byId(X10.sizes, s.town.want) || size;
     const cul = s.townCulture ? Object.values(s.townCulture).filter((v) => typeof v === "string") : [], want = X10.services.filter((sv) => sv.always.some((a) => cul.includes(a))).map((sv) => sv.id), rest2 = SERVICE_IDS().filter((id) => !want.includes(id));
     while (want.length < size.services && rest2.length) want.push(rest2.splice(Math.floor(r() * rest2.length), 1)[0]);
     const ls = X10.lessons.map((l) => l.id);
@@ -11071,10 +11071,10 @@
     const well = { area: HOME, x: s.start.x, y: s.start.y };
     const t2 = r() < HOME_TOWN_CHANCE ? null : move2("town", 0, 2, 3, well);
     if (t2) Object.assign(s.town, t2);
-    const townAt = t2 ? { area: t2.area, x: t2.x, y: t2.y + 3 } : well;
-    let keyAt = townAt;
+    const townAt2 = t2 ? { area: t2.area, x: t2.x, y: t2.y + 3 } : well;
+    let keyAt = townAt2;
     if (s.quest.key === "ruin") {
-      const m = regionMap(s, take(3)), ref = inFrame(townAt, 3), ruins = Object.keys(m.sites).filter((k) => m.sites[k].kind === "ruin").sort((a, b) => dist2({ x: a % W, y: Math.floor(a / W) }, ref) - dist2({ x: b % W, y: Math.floor(b / W) }, ref));
+      const m = regionMap(s, take(3)), ref = inFrame(townAt2, 3), ruins = Object.keys(m.sites).filter((k) => m.sites[k].kind === "ruin").sort((a, b) => dist2({ x: a % W, y: Math.floor(a / W) }, ref) - dist2({ x: b % W, y: Math.floor(b / W) }, ref));
       if (ruins.length) {
         s.quest.keyTile = +ruins[0];
         s.quest.keyArea = take(3).id;
@@ -11082,7 +11082,7 @@
       }
     }
     if (s.quest.key === "beast") {
-      const i = home.creatures.findIndex((c) => c.id === s.quest.beast), m = regionMap(s, take(3)), p = spot(m, r, 0, 0, inFrame(townAt, 3));
+      const i = home.creatures.findIndex((c) => c.id === s.quest.beast), m = regionMap(s, take(3)), p = spot(m, r, 0, 0, inFrame(townAt2, 3));
       if (i >= 0 && p) {
         const c = home.creatures.splice(i, 1)[0];
         c.x = p.x;
@@ -11190,18 +11190,27 @@
       if (p && !keeps(p)) p = null;
     }
     if (!p) return null;
-    flatten(m, p.x, p.y, 2, 3);
-    const id = "t_" + rec.id, t2 = makeTownRec(s, r, p.x, p.y);
+    return townAt(s, rec, p.x, p.y, r);
+  }
+  function townAt(s, rec, x, y, r, opts) {
+    opts = opts || {};
+    const m = rec.id === s.area ? s : rec.map;
+    flatten(m, x, y, 2, 3);
+    const id = "t_" + rec.id, t2 = makeTownRec(s, r, x, y);
+    if (opts.name) t2.name = opts.name;
     for (let k = 0; k < 6 && allTowns(s).some((o) => o.name === t2.name); k++)
       t2.name = C.town.a[Math.floor(r() * C.town.a.length)] + C.town.b[Math.floor(r() * C.town.b.length)];
     t2.id = id;
     t2.area = rec.id;
-    m.sites[idx(p.x, p.y)] = { kind: "town", town: id };
+    if (opts.size) t2.want = opts.size;
+    Object.assign(t2, opts.extra || {});
+    m.sites[idx(x, y)] = { kind: "town", town: id };
     (s.towns = s.towns || []).push(t2);
     const rt = stream(s.seed, "town:" + id);
     withTown(s, t2, () => {
       for (const f of TOWN_MAKERS) f(s, t2, rt);
     });
+    delete t2.want;
     ensureTown(s);
     return t2;
   }
@@ -15070,9 +15079,101 @@
     ] : [];
   });
 
+  // src/rules/steads.js
+  var R_TOWN = 2;
+  function hamletIn(m) {
+    if (!m || !m.sites) return null;
+    for (const k in m.sites)
+      if (m.sites[k].kind === "hamlet") return { k: +k, x: +k % W, y: Math.floor(+k / W), st: m.sites[k] };
+    return null;
+  }
+  function roomFor(m, x, y, skip) {
+    if (x - R_TOWN < 2 || x + R_TOWN > W - 3 || y - R_TOWN < 2 || y + R_TOWN + 1 > H - 3) return false;
+    for (let j = -R_TOWN; j <= R_TOWN + 1; j++)
+      for (let i = -R_TOWN; i <= R_TOWN; i++) {
+        const k = idx(x + i, y + j);
+        if (k !== skip && m.sites[k]) return false;
+        if (j <= R_TOWN && (m.terrain[k] === 2 || m.terrain[k] >= 4)) return false;
+      }
+    return !m.creatures.some((c) => (c.key || c.lair || c.plot) && Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) <= 6);
+  }
+  function placeFor(m, h) {
+    if (roomFor(m, h.x, h.y, h.k)) return { x: h.x, y: h.y };
+    for (let r = 1; r <= 5; r++)
+      for (let j = -r; j <= r; j++)
+        for (let i = -r; i <= r; i++)
+          if (Math.max(Math.abs(i), Math.abs(j)) === r && roomFor(m, h.x + i, h.y + j, h.k)) return { x: h.x + i, y: h.y + j };
+    return null;
+  }
+  function stead(s, rec, live3) {
+    if (s.off.steads || !rec || rec.kind !== "region" || rec.id === HOME) return null;
+    if ((rec.realm || null) !== (s.realm || null)) return null;
+    if (rec.id === s.area && !live3) return null;
+    live3 = rec.id === s.area;
+    const m = live3 ? s : rec.map;
+    const h = hamletIn(m);
+    if (!h) return null;
+    if (live3 && Math.max(Math.abs(s.player.x - h.x), Math.abs(s.player.y - h.y)) <= R_TOWN + 4) return null;
+    const at = townInRegion(s, rec.id) ? null : placeFor(m, h);
+    delete m.sites[h.k];
+    if (!at) return null;
+    h.x = at.x;
+    h.y = at.y;
+    const door = idx(h.x, h.y + R_TOWN + 1);
+    for (const key2 of Object.keys(m.depots || {})) {
+      const kx = +key2 % W, ky = Math.floor(+key2 / W);
+      if (Math.abs(kx - h.x) > R_TOWN || Math.abs(ky - h.y) > R_TOWN) continue;
+      const d = m.depots[key2], to = m.depots[door] || (m.depots[door] = { water: 0, fuel: 0, items: [] });
+      to.water += d.water || 0;
+      to.fuel += d.fuel || 0;
+      to.items.push(...d.items || []);
+      delete m.depots[key2];
+    }
+    if (s.camp && s.camp.area === rec.id) {
+      const cx = s.camp.i % W, cy = Math.floor(s.camp.i / W);
+      if (Math.abs(cx - h.x) <= R_TOWN && Math.abs(cy - h.y) <= R_TOWN) s.camp.i = door;
+    }
+    return townAt(s, rec, h.x, h.y, stream(s.seed, "stead:" + rec.id), {
+      name: h.st.name,
+      size: "hamlet",
+      extra: { hamlet: true, talk: h.st.talk, seen: !!h.st.seen }
+    });
+  }
+  function steadAll(s, live3) {
+    if (s.off.steads) return;
+    for (const id of Object.keys(s.areas)) {
+      const rec = s.areas[id];
+      if (rec.kind === "region" && (rec.map || id === s.area)) stead(s, rec, live3);
+    }
+  }
+  var BORN = /* @__PURE__ */ new WeakSet();
+  on("worldBorn", (s) => {
+    BORN.add(s);
+    steadAll(s, true);
+  });
+  on("mapBuilt", (s, d) => {
+    if (BORN.has(s) && d.rec.kind === "region") stead(s, d.rec);
+  });
+  AFTER_LOAD.push((s) => {
+    BORN.add(s);
+    steadAll(s, true);
+  });
+  on("did", (s, d) => {
+    if (d.id === "move" && BORN.has(s) && areaRec(s).kind === "region") steadAll(s);
+  });
+  on("did", (s, d) => {
+    if (d.id !== "move" || !inTown(s)) return;
+    const t2 = curTown(s);
+    if (!t2 || !t2.hamlet || t2.told) return;
+    t2.told = true;
+    say(s, t2.name + ", a hamlet. " + (t2.talk || "") + " Every door is open to a traveller.", "good");
+  });
+  SWITCHES.push(["steads", "Hamlets are small towns you walk into"]);
+
   // src/rules/index.js
   var api = {
     secretOf,
+    steadAll,
     HOUSE_SCALE: HS,
     buildingsOf,
     doorAt,
@@ -15246,6 +15347,7 @@
     wrap,
     mapOf,
     ensureAround,
+    ensureRegion,
     townDoor,
     allTowns,
     curTown,
