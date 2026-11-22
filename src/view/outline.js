@@ -38,29 +38,40 @@ function setOutline(lk, screenH) {
    splitting at them. Kept on the geometry (outN). */
 function smoothNormals(geo) {
   if (geo.attributes.outN) return geo;
-  const p = geo.attributes.position,
-    n = geo.attributes.normal,
-    acc = new Map(),
-    key = (i) => Math.round(p.getX(i) * 200) + ',' + Math.round(p.getY(i) * 200) + ',' + Math.round(p.getZ(i) * 200);
-  for (let i = 0; i < p.count; i++) {
-    const k = key(i),
-      a = acc.get(k) || acc.set(k, [0, 0, 0]).get(k);
-    a[0] += n.getX(i);
-    a[1] += n.getY(i);
-    a[2] += n.getZ(i);
+  const p = geo.attributes.position.array,
+    n = geo.attributes.normal.array,
+    count = p.length / 3,
+    slot = new Map(), // a point (to half a centimetre) -> its index in sum
+    at = new Int32Array(count),
+    sum = new Float32Array(count * 3);
+  let used = 0;
+  for (let i = 0; i < count; i++) {
+    // a number for the point, from its rounded coordinates (a rare clash only blurs one corner of one line)
+    const k =
+      (Math.round(p[i * 3] * 200) * 73856093) ^
+      (Math.round(p[i * 3 + 1] * 200) * 19349663) ^
+      (Math.round(p[i * 3 + 2] * 200) * 83492791);
+    let j = slot.get(k);
+    if (j === undefined) slot.set(k, (j = used++));
+    at[i] = j;
+    sum[j * 3] += n[i * 3];
+    sum[j * 3 + 1] += n[i * 3 + 1];
+    sum[j * 3 + 2] += n[i * 3 + 2];
   }
-  const out = new Float32Array(p.count * 3);
-  for (let i = 0; i < p.count; i++) {
-    const a = acc.get(key(i)),
-      l = Math.hypot(a[0], a[1], a[2]) || 1;
-    out[i * 3] = a[0] / l;
-    out[i * 3 + 1] = a[1] / l;
-    out[i * 3 + 2] = a[2] / l;
+  const out = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const j = at[i] * 3,
+      x = sum[j],
+      y = sum[j + 1],
+      z = sum[j + 2],
+      l = Math.hypot(x, y, z) || 1;
+    out[i * 3] = x / l;
+    out[i * 3 + 1] = y / l;
+    out[i * 3 + 2] = z / l;
   }
   geo.setAttribute('outN', new THREE.BufferAttribute(out, 3));
   return geo;
 }
-
 /* The outline's material. far: metres beyond which the line fades away. patch(shader): a further change to the
    vertex shader for models that move (actors.js: their joints), run first. */
 const MATS = new Map();

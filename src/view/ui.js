@@ -1371,8 +1371,16 @@ function openMenu() {
         SET.meter = cb.checked;
         saveSettings();
       });
+      // fewer frames for a cooler phone and a longer battery (run.js)
+      const bat = el('input', { type: 'checkbox', id: 'battery' });
+      bat.checked = !!SET.battery;
+      bat.addEventListener('change', () => {
+        SET.battery = bat.checked;
+        saveSettings();
+      });
       return el('ul', { cls: 'items' }, [
         el('li', { cls: 'item' }, [el('label', { for: 'perf-meter', text: 'Show the performance meter' }), cb]),
+        el('li', { cls: 'item' }, [el('label', { for: 'battery', text: 'Save battery: 30 frames a second' }), bat]),
       ]);
     })(),
     // sound: music and effects volumes, and a mute (sound.js)
@@ -1575,7 +1583,7 @@ function useQuality(k) {
     buildStatic();
     buildDynamic();
   });
-  autoQuality(null, true);
+  autoQuality(null); // a fresh grace before the watching judges this level
 }
 // When frames stay slow, one level down, with a note that says so (perf.js watches).
 function stepDown() {

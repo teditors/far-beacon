@@ -140,7 +140,7 @@ async def main():
         st = await pg.evaluate("()=>{const g=window.__g,S=g.S;return {x:S.player.x,px:g.P.x,area:S.area,biome:S.biome}}")
         assert st['x'] < 8 and st['px'] < -280, 'did not arrive on the west edge of the next region: %r' % st
         # the new land is built over the next frames, a few milliseconds each, while the old one stands in; then swapped
-        for _ in range(60):
+        for _ in range(300):  # software drawing: a few frames a second, so this can take a while
             if await pg.evaluate("()=>{const v=window.__g.V;return v.shift&&v.shift.x===0&&v.shift.z===0}"): break
             await pg.wait_for_timeout(100)
         sp = await pg.evaluate("()=>window.__g.PF.parts")

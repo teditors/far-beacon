@@ -14097,11 +14097,11 @@
     if (on3 !== void 0) AUTO.on = on3;
     AUTO.slow = -8;
   };
-  function perfFrame(renderer2) {
+  function perfFrame(renderer2, idle) {
     const now = performance.now();
     if (PF.last) {
       const dt = now - PF.last;
-      autoWatch(dt);
+      autoWatch(idle ? 1e9 : dt);
       PF.sum += dt;
       PF.worst = Math.max(PF.worst, dt);
       PF.frames++;
@@ -14761,19 +14761,23 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
   }
   function smoothNormals(geo) {
     if (geo.attributes.outN) return geo;
-    const p = geo.attributes.position, n = geo.attributes.normal, acc = /* @__PURE__ */ new Map(), key2 = (i) => Math.round(p.getX(i) * 200) + "," + Math.round(p.getY(i) * 200) + "," + Math.round(p.getZ(i) * 200);
-    for (let i = 0; i < p.count; i++) {
-      const k = key2(i), a = acc.get(k) || acc.set(k, [0, 0, 0]).get(k);
-      a[0] += n.getX(i);
-      a[1] += n.getY(i);
-      a[2] += n.getZ(i);
+    const p = geo.attributes.position.array, n = geo.attributes.normal.array, count = p.length / 3, slot = /* @__PURE__ */ new Map(), at = new Int32Array(count), sum2 = new Float32Array(count * 3);
+    let used = 0;
+    for (let i = 0; i < count; i++) {
+      const k = Math.round(p[i * 3] * 200) * 73856093 ^ Math.round(p[i * 3 + 1] * 200) * 19349663 ^ Math.round(p[i * 3 + 2] * 200) * 83492791;
+      let j = slot.get(k);
+      if (j === void 0) slot.set(k, j = used++);
+      at[i] = j;
+      sum2[j * 3] += n[i * 3];
+      sum2[j * 3 + 1] += n[i * 3 + 1];
+      sum2[j * 3 + 2] += n[i * 3 + 2];
     }
-    const out = new Float32Array(p.count * 3);
-    for (let i = 0; i < p.count; i++) {
-      const a = acc.get(key2(i)), l = Math.hypot(a[0], a[1], a[2]) || 1;
-      out[i * 3] = a[0] / l;
-      out[i * 3 + 1] = a[1] / l;
-      out[i * 3 + 2] = a[2] / l;
+    const out = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const j = at[i] * 3, x = sum2[j], y = sum2[j + 1], z = sum2[j + 2], l = Math.hypot(x, y, z) || 1;
+      out[i * 3] = x / l;
+      out[i * 3 + 1] = y / l;
+      out[i * 3 + 2] = z / l;
     }
     geo.setAttribute("outN", new THREE.BufferAttribute(out, 3));
     return geo;
@@ -19644,14 +19648,16 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const deg = (-P3.yaw * 180 / Math.PI % 360 + 360) % 360;
     $("facing").textContent = "Facing " + DIRN[Math.round(deg / 45) % 8];
     draw(renderer, scene, camera);
-    perfFrame(renderer);
+    perfFrame(renderer, capOf() < 30);
   }
   var last = performance.now();
   var frameDt = 0.016;
   var nightNow = 0;
   var BUILD_BUDGET = 5;
+  var capOf = () => !$("modal").hidden ? 10 : SET.battery ? 30 : 60;
   function loop(now) {
     requestAnimationFrame(loop);
+    if (now - last < 1e3 / capOf() - 3) return;
     const dt = Math.min(0.05, (now - last) / 1e3);
     frameDt = dt;
     last = now;
@@ -20796,8 +20802,15 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           SET.meter = cb.checked;
           saveSettings();
         });
+        const bat = el("input", { type: "checkbox", id: "battery" });
+        bat.checked = !!SET.battery;
+        bat.addEventListener("change", () => {
+          SET.battery = bat.checked;
+          saveSettings();
+        });
         return el("ul", { cls: "items" }, [
-          el("li", { cls: "item" }, [el("label", { for: "perf-meter", text: "Show the performance meter" }), cb])
+          el("li", { cls: "item" }, [el("label", { for: "perf-meter", text: "Show the performance meter" }), cb]),
+          el("li", { cls: "item" }, [el("label", { for: "battery", text: "Save battery: 30 frames a second" }), bat])
         ]);
       })(),
       // sound: music and effects volumes, and a mute (sound.js)
@@ -20993,7 +21006,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       buildStatic();
       buildDynamic();
     });
-    autoQuality(null, true);
+    autoQuality(null);
   }
   function stepDown() {
     const i = ORDER.indexOf(SET.quality);

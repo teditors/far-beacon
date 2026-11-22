@@ -17,6 +17,38 @@ there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session
 
 The page was 774 KB.
 
+## C6.8: a cooler phone, and the browser test kept honest
+
+**What it is.**
+- **A frame cap** (run.js): a phone's screen may ask for 120 frames a second (the Pixel 9's does), and the game drew
+  every one. Now it draws at most 60, or 30 with **"Save battery: 30 frames a second"** (Menu, Settings, a setting of
+  the device), and 10 while a panel is open over the scene (the pack, the map, a town's shop: nothing moves behind
+  them). The skipped frames cost nothing. For a long session this is the biggest saving of heat and battery there is:
+  half the work at 60, three quarters at 30, with the look unchanged.
+- The automatic step down ignores the slow frames behind a panel, and choosing a quality by hand no longer turns the
+  watching back on when it was turned off (the tests turn it off).
+- **Outlines are built faster**: the smoothing of normals for the outlines used a text key per point; it uses a number
+  now. A town's build no longer holds a frame for 170 ms on the software renderer; a border crossed is built over 68
+  frames at most 8 ms each.
+
+**Fix to the browser test.** Since C6.4's fix to switching quality, the test's Medium is a real Medium (before, it had
+kept Fallback's "lite" towns), so building the next region over several frames takes longer than the six seconds the
+test waited on this software renderer; it waits up to thirty now. I should have run the full check (with the browser
+test) before every commit since C6.1, not the quick one; from here on it is.
+
+**Switch.** The setting "Save battery".
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 79 | 73 | 106,484 | 69.8 |
+| Low | 343 | 124 | 590,406 | 392.8 |
+| Medium | 367 | 146 | 613,465 | 404.6 |
+| High | 412 | 154 | 785,930 | 518.5 |
+
+(The benchmark measures a slow software renderer, never near the cap, so the cap does not show here.)
+
+**Verdict.** Pearl for the phone: Andrew, with the meter on, High should read about 60 fps where it read up to 120.
+
 ## C6.7: stones without facets, flat land through the door, an inked sun
 
 **What it is.**

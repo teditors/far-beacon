@@ -15,7 +15,7 @@ import {
   treesNear,
 } from './scene.js';
 import { closeModal, lock, openCreate, render, showEnd } from './ui.js';
-import { Q } from './quality.js';
+import { Q, SET } from './quality.js';
 import { perfBuild, perfFrame, perfSave, perfWork } from './perf.js';
 import { hideSky, kindOf, updateSky } from './sky.js';
 import { guard } from './oops.js';
@@ -367,14 +367,18 @@ function finishFrame() {
   const deg = ((((-P.yaw * 180) / Math.PI) % 360) + 360) % 360;
   $('facing').textContent = 'Facing ' + DIRN[Math.round(deg / 45) % 8];
   drawFrame(renderer, scene, camera); // through the finish on High (post.js)
-  perfFrame(renderer);
+  perfFrame(renderer, capOf() < 30); // a slow panel frame says nothing about the device
 }
 let last = performance.now();
 let frameDt = 0.016,
   nightNow = 0;
 const BUILD_BUDGET = 5; // milliseconds a frame for building the land after crossing a border
+/* Heat and battery (C6): a phone's screen may ask for 120 frames a second; the game draws at most 60, or 30 with "Save
+   battery" (Menu, Settings), and 10 while a panel is open over the scene. The skipped frames cost nothing. */
+const capOf = () => (!$('modal').hidden ? 10 : SET.battery ? 30 : 60);
 function loop(now) {
   requestAnimationFrame(loop); // first, so that nothing that goes wrong below can stop the game
+  if (now - last < 1000 / capOf() - 3) return;
   const dt = Math.min(0.05, (now - last) / 1000);
   frameDt = dt;
   last = now;

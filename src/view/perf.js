@@ -65,11 +65,11 @@ const autoQuality = (fn, on) => {
   if (on !== undefined) AUTO.on = on;
   AUTO.slow = -8;
 };
-function perfFrame(renderer) {
+function perfFrame(renderer, idle) {
   const now = performance.now();
   if (PF.last) {
     const dt = now - PF.last;
-    autoWatch(dt);
+    autoWatch(idle ? 1e9 : dt); // while idling (a panel open) nothing is learnt
     PF.sum += dt;
     PF.worst = Math.max(PF.worst, dt);
     PF.frames++;
