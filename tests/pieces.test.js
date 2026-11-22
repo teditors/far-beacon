@@ -631,7 +631,7 @@ const findSeed = (fn, from = 1) => {
     const st = R.deserialize(raw).state;
     old += (st.towns || []).filter((t) => t.hamlet).length;
   }
-  need(old > 0, 'no old save\'s hamlet became a town');
+  need(old > 0, "no old save's hamlet became a town");
 }
 // Tiers: finds away from home are finer, and a finer affix does more.
 {
@@ -1178,8 +1178,36 @@ async function scoreChecks() {
   );
   for (const e of ['discovery', 'win', 'death']) need(S.eventPiece(X, e, 3).length >= 6, 'music: no piece for ' + e);
 }
+// Ground with character (C8.3, view only): which of the eight kinds a point of land is.
+async function groundChecks() {
+  const G = await import('../src/view/grounds.js'),
+    k = (hex, steep, ctx) => {
+      const c = { r: ((hex >> 16) & 255) / 255, g: ((hex >> 8) & 255) / 255, b: (hex & 255) / 255 },
+        out = G.kindsOf(
+          c,
+          steep || 0,
+          Object.assign({ forest: 0, water: 0, special: 0, spec: 'earth', cold: false }, ctx),
+          new Float32Array(8),
+        );
+      need(Math.abs(out.reduce((a, b) => a + b, 0) - 1) < 1e-5, 'ground: weights do not sum to 1');
+      return G.KINDS[out.indexOf(Math.max(...out))];
+    };
+  need(k(0x6f9a4a) === 'grass', 'ground: green is not grass');
+  need(k(0xdccfa6) === 'sand', 'ground: pale warm is not sand');
+  need(
+    k(0xf1ecdf) === 'crust' && k(0xf1ecdf, 0, { cold: true }) === 'snow',
+    'ground: pale is not salt where hot, snow where cold',
+  );
+  need(k(0x7a5a3a) === 'earth', 'ground: brown is not earth');
+  need(k(0x6f9a4a, 0.9) === 'rock', 'ground: a cliff is not rock');
+  need(k(0x6f9a4a, 0, { special: 1, spec: 'mud' }) === 'mud', 'ground: a bog is not mud');
+  const spec = (id) => G.specialKind(R.byId(R.C.biomes, id));
+  need(spec('salt') === 'crust' && spec('moor') === 'mud' && spec('taiga') === 'snow', 'ground: special grounds read wrong');
+}
 lookChecks()
   .catch((e) => errs.push('the look: ' + (e.stack || e)))
+  .then(() => groundChecks())
+  .catch((e) => errs.push('the ground: ' + (e.stack || e)))
   .then(() => scoreChecks())
   .catch((e) => errs.push('the score: ' + (e.stack || e)))
   .then(() => {
@@ -1188,6 +1216,6 @@ lookChecks()
       process.exit(1);
     }
     console.log(
-      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, steads, tiers, world size, more towns, crafting, trade, the look, the score, things, interiors, theft, secrets',
+      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, steads, tiers, world size, more towns, crafting, trade, the look, the ground, the score, things, interiors, theft, secrets',
     );
   });

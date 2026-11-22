@@ -4,6 +4,42 @@ The brief (COMMISSION.md): character. Surfaces you can tell apart at a glance an
 made, made things that read as made, rooms furnished by what they are for, High pushed much further, and two bugs (the
 traveller at the fire, small towns that are only a menu). Pieces with switches, as before.
 
+## C8.3: ground with character
+
+**What it was.** The ground had one texture of four grains (grass, grains, rock, snow) repeated every 5 m, mixed by
+weights read from the colour, with a finer copy close to. In an open field the repeat showed plainly, and sand, earth,
+mud, gravel and salt were all "grains": told apart only by their colour. Salt flats and snow were blown out to white in
+the sun.
+
+**What it is now** (`src/view/grounds.js`).
+- **Eight kinds** in two textures: grass (clumps of blades, lit tips, shaded roots), sand (long bent wind ripples with a
+  lit crest and a shaded lee), rock (broad plates of their own tone split by dark cracks), snow (drifts and glitter),
+  earth (clods lit on top, cracks between), gravel (round pebbles packed close, each lit above and shaded below), mud
+  (dark pools with light rims, streaks), crust (a salt or ash pan's big pale polygons with raised dark cracks). Each
+  pattern has its own scale and shape, exaggerated, and each kind its own tint over the biome's colour (sand warm, rock
+  cool, mud dark, earth russet).
+- **Which kind** comes from the colour (so generated biomes work), the slope (cliffs are rock), and the rules: a bog is
+  mud, a salt pan or ash field crust, a frozen lake snow, scree gravel, a wood's floor earth and leaf, a stream's banks
+  mud (`kindsOf`, `specialKind`).
+- **No tiling**: a macro texture of four noises over a 190 m tile slides where the grain is read by up to 1.7 m, so the
+  repeat never lines up; on High a second reading, turned 37 degrees and at 1.6 times the scale, is blended in by the
+  noise as well. The land's own colour also wanders more (warmer and cooler, lighter and darker, over a few hundred m).
+- **Patches a painter would lay in**: lusher and drier grass in drifts of 20 to 40 m, sharp-edged bare earth through
+  the grass, and close to, in a meadow's low patches, a few round dots of flowers (white, yellow, violet).
+- **Edges**: where two kinds meet, the weights are nudged by noise and cubed, so the stronger kind wins with a crisp,
+  wobbling edge; a thin darker line runs along it.
+- **Chalky, not white**: pale ground's lightness is eased above one half, so salt shows its polygons and snow its
+  drifts in full sun (ART.md: whites stay chalky).
+
+**Cost.** Five texture reads a pixel of ground on Low and Medium (two before), seven on High; the vertex data grows by
+four numbers a point. Measured with the rest at the end.
+
+**Switch.** `grounds` (Settings, the look): off, the ground of commission 7. Tests (pieces.test.js, `the ground`): the
+colour and context of a point give the right kind (green grass, pale warm sand, pale salt where hot and snow where
+cold, brown earth, a cliff rock, a bog mud), the weights sum to one, and the hand-made biomes' special grounds read as
+crust, mud and snow. Pictures: `docs/look/{before,after}/field-near.jpg`, `field-far.jpg`, `field-knolls.jpg`,
+`field-moor.jpg`, `salt-day.jpg`, `taiga-day.jpg`.
+
 ## C8.2: hamlets are real places (steads)
 
 **What it was.** A hamlet on the land was four little houses you could not enter round a well, and a menu (a bed by
