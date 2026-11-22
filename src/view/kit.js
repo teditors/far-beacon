@@ -25,7 +25,7 @@ function placeMatrix(p) {
 
 /* A model being put together. add(geometry, colour, place, opts) puts in one part: opts.flat gives it cut faces,
    opts.shade(y) darkens it by height (for a crown darker underneath), opts.jitter varies the colour a little by
-   vertex. build() gives one non-indexed BufferGeometry with position, normal and colour. */
+   vertex, opts.round lights a blob as the ball it stands for. build() gives one non-indexed BufferGeometry with position, normal and colour. */
 function kit() {
   const parts = [];
   let anyBone = false;
@@ -42,6 +42,19 @@ function kit() {
         if (pre.attributes.normal) g.setAttribute('normal', pre.attributes.normal.clone());
       } else g = geo.index ? geo.toNonIndexed() : geo.clone();
       geo.dispose();
+      if (opts.round) {
+        // a blob lit as the ball it stands for: each point's normal points out from the middle (C6: few faces, no facets)
+        const p = g.attributes.position,
+          nn = new Float32Array(p.count * 3);
+        for (let i = 0; i < p.count; i++) {
+          const x = p.getX(i),
+            y = p.getY(i),
+            z = p.getZ(i),
+            l = Math.hypot(x, y, z) || 1;
+          nn.set([x / l, y / l, z / l], i * 3);
+        }
+        g.setAttribute('normal', new THREE.BufferAttribute(nn, 3));
+      }
       g.applyMatrix4(placeMatrix(place));
       if (opts.flat || !g.attributes.normal) g.computeVertexNormals();
       if (opts.flat) {

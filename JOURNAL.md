@@ -17,6 +17,36 @@ there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session
 
 The page was 774 KB.
 
+## C6.9: music for other worlds and cursed lands, rare looks seen, and smoother border builds
+
+**What it is.**
+- **Two moods of the score** (sound.js): through a door, *elsewhere*, on a whole-tone scale with no home key at all,
+  slow and swelling, as the look turns to another artist's book; and on a cursed country, *blight*, a low phrygian
+  drone with sparse bells.
+- **Rare looks in the pictures**: a sepia world and an all-reds one (`rare-sepia`, `rare-reds`). All reds read as candy
+  pink; it is now a dusty red (zenith #6e3c3a, saturation 0.95).
+- **Clouds take the air's colour**: 30% of the horizon, so a sepia or red world's clouds are not pure white.
+- **Fieldstones** are twenty-faced again, lit as the balls they stand for (`round` in the kit: each normal points out
+  from the middle), a quarter of the work of C6.7's eighty faces for nearly the same look.
+- **Border builds in finer slices**: the ground now pauses every two rows and the height field every four, since
+  Medium draws the old High's finer ground; a slice is a few milliseconds again.
+- `docs/look/README.md` lists the pictures.
+
+**About the browser test.** A town or ruin seen for the first time is built in one step (it is cached after), and at
+Medium (the old High) that can take 150 ms on this software renderer; before C6.4 the test unknowingly crossed on a
+"lite" Medium. Measured old page on High against new on Medium, same worlds: building the places costs the same (20 to
+47 ms both), so this is the level, not the look. The test's bound for one step is 250 ms now, and says why. **Next
+thing worth doing for the phone**: build a newly seen town or ruin a part at a time.
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 82 | 73 | 106,484 | 75.4 |
+| Low | 362 | 124 | 578,686 | 401.7 |
+| Medium | 381 | 146 | 590,024 | 405.6 |
+| High | 389 | 154 | 762,489 | 513.3 |
+
+**Verdict.** Small pearl (the music through the door).
+
 ## C6.8: a cooler phone, and the browser test kept honest
 
 **What it is.**

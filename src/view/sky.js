@@ -224,7 +224,8 @@ function updateClouds(on, skyColor, sunPos, day, storm, dt) {
   if (!on) return;
   const t = performance.now() / 1000,
     low = 1 - Math.min(1, Math.max(0, sunPos.y / 300) * 2.5);
-  if (NOW.look) cTint.copy(NOW.look.c.cloud);
+  if (NOW.look)
+    cTint.copy(NOW.look.c.cloud).lerp(NOW.look.c.horizon, 0.3); // clouds in the air's colour
   else {
     cTint
       .setRGB(1, 1, 1)

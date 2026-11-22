@@ -4728,16 +4728,16 @@
         {
           id: "reds",
           name: "All reds",
-          k: 0.8,
-          zenith: "#8a3a3a",
-          horizon: "#ecb4a0",
-          fog: "#e0a490",
-          sun: "#ffc0a0",
-          shade: "#b06060",
-          bounce: "#7a3a30",
-          lift: "#3a0a0a",
-          gain: "#ffd8c8",
-          sat: 1.1
+          k: 0.75,
+          zenith: "#6e3c3a",
+          horizon: "#d8b0a0",
+          fog: "#cfa494",
+          sun: "#ffc4a4",
+          shade: "#9a5a58",
+          bounce: "#6a3a30",
+          lift: "#300c0a",
+          gain: "#ffdccc",
+          sat: 0.95
         },
         {
           id: "verdigris",
@@ -13836,7 +13836,7 @@
           if (Math.abs(x) < hole && Math.abs(z) < hole) continue;
           h[iz * (n + 1) + ix] = water2 ? carve(x, z, raw(x, z)) : raw(x, z);
         }
-        if ((iz & 7) === 7) yield;
+        if ((iz & 3) === 3) yield;
       }
       return { h, n, half, cell };
     };
@@ -14586,6 +14586,14 @@
           if (pre.attributes.normal) g.setAttribute("normal", pre.attributes.normal.clone());
         } else g = geo.index ? geo.toNonIndexed() : geo.clone();
         geo.dispose();
+        if (opts.round) {
+          const p2 = g.attributes.position, nn = new Float32Array(p2.count * 3);
+          for (let i = 0; i < p2.count; i++) {
+            const x = p2.getX(i), y = p2.getY(i), z = p2.getZ(i), l = Math.hypot(x, y, z) || 1;
+            nn.set([x / l, y / l, z / l], i * 3);
+          }
+          g.setAttribute("normal", new THREE.BufferAttribute(nn, 3));
+        }
         g.applyMatrix4(placeMatrix(place));
         if (opts.flat || !g.attributes.normal) g.computeVertexNormals();
         if (opts.flat) {
@@ -15625,7 +15633,7 @@ vFade = sin(ph * 3.14159);`
   }
 
   // src/view/ruins.js
-  var ROUND = () => toonOn() ? 1 : 0;
+  var ROUND = () => toonOn();
   LOOK_SWITCHES.push(["ruins", "Ruins with character"]);
   var ruinsOn = () => lookOn("ruins") && lookOn("light");
   function dice2(seed) {
@@ -15672,10 +15680,10 @@ vFade = sin(ph * 3.14159);`
         const taper = Z2.st.taper ? 1 - k / rows * 0.25 : 1, y = k * bh + bh / 2, w = len / cols * (0.94 + r() * 0.06);
         if (Z2.st.rough)
           Z2.stone.add(
-            P4.blob(bh * 0.75, ROUND()),
+            P4.blob(bh * 0.75, 0),
             Z2.colAt(y, r),
             { x, y, z, ry: r() * 6, sx: w / bh * 0.7, sz: t2 * 0.8 },
-            { flat: !ROUND(), uv: 1.5 }
+            { flat: !ROUND(), round: ROUND(), uv: 1.5 }
           );
         else Z2.stone.add(P4.box(w, bh * 0.97, t2 * taper), Z2.colAt(y, r), { x, y, z, ry: ry + (r() - 0.5) * 0.05 }, { uv: 1.5 });
       }
@@ -17983,7 +17991,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           col[k * 3 + 1] = c2.g * shade;
           col[k * 3 + 2] = c2.b * shade;
         }
-        if ((iz & 3) === 3) yield;
+        if (iz & 1) yield;
       }
       const idx2 = new Uint32Array(n * n * 6);
       let m2 = 0;
@@ -18643,7 +18651,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     clouds.visible = halo.visible = on3;
     if (!on3) return;
     const t2 = performance.now() / 1e3, low = 1 - Math.min(1, Math.max(0, sunPos.y / 300) * 2.5);
-    if (NOW.look) cTint.copy(NOW.look.c.cloud);
+    if (NOW.look)
+      cTint.copy(NOW.look.c.cloud).lerp(NOW.look.c.horizon, 0.3);
     else {
       cTint.setRGB(1, 1, 1).lerp(cDusk, low * day * 0.7).lerp(cNight, 1 - day);
       if (storm) cTint.lerp(cStorm, 0.7);
@@ -18940,7 +18949,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     phrygian: [0, 1, 3, 5, 7, 8, 10],
     mixolydian: [0, 2, 4, 5, 7, 9, 10],
     penta: [0, 2, 4, 7, 9],
-    minpenta: [0, 3, 5, 7, 10]
+    minpenta: [0, 3, 5, 7, 10],
+    whole: [0, 2, 4, 6, 8, 10]
+    // no home key at all: dreamlike, for other worlds (C6)
   };
   var MOODS = {
     day: { mode: "penta", root: 62, bar: 4.2, density: 0.45, lead: "bell", padWave: "triangle", drone: true },
@@ -18950,7 +18961,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     sky: { mode: "lydian", root: 69, bar: 4.8, density: 0.4, lead: "bell", padWave: "sine" },
     sea: { mode: "mixolydian", root: 60, bar: 5, density: 0.3, lead: "pluck", padWave: "sine", drone: true, swell: true },
     storm: { mode: "minpenta", root: 55, bar: 5, density: 0.2, lead: "bell", padWave: "sawtooth", drone: true, low: true },
-    fight: { mode: "phrygian", root: 52, bar: 1.8, density: 0.6, lead: "pluck", padWave: "sawtooth", drums: true, low: true }
+    fight: { mode: "phrygian", root: 52, bar: 1.8, density: 0.6, lead: "pluck", padWave: "sawtooth", drums: true, low: true },
+    // commission 6: through a door, as the look turns to another artist's book; and on a cursed country
+    elsewhere: { mode: "whole", root: 66, bar: 5.6, density: 0.32, lead: "bell", padWave: "sine", swell: true },
+    blight: { mode: "phrygian", root: 53, bar: 6.2, density: 0.16, lead: "bell", padWave: "triangle", drone: true, low: true }
   };
   var BIOME_KEY = { salt: 2, moor: 0, taiga: -3 };
   var M2 = { mood: null, root: 62, next: 0, deg: 0, bar: 0, gain: null, phrase: 0 };
@@ -18964,6 +18978,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (R.aloft && R.aloft(S2)) return "sky";
     if (S2.weather.storm) return "storm";
     if (S2.player.swims || S2.terrain[S2.player.y * R.W + S2.player.x] === R.DEEP) return "sea";
+    if (S2.realm) return "elsewhere";
+    if (S2.curses && S2.curses[R.outdoorRec(S2).id]) return "blight";
     const h = R.clock(S2).hour;
     return h >= 20 || h < 5 ? "night" : "day";
   }

@@ -1077,7 +1077,7 @@ function* buildLand(S, timed) {
         col[k * 3 + 1] = c.g * shade;
         col[k * 3 + 2] = c.b * shade;
       }
-      if ((iz & 3) === 3) yield;
+      if (iz & 1) yield; // every two rows: the fine ground of Medium and High is long (C6)
     }
     const idx = new Uint32Array(n * n * 6);
     let m = 0;

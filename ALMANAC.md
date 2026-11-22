@@ -558,7 +558,7 @@ Rare looks: a whole world 5% of the time, otherwise one country 4% of the time (
 | Rare look | Pull | Colours |
 | --- | --- | --- |
 | Sepia | 85% | zenith #8a7458, horizon #e6d4b4, sun #ffe8c0, shade #a08c70, lift #2a1a0a, gain #fff0d4 |
-| All reds | 80% | zenith #8a3a3a, horizon #ecb4a0, sun #ffc0a0, shade #b06060, lift #3a0a0a, gain #ffd8c8 |
+| All reds | 75% | zenith #6e3c3a, horizon #d8b0a0, sun #ffc4a4, shade #9a5a58, lift #300c0a, gain #ffdccc |
 | Verdigris | 75% | zenith #3a7a70, horizon #c4dcc8, shade #6aa098, lift #0a2a22, gain #e8fff0 |
 | The violet hour | 75% | zenith #4a4088, horizon #d8c4e0, sun #ffd8c0, shade #8a78c0, lift #1a1038, gain #ffe8f4 |
 | Ivory | 80% | zenith #a8b0b8, horizon #f2eee4, shade #b8b8c0, lift #3a3a40, gain #fffcf4 |

@@ -178,6 +178,7 @@ const MODES = {
   mixolydian: [0, 2, 4, 5, 7, 9, 10],
   penta: [0, 2, 4, 7, 9],
   minpenta: [0, 3, 5, 7, 10],
+  whole: [0, 2, 4, 6, 8, 10], // no home key at all: dreamlike, for other worlds (C6)
 };
 const MOODS = {
   day: { mode: 'penta', root: 62, bar: 4.2, density: 0.45, lead: 'bell', padWave: 'triangle', drone: true },
@@ -188,6 +189,9 @@ const MOODS = {
   sea: { mode: 'mixolydian', root: 60, bar: 5, density: 0.3, lead: 'pluck', padWave: 'sine', drone: true, swell: true },
   storm: { mode: 'minpenta', root: 55, bar: 5, density: 0.2, lead: 'bell', padWave: 'sawtooth', drone: true, low: true },
   fight: { mode: 'phrygian', root: 52, bar: 1.8, density: 0.6, lead: 'pluck', padWave: 'sawtooth', drums: true, low: true },
+  // commission 6: through a door, as the look turns to another artist's book; and on a cursed country
+  elsewhere: { mode: 'whole', root: 66, bar: 5.6, density: 0.32, lead: 'bell', padWave: 'sine', swell: true },
+  blight: { mode: 'phrygian', root: 53, bar: 6.2, density: 0.16, lead: 'bell', padWave: 'triangle', drone: true, low: true },
 };
 // each land has its own key, so crossing a border shifts the music a little
 const BIOME_KEY = { salt: 2, moor: 0, taiga: -3 };
@@ -203,6 +207,8 @@ function moodNow() {
   if (R.aloft && R.aloft(S)) return 'sky';
   if (S.weather.storm) return 'storm';
   if (S.player.swims || S.terrain[S.player.y * R.W + S.player.x] === R.DEEP) return 'sea';
+  if (S.realm) return 'elsewhere';
+  if (S.curses && S.curses[R.outdoorRec(S).id]) return 'blight';
   const h = R.clock(S).hour;
   return h >= 20 || h < 5 ? 'night' : 'day';
 }
