@@ -202,7 +202,7 @@ async def main():
         await pg.click('#modal-close'); steps.append('another town (' + tname + ')')
         # step out over the south edge from any open tile on it (towns are laid out differently every world)
         left = await pg.evaluate("()=>{const g=window.__g,S=g.S;for(let x=0;x<Rules.W;x++){if(!Rules.passable(S,x,Rules.H-1))continue;S.player.x=x;S.player.y=Rules.H-1;S.combat=null;S.player.stamina=100;if(Rules.move(S,0,1)){g.refresh();return x}}return -1}")
-        assert left >= 0, 'no open tile on the south edge of the other town'
+        assert left >= 0, 'no open tile on the south edge of the other town: %r' % await pg.evaluate("()=>{const S=window.__g.S;return [S.area,S.over,S.player.water,Rules.weight(S),Rules.carryCap(S),S.log.slice(-3).map(l=>l.msg)]}")
         assert await pg.evaluate("()=>Rules.inOverworld(window.__g.S)"), 'could not leave the other town'
         # a wayfarer at a fire: the first choice answers in the window (C8.1: "Yes" used to do nothing)
         wf = await pg.evaluate("""()=>{const g=window.__g,S=g.S;for(let cy=0;cy<S.world.rows;cy++)for(let cx=0;cx<S.world.cols;cx++)Rules.ensureRegion(S,cx,cy);

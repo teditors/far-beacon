@@ -137,7 +137,7 @@ function makeGrass(group, T, lush, towns, townHalf, seed) {
           z = (j + r()) * CELL,
           e0 = T.etile(x, z),
           ter = T.land.terrain[e0];
-        if (ter === 4 || ter === R.DEEP || ter === 2 || T.roadAt(x, z)) continue;
+        if (ter === 4 || ter === R.DEEP || ter === 2 || (T.roadNear ? T.roadNear(x, z) < 3.4 : T.roadAt(x, z))) continue;
         if (T.water && T.water.mask(x, z) > 0.05) continue;
         if (T.level(x, z) > 1.6) continue;
         let inTown = false;

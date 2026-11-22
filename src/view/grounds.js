@@ -47,7 +47,8 @@ function cracks(px, n, seed, jit) {
 function textures() {
   const px = Q.texPx >= 256 ? 256 : 128;
   if (TEX && TEX.px === px) return TEX;
-  const S = px / 128,
+  const sm = (a, b, v) => (v <= a ? 0 : v >= b ? 1 : ((v - a) / (b - a)) ** 2 * (3 - (2 * (v - a)) / (b - a))),
+    S = px / 128,
     r = rnd(1913),
     N = px * px,
     big = noiseField(px, 4, 11),
@@ -87,9 +88,9 @@ function textures() {
       const i = y * px + x,
         c = plates(x, y);
       rock[i] =
-        c.edge < 0.035
-          ? 0.12
-          : 0.5 + (c.b - 0.5) * 0.3 - c.dy * 0.12 + (c.edge < 0.09 ? 0.08 : 0) + F[i] * 0.25 + (fine[i] - 0.5) * 0.1;
+        0.12 +
+        (0.38 + (c.b - 0.5) * 0.3 - c.dy * 0.12 + (c.edge < 0.09 ? 0.08 : 0) + F[i] * 0.25 + (fine[i] - 0.5) * 0.1) *
+          sm(0.02, 0.05, c.edge);
     }
   // snow: soft drifts, a few blue shadows, and glitter
   const snow = new Float32Array(N);
@@ -102,7 +103,7 @@ function textures() {
     for (let x = 0; x < px; x++) {
       const i = y * px + x,
         c = clods(x, y);
-      earth[i] = c.edge < 0.08 ? 0.18 : 0.48 + (c.b - 0.5) * 0.22 - c.dy * 0.28 + F[i] * 0.2;
+      earth[i] = 0.18 + (0.3 + (c.b - 0.5) * 0.22 - c.dy * 0.28 + F[i] * 0.2) * sm(0.05, 0.11, c.edge);
     }
   for (let k = 0; k < 600 * S * S; k++) earth[Math.floor(r() * N)] += r() < 0.5 ? -0.25 : 0.15;
   // gravel: round pebbles packed close, each lit on top and shaded below, dark between
@@ -114,7 +115,7 @@ function textures() {
       const i = y * px + x,
         c = peb(x, y),
         gap = (c.d2 - c.d1) / pc;
-      gravel[i] = gap < 0.12 ? 0.16 : 0.5 + (c.b - 0.5) * 0.4 - (c.dy / pc) * 0.45 + F[i] * 0.1;
+      gravel[i] = 0.16 + (0.34 + (c.b - 0.5) * 0.4 - (c.dy / pc) * 0.45 + F[i] * 0.1) * sm(0.07, 0.17, gap);
     }
   // mud: dark smooth pools with light rims, streaks where it was walked
   const mud = new Float32Array(N);
@@ -130,7 +131,7 @@ function textures() {
     for (let x = 0; x < px; x++) {
       const i = y * px + x,
         c = pans(x, y);
-      crust[i] = c.edge < 0.025 ? 0.15 : c.edge < 0.06 ? 0.72 : 0.56 + (c.b - 0.5) * 0.08 + (fine[i] - 0.5) * 0.1;
+      crust[i] = 0.15 + (c.edge < 0.06 ? 0.57 : 0.41 + (c.b - 0.5) * 0.08 + (fine[i] - 0.5) * 0.1) * sm(0.012, 0.03, c.edge);
     }
   // the macro: big blotches, a middle noise, a patch noise and a fine one for wobbling edges (one tile of 190 m)
   const M = 256,

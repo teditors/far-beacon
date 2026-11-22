@@ -1202,6 +1202,25 @@ async function groundChecks() {
   need(k(0x6f9a4a, 0.9) === 'rock', 'ground: a cliff is not rock');
   need(k(0x6f9a4a, 0, { special: 1, spec: 'mud' }) === 'mud', 'ground: a bog is not mud');
   const spec = (id) => G.specialKind(R.byId(R.C.biomes, id));
+  // roads (C8.4): a staircase of road tiles becomes one smooth line near the tiles, none inside a town's block
+  const RD = await import('../src/view/roads.js'),
+    EW = R.W + 4,
+    road = new Uint8Array(EW * EW),
+    tiles = [];
+  for (let k = 0; k < 14; k++) tiles.push([4 + Math.ceil(k / 2), 6 + Math.floor(k / 2)]); // a diagonal, as the rules lay one
+  for (let x = 20; x <= 30; x++) tiles.push([x, 20]); // and a straight road into a town at (30, 20)
+  for (const [x, y] of tiles) road[(y + 2) * EW + x + 2] = 1;
+  const lines = RD.roadLines({ land: { road, sites: [{ x: 28, y: 20, st: { kind: 'town' } }] } }),
+    tc = (t) => (t + 0.5) * 28 - (R.W * 28) / 2;
+  need(lines.length === 2, 'roads: ' + lines.length + ' lines for two roads');
+  for (const ln of lines)
+    for (const p of ln.pts) {
+      const d = Math.min(...tiles.map(([x, y]) => Math.hypot(tc(x) - p.x, tc(y) - p.z)));
+      need(d < 20, 'roads: a point of a line is ' + d.toFixed(1) + ' m from its tiles');
+      need(!(p.x > tc(25.5) && Math.abs(p.z - tc(20)) < 20), "roads: a road runs into a town's block");
+    }
+  const diag = lines.find((l) => l.pts.length > 40);
+  need(diag, 'roads: the diagonal was not smoothed');
   need(spec('salt') === 'crust' && spec('moor') === 'mud' && spec('taiga') === 'snow', 'ground: special grounds read wrong');
 }
 lookChecks()

@@ -16570,7 +16570,7 @@
   function textures() {
     const px = Q.texPx >= 256 ? 256 : 128;
     if (TEX && TEX.px === px) return TEX;
-    const S3 = px / 128, r = rnd(1913), N3 = px * px, big = noiseField(px, 4, 11), mid = noiseField(px, 12, 12), fine = noiseField(px, 40, 13), F2 = fbm(px, 14);
+    const sm2 = (a, b, v) => v <= a ? 0 : v >= b ? 1 : ((v - a) / (b - a)) ** 2 * (3 - 2 * (v - a) / (b - a)), S3 = px / 128, r = rnd(1913), N3 = px * px, big = noiseField(px, 4, 11), mid = noiseField(px, 12, 12), fine = noiseField(px, 40, 13), F2 = fbm(px, 14);
     const grass = new Float32Array(N3);
     for (let i = 0; i < N3; i++) grass[i] = 0.5 + (big[i] - 0.5) * 0.3 + (mid[i] - 0.5) * 0.35;
     for (let k = 0; k < 260 * S3 * S3; k++) {
@@ -16592,7 +16592,7 @@
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
         const i = y * px + x, c = plates(x, y);
-        rock[i] = c.edge < 0.035 ? 0.12 : 0.5 + (c.b - 0.5) * 0.3 - c.dy * 0.12 + (c.edge < 0.09 ? 0.08 : 0) + F2[i] * 0.25 + (fine[i] - 0.5) * 0.1;
+        rock[i] = 0.12 + (0.38 + (c.b - 0.5) * 0.3 - c.dy * 0.12 + (c.edge < 0.09 ? 0.08 : 0) + F2[i] * 0.25 + (fine[i] - 0.5) * 0.1) * sm2(0.02, 0.05, c.edge);
       }
     const snow = new Float32Array(N3);
     for (let i = 0; i < N3; i++) snow[i] = 0.58 + (big[i] - 0.5) * 0.3 + (mid[i] - 0.5) * 0.14;
@@ -16601,14 +16601,14 @@
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
         const i = y * px + x, c = clods(x, y);
-        earth[i] = c.edge < 0.08 ? 0.18 : 0.48 + (c.b - 0.5) * 0.22 - c.dy * 0.28 + F2[i] * 0.2;
+        earth[i] = 0.18 + (0.3 + (c.b - 0.5) * 0.22 - c.dy * 0.28 + F2[i] * 0.2) * sm2(0.05, 0.11, c.edge);
       }
     for (let k = 0; k < 600 * S3 * S3; k++) earth[Math.floor(r() * N3)] += r() < 0.5 ? -0.25 : 0.15;
     const gravel = new Float32Array(N3), peb = stones(px, 22, rnd(41), 0.95), pc = px / 22;
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
         const i = y * px + x, c = peb(x, y), gap = (c.d2 - c.d1) / pc;
-        gravel[i] = gap < 0.12 ? 0.16 : 0.5 + (c.b - 0.5) * 0.4 - c.dy / pc * 0.45 + F2[i] * 0.1;
+        gravel[i] = 0.16 + (0.34 + (c.b - 0.5) * 0.4 - c.dy / pc * 0.45 + F2[i] * 0.1) * sm2(0.07, 0.17, gap);
       }
     const mud = new Float32Array(N3);
     for (let i = 0; i < N3; i++) {
@@ -16620,7 +16620,7 @@
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
         const i = y * px + x, c = pans(x, y);
-        crust[i] = c.edge < 0.025 ? 0.15 : c.edge < 0.06 ? 0.72 : 0.56 + (c.b - 0.5) * 0.08 + (fine[i] - 0.5) * 0.1;
+        crust[i] = 0.15 + (c.edge < 0.06 ? 0.57 : 0.41 + (c.b - 0.5) * 0.08 + (fine[i] - 0.5) * 0.1) * sm2(0.012, 0.03, c.edge);
       }
     const M3 = 256, m1 = noiseField(M3, 5, 61), m2 = noiseField(M3, 19, 62), m3 = noiseField(M3, 11, 63), m4 = noiseField(M3, 70, 64), mac = new Uint8Array(M3 * M3 * 4);
     for (let i = 0; i < M3 * M3; i++) {
@@ -17697,10 +17697,10 @@ vFade = sin(ph * 3.14159);`
     const st = styleOf(S3, townId2), r = dice(hash((townId2 || "town") + ":" + S3.seed)), K2 = kits(st), group2 = new THREE.Group(), W3 = R.W, size = W3 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T4 = map.terrain, walled = !!(S3.areas[townId2] && S3.areas[townId2].walled), c = 18;
     K2.ground.add(P4.box(size, 0.1, size), st.ground, { y: 0.03 }, { uv: 2.5, jitter: 0.04 });
     K2.cobble.add(P4.box(13 * ts, 0.1, 13 * ts), st.plinth, { y: 0.06 }, { uv: 3, jitter: 0.03 });
-    const kindAt = {};
+    const kindAt2 = {};
     for (const k in map.sites) {
       const s = map.sites[k];
-      if (s.kind === "elder" || s.kind === "inn" || s.kind === "shop") kindAt[k] = s.kind;
+      if (s.kind === "elder" || s.kind === "inn" || s.kind === "shop") kindAt2[k] = s.kind;
     }
     const ruled = R.interiorsOn && R.interiorsOn(S3, townId2 || "town") ? R.buildingsOf(S3, townId2 || "town") : [];
     for (const b of blocks(map, walled)) {
@@ -17722,7 +17722,7 @@ vFade = sin(ph * 3.14159);`
       let kind2 = null, door = null;
       for (let x = b.x0 - 1; x <= b.x1 + 1 && !kind2; x++)
         for (let y = b.y0 - 1; y <= b.y1 + 1 && !kind2; y++) {
-          const k = kindAt[y * W3 + x];
+          const k = kindAt2[y * W3 + x];
           if (!k) continue;
           kind2 = k;
           door = y > b.y1 ? "s" : y < b.y0 ? "n" : x > b.x1 ? "e" : "w";
@@ -17863,6 +17863,325 @@ vFade = sin(ph * 3.14159);`
     PROPS.woodpile(K2, st, r, 0, -8, 0.4);
     lamp(K2, st, 2.4, 2.4);
     return finish(K2, st, group2);
+  }
+
+  // src/view/roads.js
+  LOOK_SWITCHES.push(["roads", "Roads that look made"]);
+  var roadsOn = () => lookOn("roads") && lookOn("light");
+  var KINDS2 = {
+    street: { w: 4.2, verge: 1, col: 9407104, edge: "kerb", ch: 0, lift: 0.1 },
+    old: { w: 4.8, verge: 1.4, col: 10721926, edge: "blocks", ch: 1, lift: 0.07 },
+    track: { w: 3.2, verge: 1.6, col: 9074006, edge: "posts", ch: 2, lift: 0.06 }
+  };
+  var sm = (a, b, v) => v <= a ? 0 : v >= b ? 1 : ((v - a) / (b - a)) ** 2 * (3 - 2 * (v - a) / (b - a));
+  var TEX2 = null;
+  function roadTexture() {
+    const px = Q.texPx >= 256 ? 256 : 128;
+    if (TEX2 && TEX2.image.width === px) return TEX2;
+    const N3 = px * px, F2 = fbm(px, 71), fine = noiseField(px, 32, 72), blot = noiseField(px, 5, 73), cob = stones(px, 15, rnd(74), 0.4), cc = px / 15, d = new Uint8Array(N3 * 4);
+    for (let y = 0; y < px; y++)
+      for (let x = 0; x < px; x++) {
+        const i = y * px + x, u = x / px;
+        const c = cob(x, y), gap = (c.d2 - c.d1) / cc, cobble = 0.16 + (0.36 + (c.b - 0.5) * 0.3 - c.dy / cc * 0.32 + F2[i] * 0.12) * sm(0.08, 0.17, gap);
+        const s = cellOf(x, y, px, 3, 3, true, true), tone2 = (rnd(s.row * 31 + s.col * 7 + 5)() - 0.5) * 0.24, slab = 0.12 + (0.43 + tone2 + (s.fy < 0.12 ? 0.08 : 0) - (s.fy > 0.9 ? 0.1 : 0) + F2[i] * 0.22) * sm(0.025, 0.06, s.edge);
+        const rut = Math.min(Math.abs(u - 0.27), Math.abs(u - 0.73)), track2 = rut < 0.045 ? 0.32 + F2[i] * 0.12 : 0.55 + (fine[i] - 0.5) * 0.3 + F2[i] * 0.3 - (rut < 0.075 ? 0.1 : 0) + (rnd(i)() < 0.04 ? 0.25 : 0);
+        d[i * 4] = toByte(cobble);
+        d[i * 4 + 1] = toByte(slab);
+        d[i * 4 + 2] = toByte(track2);
+        d[i * 4 + 3] = toByte(blot[i]);
+      }
+    TEX2 = dataTexture(d, px);
+    TEX2.dispose = () => {
+    };
+    return TEX2;
+  }
+  function roadLines(T4) {
+    const land2 = T4.land, EW2 = Math.round(Math.sqrt(land2.road.length)), M3 = (EW2 - R.W) / 2, at = (ex, ey) => ex >= 0 && ey >= 0 && ex < EW2 && ey < EW2 && on3[ey * EW2 + ex], on3 = new Uint8Array(EW2 * EW2);
+    const blocks2 = land2.sites.filter((q) => q.st.kind === "town");
+    for (let e = 0; e < EW2 * EW2; e++) {
+      if (!land2.road[e]) continue;
+      const x = e % EW2 - M3, y = Math.floor(e / EW2) - M3;
+      if (blocks2.some((b) => Math.abs(b.x - x) <= 2 && Math.abs(b.y - y) <= 2)) continue;
+      on3[e] = 1;
+    }
+    const nb = (e) => {
+      const ex = e % EW2, ey = Math.floor(e / EW2), out = [];
+      for (const [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1]
+      ])
+        if (at(ex + dx, ey + dy)) out.push((ey + dy) * EW2 + ex + dx);
+      return out;
+    };
+    const centre = (e) => ({ x: (e % EW2 - M3 + 0.5) * TS - HALF, z: (Math.floor(e / EW2) - M3 + 0.5) * TS - HALF }), used = /* @__PURE__ */ new Set(), key2 = (a, b) => a < b ? a + ":" + b : b + ":" + a, lines = [];
+    const walk = (start3, next) => {
+      const ids = [start3, next];
+      used.add(key2(start3, next));
+      let prev2 = start3, cur = next;
+      while (nb(cur).length === 2) {
+        const n = nb(cur).find((q) => q !== prev2);
+        if (used.has(key2(cur, n))) break;
+        used.add(key2(cur, n));
+        ids.push(n);
+        prev2 = cur;
+        cur = n;
+      }
+      return ids;
+    };
+    for (let pass2 = 0; pass2 < 2; pass2++)
+      for (let e = 0; e < EW2 * EW2; e++) {
+        if (!on3[e]) continue;
+        const n = nb(e);
+        if (pass2 === 0 && n.length === 2) continue;
+        for (const q of n) if (!used.has(key2(e, q))) lines.push(walk(e, q));
+      }
+    for (let e = 0; e < EW2 * EW2; e++)
+      if (on3[e] && !nb(e).length) {
+        const c = centre(e);
+        lines.push([
+          { x: c.x - 9, z: c.z },
+          { x: c.x + 9, z: c.z }
+        ]);
+      }
+    return lines.map((ids) => {
+      let pts = Array.isArray(ids[0]) || ids[0].x !== void 0 ? ids : ids.map(centre);
+      const deg = (e) => typeof e === "number" ? nb(e).length : 2;
+      for (let k = 0; k < 3; k++) {
+        const out = [pts[0]];
+        for (let i = 0; i + 1 < pts.length; i++) {
+          const a = pts[i], b = pts[i + 1];
+          out.push(
+            { x: a.x * 0.75 + b.x * 0.25, z: a.z * 0.75 + b.z * 0.25 },
+            { x: a.x * 0.25 + b.x * 0.75, z: a.z * 0.25 + b.z * 0.75 }
+          );
+        }
+        out.push(pts[pts.length - 1]);
+        pts = out;
+      }
+      return { pts, ends: [deg(ids[0]) > 2, deg(ids[ids.length - 1]) > 2] };
+    });
+  }
+  function resample(pts, step2) {
+    const out = [pts[0]];
+    let carry = 0;
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const a = pts[i], b = pts[i + 1], l = Math.hypot(b.x - a.x, b.z - a.z);
+      let t2 = step2 - carry;
+      while (t2 <= l) {
+        out.push({ x: a.x + (b.x - a.x) * t2 / l, z: a.z + (b.z - a.z) * t2 / l });
+        t2 += step2;
+      }
+      carry = l - (t2 - step2);
+    }
+    const last2 = pts[pts.length - 1], p = out[out.length - 1];
+    if (Math.hypot(last2.x - p.x, last2.z - p.z) > step2 * 0.3) out.push(last2);
+    return out;
+  }
+  function kindAt(towns, base, x, z) {
+    for (const t2 of towns) if (Math.max(Math.abs(t2.x - x), Math.abs(t2.z - z)) < 70 + 112) return "street";
+    return base;
+  }
+  var _c2;
+  var _g;
+  function roadsGroup(S3, T4, colourAt) {
+    _c2 = _c2 || new THREE.Color();
+    _g = _g || new THREE.Color();
+    const group2 = new THREE.Group(), base = R.civOf(S3).search.roads ? "old" : "track", towns = T4.land.sites.filter((q) => q.st.kind === "town").map((q) => ({ x: (q.x + 0.5) * TS - HALF, z: (q.y + 0.5) * TS - HALF })), lines = roadLines(T4), step2 = Q.ratio > 2 ? 1.2 : 1.6, buckets = /* @__PURE__ */ new Map(), bk = (x, z) => Math.floor(x / 16) + "," + Math.floor(z / 16), built = {}, inst = { kerb: [], block: [], post: [], parapet: [], rail: [], deck: [] };
+    const wl = T4.water ? T4.water.level : null, wmask = T4.water ? T4.water.mask : () => 0;
+    const buf = (k) => built[k] || (built[k] = { pos: [], col: [], gcol: [], ru: [], idx: [], n: 0 });
+    for (const ln of lines) {
+      const pts = resample(ln.pts, step2);
+      if (pts.length < 2) continue;
+      for (const p of pts) {
+        const b = bk(p.x, p.z);
+        (buckets.get(b) || buckets.set(b, []).get(b)).push(p);
+      }
+      const wet = pts.map((p) => T4.water && wmask(p.x, p.z) > 0.3 ? 1 : 0), bridge = pts.map((_, i) => {
+        let best = 0;
+        for (let j = Math.max(0, i - 6); j <= Math.min(pts.length - 1, i + 6); j++)
+          if (wet[j]) best = Math.max(best, 1 - Math.abs(i - j) / 7);
+        return best;
+      }), deckY = (p) => wl ? wl(p.x, p.z) + 0.9 : -Infinity;
+      let run = null;
+      const r = mulberry2(Math.round(pts[0].x * 7) ^ Math.round(pts[0].z * 13) ^ S3.seed | 0);
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i], a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+        let dx = b.x - a.x, dz = b.z - a.z;
+        const l = Math.hypot(dx, dz) || 1;
+        dx /= l;
+        dz /= l;
+        const nx = -dz, nz = dx, kind2 = kindAt(towns, base, p.x, p.z), K2 = KINDS2[kind2], B = buf(kind2);
+        if (!run || run.kind !== kind2) run = { kind: kind2, first: B.n, v: 0, prev: null };
+        const ground = (x, z) => T4.height(x, z) + K2.lift, hb = bridge[i] > 0 ? Math.max(ground(p.x, p.z), deckY(p)) : -Infinity, y = (x, z) => bridge[i] > 0 ? ground(x, z) * (1 - smooth01(bridge[i])) + Math.max(hb, ground(x, z)) * smooth01(bridge[i]) : ground(x, z);
+        if (run.prev) run.v += Math.hypot(p.x - run.prev.x, p.z - run.prev.z);
+        run.prev = p;
+        const half = K2.w / 2, ragL = kind2 === "old" ? (r() - 0.5) * 0.7 : 0, ragR = kind2 === "old" ? (r() - 0.5) * 0.7 : 0, cols = [
+          [-half - K2.verge, -K2.verge / K2.w],
+          [-half + ragL, 0],
+          [0, 0.5],
+          [half + ragR, 1],
+          [half + K2.verge, 1 + K2.verge / K2.w]
+        ];
+        _c2.setHex(K2.col).multiplyScalar(0.92 + r() * 0.16);
+        for (const [o, u] of cols) {
+          const x = p.x + nx * o, z = p.z + nz * o;
+          B.pos.push(x, y(x, z), z);
+          const gc = colourAt(x, z);
+          _g.copy(gc);
+          B.gcol.push(_g.r, _g.g, _g.b);
+          if (u < 0 || u > 1) B.col.push(_g.r * 0.82, _g.g * 0.76, _g.b * 0.62);
+          else B.col.push(_c2.r, _c2.g, _c2.b);
+          B.ru.push(u, run.v / 4);
+        }
+        if (i > 0 && B.n - 5 >= run.first) {
+          const q = B.n - 5;
+          for (let c = 0; c < 4; c++) {
+            const a0 = q + c, a1 = q + c + 1, b0 = B.n + c, b1 = B.n + c + 1;
+            B.idx.push(a0, a1, b0, a1, b1, b0);
+          }
+        }
+        B.n += 5;
+        const lx2 = (o) => p.x + nx * o, lz = (o) => p.z + nz * o, yaw = Math.atan2(dx, dz);
+        if (bridge[i] > 0.75) {
+          if (i % 2 === 0)
+            for (const sd2 of [-1, 1]) {
+              const o = sd2 * (half + 0.15), hx = lx2(o), hz = lz(o);
+              if (kind2 === "track") {
+                inst.post.push([hx, y(hx, hz) - 0.1, hz, yaw, 1.15, 0]);
+                inst.rail.push([hx, y(hx, hz) + 0.85, hz, yaw, step2 * 2.05, 0]);
+              } else inst.parapet.push([hx, y(hx, hz) - 0.05, hz, yaw, step2 * 2.05, r()]);
+            }
+          if (kind2 === "track" && i % 1 === 0) inst.deck.push([p.x, y(p.x, p.z) - 0.02, p.z, yaw, K2.w + 0.3, r()]);
+          continue;
+        }
+        if (K2.edge === "kerb") {
+          const n = Math.max(1, Math.round(step2 / 0.62));
+          for (let j = 0; j < n; j++) {
+            const t2 = j / n - 0.5, bx = p.x + dx * t2 * step2, bz = p.z + dz * t2 * step2;
+            for (const sd2 of [-1, 1]) {
+              const hx = bx + nx * sd2 * (half + 0.12), hz = bz + nz * sd2 * (half + 0.12);
+              inst.kerb.push([hx, T4.height(hx, hz) + 0.02, hz, yaw, 1, r()]);
+            }
+          }
+        } else if (K2.edge === "blocks" && i % 2 === 0) {
+          for (const sd2 of [-1, 1])
+            if (r() < 0.62) {
+              const o = sd2 * (half + 0.25 + (sd2 < 0 ? ragL : ragR) * 0.5), hx = lx2(o), hz = lz(o);
+              inst.block.push([hx, T4.height(hx, hz) - 0.1 - r() * 0.25, hz, yaw + (r() - 0.5) * 0.4, 1, r()]);
+            }
+        } else if (K2.edge === "posts" && r() < step2 / 28) {
+          const sd2 = r() < 0.5 ? -1 : 1, o = sd2 * (half + K2.verge * 0.6), hx = lx2(o), hz = lz(o);
+          inst.post.push([hx, T4.height(hx, hz) - 0.15, hz, yaw + (r() - 0.5) * 0.3, 1, r()]);
+        }
+      }
+    }
+    const tex = roadTexture();
+    for (const kind2 in built) {
+      const B = built[kind2];
+      if (!B.idx.length) continue;
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(B.pos, 3));
+      geo.setAttribute("color", new THREE.Float32BufferAttribute(B.col, 3));
+      geo.setAttribute("gcol", new THREE.Float32BufferAttribute(B.gcol, 3));
+      geo.setAttribute("ru", new THREE.Float32BufferAttribute(B.ru, 2));
+      geo.setIndex(B.idx);
+      geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, roadMaterial(kind2, tex));
+      m.receiveShadow = true;
+      m.renderOrder = 1;
+      m.userData.road = kind2;
+      group2.add(m);
+    }
+    const stone = new THREE.MeshLambertMaterial({ color: 16777215 }), wood = new THREE.MeshLambertMaterial({ color: 16777215 }), sets = {
+      kerb: [new THREE.BoxGeometry(0.24, 0.26, 0.6), stone, 11775394, 0.14],
+      block: [new THREE.BoxGeometry(0.45, 0.5, 0.9), stone, 10327428, 0.2],
+      post: [new THREE.BoxGeometry(0.16, 1.2, 0.16), wood, 7033400, 0.15],
+      parapet: [new THREE.BoxGeometry(0.4, 0.75, 1), stone, 10854290, 0.12],
+      rail: [new THREE.BoxGeometry(0.1, 0.1, 1), wood, 8019004, 0.1],
+      deck: [new THREE.BoxGeometry(1, 0.14, 0.32), wood, 9136709, 0.18]
+    }, mm = new THREE.Matrix4(), qq = new THREE.Quaternion(), ee = new THREE.Euler(), vv = new THREE.Vector3(), ss = new THREE.Vector3();
+    for (const k in inst) {
+      const L5 = inst[k];
+      if (!L5.length) continue;
+      const [geo, mat, hex3, vary] = sets[k];
+      geo.translate(0, k === "post" ? 0.6 : k === "parapet" ? 0.37 : 0, 0);
+      const im = new THREE.InstancedMesh(geo, mat, L5.length);
+      L5.forEach(([x, y, z, yaw, len, t2], i) => {
+        ee.set(k === "block" ? (t2 - 0.5) * 0.35 : 0, yaw, k === "block" ? (t2 - 0.5) * 0.25 : 0);
+        qq.setFromEuler(ee);
+        ss.set(k === "deck" ? len : 1, 1, k === "parapet" || k === "rail" ? len : 1);
+        vv.set(x, y, z);
+        im.setMatrixAt(i, mm.compose(vv, qq, ss));
+        _c2.setHex(hex3).multiplyScalar(1 - vary / 2 + t2 * vary);
+        im.setColorAt(i, _c2);
+      });
+      im.castShadow = k !== "deck";
+      im.receiveShadow = true;
+      im.userData.roadEdge = k;
+      group2.add(im);
+    }
+    const near = (x, z) => {
+      let best = 12;
+      for (let j = -1; j <= 1; j++)
+        for (let i = -1; i <= 1; i++) {
+          const L5 = buckets.get(Math.floor(x / 16) + i + "," + (Math.floor(z / 16) + j));
+          if (L5) for (const p of L5) best = Math.min(best, Math.hypot(p.x - x, p.z - z));
+        }
+      return best;
+    };
+    return { group: group2, near, lines: lines.length };
+  }
+  var smooth01 = (t2) => t2 * t2 * (3 - 2 * t2);
+  var MATS2 = {};
+  function roadMaterial(kind2, tex) {
+    if (MATS2[kind2]) return MATS2[kind2];
+    const K2 = KINDS2[kind2], mat = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false });
+    mat.polygonOffset = true;
+    mat.polygonOffsetFactor = -2;
+    mat.polygonOffsetUnits = -2;
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.roadMap = { value: tex };
+      sh.vertexShader = sh.vertexShader.replace(
+        "#include <common>",
+        "#include <common>\nattribute vec3 gcol;\nattribute vec2 ru;\nvarying vec3 vG;\nvarying vec2 vRu;\nvarying float vNearR;"
+      ).replace(
+        "#include <project_vertex>",
+        "#include <project_vertex>\nvG = gcol;\nvRu = ru;\nvNearR = clamp(1.0 - (-mvPosition.z - 40.0) / 160.0, 0.0, 1.0);"
+      );
+      sh.fragmentShader = sh.fragmentShader.replace(
+        "#include <common>",
+        "#include <common>\nuniform sampler2D roadMap;\nvarying vec3 vG;\nvarying vec2 vRu;\nvarying float vNearR;"
+      ).replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+float u = vRu.x;
+vec4 T = texture2D(roadMap, vec2(clamp(u, 0.0, 1.0), vRu.y));
+float t = ${["T.r", "T.g", "T.b"][K2.ch]};
+float made = step(0.0, u) * step(u, 1.0);
+vec3 turf = vG * 0.92;
+if (made > 0.5) {
+  diffuseColor.rgb *= mix(1.0, 0.45 + 1.1 * t, 0.55 + 0.45 * vNearR);
+  ${kind2 === "old" ? `// turf in the joints, and whole stretches half-buried
+  float joint = 1.0 - smoothstep(0.16, 0.26, t);
+  float buried = smoothstep(0.52, 0.6, T.a + abs(u - 0.5) * 0.55);
+  diffuseColor.rgb = mix(diffuseColor.rgb, turf, max(joint * 0.8, buried * 0.9));` : kind2 === "track" ? `// grass on the hump between the ruts, thinning where the wheels wander
+  float hump = smoothstep(0.38, 0.44, u) * (1.0 - smoothstep(0.56, 0.62, u)) * smoothstep(0.35, 0.5, T.a);
+  diffuseColor.rgb = mix(diffuseColor.rgb, turf * 0.95, hump * 0.85);` : `// the street's middle a touch lighter, worn by feet
+  diffuseColor.rgb *= 1.0 + 0.06 * (1.0 - abs(u - 0.5) * 2.0);`}
+} else {
+  // the verge: trodden ground, fading into the land
+  float d = u < 0.0 ? -u : u - 1.0, vw = ${(K2.verge / K2.w).toFixed(3)};
+  diffuseColor.a *= 1.0 - smoothstep(0.15 * vw, vw, d);
+}
+// chalky, never white in the sun, as the ground (grounds.js)
+float lum = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
+if (lum > 0.5) diffuseColor.rgb *= (0.5 + (lum - 0.5) * 0.35) / lum;`
+      );
+    };
+    mat.customProgramCacheKey = () => "road-" + kind2;
+    return MATS2[kind2] = mat;
   }
 
   // src/view/levels.js
@@ -18172,10 +18491,10 @@ vFade = sin(ph * 3.14159);`
   LOOK_SWITCHES.push(["water", "Real water"]);
   var waterOn2 = () => lookOn("water") && lookOn("light");
   var SKY = { value: new THREE.Color(11060444) };
-  var MATS2 = {};
+  var MATS3 = {};
   function waterMat(far) {
     const rich = !Q.lite && !far, key2 = rich ? "rich" : "plain";
-    if (MATS2[key2]) return MATS2[key2];
+    if (MATS3[key2]) return MATS3[key2];
     const m = rich ? new THREE.MeshPhongMaterial({ vertexColors: true, transparent: true, shininess: 90, specular: 10132112, depthWrite: false }) : new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false });
     m.onBeforeCompile = (sh) => {
       sh.uniforms.wTime = WIND.time;
@@ -18233,7 +18552,7 @@ ${rich ? `{
     m.customProgramCacheKey = () => "water-" + key2;
     m.dispose = () => {
     };
-    return MATS2[key2] = m;
+    return MATS3[key2] = m;
   }
   function setWaterSky(c) {
     SKY.value.copy(c);
@@ -18768,7 +19087,7 @@ ${rich ? `{
           const cx = (i + 0.5) * CELL3, cz = (j + 0.5) * CELL3, dx = cx - px, dz = cz - pz, d2 = dx * dx + dz * dz;
           if (d2 > rad * rad) continue;
           const r = mulberry2(seed ^ Math.imul(i + T4.land.cx * 4096, 374761393) ^ Math.imul(j + T4.land.cy * 4096, 668265263) | 0), x = (i + r()) * CELL3, z = (j + r()) * CELL3, e0 = T4.etile(x, z), ter = T4.land.terrain[e0];
-          if (ter === 4 || ter === R.DEEP || ter === 2 || T4.roadAt(x, z)) continue;
+          if (ter === 4 || ter === R.DEEP || ter === 2 || (T4.roadNear ? T4.roadNear(x, z) < 3.4 : T4.roadAt(x, z))) continue;
           if (T4.water && T4.water.mask(x, z) > 0.05) continue;
           if (T4.level(x, z) > 1.6) continue;
           let inTown2 = false;
@@ -19340,14 +19659,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     g.kept = true;
     return CACHE2[key2] = g;
   }
-  var MATS3 = {};
+  var MATS4 = {};
   function treeMat(forest) {
     const shape = shapeOf2(forest), amt = { conifer: 0.025, birch: 0.04, broad: 0.03, dead: 0.015, thorn: 0.02, fern: 0.06, grass: 0.12 }[shape] || 0.03;
-    if (MATS3[shape]) return MATS3[shape];
+    if (MATS4[shape]) return MATS4[shape];
     const m = swaying(kitMat(), amt);
     m.dispose = () => {
     };
-    return MATS3[shape] = m;
+    return MATS4[shape] = m;
   }
   var plantsOn = () => lookOn("plants") && lookOn("light");
   function makeLOD(group2, forest, list, tint2) {
@@ -21334,14 +21653,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     for (const k in map.sites) {
       const st = map.sites[k];
       if (st.kind !== "elder" && st.kind !== "inn") continue;
-      const sm = new THREE.Mesh(new THREE.CylinderGeometry(1, 2.4, 170, 8, 1, true), glow(14275780, 0.42));
-      sm.material.side = THREE.DoubleSide;
-      sm.position.set(
+      const sm2 = new THREE.Mesh(new THREE.CylinderGeometry(1, 2.4, 170, 8, 1, true), glow(14275780, 0.42));
+      sm2.material.side = THREE.DoubleSide;
+      sm2.position.set(
         at(k % R.W) + (st.kind === "inn" ? 3 * ts : 0),
         90,
         at(Math.floor(k / R.W)) - (st.kind === "elder" ? 3 * ts : 0)
       );
-      group2.add(sm);
+      group2.add(sm2);
     }
   }
   function skyGround(map, ts, at, look2, LK) {
@@ -21615,7 +21934,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         }
     for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
     const painted = lookOn("light"), bed = new THREE.Color(), MUD = new THREE.Color(3813926);
-    const here2 = { forest: 0, water: 0, special: 0, spec: "earth", cold: false, road: 0 }, chars = groundsOn() && paintOn(), roadsDrawn = false;
+    const here2 = { forest: 0, water: 0, special: 0, spec: "earth", cold: false, road: 0 }, chars = groundsOn() && paintOn(), roadsDrawn = roadsOn();
     const colourAt = (x, z) => {
       const l = T4.level(x, z), mv = [T4.masks[0](x, z), T4.masks[1](x, z), T4.masks[2](x, z)];
       let total = 0, most = 0;
@@ -21770,6 +22089,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       }
     }
     part("ground");
+    if (roadsDrawn) {
+      yield;
+      const rd = roadsGroup(S3, T4, (x, z) => colourAt(x, z));
+      group2.add(rd.group);
+      T4.roadNear = rd.near;
+      part("roads");
+    }
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []), treesNear2 = pal.map(() => []), shaped = plantsOn(), tints = pal.map(() => ({ n: [], f: [] }));
     const townHalf = R.W * TOWN_TS / 2, towns = land2.sites.filter((q2) => q2.st.kind === "town").map((q2) => ({
       id: q2.st.town || "town",
@@ -22152,10 +22478,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         f.position.set(x - 3.5, ground(x - 3.5, z + 3) + 0.05, z + 3);
         dynGroup.add(f);
       }
-      const sm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.6, 150, 8, 1, true), glow(15921902, 0.38));
-      sm.material.side = THREE.DoubleSide;
-      sm.position.set(x + 3, y + 76, z - 2);
-      dynGroup.add(t2, sm);
+      const sm2 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.6, 150, 8, 1, true), glow(15921902, 0.38));
+      sm2.material.side = THREE.DoubleSide;
+      sm2.position.set(x + 3, y + 76, z - 2);
+      dynGroup.add(t2, sm2);
     }
   }
   function resize() {

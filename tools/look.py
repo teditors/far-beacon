@@ -87,6 +87,17 @@ ROAD = """Rules.travelTo(S, 'overworld', 18, 18); %s g.refresh(); let best = nul
   if (!best) return false; Rules.travelTo(S, best.id, best.x, best.y); g.refresh(); g.buildStatic(); g.refresh();
   const cx = (best.x + 0.5) * 28 - 504, cz = (best.y + 0.5) * 28 - 504; g.P.x = cx - best.dx * 10 + best.dy * 0.5; g.P.z = cz - best.dy * 10 + best.dx * 0.5;
   g.P.yaw = Math.atan2(-best.dx, -best.dy); g.P.pitch = -0.18; await wait(800);"""
+ROADTOWN = """const t = S.town, d = Rules.townDoor(S); Rules.travelTo(S, Rules.townArea(S), d.x, d.y); %s g.refresh();
+  let best = null; for (const k of Object.keys(S.road).map(Number)) { const x = k %% 36, y = Math.floor(k / 36), c = Math.max(Math.abs(x - t.x), Math.abs(y - t.y));
+    if (c >= 4 && c <= 6 && (!best || c > best.c)) best = { x, y, c }; }
+  if (!best) return false; Rules.travelTo(S, Rules.townArea(S), best.x, best.y); g.refresh(); g.buildStatic(); g.refresh();
+  const a = g.V.townAt; if (!a) return false; const px = (best.x + 0.5) * 28 - 504, pz = (best.y + 0.5) * 28 - 504;
+  g.P.x = px; g.P.z = pz; g.P.yaw = Math.atan2(-(a.x - px), -(a.z - pz)); g.P.pitch = -0.1; await wait(600);"""
+# a road over a river, from the bank (any of a few worlds)
+BRIDGE = """let f = null; for (const id of Object.keys(S.areas)) { const rec = S.areas[id]; if (rec.kind !== 'region' || rec.realm) continue; Rules.ensureRegion(S, rec.cx, rec.cy); const m = Rules.mapOf(S, id);
+    for (const k of Object.keys(m.road || {}).map(Number)) if (m.terrain[k] === 4) { const x = k %% 36, y = Math.floor(k / 36); if (x > 3 && y > 3 && x < 32 && y < 32) { f = { id, x, y }; break; } } if (f) break; }
+  if (!f) return false; Rules.travelTo(S, f.id, f.x, f.y); %s g.refresh(); g.buildStatic(); g.refresh();
+  const cx = (f.x + 0.5) * 28 - 504, cz = (f.y + 0.5) * 28 - 504; g.P.x = cx + 16; g.P.z = cz + 20; g.P.yaw = Math.atan2(-(cx - g.P.x), -(cz - g.P.z)); g.P.pitch = -0.12; await wait(600);"""
 HAMLET = """const t = (S.towns || []).find((t) => t.hamlet && !t.realm); if (!t) return false; const d = Rules.townDoor(S, t);
   Rules.travelTo(S, t.area, d.x, d.y + 2); %s g.refresh(); g.buildStatic(); g.refresh(); const a = g.V.townAt; if (!a) return false;
   g.P.x = a.x + 6; g.P.z = a.z + 95; g.P.yaw = 0.05; g.P.pitch = -0.02; await wait(600);"""
@@ -125,6 +136,10 @@ SHOTS = [
     ('field-moor', 3333, {}, region('High Moor (3, 1)', DAY) + FIELD % '-0.3'),
     ('road', 11, {}, ROAD % DAY),
     ('road-2', 3333, {}, ROAD % DAY),
+    ('road-old', 12, {}, ROAD % DAY),
+    ('road-old-2', 14, {}, ROAD % DAY),
+    ('road-town', 11, {}, ROADTOWN % DAY),
+    ('bridge', 222, {}, BRIDGE % DAY),
     ('dwelling-1', 11, {}, KIND % ("x.kind === 'house' && !" + EMPTY.replace('x).', 'x).'), DAY, 0)),
     ('dwelling-2', 11, {}, KIND % ("x.kind === 'house' && !" + EMPTY, DAY, 1)),
     ('dwelling-3', 222, {}, KIND % ("x.kind === 'house' && !" + EMPTY, DAY, 2)),

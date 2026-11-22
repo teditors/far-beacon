@@ -7,6 +7,7 @@ import { PF, perfBuild } from './perf.js';
 import { groundMaterial, paintOn, surface, surfaceOf } from './paint.js';
 import { groundsMaterial, groundsOn, kindsOf, specialKind } from './grounds.js';
 import { climateOf } from './buildings.js';
+import { roadsGroup, roadsOn } from './roads.js';
 import { hamletGroup, townGroup, townsOn } from './buildings.js';
 import { levelFloor, levelKit, levelMat, levelWalls } from './levels.js';
 import { ruinGroup, ruinsOn } from './ruins.js';
@@ -994,7 +995,7 @@ function* buildLand(S, timed) {
   // The colour of the ground at a point: each biome's own palette, mixed where two biomes meet.
   const here = { forest: 0, water: 0, special: 0, spec: 'earth', cold: false, road: 0 },
     chars = groundsOn() && paintOn(), // the ground with character (grounds.js), and roads of their own (C8.3, C8.4)
-    roadsDrawn = false;
+    roadsDrawn = roadsOn();
   const colourAt = (x, z) => {
     const l = T.level(x, z),
       mv = [T.masks[0](x, z), T.masks[1](x, z), T.masks[2](x, z)];
@@ -1200,6 +1201,14 @@ function* buildLand(S, timed) {
     }
   }
   part('ground');
+  // the roads, each its own narrow made way with its edges (roads.js), where the old grey tiles were
+  if (roadsDrawn) {
+    yield;
+    const rd = roadsGroup(S, T, (x, z) => colourAt(x, z));
+    group.add(rd.group);
+    T.roadNear = rd.near;
+    part('roads');
+  }
   // Rocks and trees, tile by tile, from a source that depends only on where the tile is in the world.
   const m = new THREE.Matrix4(),
     q = new THREE.Quaternion(),

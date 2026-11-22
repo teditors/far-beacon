@@ -4,6 +4,33 @@ The brief (COMMISSION.md): character. Surfaces you can tell apart at a glance an
 made, made things that read as made, rooms furnished by what they are for, High pushed much further, and two bugs (the
 traveller at the fire, small towns that are only a menu). Pieces with switches, as before.
 
+## C8.4: roads that look made, and bridges
+
+**What it was.** A road was its whole 28 m tile painted grey: as wide as a field, blocky, a staircase wherever it ran
+on a slant (the rules lay roads tile by tile), and hard to tell from bare ground (`docs/look/before/road.jpg`).
+
+**What it is now** (`src/view/roads.js`). Each road is its own narrow ribbon laid on the land along a smoothed line
+through its tiles (three passes of corner cutting turn the staircase into a road that runs on the slant and bends),
+with a made surface, an edge, and a verge of trodden ground that fades into the land. Three kinds:
+- **A street** within about 110 m of a town's block: rows of rounded setts with dark joints, lit on top, worn lighter
+  down the middle, and a kerb of dressed stones along both sides (4.2 m).
+- **An old road of the lost people**, in a world where they were road-builders: big slabs in staggered courses, turf
+  in the joints, whole stretches half-buried under the grass (or sand, or snow: the ground's own colour), an edge that
+  wanders where stones are missing, and edge blocks still standing in places, some tipped or sunk (4.8 m).
+- **A track** where they were not (the plot's old ways): beaten earth with two dark wheel ruts, a strip of grass
+  between them that thins where the wheels wander, a wide trodden verge, and now and then a leaning waymark post (3.2 m).
+- **Bridges**: where a road crosses a stream or a river it rises on ramps to a deck a little above the water, with
+  stone parapets for a street or an old road, and a rail on posts over a deck of planks for a track.
+
+The ribbons are one mesh per kind; the kerbs, blocks, posts, parapets, rails and planks are instanced: at most nine
+draw calls for every road in sight, and a few thousand triangles. Building them takes about 25 ms of the land's build
+(one slice of it). Grass no longer grows on the made way (`roadNear`), but does on the rest of the old road tile.
+
+**Switch.** `roads` (Settings, the look): off, the old grey tiles. Tests (pieces.test.js, `the ground`): a staircase
+of road tiles becomes one smooth line close to its tiles, a straight road stops at a town's block, and two roads make
+two lines. Pictures: `docs/look/{before,after}/road.jpg`, `road-2.jpg`, and after only `road-old.jpg`,
+`road-old-2.jpg`, `road-town.jpg`, `bridge.jpg`.
+
 ## C8.3: ground with character
 
 **What it was.** The ground had one texture of four grains (grass, grains, rock, snow) repeated every 5 m, mixed by
