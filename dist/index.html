@@ -14229,12 +14229,15 @@
     out[3] = snow / t2;
     return out;
   }
+  var GROUND_FLAT = { value: 0 };
+  var setGroundFlat = (v) => GROUND_FLAT.value = v;
   function groundMaterial() {
     const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
     if (!paintOn()) return mat;
     const tex = groundTexture();
     mat.onBeforeCompile = (sh) => {
       sh.uniforms.groundMap = { value: tex };
+      sh.uniforms.groundFlat = GROUND_FLAT;
       sh.vertexShader = sh.vertexShader.replace(
         "#include <common>",
         "#include <common>\nattribute vec4 surf;\nvarying vec4 vSurf;\nvarying vec2 vGround;\nvarying float vNear;"
@@ -14244,11 +14247,11 @@
       );
       sh.fragmentShader = sh.fragmentShader.replace(
         "#include <common>",
-        "#include <common>\nuniform sampler2D groundMap;\nvarying vec4 vSurf;\nvarying vec2 vGround;\nvarying float vNear;"
+        "#include <common>\nuniform sampler2D groundMap;\nuniform float groundFlat;\nvarying vec4 vSurf;\nvarying vec2 vGround;\nvarying float vNear;"
       ).replace(
         "#include <color_fragment>",
         // the grain, and close up a second, finer pass of it (a detail texture) so near ground stays crisp
-        "#include <color_fragment>\nfloat grain = dot(texture2D(groundMap, vGround), vSurf);\nfloat fineG = dot(texture2D(groundMap, vGround * 4.37 + 0.31), vSurf);\ndiffuseColor.rgb *= mix(1.0, 0.55 + 0.9 * grain, 0.35 + 0.65 * vNear) * mix(1.0, 0.75 + 0.5 * fineG, vNear * vNear);"
+        "#include <color_fragment>\nfloat grain = dot(texture2D(groundMap, vGround), vSurf);\nfloat fineG = dot(texture2D(groundMap, vGround * 4.37 + 0.31), vSurf);\ndiffuseColor.rgb *= mix(mix(1.0, 0.55 + 0.9 * grain, 0.35 + 0.65 * vNear) * mix(1.0, 0.75 + 0.5 * fineG, vNear * vNear), 1.0, groundFlat);"
       );
     };
     mat.customProgramCacheKey = () => "ground-painted";
@@ -15618,6 +15621,7 @@ vFade = sin(ph * 3.14159);`
   }
 
   // src/view/ruins.js
+  var ROUND = () => toonOn() ? 1 : 0;
   LOOK_SWITCHES.push(["ruins", "Ruins with character"]);
   var ruinsOn = () => lookOn("ruins") && lookOn("light");
   function dice2(seed) {
@@ -15664,10 +15668,10 @@ vFade = sin(ph * 3.14159);`
         const taper = Z2.st.taper ? 1 - k / rows * 0.25 : 1, y = k * bh + bh / 2, w = len / cols * (0.94 + r() * 0.06);
         if (Z2.st.rough)
           Z2.stone.add(
-            P4.blob(bh * 0.75, 0),
+            P4.blob(bh * 0.75, ROUND()),
             Z2.colAt(y, r),
             { x, y, z, ry: r() * 6, sx: w / bh * 0.7, sz: t2 * 0.8 },
-            { flat: true, uv: 1.5 }
+            { flat: !ROUND(), uv: 1.5 }
           );
         else Z2.stone.add(P4.box(w, bh * 0.97, t2 * taper), Z2.colAt(y, r), { x, y, z, ry: ry + (r() - 0.5) * 0.05 }, { uv: 1.5 });
       }
@@ -16080,26 +16084,26 @@ ${rich ? `{
       }
       geo.setAttribute("wa", new THREE.BufferAttribute(wa, 3));
       geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-      const g2 = new THREE.Group(), rim2 = new THREE.Mesh(
+      const g2 = new THREE.Group(), rim3 = new THREE.Mesh(
         new THREE.RingGeometry(r * 0.96, r * 1.12, 20).rotateX(-Math.PI / 2),
         new THREE.MeshBasicMaterial({ color: foul ? 4867624 : 6978138, transparent: true, opacity: 0.7, depthWrite: false })
       ), m2 = new THREE.Mesh(geo, waterMat());
-      rim2.position.y = -0.02;
+      rim3.position.y = -0.02;
       m2.renderOrder = 2;
-      g2.add(m2, rim2);
+      g2.add(m2, rim3);
       return g2;
     }
     const m = new THREE.Mesh(
       new THREE.CircleGeometry(r, 20).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: foul ? 7301685 : 4889288, map: rippleTex() })
     );
-    const rim = new THREE.Mesh(
+    const rim2 = new THREE.Mesh(
       new THREE.RingGeometry(r * 0.96, r * 1.12, 20).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: foul ? 4867624 : 6978138, transparent: true, opacity: 0.7, depthWrite: false })
     );
-    rim.position.y = -0.02;
+    rim2.position.y = -0.02;
     const g = new THREE.Group();
-    g.add(m, rim);
+    g.add(m, rim2);
     return g;
   }
   function blob(r) {
@@ -17145,6 +17149,23 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     });
     return group2;
   }
+  function rockGeo() {
+    const smooth2 = !!toonMat(), g = new THREE.IcosahedronGeometry(1, 0);
+    if (smooth2) {
+      const p = g.attributes.position, v = new THREE.Vector3();
+      for (let i = 0; i < p.count; i++) {
+        v.fromBufferAttribute(p, i);
+        const k = 1 + 0.12 * Math.sin(v.x * 3.1 + 1.3) * Math.cos(v.z * 2.7) + 0.07 * Math.sin(v.y * 4.3 + 0.5);
+        p.setXYZ(i, v.x * k, v.y * k * 0.85, v.z * k);
+      }
+      g.computeVertexNormals();
+      smoothNormals(g);
+      g.setAttribute("normal", g.attributes.outN);
+      g.deleteAttribute("outN");
+    } else g.computeVertexNormals();
+    g.faceted = true;
+    return g;
+  }
   var glow = (color, opacity) => new THREE.MeshBasicMaterial({ color, fog: false, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
   var box2 = (w, h, d, mat, x, y, z) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -18104,9 +18125,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     };
     yield;
     pal.forEach((p, bi) => {
-      const rock = new THREE.IcosahedronGeometry(1, 0);
-      rock.computeVertexNormals();
-      rock.faceted = true;
+      const rock = rockGeo();
       instances(rock, std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
       const forest = land2.biomes[bi].forest;
       if (shaped) {
@@ -18506,6 +18525,16 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     m.frustumCulled = false;
     return m;
   };
+  var rim = (r) => {
+    const m = new THREE.Mesh(
+      new THREE.RingGeometry(r, r * 1.06, 40),
+      new THREE.MeshBasicMaterial({ color: 2763322, fog: false, transparent: true, depthWrite: false })
+    );
+    m.renderOrder = -8;
+    m.frustumCulled = false;
+    m.userData.rim = true;
+    return m;
+  };
   function kindOf5(name) {
     const n = (name || "").toLowerCase();
     if (/snow|blizzard/.test(n)) return "snow";
@@ -18637,7 +18666,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (on3 && !dome) {
       dome = makeDome();
       sunDisc = disc(70, 16773832);
+      sunDisc.add(rim(70));
       moonDisc = disc(40, 14673648);
+      moonDisc.add(rim(40));
       scene.add(dome, sunDisc, moonDisc);
     }
     if (dome) {
@@ -18649,9 +18680,16 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         sunDisc.position.copy(camera.position).add(d);
         sunDisc.lookAt(camera.position);
         sunDisc.material.opacity = storm ? 0 : Math.max(0, Math.min(1, day * 1.5));
+        const ink = NOW.look ? NOW.look.line : 0;
+        for (const dsc of [sunDisc, moonDisc])
+          for (const r of dsc.children) {
+            r.visible = ink > 0.5;
+            if (r.visible) r.material.color.setRGB(NOW.look.ink[0], NOW.look.ink[1], NOW.look.ink[2]);
+          }
         moonDisc.position.copy(camera.position).sub(d.setY(Math.abs(d.y)));
         moonDisc.lookAt(camera.position);
         moonDisc.material.opacity = storm ? 0 : Math.max(0, 0.9 - day * 1.6);
+        for (const dsc of [sunDisc, moonDisc]) for (const r of dsc.children) r.material.opacity = dsc.material.opacity * 0.8;
       }
     }
     const kind2 = Q.weather > 0 && storm && !R.indoors(V.S) ? kindOf5(storm.name) : "";
@@ -19578,6 +19616,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (lk) setBands(lk.bands, lk.soft);
     else setBands(3, 0.45);
     setOutline(lk, window.innerHeight);
+    setGroundFlat(lk ? Math.min(1, lk.line) * 0.75 : 0);
     lightOutdoors(h, day, dusk, skyC, !!storm, sight, lk);
     sun.position.x += P3.x;
     sun.position.z += P3.z;

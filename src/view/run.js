@@ -26,7 +26,7 @@ import { animateActors, forgetActors, shiftActors } from './actors.js';
 import { updateSound } from './sound.js';
 import { updateFx } from './fx.js';
 import { setWaterSky } from './water.js';
-import { warmSurfaces } from './paint.js';
+import { setGroundFlat, warmSurfaces } from './paint.js';
 import { draw as drawFrame } from './post.js';
 import { updateLook } from './mood.js';
 import { fogBandsOn, setBands } from './toon.js';
@@ -336,6 +336,7 @@ function frame() {
   if (lk) setBands(lk.bands, lk.soft);
   else setBands(3, 0.45);
   setOutline(lk, window.innerHeight);
+  setGroundFlat(lk ? Math.min(1, lk.line) * 0.75 : 0); // other worlds: the land in flat colour
   lightOutdoors(h, day, dusk, skyC, !!storm, sight, lk);
   // the sun shines the same way from wherever the player is, so its shadows follow them
   sun.position.x += P.x;

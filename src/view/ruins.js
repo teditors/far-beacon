@@ -14,6 +14,9 @@
 import { R } from './ctx.js';
 import { P, kit, kitMat } from './kit.js';
 import { addOutline } from './outline.js';
+import { toonOn } from './toon.js';
+// fieldstones: rounded and softly banded with the toon bands on (C6), cut-faced otherwise
+const ROUND = () => (toonOn() ? 1 : 0);
 import { surface } from './paint.js';
 import { LOOK_SWITCHES, lookOn } from './quality.js';
 
@@ -80,10 +83,10 @@ function wall(Z, x0, z0, x1, z1, h, t, o) {
         w = (len / cols) * (0.94 + r() * 0.06);
       if (Z.st.rough)
         Z.stone.add(
-          P.blob(bh * 0.75, 0),
+          P.blob(bh * 0.75, ROUND()),
           Z.colAt(y, r),
           { x, y, z, ry: r() * 6, sx: (w / bh) * 0.7, sz: t * 0.8 },
-          { flat: true, uv: 1.5 },
+          { flat: !ROUND(), uv: 1.5 },
         );
       else Z.stone.add(P.box(w, bh * 0.97, t * taper), Z.colAt(y, r), { x, y, z, ry: ry + (r() - 0.5) * 0.05 }, { uv: 1.5 });
     }

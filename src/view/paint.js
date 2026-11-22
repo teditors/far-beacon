@@ -142,6 +142,9 @@ function surfaceOf(c, steep, out) {
   out[3] = snow / t;
   return out;
 }
+// How far the ground's painted grain is flattened toward plain colour (C6: other worlds, drawn in clean line).
+const GROUND_FLAT = { value: 0 };
+const setGroundFlat = (v) => (GROUND_FLAT.value = v);
 // The ground's material: Lambert with vertex colours, and, when painted, the four grains mixed by the `surf` weights,
 // faded out with distance (where they would only shimmer).
 function groundMaterial() {
@@ -150,6 +153,7 @@ function groundMaterial() {
   const tex = groundTexture();
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.groundMap = { value: tex };
+    sh.uniforms.groundFlat = GROUND_FLAT;
     sh.vertexShader = sh.vertexShader
       .replace(
         '#include <common>',
@@ -162,12 +166,12 @@ function groundMaterial() {
     sh.fragmentShader = sh.fragmentShader
       .replace(
         '#include <common>',
-        '#include <common>\nuniform sampler2D groundMap;\nvarying vec4 vSurf;\nvarying vec2 vGround;\nvarying float vNear;',
+        '#include <common>\nuniform sampler2D groundMap;\nuniform float groundFlat;\nvarying vec4 vSurf;\nvarying vec2 vGround;\nvarying float vNear;',
       )
       .replace(
         '#include <color_fragment>',
         // the grain, and close up a second, finer pass of it (a detail texture) so near ground stays crisp
-        '#include <color_fragment>\nfloat grain = dot(texture2D(groundMap, vGround), vSurf);\nfloat fineG = dot(texture2D(groundMap, vGround * 4.37 + 0.31), vSurf);\ndiffuseColor.rgb *= mix(1.0, 0.55 + 0.9 * grain, 0.35 + 0.65 * vNear) * mix(1.0, 0.75 + 0.5 * fineG, vNear * vNear);',
+        '#include <color_fragment>\nfloat grain = dot(texture2D(groundMap, vGround), vSurf);\nfloat fineG = dot(texture2D(groundMap, vGround * 4.37 + 0.31), vSurf);\ndiffuseColor.rgb *= mix(mix(1.0, 0.55 + 0.9 * grain, 0.35 + 0.65 * vNear) * mix(1.0, 0.75 + 0.5 * fineG, vNear * vNear), 1.0, groundFlat);',
       );
   };
   mat.customProgramCacheKey = () => 'ground-painted';
@@ -489,7 +493,7 @@ function surface(name, v) {
   return (SURF[key] = t);
 }
 const SURFACES = Object.keys(MAKERS);
-export { groundMaterial, groundTexture, surfaceOf, surface, paintOn, SURFACES, warmSurfaces };
+export { groundMaterial, groundTexture, surfaceOf, surface, paintOn, SURFACES, warmSurfaces, setGroundFlat };
 // Make every surface ahead of need, one at a time when the page is idle, so the first town seen does not wait for its
 // textures (each takes up to a few tens of milliseconds at High's size).
 function warmSurfaces() {

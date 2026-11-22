@@ -17,6 +17,33 @@ there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session
 
 The page was 774 KB.
 
+## C6.7: stones without facets, flat land through the door, an inked sun
+
+**What it is.**
+- **Rocks** (from Low): the same twenty faces as before (there are thousands of them), but a little squashed and
+  dented, with their normals smoothed, so their light falls in the toon's soft bands instead of cut facets. A first
+  try with eighty faces each looked rounder but put 213,000 triangles on the land (16% on the frame here), so it was
+  taken back.
+- **Fieldstone ruins** (the "rough" style of building): their blocks are rounded stones softly banded, not a heap of
+  dice.
+- **Other worlds' land** is drawn in flat colour: the ground's painted grain is flattened 75% toward its plain colour
+  while the ink is on (`setGroundFlat`, paint.js), so the clean line has clean colour to sit on.
+- **An inked rim** round the sun and the moon in other worlds.
+
+**Switches.** Part of `toon` (rocks, stones) and `ink` (flat land, rims).
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 84 | 73 | 106,484 | 74.7 |
+| Low | 346 | 124 | 590,406 | 409.8 |
+| Medium | 348 | 146 | 613,464 | 412.8 |
+| High | 398 | 154 | 785,930 | 531.3 |
+
+(12,000 triangles more than C6.6 is the rounded fieldstones of ruins in view.)
+
+**Verdict.** Pearl for the flat land in other worlds (it is what made them look drawn rather than filtered); small for
+the rest.
+
 ## C6.6: far hills in bands
 
 **What it is** (`skyline.js`). Beyond the land that is drawn, two to four rings of ridges (Low 2, Medium 3, High 4) at

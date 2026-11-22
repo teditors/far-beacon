@@ -17,6 +17,7 @@ import { actorsOn, clearActors, creatureActor, markKilled, personActor, settleAc
 R.on('killed', (s, d) => d && d.c && markKilled(d.c.id));
 import { kitMat } from './kit.js';
 import { toonMat } from './toon.js';
+import { smoothNormals } from './outline.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 
 /* ---------- scene ---------- */
@@ -84,6 +85,28 @@ function facet(group) {
     }
   });
   return group;
+}
+/* A rock. With the toon bands on (C6), a stone a little squashed and dented the same way every time, with its normals
+   smoothed so its light falls in soft bands rather than facets (polygons should not read as polygons); otherwise the
+   old cut-faced one. Twenty faces either way: there are thousands of rocks. */
+function rockGeo() {
+  const smooth = !!toonMat(),
+    g = new THREE.IcosahedronGeometry(1, 0); // twenty faces: there are thousands of rocks
+  if (smooth) {
+    const p = g.attributes.position,
+      v = new THREE.Vector3();
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i);
+      const k = 1 + 0.12 * Math.sin(v.x * 3.1 + 1.3) * Math.cos(v.z * 2.7) + 0.07 * Math.sin(v.y * 4.3 + 0.5);
+      p.setXYZ(i, v.x * k, v.y * k * 0.85, v.z * k);
+    }
+    g.computeVertexNormals();
+    smoothNormals(g);
+    g.setAttribute('normal', g.attributes.outN);
+    g.deleteAttribute('outN');
+  } else g.computeVertexNormals(); // one normal per face: a rock with cut faces
+  g.faceted = true;
+  return g;
 }
 const glow = (color, opacity) =>
   new THREE.MeshBasicMaterial({ color, fog: false, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
@@ -1255,9 +1278,7 @@ function* buildLand(S, timed) {
   };
   yield;
   pal.forEach((p, bi) => {
-    const rock = new THREE.IcosahedronGeometry(1, 0);
-    rock.computeVertexNormals(); // one normal per face: a rock with cut faces
-    rock.faceted = true;
+    const rock = rockGeo();
     instances(rock, std(p.cols[2].clone().multiplyScalar(0.85)), rocks[bi]);
     const forest = land.biomes[bi].forest;
     if (shaped) {
