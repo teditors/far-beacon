@@ -12,11 +12,12 @@ LOOK_SWITCHES.push(['landmarks', 'Landmarks in the style']);
 const marksOn = () => lookOn('landmarks') && lookOn('light');
 const mesh = (k, tex) => {
   const m = new THREE.Mesh(k.build(), kitMat({ map: tex ? surface(tex) : null }));
-  addOutline(m, 2, 120); // outlined (C6)
+  addOutline(m, 2, 80); // outlined (C6), gone by 80 m so far lines never crawl (C7.1)
   return m;
 };
-const glowMat = (c, o) =>
-  new THREE.MeshBasicMaterial({ color: c, transparent: o < 1, opacity: o, depthWrite: o >= 1, fog: false });
+// unlit: lights are seen through the haze (no fog); dark things (a cave's mouth) fade into the air like the land (C7.1)
+const glowMat = (c, o, fog) =>
+  new THREE.MeshBasicMaterial({ color: c, transparent: o < 1, opacity: o, depthWrite: o >= 1, fog: !!fog });
 
 // a tower of courses tapering upward, from r0 at the foot to r1 at the top, h high, n sides
 function courses(k, col, r0, r1, h, n, x, z) {
@@ -105,12 +106,12 @@ const L = {
     g.add(mesh(k, 'plaster'));
     const mouth = new THREE.Mesh(
       new THREE.CylinderGeometry(2.1, 2.1, 1.5, 12, 1, false, -Math.PI / 2, Math.PI),
-      glowMat(0x07080a, 1),
+      glowMat(0x07080a, 1, true),
     );
     mouth.rotation.x = Math.PI / 2;
     mouth.rotation.z = Math.PI / 2;
     mouth.position.set(0, 1.6, 4.9);
-    const low = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.8, 1.5), glowMat(0x07080a, 1));
+    const low = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.8, 1.5), glowMat(0x07080a, 1, true));
     low.position.set(0, 0.9, 4.9);
     g.add(mouth, low);
     return g;

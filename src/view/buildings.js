@@ -219,7 +219,7 @@ function finish(K, st, group) {
     if (k.empty) return;
     const m = new THREE.Mesh(k.build(), mat);
     group.add(m);
-    if (line) addOutline(m, 2, 90);
+    if (line) addOutline(m, 2, 70);
   };
   add(K.ground, kitMat({ map: surface('dirt', 0) }));
   add(K.cobble, kitMat({ map: surface('cobble', 0) }));

@@ -146,9 +146,9 @@ function personModel(cloth, skin, hat, hair, look) {
   }
   k.add(PT.cyl(0.07, 0.08, 0.14, 6), skin, { y: 1.6 }, { bone: 0 });
   k.add(PT.ball(0.16, 12, 9), skin, { y: 1.8, sy: 1.12 }, { bone: 5, pivot: H });
-  k.add(PT.ball(0.035, 4, 3), skin, { y: 1.78, z: 0.16 }, { bone: 5, pivot: H }); // nose
-  k.add(PT.ball(0.03, 4, 3), 0x1a1410, { x: -0.055, y: 1.83, z: 0.14 }, { bone: 5, pivot: H });
-  k.add(PT.ball(0.03, 4, 3), 0x1a1410, { x: 0.055, y: 1.83, z: 0.14 }, { bone: 5, pivot: H });
+  k.add(PT.ball(0.035, 6, 4), skin, { y: 1.78, z: 0.16 }, { bone: 5, pivot: H }); // nose
+  k.add(PT.ball(0.03, 6, 4), 0x1a1410, { x: -0.055, y: 1.83, z: 0.14 }, { bone: 5, pivot: H });
+  k.add(PT.ball(0.03, 6, 4), 0x1a1410, { x: 0.055, y: 1.83, z: 0.14 }, { bone: 5, pivot: H });
   if (look.beard) k.add(PT.cone(0.12, 0.24, 8), hair, { y: 1.66, z: 0.08, rx: Math.PI }, { bone: 5, pivot: H });
   if (hat) {
     k.add(PT.cyl(0.25, 0.25, 0.04, 12), hat, { y: 1.95 }, { bone: 5, pivot: H });

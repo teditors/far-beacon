@@ -17,6 +17,7 @@ makes a contact sheet of a set.
 | `creature` | a creature close up: banded light and an outline |
 | `ruin` | a ruin of a fieldstone people, its stones rounded and softly banded |
 | `storm` | a storm: every palette greys |
+| `person-close`, `person-near` | a townsperson up close and from a few steps (C7.1: no lines on the face, thin outlines) |
 | `rare-sepia`, `rare-reds` | worlds that rolled a rare look: sepia, and all reds (at dusk) |
 | `dungeon` | a dungeon level (levels keep their own look) |
 | `sky` | a castle in the sky |

@@ -162,10 +162,11 @@ function targets(renderer) {
   if (T && T.w === w && T.h === h) return T;
   if (T) for (const k of ['main', 'a', 'b', 'ink']) if (T[k]) T[k].dispose();
   const opt = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat },
+    mopt = Object.assign({ stencilBuffer: true }, opt), // the outlines need the stencil (C7.1)
     main =
       renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget
-        ? new THREE.WebGLMultisampleRenderTarget(w, h, opt)
-        : new THREE.WebGLRenderTarget(w, h, opt);
+        ? new THREE.WebGLMultisampleRenderTarget(w, h, mopt)
+        : new THREE.WebGLRenderTarget(w, h, mopt);
   if (main.samples !== undefined) main.samples = 4;
   const qw = Math.max(1, w >> 2),
     qh = Math.max(1, h >> 2);
@@ -186,9 +187,11 @@ function inkTarget(t) {
     minFilter: THREE.LinearFilter,
     magFilter: THREE.LinearFilter,
     format: THREE.RGBAFormat,
+    stencilBuffer: true,
   });
   rt.depthTexture = new THREE.DepthTexture(t.w, t.h);
-  rt.depthTexture.type = THREE.UnsignedIntType;
+  rt.depthTexture.format = THREE.DepthStencilFormat; // the outlines need the stencil (C7.1)
+  rt.depthTexture.type = THREE.UnsignedInt248Type;
   return (t.ink = rt);
 }
 function draw(renderer, scene, camera) {

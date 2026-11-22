@@ -108,8 +108,9 @@ function rockGeo() {
   g.faceted = true;
   return g;
 }
-const glow = (color, opacity) =>
-  new THREE.MeshBasicMaterial({ color, fog: false, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
+// unlit; lights skip the fog, dark or coloured things pass fog = true so they fade with distance like the land (C7.1)
+const glow = (color, opacity, fog) =>
+  new THREE.MeshBasicMaterial({ color, fog: !!fog, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
 const box = (w, h, d, mat, x, y, z) => {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   m.position.set(x || 0, y || 0, z || 0);
@@ -178,7 +179,7 @@ const BUILD = {
     const g = new THREE.Group(),
       k = (S.skies || []).find((x) => x.id === st.sky),
       kind = k ? k.kind : 'isle',
-      d = new THREE.Mesh(new THREE.CircleGeometry(16, 20).rotateX(-Math.PI / 2), glow(0x1d2430, 0.35));
+      d = new THREE.Mesh(new THREE.CircleGeometry(16, 20).rotateX(-Math.PI / 2), glow(0x1d2430, 0.35, true));
     d.position.y = 0.4;
     g.add(d);
     // seen from far off, through any haze: drawn without fog, a little faded, like a mountain on the skyline
@@ -346,7 +347,7 @@ const BUILD = {
     g.add(
       fxOn() ? FX.fire(1.3) : fire,
       box(0.15, 4, 0.15, std(0x3a2a1a), 2, 2, 1),
-      box(1.4, 0.9, 0.05, glow(0xb03a2a, 1), 2.7, 3.4, 1),
+      box(1.4, 0.9, 0.05, glow(0xb03a2a, 1, true), 2.7, 3.4, 1),
     );
     return g;
   },

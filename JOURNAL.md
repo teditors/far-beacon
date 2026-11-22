@@ -1,3 +1,44 @@
+# Commission 7
+
+The brief (COMMISSION.md): visual fixes Andrew found on his Pixel 9 (townspeople's outlines, far shimmer, black boxes
+far off), more music (a harpsichord and Baroque pieces, a tune for each kind of place and event), and the main work:
+buildings you can walk into, full of ordinary things you can pick up, with theft in houses and secret value in
+abandoned places. Pieces with switches, as before.
+
+**Measuring.** As commission 6: `python3 tools/bench.py fallback low medium high` and `python3 tools/look.py`, with
+`CHROME=/opt/pw-browsers/chromium` (the full `node tools/check.js` needs it too for the browser test in a cloud session).
+
+## C7.1: outlines that stay outside the figure, far things that fade and do not crawl
+
+**What it was.** Andrew's screenshot (`docs/bugs/c7-townsperson-outlines.jpg`) showed a townsperson with fat dark
+lines, a dark shell round the head and a hexagonal mask round the eyes and nose. Reproduced in `docs/look/before/
+person-close.jpg`: C6.4's inverted hull is drawn for every part of a merged model, so the hull of a small part sunk
+into a bigger one (an eye, the nose, the buckle) pokes out of the face as a dark ring of its own. And the line was
+1 + 1.1 x the look's strength wide, about two CSS pixels: five of a Pixel 9's.
+
+**What changed.**
+- **Outlines only outside the silhouette** (outline.js): everything outlined marks the stencil where it is drawn, and
+  the outline is drawn after it only where the stencil is clear. So a line follows the outside of a figure (or a house,
+  a tree) and can never fall on a face, an arm across the body, or a part sunk into another. The finish's picture and
+  the ink's depth keep a stencil now (post.js). No extra draw calls.
+- **Thinner**: about one CSS pixel (0.55 + 0.5 x the look's strength), two or three of a phone's.
+- Eyes and noses have a few more faces, so they read as round, not hexagonal.
+- **No black boxes far off**: cave mouths were drawn unlit *and without fog*, so every cave in sight stayed pitch black
+  at any distance while the land round it faded. Unlit things now take fog unless they are lights (landmarks.js,
+  scene.js `glow`). `tools/nofog.py` lists every dark opaque material that skips the fog in four worlds' places: 600 to
+  900 before (all cave mouths), none after.
+- **Less crawl far off**: the toon bands soften from 60 m and are smooth light past 200 m (toon.js), since a band's
+  edge finer than a pixel on a far tree crawls as you turn; outlines on buildings and ruins are gone by 70 m (was
+  90) and on landmarks by 80 m (was 120). Textures already had mipmaps.
+- The stray diagonal line at the left of Andrew's picture: I could not reproduce it; it looks like one more poke of a
+  hull past the near plane, which the stencil also stops where it would cross the figure.
+
+Pictures: `docs/look/{before,after}/person-close.jpg`, `person-near.jpg`.
+
+**Switch.** `outlines` (Settings), as before.
+
+**Verdict.** A needed fix; the stencil is the right tool and cost nothing.
+
 # Commission 6
 
 The brief (COMMISSION.md): an art direction. Painted atmosphere as the base (Firewatch, Journey: palette, light and

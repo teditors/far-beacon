@@ -294,7 +294,7 @@ function ruinGroup(S, seed) {
       if (k.empty) return;
       const m = new THREE.Mesh(k.build(), mat);
       g.add(m);
-      if (line) addOutline(m, 2, 90); // outlined (C6)
+      if (line) addOutline(m, 2, 70); // outlined (C6)
     };
   add(Z.stone, kitMat({ map: surface(st.tex, seed >>> 3) }), true); // each ruin's stone a variant of its people's
   add(Z.wood, kitMat({ map: surface('wood') }), true);

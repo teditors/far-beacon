@@ -36,6 +36,12 @@ RUIN = """Rules.travelTo(S, 'overworld', 18, 18); g.refresh(); let f = null;
   if (!f) return false; S.player.x = f.x; S.player.y = Math.min(35, f.y + 1); %s g.refresh();
   const cx = (f.x + 0.5) * 28 - 504, cz = (f.y + 0.5) * 28 - 504; g.P.x = cx + 8; g.P.z = cz + 20;
   g.P.yaw = Math.atan2(-(cx - g.P.x), -(cz - g.P.z)); g.P.pitch = -0.1;"""
+PERSON = """let a = null, best = 1e9; const w = new THREE.Vector3();
+  g.scene.traverse((o) => { if (o.userData.actor && o.userData.actor.kind === 'person') { o.getWorldPosition(w);
+    const d = Math.hypot(w.x - g.P.x, w.z - g.P.z); if (d < best) { best = d; a = o; } } });
+  if (!a) return false; a.getWorldPosition(w); const f = a.getWorldDirection(new THREE.Vector3());
+  g.P.x = w.x + f.x * %s; g.P.z = w.z + f.z * %s; g.P.yaw = Math.atan2(-(w.x - g.P.x), -(w.z - g.P.z)); g.P.pitch = %s;
+  if (g.P.fixY !== undefined) g.P.fixY = w.y + 1.75; await wait(1500);"""
 SHOTS = [
     ('salt-day', 11, {}, region('Salt', DAY)),
     ('salt-night', 11, {}, region('Salt', NIGHT)),
@@ -52,6 +58,9 @@ SHOTS = [
     ('ruin', 11, {}, RUIN % DAY),
     ('street', 11, {}, town(0, 'S.time = 16 * 60 - 360;') + "g.P.z -= 46; g.P.x += 3; g.P.yaw = -0.5; g.P.pitch = 0.05;"),
     ('creature', 11, {}, "Rules.travelTo(S, 'overworld', 18, 18); " + DAY + " g.refresh(); const c = S.creatures.find((c) => !c.bound); if (!c) return false; c.cool = 999; S.player.x = c.x; S.player.y = Math.min(35, c.y + 1); g.refresh(); let a = null; g.scene.traverse((o) => { if (!a && o.userData.actor && o.userData.actor.kind !== 'person') a = o; }); if (!a) return false; const w = new THREE.Vector3(); a.parent.getWorldPosition(w); g.P.x = w.x + 2.4; g.P.z = w.z + 5.2; g.P.yaw = Math.atan2(-(w.x - g.P.x), -(w.z - g.P.z)); g.P.pitch = -0.3; await wait(2500);"),
+    # a townsperson up close, as Andrew saw one on his phone (C7.1), and from a few steps
+    ('person-close', 11, {}, town(0, 'S.time = 16 * 60 - 360;') + PERSON % (0.75, 0.75, 0.0)),
+    ('person-near', 11, {}, town(0, 'S.time = 16 * 60 - 360;') + PERSON % (3.0, 3.0, -0.1)),
     ('rare-sepia', 9, {}, region('Home', DAY)),
     ('rare-reds', 251, {}, region('Home', 'S.time = 17.8 * 60 - 360;')),
     ('storm', 222, {}, region('(1, 1)', DAY + 'S.weather.storm = Rules.stormOfNow ? true : true;')),
