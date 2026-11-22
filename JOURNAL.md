@@ -4,6 +4,50 @@ The brief (COMMISSION.md): character. Surfaces you can tell apart at a glance an
 made, made things that read as made, rooms furnished by what they are for, High pushed much further, and two bugs (the
 traveller at the fire, small towns that are only a menu). Pieces with switches, as before.
 
+## C8.5: rooms furnished by what they are for
+
+**What it was.** Commission 7's rooms had the right kinds of things, but placed at random along the walls and over
+the floor, in big bare rooms; and every room's floor was the building's own solid stone plinth, grey slabs drawn half
+a metre above the real floor, with the furniture standing sunk into it (`docs/look/before/dwelling-*.jpg`).
+
+**What changed.**
+- **The floor** (view): a building you walk into stands on a plinth round its foot only, so inside you see the room's
+  own floor: boards in a house, earth in a poor one, stone in a temple or a hall, tiles in the heat; boards narrower.
+- **Rooms by wealth and kind** (`rules/rooms.js`, `content/rooms.js`): a poor dwelling a living room with the hearth,
+  a sleeping room, a store and a workroom; a middling one a kitchen of its own as well; a rich one a dining room and a
+  study besides. A temple has a **nave** and a **vestry**, a mapmaker's house its **stacks**. Rooms are about 5 m a side
+  now (four tiles, was five), so a house has more of them, each fuller. A fire only where people sit, cook or sleep.
+- **Placed by function**: an altar against the far wall from the door; pews (or a library's bookcases) in rows with an
+  aisle up the middle from the door; nothing in front of a doorway; a table where there is room round it, with a chair
+  on every side there is room for, facing it, and a place laid before each in a living room, kitchen, dining room, hall
+  or taproom (a plate, and a cup where they have them). **What goes with each piece**: pots and a kettle on the floor
+  before the hearth with firewood beside it and a stool facing it; a nightstand or a chest beside a bed; a stool at the
+  workbench; an anvil before the forge with a bucket; the god's shrine and candlesticks on the altar; scales and a
+  ledger on the counter; a jug on the washstand.
+- **Small things where they belong** (`near`): pots by the hearth, plates on the table, tools on the bench, books in the
+  bookcase, candles on the nightstand and the altar; buckets, brooms and baskets on the floor against a wall.
+- **Abandoned houses**: some furniture gone, the rest broken (a bed fallen in, a table on a short leg, chairs on their
+  side, a chest's lid flung back, a cupboard's door hanging, pews collapsed), cobwebs, fallen plaster and boards,
+  shards; one thing in two such houses has come through whole.
+- **The god's place**: the shrine on a temple's altar is the world's god's own, by its domain (a bowl of still water, a
+  cairn, a lidless eye, an ever-burning brazier, a staff and sandals, a broken shield, a sheaf, an open eye), in its
+  colour; holy symbols in its temple are named for it ("holy symbol of Tethael").
+- **More things, with variants** (`view/furniture.js`): new furniture (nightstand, sideboard, pew, washstand, cradle,
+  tall candlestand, vestments) and small things (candlestick in tin, brass or silver; ladle, ledger, scales, censer,
+  offerings); a poor, a middling and a rich bed (straw pallet, wooden bed, four-poster with curtains), table (trestle,
+  plank, turned legs with a linen runner), chair (stool-like, ladder-back, carved with arms and a cushion), chest (rope
+  hasp, iron-bound, painted with a domed lid) and lamp (clay oil lamp, lamp, candelabrum); broken versions as above.
+
+**Also.** A hamlet in an old save whose region's map was packed away could not become a town (C8.2: it read the packed
+map); it reads it unpacked now.
+
+**Switches.** `rooms` (Tinker; `NO=rooms`: commission 7's furnishing), and the look's `furniture` (Settings: the plain
+models). Tests (pieces.test.js, `rooms`): in 16 worlds every temple has its altar, the shrine of the god on it and pews;
+most tables have two seats or more; fewer than one small thing in twenty lies loose in the middle of a floor; rich
+houses have a dining room or a study; every abandoned house is cobwebbed and old; NO=rooms furnishes as before.
+Pictures: `docs/look/{before,after}/dwelling-1.jpg` to `dwelling-3.jpg`, `empty-house.jpg`, `temple.jpg`,
+`shop.jpg`, `smithy.jpg`.
+
 ## C8.4: roads that look made, and bridges
 
 **What it was.** A road was its whole 28 m tile painted grey: as wide as a field, blocky, a staircase wherever it ran

@@ -9,8 +9,10 @@ import { P as PT, kit, kitMat } from './kit.js';
 import { addOutline } from './outline.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { R } from './ctx.js';
+import { variant } from './furniture.js';
 
 LOOK_SWITCHES.push(['thingsDrawn', 'Things in rooms, drawn']);
+LOOK_SWITCHES.push(['furniture', 'Furniture by wealth, broken when abandoned']);
 const thingsOn = () => lookOn('thingsDrawn') && lookOn('light');
 
 const C = (hex) => new THREE.Color(hex);
@@ -478,14 +480,17 @@ const MODELS = {
 
 /* ---------- a place's things, merged ---------- */
 const GEOS = new Map(); // a model by kind, colour and age: its geometry, kept
-function modelGeo(id, col, old) {
-  const key = id + ':' + col + ':' + (old ? 1 : 0);
+function modelGeo(id, col, old, t) {
+  t = t || {};
+  const byUse = lookOn('furniture'),
+    key = id + ':' + col + ':' + (old ? 1 : 0) + (byUse ? ':' + (t.g === undefined ? '' : t.g) + ':' + (t.dom || '') : '');
   let g = GEOS.get(key);
   if (g) return g;
   const kd = R.thingKind(id),
     k = kit(),
     m = MODELS[(kd && kd.model) || id] || MODELS.crate;
-  m(k, col);
+  // furniture with character (furniture.js, C8.5): the new kinds, a poor and a rich version, broken when old
+  if (!(byUse && variant((kd && kd.model) || id, k, col, { g: t.g, old, dom: t.dom, fixed: kd && kd.fixed }))) m(k, col);
   g = k.build();
   if (old) {
     // old things: greyer and darker, as if dust lay on them
@@ -504,6 +509,10 @@ const colourOf = (t, mark) => {
   const kd = R.thingKind(t.k);
   let c = kd.grades && kd.gcol && t.g !== undefined ? kd.gcol[t.g] : kd.col || '#8a6a4a';
   c = parseInt(c.slice(1), 16);
+  if (t.dom && R.C.pantheon) {
+    const d = R.C.pantheon.domains.find((x) => x.id === t.dom); // the god's own colour on its shrine
+    if (d) c = d.color;
+  }
   if (t.ware && mark !== undefined) c = C(c).lerp(C(mark), 0.45).getHex(); // in the lost people's own colour
   return c;
 };
@@ -615,7 +624,7 @@ function thingsGroup(S, id, ts, pos, frame, list) {
       const kd = R.thingKind(t.k);
       if (!kd) continue;
       const [x, y, z] = pos(t);
-      (kd.fixed ? big : small).push({ g: modelGeo(t.k, colourOf(t, mark), t.old), x, y: y + (t.h || 0), z, ry: t.ry || 0 });
+      (kd.fixed ? big : small).push({ g: modelGeo(t.k, colourOf(t, mark), t.old, t), x, y: y + (t.h || 0), z, ry: t.ry || 0 });
     }
     g = new THREE.Group();
     g.userData.things = id;

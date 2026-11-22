@@ -222,6 +222,8 @@ function mergeSpec(base, ...adds) {
     small: (base.small || []).slice(),
     n: base.n,
   };
+  if (base.far) out.far = base.far.slice(); // rooms by use (C8.5): against the far wall, and in rows
+  if (base.rows) out.rows = base.rows.slice();
   out.less = [];
   for (const a of adds) {
     if (!a) continue;
@@ -348,6 +350,7 @@ function plainName(k, info, people) {
   if (info.ware && people) parts.push(people);
   // a grade replaces a first word that says the same ('straw bed', not 'straw wooden bed')
   parts.push(kd.name);
+  if (info.of) parts.push('of ' + info.of); // a holy symbol of the temple's god (C8.5)
   return parts.join(' ');
 }
 function thingValue(k, info) {
@@ -382,7 +385,7 @@ function takeThing(s, id) {
   }
   const it = makeItem(s, 'th_' + t.k, null, null, true);
   it.thing = { k: t.k };
-  for (const f of ['g', 'old', 'ware', 'sec']) if (t[f] !== undefined) it.thing[f] = t[f];
+  for (const f of ['g', 'old', 'ware', 'sec', 'of']) if (t[f] !== undefined) it.thing[f] = t[f];
   if (t.ware || t.sec) it.thing.people = people;
   if (t.sec) it.known = false; // it looks like nothing much: a merchant may see more (the secret piece)
   s.player.items.push(it);

@@ -11,7 +11,7 @@
 
    Switch: s.off.steads (at creation, and in play: no more hamlets become towns). */
 import { W, H, idx, on, say, stream } from './core.js';
-import { HOME, areaRec, curTown, inTown, townInRegion } from './areas.js';
+import { HOME, areaRec, curTown, inTown, mapOf, townInRegion } from './areas.js';
 import { townAt } from './moretowns.js';
 import { AFTER_LOAD, SWITCHES } from './hooks.js';
 
@@ -52,7 +52,7 @@ function stead(s, rec, live) {
   if ((rec.realm || null) !== (s.realm || null)) return null; // only in the world the traveller is in
   if (rec.id === s.area && !live) return null; // the region underfoot is already drawn: it waits until it is left
   live = rec.id === s.area;
-  const m = live ? s : rec.map;
+  const m = mapOf(s, rec.id); // thawed, if it was packed away
   const h = hamletIn(m);
   if (!h) return null;
   if (live && Math.max(Math.abs(s.player.x - h.x), Math.abs(s.player.y - h.y)) <= R_TOWN + 4) return null;

@@ -173,7 +173,7 @@ async def main():
                 if await pg.evaluate("()=>window.__g.S.area") != 'overworld': crossed = True; break
             await pg.keyboard.up('w'); await pg.wait_for_timeout(200)
             if crossed: break
-        assert crossed, 'could not walk into the next region'
+        assert crossed, 'could not walk into the next region: %r' % await pg.evaluate("()=>{const g=window.__g,S=g.S;return {area:S.area,p:[S.player.x,S.player.y],P:[g.P.x|0,g.P.z|0],over:S.over,modal:!document.getElementById('modal').hidden,st:S.player.stamina,w:Rules.weight(S),cap:Rules.carryCap(S),log:S.log.slice(-3).map(l=>l.msg),fps:g.PF&&g.PF.fps}}")
         st = await pg.evaluate("()=>{const g=window.__g,S=g.S;return {x:S.player.x,px:g.P.x,area:S.area,biome:S.biome}}")
         assert st['x'] < 8 and st['px'] < -280, 'did not arrive on the west edge of the next region: %r' % st
         # the new land is built over the next frames, a few milliseconds each, while the old one stands in; then swapped

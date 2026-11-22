@@ -253,7 +253,15 @@ function building(K, st, r, b) {
     wallH = storeys * FH + 0.4,
     wcol = r.pick(st.wall),
     trim = st.trim;
-  K.stone.add(P.box(w + 0.3, 0.6, d + 0.3), st.plinth, { x: cx, y: 0.3, z: cz }, { uv: 2 });
+  if (!b.open) K.stone.add(P.box(w + 0.3, 0.6, d + 0.3), st.plinth, { x: cx, y: 0.3, z: cz }, { uv: 2 });
+  else {
+    // a building you walk into stands on a plinth round its foot only: inside is its own floor (C8.5: the solid plinth
+    // was the floor of every room, grey slabs half a metre above where the furniture stood)
+    for (const sz of [-1, 1])
+      K.stone.add(P.box(w + 0.3, 0.6, 0.3), st.plinth, { x: cx, y: 0.3, z: cz + sz * (d / 2) }, { uv: 2 });
+    for (const sx of [-1, 1])
+      K.stone.add(P.box(0.3, 0.6, d + 0.3), st.plinth, { x: cx + sx * (w / 2), y: 0.3, z: cz }, { uv: 2 });
+  }
   // grime and splash toward the foot, weathering a little higher on some houses than others
   const grime = 0.2 + r() * 0.15,
     wopt = { uv: 3, jitter: 0.05, shade: (y) => 1 - grime * Math.max(0, 1 - y * 3) },

@@ -967,6 +967,84 @@ const findSeed = (fn, from = 1) => {
   R.jumpTo(off, R.places(off).find((p) => p.group === 'Towns').id);
   need(!R.interiorsOn(off, off.area) && !R.places(off).some((p) => p.group === 'Houses'), 'NO=interiors still opens buildings');
 }
+// Rooms by use (C8.5): a temple's nave has its altar, the god's shrine on it and pews before it; a table has its
+// seats and its places laid; small things stand where they belong, never loose in the middle of a floor; a rich
+// dwelling has a dining room or a study; an abandoned house is broken, cobwebbed and old; switched off, none of it.
+{
+  let naves = 0,
+    shrines = 0,
+    tables = 0,
+    seated = 0,
+    loose = 0,
+    smalls = 0,
+    rich = 0,
+    richRooms = 0,
+    empties = 0,
+    ruined = 0;
+  for (let seed = 1; seed <= 16; seed++) {
+    const s = R.newGame(seed);
+    R.setGodMode(s, true);
+    for (const p of R.places(s).filter((q) => q.group === 'Towns')) {
+      R.jumpTo(s, p.id);
+      if (!R.interiorsOn(s, s.area)) continue;
+      for (const b of R.buildingsOf(s, s.area)) {
+        const L = R.houseLayout(s, s.area, b),
+          fixedAt = new Set(L.things.filter((t) => R.thingKind(t.k).fixed).map((t) => t.y * R.W + t.x));
+        if (b.kind === 'temple') {
+          naves++;
+          const altar = L.things.find((t) => t.k === 'altar'),
+            icon = L.things.find((t) => t.k === 'icon');
+          if (altar && icon && icon.dom && icon.h > 0.5 && L.things.some((t) => t.k === 'pew')) shrines++;
+          for (const t of L.things.filter((t) => t.k === 'holy')) need(t.of, 'a holy symbol in a temple is not of its god');
+        }
+        for (const t of L.things.filter((t) => t.k === 'table' && !t.old)) {
+          tables++;
+          const near = L.things.filter(
+            (u) => ['chair', 'stool'].includes(u.k) && Math.hypot(u.x + u.px - t.x - t.px, u.y + u.pz - t.y - t.pz) < 1.6,
+          );
+          if (near.length >= 2) seated++;
+        }
+        for (const t of L.things) {
+          if (R.thingKind(t.k).fixed || t.h > 0) continue;
+          smalls++;
+          const k = t.y * R.W + t.x;
+          // on the floor: by a wall, or by the furniture it belongs to
+          if (
+            L.terrain[k] !== R.WALL &&
+            ![k, k - 1, k + 1, k - R.W, k + R.W].some((q) => fixedAt.has(q) || L.terrain[q] === R.WALL)
+          )
+            loose++;
+        }
+        if (b.kind === 'house' && L.grade === 2 && L.rooms.length >= 3) {
+          rich++;
+          if (L.rooms.some((r) => ['dining', 'study'].includes(r.purpose))) richRooms++;
+        }
+        if (L.empty) {
+          empties++;
+          if (L.things.some((t) => ['cobweb', 'rubble', 'planks'].includes(t.k)) && L.things.filter((t) => !t.old).length <= 1)
+            ruined++;
+        }
+      }
+    }
+  }
+  need(naves >= 5 && shrines === naves, 'rooms: ' + shrines + ' of ' + naves + ' temples have an altar with the shrine and pews');
+  need(tables > 50 && seated / tables > 0.8, 'rooms: only ' + seated + ' of ' + tables + ' tables have two seats or more');
+  need(
+    smalls > 200 && loose / smalls < 0.05,
+    'rooms: ' + loose + ' of ' + smalls + ' small things loose in the middle of a floor',
+  );
+  need(!rich || richRooms / rich > 0.8, 'rooms: ' + richRooms + ' of ' + rich + ' rich houses have a dining room or a study');
+  need(empties >= 3 && ruined === empties, 'rooms: ' + ruined + ' of ' + empties + ' abandoned houses look abandoned');
+  const off = R.newGame(11, { rooms: true });
+  R.setGodMode(off, true);
+  R.jumpTo(off, R.places(off).find((p) => p.group === 'Towns').id);
+  need(
+    !R.buildingsOf(off, off.area).some((b) =>
+      R.houseLayout(off, off.area, b).things.some((t) => ['pew', 'nightstand', 'icon'].includes(t.k)),
+    ),
+    'NO=rooms still furnishes by use',
+  );
+}
 // Theft: in a house where people live, taking a thing is seen and undone; in an empty one, or with theft off, it is not.
 {
   const s = R.newGame(11);
@@ -1235,6 +1313,6 @@ lookChecks()
       process.exit(1);
     }
     console.log(
-      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, steads, tiers, world size, more towns, crafting, trade, the look, the ground, the score, things, interiors, theft, secrets',
+      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, steads, tiers, world size, more towns, crafting, trade, the look, the ground, the score, things, interiors, rooms, theft, secrets',
     );
   });
