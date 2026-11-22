@@ -13,6 +13,7 @@
    or five meshes: stone, wood, cloth, and the dark of doorways. */
 import { R } from './ctx.js';
 import { P, kit, kitMat } from './kit.js';
+import { addOutline } from './outline.js';
 import { surface } from './paint.js';
 import { LOOK_SWITCHES, lookOn } from './quality.js';
 
@@ -286,9 +287,14 @@ function ruinGroup(S, seed) {
   if (dh > 1 && civ.habit !== 'cistern')
     for (const [dx, dz] of doors) Z.dark.add(P.box(1.7, dh, 0.3), 0x0b0c0e, { x: dx, y: dh / 2, z: dz - 0.2 });
   const g = new THREE.Group(),
-    add = (k, mat) => !k.empty && g.add(new THREE.Mesh(k.build(), mat));
-  add(Z.stone, kitMat({ map: surface(st.tex, seed >>> 3) })); // each ruin's stone a variant of its people's
-  add(Z.wood, kitMat({ map: surface('wood') }));
+    add = (k, mat, line) => {
+      if (k.empty) return;
+      const m = new THREE.Mesh(k.build(), mat);
+      g.add(m);
+      if (line) addOutline(m, 2, 90); // outlined (C6)
+    };
+  add(Z.stone, kitMat({ map: surface(st.tex, seed >>> 3) }), true); // each ruin's stone a variant of its people's
+  add(Z.wood, kitMat({ map: surface('wood') }), true);
   add(Z.cloth, kitMat({ side: THREE.DoubleSide }));
   add(Z.dark, new THREE.MeshBasicMaterial({ vertexColors: true }));
   g.scale.y = 1; // height already follows age

@@ -13635,6 +13635,7 @@
   function setQuality(name) {
     if (!QUALITY[name]) return;
     SET.quality = name;
+    for (const k of Object.keys(Q)) delete Q[k];
     Object.assign(Q, QUALITY[name]);
     saveSettings();
   }
@@ -14695,13 +14696,12 @@
   }
   var kitMat = (extra) => toonMat(extra) || new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, extra || {}));
   var WIND = { time: { value: 0 }, strength: { value: 1 } };
-  function swaying(mat, amount) {
-    mat.onBeforeCompile = (sh) => {
-      sh.uniforms.windTime = WIND.time;
-      sh.uniforms.windStrength = WIND.strength;
-      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float windTime;\nuniform float windStrength;").replace(
-        "#include <begin_vertex>",
-        `#include <begin_vertex>
+  function swayPatch(sh, amount) {
+    sh.uniforms.windTime = WIND.time;
+    sh.uniforms.windStrength = WIND.strength;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float windTime;\nuniform float windStrength;").replace(
+      "#include <begin_vertex>",
+      `#include <begin_vertex>
 #ifdef USE_INSTANCING
 float wph = instanceMatrix[3].x * 0.071 + instanceMatrix[3].z * 0.053;
 #else
@@ -14711,10 +14711,112 @@ float wk = max(transformed.y, 0.0);
 wk *= wk * ${amount.toFixed(3)} * windStrength;
 transformed.x += sin(windTime * 1.3 + wph) * wk;
 transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
+    );
+  }
+  function swaying(mat, amount) {
+    mat.onBeforeCompile = (sh) => swayPatch(sh, amount);
+    mat.customProgramCacheKey = () => "sway" + amount;
+    mat.userData.sway = amount;
+    return mat;
+  }
+
+  // src/view/outline.js
+  LOOK_SWITCHES.push(["outlines", "Light outlines on people, creatures and nearby things"]);
+  var outlineOn = (n) => (Q.outline || 0) >= n && lookOn("outlines") && lookOn("light");
+  var U = {
+    olW: { value: 1 },
+    // width, about this many pixels and a half
+    olInk: { value: new THREE.Color(2763322) },
+    olK: { value: 0.5 },
+    // how far the line leans from its object's own dark toward the ink
+    olPx: { value: 25e-4 }
+    // metres of push per metre of distance for one pixel (from the screen's height)
+  };
+  function setOutline(lk, screenH) {
+    if (lk) {
+      U.olInk.value.setRGB(lk.ink[0], lk.ink[1], lk.ink[2]);
+      U.olW.value = 1 + lk.outline * 1.1;
+      U.olK.value = 0.35 + lk.outline * 0.4;
+    } else {
+      U.olInk.value.setHex(2763322);
+      U.olW.value = 1.6;
+      U.olK.value = 0.5;
+    }
+    if (screenH) U.olPx.value = 2 * Math.tan(35 * Math.PI / 180) / screenH;
+  }
+  function smoothNormals(geo) {
+    if (geo.attributes.outN) return geo;
+    const p = geo.attributes.position, n = geo.attributes.normal, acc = /* @__PURE__ */ new Map(), key = (i) => Math.round(p.getX(i) * 200) + "," + Math.round(p.getY(i) * 200) + "," + Math.round(p.getZ(i) * 200);
+    for (let i = 0; i < p.count; i++) {
+      const k = key(i), a = acc.get(k) || acc.set(k, [0, 0, 0]).get(k);
+      a[0] += n.getX(i);
+      a[1] += n.getY(i);
+      a[2] += n.getZ(i);
+    }
+    const out = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) {
+      const a = acc.get(key(i)), l = Math.hypot(a[0], a[1], a[2]) || 1;
+      out[i * 3] = a[0] / l;
+      out[i * 3 + 1] = a[1] / l;
+      out[i * 3 + 2] = a[2] / l;
+    }
+    geo.setAttribute("outN", new THREE.BufferAttribute(out, 3));
+    return geo;
+  }
+  var MATS = /* @__PURE__ */ new Map();
+  function outlineMat(far, patch, key) {
+    const k = far + ":" + (key || "");
+    if (!patch && MATS.has(k)) return MATS.get(k);
+    const m = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide });
+    m.onBeforeCompile = (sh) => {
+      if (patch) patch(sh);
+      Object.assign(sh.uniforms, U);
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 outN;\nuniform float olW;\nuniform float olPx;").replace(
+        "#include <project_vertex>",
+        `{
+  vec4 wp = vec4(transformed, 1.0);
+#ifdef USE_INSTANCING
+  wp = instanceMatrix * wp;
+#endif
+  float dist = distance((modelMatrix * wp).xyz, cameraPosition);
+  float push = olW * olPx * dist * (1.0 - smoothstep(${(far * 0.6).toFixed(1)}, ${far.toFixed(1)}, dist));
+  vec3 dir = outN;
+#ifdef OUTLINE_JOINTS
+  dir = joint(dir, bone);
+#endif
+  transformed += dir * push / max(0.2, length((modelMatrix * vec4(dir, 0.0)).xyz));
+}
+#include <project_vertex>`
+      );
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 olInk;\nuniform float olK;").replace(
+        "#include <fog_fragment>",
+        "gl_FragColor.rgb = mix(diffuseColor.rgb * 0.32, olInk, olK);\n#include <fog_fragment>"
       );
     };
-    mat.customProgramCacheKey = () => "sway" + amount;
-    return mat;
+    m.customProgramCacheKey = () => "outline" + k;
+    m.dispose = () => {
+    };
+    if (!patch) MATS.set(k, m);
+    return m;
+  }
+  function addOutline(mesh2, level2, far, mat) {
+    if (!mesh2 || !outlineOn(level2)) return null;
+    smoothNormals(mesh2.geometry);
+    const m = mat || outlineMat(far || 60);
+    let o;
+    if (mesh2.isInstancedMesh) {
+      o = new THREE.InstancedMesh(mesh2.geometry, m, 1);
+      o.instanceMatrix = mesh2.instanceMatrix;
+      Object.defineProperty(o, "count", { get: () => mesh2.count, set: () => {
+      } });
+    } else o = new THREE.Mesh(mesh2.geometry, m);
+    o.frustumCulled = mesh2.frustumCulled;
+    o.userData.outline = true;
+    o.castShadow = o.receiveShadow = false;
+    o.raycast = () => {
+    };
+    mesh2.add(o);
+    return o;
   }
 
   // src/view/buildings.js
@@ -14885,15 +14987,18 @@ vFade = sin(ph * 3.14159);`
     K2.roof.cur = r.pick(rmix) + ":" + Math.floor(r() * 3);
   }
   function finish(K2, st, group) {
-    const add = (k, mat) => {
-      if (!k.empty) group.add(new THREE.Mesh(k.build(), mat));
+    const add = (k, mat, line) => {
+      if (k.empty) return;
+      const m = new THREE.Mesh(k.build(), mat);
+      group.add(m);
+      if (line) addOutline(m, 2, 90);
     };
     add(K2.ground, kitMat({ map: surface("dirt", 0) }));
     add(K2.cobble, kitMat({ map: surface("cobble", 0) }));
-    for (const key in K2.walls) add(K2.walls[key], kitMat({ map: surface(key.split(":")[0], +key.split(":")[1]) }));
-    for (const key in K2.roofs) add(K2.roofs[key], kitMat({ map: surface(key.split(":")[0], +key.split(":")[1]) }));
-    add(K2.wood, kitMat({ map: surface("wood") }));
-    add(K2.stone, kitMat({ map: surface("stone") }));
+    for (const key in K2.walls) add(K2.walls[key], kitMat({ map: surface(key.split(":")[0], +key.split(":")[1]) }), true);
+    for (const key in K2.roofs) add(K2.roofs[key], kitMat({ map: surface(key.split(":")[0], +key.split(":")[1]) }), true);
+    add(K2.wood, kitMat({ map: surface("wood") }), true);
+    add(K2.stone, kitMat({ map: surface("stone") }), true);
     add(K2.cloth, kitMat({ map: surface("cloth"), side: THREE.DoubleSide }));
     add(K2.glow, GLOW);
     if (K2.smoke.length && !Q.lite) group.add(smokeOf(K2.smoke, st.smoke));
@@ -15719,9 +15824,14 @@ vFade = sin(ph * 3.14159);`
     const dh = Math.min(2.4, H2 * age.stand - 0.4);
     if (dh > 1 && civ.habit !== "cistern")
       for (const [dx, dz] of doors) Z2.dark.add(P4.box(1.7, dh, 0.3), 723982, { x: dx, y: dh / 2, z: dz - 0.2 });
-    const g = new THREE.Group(), add = (k, mat) => !k.empty && g.add(new THREE.Mesh(k.build(), mat));
-    add(Z2.stone, kitMat({ map: surface(st.tex, seed >>> 3) }));
-    add(Z2.wood, kitMat({ map: surface("wood") }));
+    const g = new THREE.Group(), add = (k, mat, line) => {
+      if (k.empty) return;
+      const m = new THREE.Mesh(k.build(), mat);
+      g.add(m);
+      if (line) addOutline(m, 2, 90);
+    };
+    add(Z2.stone, kitMat({ map: surface(st.tex, seed >>> 3) }), true);
+    add(Z2.wood, kitMat({ map: surface("wood") }), true);
     add(Z2.cloth, kitMat({ side: THREE.DoubleSide }));
     add(Z2.dark, new THREE.MeshBasicMaterial({ vertexColors: true }));
     g.scale.y = 1;
@@ -15732,10 +15842,10 @@ vFade = sin(ph * 3.14159);`
   LOOK_SWITCHES.push(["water", "Real water"]);
   var waterOn2 = () => lookOn("water") && lookOn("light");
   var SKY = { value: new THREE.Color(11060444) };
-  var MATS = {};
+  var MATS2 = {};
   function waterMat(far) {
     const rich = !Q.lite && !far, key = rich ? "rich" : "plain";
-    if (MATS[key]) return MATS[key];
+    if (MATS2[key]) return MATS2[key];
     const m = rich ? new THREE.MeshPhongMaterial({ vertexColors: true, transparent: true, shininess: 90, specular: 10132112, depthWrite: false }) : new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false });
     m.onBeforeCompile = (sh) => {
       sh.uniforms.wTime = WIND.time;
@@ -15793,7 +15903,7 @@ ${rich ? `{
     m.customProgramCacheKey = () => "water-" + key;
     m.dispose = () => {
     };
-    return MATS[key] = m;
+    return MATS2[key] = m;
   }
   function setWaterSky(c) {
     SKY.value.copy(c);
@@ -16032,7 +16142,11 @@ ${rich ? `{
   // src/view/landmarks.js
   LOOK_SWITCHES.push(["landmarks", "Landmarks in the style"]);
   var marksOn = () => lookOn("landmarks") && lookOn("light");
-  var mesh = (k, tex) => new THREE.Mesh(k.build(), kitMat({ map: tex ? surface(tex) : null }));
+  var mesh = (k, tex) => {
+    const m = new THREE.Mesh(k.build(), kitMat({ map: tex ? surface(tex) : null }));
+    addOutline(m, 2, 120);
+    return m;
+  };
   var glowMat = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: o < 1, opacity: o, depthWrite: o >= 1, fog: false });
   function courses(k, col, r0, r1, h, n, x, z) {
     const rows = Math.round(h / 1.2);
@@ -16387,21 +16501,33 @@ vec3 joint(vec3 p, float b) {
   return p;
 }
 `;
-  function actorMat(opts) {
-    const m = toonMat(opts) || new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, opts || {})), u = { aPhase: { value: 0 }, aSwing: { value: 0 }, aHead: { value: 0 }, aArm: { value: 0 }, aTail: { value: 0 } };
-    m.userData.u = u;
-    m.onBeforeCompile = (sh) => {
-      Object.assign(sh.uniforms, u);
-      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + COMMON).replace("#include <beginnormal_vertex>", "#include <beginnormal_vertex>\nobjectNormal = joint(objectNormal, bone);").replace(
-        "#include <begin_vertex>",
-        `#include <begin_vertex>
+  function joints(sh, u, glow2) {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n#define OUTLINE_JOINTS\n" + COMMON).replace("#include <beginnormal_vertex>", "#include <beginnormal_vertex>\nobjectNormal = joint(objectNormal, bone);").replace(
+      "#include <begin_vertex>",
+      `#include <begin_vertex>
 vec3 q = transformed - pivot;
 if (bone > 6.5 && bone < 7.5) q.x += sin(aPhase * 0.8 + pivot.z * 1.3) * (0.15 + aSwing * 0.5);
 transformed = joint(q, bone) + pivot;
 vGlow = bone > 7.5 ? 1.0 : 0.0;`
-      );
+    );
+    if (glow2)
       sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vGlow;").replace("#include <fog_fragment>", "#include <fog_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, vColor, vGlow);");
-    };
+  }
+  function outlineActor(mesh2) {
+    if (!outlineOn(1) || mesh2.material.transparent) return;
+    const u = mesh2.material.userData.u;
+    addOutline(
+      mesh2,
+      1,
+      60,
+      outlineMat(60, (sh) => joints(sh, u, false), "actor")
+    );
+  }
+  function actorMat(opts) {
+    const m = toonMat(opts) || new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, opts || {})), u = { aPhase: { value: 0 }, aSwing: { value: 0 }, aHead: { value: 0 }, aArm: { value: 0 }, aTail: { value: 0 } };
+    m.userData.u = u;
+    m.onBeforeCompile = (sh) => joints(sh, u, true);
     m.customProgramCacheKey = () => "actor" + (opts && opts.transparent ? "t" : "") + (m.isMeshToonMaterial ? "b" : "");
     return m;
   }
@@ -16560,6 +16686,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     }, mesh2 = new THREE.Mesh(personModel(cloth, SKIN[s % 5], hat || 0, HAIR[(s >> 3) % 5], look2), actorMat());
     mesh2.scale.set(0.9 + r(6) * 0.25, 0.92 + r(7) * 0.16, 0.9 + r(6) * 0.25);
     mesh2.userData.actor = { kind: "person", seed: s };
+    outlineActor(mesh2);
     return mesh2;
   }
   function creatureActor(form, color, eye) {
@@ -16568,6 +16695,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       actorMat(ghost ? { color, transparent: true, opacity: 0.8, depthWrite: false } : { color })
     );
     mesh2.userData.actor = { kind: form };
+    outlineActor(mesh2);
     return mesh2;
   }
   var LAST = /* @__PURE__ */ new Map();
@@ -16882,14 +17010,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     g.kept = true;
     return CACHE[key] = g;
   }
-  var MATS2 = {};
+  var MATS3 = {};
   function treeMat(forest) {
     const shape = shapeOf2(forest), amt = { conifer: 0.025, birch: 0.04, broad: 0.03, dead: 0.015, thorn: 0.02, fern: 0.06, grass: 0.12 }[shape] || 0.03;
-    if (MATS2[shape]) return MATS2[shape];
+    if (MATS3[shape]) return MATS3[shape];
     const m = swaying(kitMat(), amt);
     m.dispose = () => {
     };
-    return MATS2[shape] = m;
+    return MATS3[shape] = m;
   }
   var plantsOn = () => lookOn("plants") && lookOn("light");
   function makeLOD(group, forest, list, tint2) {
@@ -16906,6 +17034,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     };
     const near = mk(treeModel(forest, false));
     near.userData.near = true;
+    const sway = near.material.userData.sway || 0;
+    if (outlineOn(3))
+      addOutline(
+        near,
+        3,
+        45,
+        outlineMat(45, (sh) => swayPatch(sh, sway), "sway" + sway)
+      );
     return {
       list: new Float32Array(list),
       tint: new Float32Array(tint2),
@@ -19271,6 +19407,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (lk && fogBandsOn()) scene.fog.near = -Math.max(0.01, scene.fog.near);
     if (lk) setBands(lk.bands, lk.soft);
     else setBands(3, 0.45);
+    setOutline(lk, window.innerHeight);
     lightOutdoors(h, day, dusk, skyC, !!storm, sight, lk);
     sun.position.x += P3.x;
     sun.position.z += P3.z;

@@ -17,6 +17,38 @@ there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session
 
 The page was 774 KB.
 
+## C6.4: light outlines, and a fix to switching quality
+
+**What it is** (`outline.js`). A thin line round people and creatures (from Low), buildings, ruins and landmarks (from
+Medium) and the trees about you (High), never round the land. It is the inverted hull: each outlined model gets a
+copy of itself drawn from the inside, pushed out along its normals averaged where its parts meet (so the line closes
+round corners), in the dark of the thing's own colour leaning toward the look's ink: a dark brown line round a brown
+house, a blue-grey one round a blue coat; in other worlds it leans all the way to the ink. The push grows with
+distance, so the line stays about one and a half to two pixels wide on any screen, and fades away past 60 m for
+people, 90 m for buildings, 45 m for trees, so far things stay soft. People and creatures' outlines move with their
+joints, and the trees' sway with them (the sway is one shared piece of shader now, `swayPatch`). One draw call more
+per outlined mesh: a person or creature is two, a town about fourteen, a forest's outlines one.
+
+**Fix.** Changing the quality kept any setting of the last level the new one does not name: going from High to Low
+kept High's shadows and finish, from Low to Medium kept Low's "lite" towns. Now nothing lingers. This also skewed the
+benchmark: it changes level as it goes, so earlier rows here (and in commission 5) measured Fallback with Medium's
+extras, and Medium and High with lite towns. The rows below are clean; Fallback really costs about 75 ms a frame here.
+
+**Switch.** `outlines` ("Light outlines on people, creatures and nearby things").
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 78 | 73 | 106,484 | 74.8 |
+| Low | 346 | 122 | 578,046 | 394.0 |
+| Medium | 385 | 143 | 589,064 | 395.3 |
+| High | 405 | 150 | 761,209 | 513.9 |
+
+High's extra 170,000 triangles are the near trees' outlines (a copy of every near tree); on a phone's graphics chip
+that is cheap, on this software renderer it shows. If it is dear on the Pixel, `outline: 2` in quality.js's High drops
+them.
+
+**Verdict.** Pearl: a person in the street now reads against the cobbles at a glance.
+
 ## C6.3: soft bands of light, and distance in steps
 
 **What it is** (`toon.js`).

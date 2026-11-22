@@ -48,7 +48,7 @@ SHOTS = [
     ('town-night', 11, {}, town(0, NIGHT)),
     ('ruin', 11, {}, RUIN % DAY),
     ('street', 11, {}, town(0, 'S.time = 16 * 60 - 360;') + "g.P.z -= 46; g.P.x += 3; g.P.yaw = -0.5; g.P.pitch = 0.05;"),
-    ('creature', 11, {}, "Rules.travelTo(S, 'overworld', 18, 18); " + DAY + " g.refresh(); const c = S.creatures.find((c) => !c.bound); if (!c) return false; c.cool = 999; S.player.x = c.x; S.player.y = Math.min(35, c.y + 1); g.refresh(); const cx = (c.x + 0.5) * 28 - 504 - 4, cz = (c.y + 0.5) * 28 - 504 - 5; g.P.x = cx + 1.2; g.P.z = cz + 3.6; g.P.yaw = Math.atan2(-(cx - g.P.x), -(cz - g.P.z)); g.P.pitch = -0.28;"),
+    ('creature', 11, {}, "Rules.travelTo(S, 'overworld', 18, 18); " + DAY + " g.refresh(); const c = S.creatures.find((c) => !c.bound); if (!c) return false; c.cool = 999; S.player.x = c.x; S.player.y = Math.min(35, c.y + 1); g.refresh(); let a = null; g.scene.traverse((o) => { if (!a && o.userData.actor && o.userData.actor.kind !== 'person') a = o; }); if (!a) return false; const w = new THREE.Vector3(); a.parent.getWorldPosition(w); g.P.x = w.x + 2.4; g.P.z = w.z + 5.2; g.P.yaw = Math.atan2(-(w.x - g.P.x), -(w.z - g.P.z)); g.P.pitch = -0.3; await wait(2500);"),
     ('storm', 222, {}, region('(1, 1)', DAY + 'S.weather.storm = Rules.stormOfNow ? true : true;')),
     ('dungeon', 31, {}, place('Below', '')),
     ('sky', 32, {'sky': 1, 'trouble': 'tyrant'}, place('Above', DAY)),

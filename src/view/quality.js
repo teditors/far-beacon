@@ -107,6 +107,7 @@ function saveSettings() {
 function setQuality(name) {
   if (!QUALITY[name]) return;
   SET.quality = name;
+  for (const k of Object.keys(Q)) delete Q[k]; // nothing of the last level may linger (shadows, outlines...)
   Object.assign(Q, QUALITY[name]);
   saveSettings();
 }

@@ -6,6 +6,7 @@
    At night its windows and lamps glow (setNight, called each frame). */
 import { R } from './ctx.js';
 import { P, WIND, kit, kitMat } from './kit.js';
+import { addOutline } from './outline.js';
 import { surface } from './paint.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 
@@ -213,15 +214,19 @@ function choose(K, st, r) {
 }
 // The kits made into meshes, each with its painted surface.
 function finish(K, st, group) {
-  const add = (k, mat) => {
-    if (!k.empty) group.add(new THREE.Mesh(k.build(), mat));
+  // line: outlined (C6), for the houses and what stands in the streets, never the streets themselves
+  const add = (k, mat, line) => {
+    if (k.empty) return;
+    const m = new THREE.Mesh(k.build(), mat);
+    group.add(m);
+    if (line) addOutline(m, 2, 90);
   };
   add(K.ground, kitMat({ map: surface('dirt', 0) }));
   add(K.cobble, kitMat({ map: surface('cobble', 0) }));
-  for (const key in K.walls) add(K.walls[key], kitMat({ map: surface(key.split(':')[0], +key.split(':')[1]) }));
-  for (const key in K.roofs) add(K.roofs[key], kitMat({ map: surface(key.split(':')[0], +key.split(':')[1]) }));
-  add(K.wood, kitMat({ map: surface('wood') }));
-  add(K.stone, kitMat({ map: surface('stone') }));
+  for (const key in K.walls) add(K.walls[key], kitMat({ map: surface(key.split(':')[0], +key.split(':')[1]) }), true);
+  for (const key in K.roofs) add(K.roofs[key], kitMat({ map: surface(key.split(':')[0], +key.split(':')[1]) }), true);
+  add(K.wood, kitMat({ map: surface('wood') }), true);
+  add(K.stone, kitMat({ map: surface('stone') }), true);
   add(K.cloth, kitMat({ map: surface('cloth'), side: THREE.DoubleSide }));
   add(K.glow, GLOW);
   if (K.smoke.length && !Q.lite) group.add(smokeOf(K.smoke, st.smoke));

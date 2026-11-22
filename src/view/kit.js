@@ -193,15 +193,14 @@ const kitMat = (extra) => toonMat(extra) || new THREE.MeshLambertMaterial(Object
 /* Wind: a shared clock, and a material change that sways the top of an instanced model (trees, grass, banners) while
    its foot stays put. Each instance sways in its own time, from where it stands. */
 const WIND = { time: { value: 0 }, strength: { value: 1 } };
-function swaying(mat, amount) {
-  mat.onBeforeCompile = (sh) => {
-    sh.uniforms.windTime = WIND.time;
-    sh.uniforms.windStrength = WIND.strength;
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nuniform float windTime;\nuniform float windStrength;')
-      .replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>
+function swayPatch(sh, amount) {
+  sh.uniforms.windTime = WIND.time;
+  sh.uniforms.windStrength = WIND.strength;
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\nuniform float windTime;\nuniform float windStrength;')
+    .replace(
+      '#include <begin_vertex>',
+      `#include <begin_vertex>
 #ifdef USE_INSTANCING
 float wph = instanceMatrix[3].x * 0.071 + instanceMatrix[3].z * 0.053;
 #else
@@ -211,9 +210,12 @@ float wk = max(transformed.y, 0.0);
 wk *= wk * ${amount.toFixed(3)} * windStrength;
 transformed.x += sin(windTime * 1.3 + wph) * wk;
 transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`,
-      );
-  };
+    );
+}
+function swaying(mat, amount) {
+  mat.onBeforeCompile = (sh) => swayPatch(sh, amount);
   mat.customProgramCacheKey = () => 'sway' + amount;
+  mat.userData.sway = amount; // for its outline (outline.js), which sways with it
   return mat;
 }
-export { kit, P, kitMat, placeMatrix, WIND, swaying };
+export { kit, P, kitMat, placeMatrix, WIND, swaying, swayPatch };
