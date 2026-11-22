@@ -17,6 +17,31 @@ there and 396 ms here. Set `CHROME=/opt/pw-browsers/chromium` in a cloud session
 
 The page was 774 KB.
 
+## C6.6: far hills in bands
+
+**What it is** (`skyline.js`). Beyond the land that is drawn, two to four rings of ridges (Low 2, Medium 3, High 4) at
+860 to 1,750 m stand against the sky, each a step further into the air, so hills stack in bands like a Firewatch vista.
+The land drawn nearer has already faded into the air by its edge, so the rings are only a little darker and cooler
+than the horizon (24%, 17%, 11%, 7% of the way to a tone of the shade and the zenith): they rise above the land's own
+skyline and stand across open water as far coasts. Their ridge lines are a few sine waves from the region's seed,
+sharper and taller where the land is mountainous. They follow the traveller like the sky, take their colour from the
+look each frame (night darkens them with everything else), fade away in a storm or fog, and in other worlds the ink
+draws their edges, which gives the Moebius horizon of pencil ridges. A few hundred triangles each.
+
+Also: the browser pictures' sea is now a coast in the sea world, with a separate picture under the sea; and "before"
+pictures were taken for every new view.
+
+**Switch.** `skyline` ("Far hills in bands").
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| Fallback | 79 | 73 | 106,484 | 71.0 |
+| Low | 383 | 124 | 578,686 | 401.3 |
+| Medium | 389 | 146 | 590,024 | 401.7 |
+| High | 395 | 154 | 762,489 | 506.3 |
+
+**Verdict.** Small pearl: quiet by day, lovely across water and in other worlds.
+
 ## C6.5: other worlds in clean line, and paper
 
 **What it is.** Through a door, the look itself changes, as if stepping into another artist's book (Sable, Moebius).

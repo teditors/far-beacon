@@ -5,6 +5,7 @@ import { P, R, V } from './ctx.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { camera, scene } from './scene.js';
 import { NOW } from './mood.js';
+import { hideSkyline, updateSkyline } from './skyline.js';
 
 const SKY_R = 1800;
 let dome = null,
@@ -239,6 +240,7 @@ function updateClouds(on, skyColor, sunPos, day, storm, dt) {
 }
 function updateSky(skyColor, sunPos, day, storm, dt) {
   const on = Q.sky && !R.isDark(V.S);
+  updateSkyline(on, scene.fog ? scene.fog.far : 600); // far hills (C6)
   // other worlds drawn in clean line have big empty skies (C6): no soft clouds in them
   const inked = NOW.look && NOW.look.line > 0.5;
   updateClouds(on && !inked && lookOn('clouds') && lookOn('light'), skyColor, sunPos, day, storm, dt);
@@ -296,6 +298,7 @@ function updateSky(skyColor, sunPos, day, storm, dt) {
   }
 }
 function hideSky() {
+  hideSkyline();
   if (dome) dome.visible = sunDisc.visible = moonDisc.visible = false;
   if (clouds) clouds.visible = halo.visible = false;
   if (fall) fall.visible = false;

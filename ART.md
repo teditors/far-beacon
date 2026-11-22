@@ -16,7 +16,8 @@ a door, *Sable* and Moebius: pale flat colour, thin ink on everything, big empty
    a fog, a grade. Mood comes from these, not from detail. A gold dusk, a blue night, a sickly green curse, a grey
    storm, a bleached drought.
 2. **Distance is colour.** Things fade toward the fog colour (the horizon's) in soft steps (five, `toon.js`), so ridges
-   stack in bands. Nothing far is sharp; nothing near is hazy. The eye sees about 620 m by day on Medium (the drawn
+   stack in bands; beyond the drawn land, rings of far hills (`skyline.js`) carry the bands on to the horizon, each
+   paler than the last. Nothing far is sharp; nothing near is hazy. The eye sees about 620 m by day on Medium (the drawn
    land's edge), less in wet and ashen lands and storms (`reach`), more in steppes, hot lands and other worlds.
 3. **Warm light, cool shade.** The sun is warm (cream at noon, orange low); the shade is filled by the sky's light,
    cool and coloured (blue, lilac, grey-green), never black. The grade lifts the darkest darks into the look's `lift`
@@ -91,9 +92,9 @@ land in it.
 | Level | What it draws |
 | --- | --- |
 | Fallback (hidden) | the old Low: plain light, no sky, no finish, fog in steps; chosen by itself when frames stay slow |
-| Low (the old High) | the look's palettes, bands, outlines on people and creatures, the finish and grade, ink in other worlds, shadows |
-| Medium | Low, and outlines on buildings, ruins and landmarks, the paper grain |
-| High | Medium, a finer picture (2.5 pixels per point), more land, grass and shadow detail, outlines on near trees |
+| Low (the old High) | the look's palettes, bands, outlines on people and creatures, the finish and grade, ink in other worlds, shadows, two rings of far hills |
+| Medium | Low, and outlines on buildings, ruins and landmarks, the paper grain, three rings of far hills |
+| High | Medium, a finer picture (2.5 pixels per point), more land, grass and shadow detail, outlines on near trees, four rings of far hills |
 
 Prefer techniques that cost little per pixel: colour, fog and light are free; a full-screen pass is one texture read
 per pixel per tap. Measure with `python3 tools/bench.py fallback low medium high`.
