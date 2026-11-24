@@ -412,8 +412,11 @@ function settleActors(group) {
 // A creature's id, told by the rules' 'killed' event (see scene.js), so its going is a fall.
 const markKilled = (id) => killed.add('c:' + id);
 // The frame of the scene moved by (dx, dz): move what is remembered with it.
+// others that keep things in the frame of the scene and must move with it (C9: the paw prints)
+const SHIFTS = [];
 function shiftActors(dx, dz, dy) {
   dy = dy || 0;
+  for (const f of SHIFTS) f(dx, dz, dy);
   for (const [, l] of LAST) (l.pos.x += dx), (l.pos.y += dy), (l.pos.z += dz);
   for (const a of live) {
     a.g.position.x += dx;
@@ -519,6 +522,7 @@ function animateActors(dt, px, pz, still) {
   if (LAST.size > 300) for (const k of [...LAST.keys()].slice(0, LAST.size - 300)) LAST.delete(k);
 }
 export {
+  SHIFTS,
   actorsOn,
   personActor,
   creatureActor,

@@ -187,6 +187,9 @@ FELINE_SHOTS = [
     ('feline-beacon', 11, {}, BEACON % DAY),
     ('feline-ruin', 11, {}, RUIN % DAY),
     ('feline-sun', 11, {}, SUN),
+    ('feline-house', 11, {}, HOUSE % (2, DAY)),
+    ('feline-dwelling', 11, {}, KIND % ("x.kind === 'house' && !" + EMPTY, DAY, 1)),
+    ('feline-inn', 222, {}, HOUSE % (1, 'S.time = 21 * 60 - 360;')),
 ]
 if SET == 'feline': SHOTS = FELINE_SHOTS
 async def main():

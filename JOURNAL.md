@@ -6,7 +6,8 @@ switch; a rare roll that makes a world feline whether asked or not. Pieces, newe
 
 ## Summary
 
-Three pieces, newest first below, in three commits and a fourth for the summary, map and polish. Every check passes,
+Four pieces, newest first below. The first three and a commit of polish made the mode; the fourth came after Andrew
+said "Get catty". Every check passes,
 the full one with the browser test, which now chooses Super Feline Mode on the new world screen, taps the splash away,
 finds cat words where the plain ones were, tries the cat songs, and turns the mode off again to find every word back.
 No save migration: the choice is one optional field (`s.theme`), and a rolled world stores nothing.
@@ -17,6 +18,7 @@ No save migration: the choice is one optional field (`s.theme`), and a rolled wo
 | C9.2 | Cat faces on everyone, the foes a cat fears (the dog next door, the vacuum cleaner, the spray bottle, the cucumber, dust bunnies), a scratching-post beacon, a cat-bed camp with a warm laptop, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun | the same | pearl |
 | C9.3 | A cat soundtrack (the score meows, mrrows, trills and purrs; foes woof, whirr and psst; you hiss and purr) and the player for Andrew's own cat songs, outside the one-file game | the same; device setting `catSongs` | solid |
 | (polish) | A paw print for you on the maps, a party for a win, the end screens' words | | small |
+| C9.4 | Being a cat: whiskers, ears, a swiping paw, slow blinks and naps in the view; paw prints behind you; 3 a.m. zoomies; 36 lines rewritten in a cat's own voice; an inner monologue in thought bubbles; cats asleep on the beds and tables | the same | pearl |
 
 **The bot, with the mode on and off** (`THEME=feline node tests/playtest.js 150`, three seed sets of 150): off 30, 14
 and 20 wins (20%, 9%, 13%); on 30, 14 and 20. Not merely within noise: the same worlds, won and lost the same way,
@@ -38,18 +40,65 @@ voices. Andrew's songs never go in it.
    THAT cat?), a kitchen knife (not a toy), a ball of yarn (MINE), a broom (sworn enemy), a heap of fallen plaster (it
    was like that); the inn is a Cat Café, the shop a Pet Shop, the coin treats, and the bandages cones of shame.
 
-**What I would do next.**
-1. Lines written by a cat rather than renamed: the hundred lines a player meets most (the elder's tale, rumours, the
-   epitaphs) as whole-line entries in the theme, in a cat's voice, where word swaps read oddly.
-2. Paw prints in the ground where you have walked (a decal pass), and a cat flap in every door.
-3. A cat of your own in first person: whiskers at the edge of the view, a paw that swipes when you strike.
+**What I would do next** (1 to 3 of the first list are done in C9.4).
+1. More lines in a cat's voice: the elder's tale, rumours and epitaphs, the windows of the town's people.
+2. A cat flap in every door, scratch marks on the walls, a knocked-over cup by every table.
+3. Cats in the towns' streets as well as the people (sunning on walls, on roofs).
 4. A second theme through the same layer (Andrew may have one in mind); the dictionary, kit and sound bank are its
    whole shape.
 5. Merge, so `tools/site.sh` on `main` copies Andrew's songs beside the published pages, then add the songs.
 
 **CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
 
-| v0.20 | Commission 9: Super Feline Mode, a total conversion to cats with the rules untouched. Chosen on the new world screen or in Settings, or rolled by itself in about one world in fifty, it dresses every word (breeds for races, Meowladins and Clawgues, kibble for water, naps, catnip, treats, the Red Dot and the Laser Pointer, hissy fits and furricanes, the Vacuum Tyrant, the Cult of the Cucumber), every face (cat heads on everyone), every foe (the dog next door, vacuum cleaners, spray bottles, cucumbers, dust bunnies), the land (a scratching-post beacon, cat-bed camps, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun) and the sound (a score of meows, trills and purrs), with a splash of flying cats. An optional full soundtrack of Andrew's own cat songs is published beside the game and fetched only when turned on. Turning it off restores everything. See `JOURNAL.md` |
+| v0.20 | Commission 9: Super Feline Mode, a total conversion to cats with the rules untouched. Chosen on the new world screen or in Settings, or rolled by itself in about one world in fifty, it dresses every word (breeds for races, Meowladins and Clawgues, kibble for water, naps, catnip, treats, the Red Dot and the Laser Pointer, hissy fits and furricanes, the Vacuum Tyrant, the Cult of the Cucumber), every face (cat heads on everyone), every foe (the dog next door, vacuum cleaners, spray bottles, cucumbers, dust bunnies), the land (a scratching-post beacon, cat-bed camps, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun) and the sound (a score of meows, trills and purrs), with a splash of flying cats. You are a cat: whiskers and a swiping paw in the view, paw prints behind you, 3 a.m. zoomies, a thought bubble of cat opinions, the commonest lines rewritten in a cat's own voice, and a cat asleep on every bed. An optional full soundtrack of Andrew's own cat songs is published beside the game and fetched only when turned on. Turning it off restores everything. See `JOURNAL.md` |
+
+## C9.4: being a cat (a cat's-eye view, a cat's own voice, cats on everything)
+
+Andrew, after the first three: "Get catty." The journal's "what next", done where it needed no one's input.
+
+**A cat's-eye view** (`view/catpov.js`, styles in shell.html, view only). In the mode you can tell you are a cat:
+whiskers at the bottom corners of the view, swaying (and fast and pink during the zoomies); ears that peek in at the
+top on wide screens and flatten back for the length of a fight; a paw (ginger, pink toe beans) that swipes across the
+view, claws out, every time you strike, cast or smite, and gives a smug little bat when you win; a slow blink every
+seven to twenty seconds when nothing is happening (the cat "I love you", to nobody); eyelids that close, with z's, when
+you nap, sleep or make camp. **Paw prints** follow you over the ground, a print to each side of the way you went, the
+last 220 of them, shrinking as they age (one instanced mesh, one draw call; they move with the scene's frame like the
+creatures do, through a new `SHIFTS` hook in actors.js, and are swept away when you go somewhere else).
+
+**The zoomies.** Between two and five in the morning, now and then, you run at more than twice the pace for five
+seconds, for no reason at all, and say so. View only: the steps cost what they always cost; the rules never know.
+
+**A cat's own voice** (`content/felinevoice.js`). The lines a player meets most are no longer word-swapped but
+rewritten by a cat: `lines`, a pattern and its rewrite, applied before any word is turned, the pattern's groups
+(names, storms, places) turned by themselves. "You rest for an hour." is "You curl into a croissant and nap for an hour.
+It was not enough. It is never enough." Nearly out of water: "The kibble bowl is VISIBLY EMPTY IN THE MIDDLE. This is an
+emergency. Yowl accordingly." A storm "bursts over you. You flatten your ears and take it personally", and when it
+passes "you groom yourself back to dignity, one indignant lick at a time." A foe's blow: "The Chilly-nose Woofer bops
+you for 4. Rude." A miss: "You were never there. You are a cat." Dying of thirst: "You flop over, dry as old kibble.
+The carpet keeps you. That is one of your lives, gone." Thirty-six such lines in all. (Venom, by the word table, is
+now cucumber juice: "Cucumber juice saps you.")
+
+**The inner monologue.** When something happens (a nap, a swat, a kill, being hurt, a storm, an empty bowl, a town, a
+new level, a dark hole to go down, the end) or nothing has happened for 25 seconds, the cat now and then thinks out
+loud in a bubble: "Eighteen hours a day is a minimum, not a goal." "I will leave its body on your pillow, as a gift."
+"Strategic zoomies." "So many laps. So little time." "I have been staring at this wall for an hour. It knows what it
+did." "Somewhere, a cucumber is waiting." Content (`quips` by event), picked by the view, at most one every seven
+seconds; never in the log or the save.
+
+**Cats on everything.** In every room, a cat asleep (curled, nose under its tail, in one of the eight furs) on nearly
+every bed and on about a third of the tables, chests, benches, rugs and counters: any furniture with a top big enough
+to curl up on and low enough to reach (not chair backs). Seeded by the thing, so the same cats are always on the same
+furniture. Merged with the furniture: no extra draw calls. Picture: `docs/look/feline/feline-dwelling.jpg`.
+
+**Fixes found on the way.** "Breaks" (the noun in country names like "Red Breaks") had been turned everywhere, so storms
+"sofa cracked" over you; the theme now has `cased` words that change only with a capital. "tell" no longer turns into
+"mew" ("You cannot mew if it is yummy"). A group in a rewritten line never gets a flourish.
+
+**Tests.** tests/theme.test.js counts the rewritten lines' words as the theme's own; the browser test finds the
+whiskers in the mode and finds them gone when it is turned off. In a browser by hand: the thought bubble after a nap,
+the swipe in a fight, the paw prints behind a walk, cats on a laid table.
+
+**Commit and switch.** C9.4; the mode's switches.
 
 ## C9.3: a cat soundtrack, and Andrew's cat songs
 

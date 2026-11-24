@@ -25,6 +25,7 @@ import { WIND } from './kit.js';
 import { setNight } from './buildings.js';
 import { animateActors, forgetActors, shiftActors } from './actors.js';
 import { updateSound } from './sound.js';
+import { catFrame } from './catpov.js';
 import { updateFx } from './fx.js';
 import { setWaterSky } from './water.js';
 import { warmSurfaces } from './paint.js';
@@ -368,6 +369,7 @@ function finishFrame() {
   indoorView(R.areaRec(V.S).kind === 'house');
   treesNear();
   animateActors(frameDt, P.x, P.z, still);
+  guard('the cat', () => catFrame(frameDt, still)); // C9: whiskers, paw prints (catpov.js)
   guard('sound', () => updateSound(frameDt));
   updateFx(frameDt, nightNow, still);
   // over water you stand in it, and on deep water (a boat, swimming) you are at its surface

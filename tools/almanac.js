@@ -1326,6 +1326,17 @@ section('Themes: Super Feline Mode', ['themes'], () => {
     table(['Whole text', 'Becomes'], Object.entries(t.exact));
     table(['Phrase', 'Becomes'], Object.entries(t.phrases));
     table(['Word', 'Becomes'], Object.entries(t.words));
+    if (t.cased) table(['Word (with its capital)', 'Becomes'], Object.entries(t.cased));
+    if (t.lines)
+      table(
+        ['Line (pattern)', "In the cat's own words"],
+        t.lines.map(([re, l]) => ['`' + re + '`', l]),
+      );
+    if (t.quips)
+      table(
+        ['When', 'The cat thinks (one of)'],
+        Object.entries(t.quips).map(([ev, l]) => [ev, l.join(' / ')]),
+      );
   }
 });
 

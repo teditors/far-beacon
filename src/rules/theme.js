@@ -8,7 +8,8 @@
      world changes), unless the world's `<id>roll` switch is off.
    - themed(text, id): the text in the theme's words. Pure and cached; the same text always gives the same words.
 
-   How a text is turned, in order: a whole-text match (`exact`), then phrases (`phrases`, longest first), then each word
+   How a text is turned, in order: a whole-text match (`exact`), a whole line in the theme's own voice (`lines`: a
+   pattern and its rewrite, the pattern's groups turned by themselves, with no flourish), then phrases (`phrases`, longest first), then each word
    (`words`, with plurals and possessives found by themselves), then proper names (a word built from the syllables and
    name lists in content, or an unknown capitalised word), which get a name in the theme's style (`nameStyles`). An "a"
    or "an" before a changed word is mended. A text with no word changed gets one of the theme's `flourishes`, so no
@@ -93,6 +94,8 @@ function prepare(id) {
   const p = {
     t,
     exact: lowerKeys(t.exact),
+    cased: new Map(Object.entries(t.cased || {})),
+    lines: (t.lines || []).map(([re, line]) => [new RegExp('^' + re + '$'), line]),
     words: lowerKeys(t.words),
     phrases: lowerKeys(t.phrases),
     phraseRe: phrases.length ? new RegExp('(^|[^A-Za-z])(' + phrases.map(esc).join('|') + ')(?![A-Za-z])', 'gi') : null,
@@ -131,6 +134,7 @@ function plural(w) {
 function lookWord(p, w) {
   const lw = w.toLowerCase();
   if (p.keep.has(lw)) return null;
+  if (p.cased.has(w)) return p.cased.get(w); // a word that changes only with its capital (a name's noun)
   if (p.words.has(lw)) return p.words.get(lw);
   if (/'s$/.test(lw) && p.words.has(lw.slice(0, -2))) return p.words.get(lw.slice(0, -2)) + "'s";
   if (/s'$/.test(lw) && p.words.has(lw.slice(0, -2))) return plural(p.words.get(lw.slice(0, -2))) + "'";
@@ -165,26 +169,32 @@ function catName(p, w) {
   return st.replace('{n}', base).replace('{l}', base.toLowerCase()) + poss;
 }
 // The theme's words for a text; the text itself when there is no theme.
-function themed(text, id) {
+function themed(text, id, part) {
   if (!id || typeof text !== 'string' || !/[A-Za-z]/.test(text)) return text;
   const p = prepare(id);
   if (!p) return text;
   let cache = CACHE.get(id);
   if (!cache) CACHE.set(id, (cache = new Map()));
-  const hit = cache.get(text);
+  const key = part ? '\u0003' + text : text;
+  const hit = cache.get(key);
   if (hit !== undefined) return hit;
-  const out = turn(p, text);
+  const out = turn(p, text, part);
   if (cache.size > 6000) cache.clear();
-  cache.set(text, out);
+  cache.set(key, out);
   return out;
 }
-function turn(p, text) {
+function turn(p, text, part) {
   const lead = text.match(/^\s*/)[0],
     trail = text.match(/\s*$/)[0],
     core = text.trim();
   // 1. the whole text
   const ex = p.exact.get(core.toLowerCase());
   if (ex !== undefined) return lead + ex + trail;
+  // 2. a whole line in the theme's own voice, its groups (names, places) turned by themselves
+  for (const [re, line] of p.lines) {
+    const m = core.match(re);
+    if (m) return lead + line.replace(/\$(\d)/g, (q, i) => (m[+i] ? themed(m[+i], p.t.id, true) : '')) + trail;
+  }
   const bits = []; // replacements, held out of the text as \u0001n\u0002 so nothing is turned twice
   const hold = (rep) => '\u0001' + (bits.push(rep) - 1) + '\u0002';
   let s = core;
@@ -209,7 +219,7 @@ function turn(p, text) {
   });
   const changed = bits.length > 0;
   s = s.replace(/\u0001(\d+)\u0002/g, (m, n) => bits[+n]);
-  if (!changed) {
+  if (!changed && !part) {
     const fl = p.t.flourishes || [];
     if (fl.length && /[A-Za-z]{4}/.test(s)) {
       const f = fl[hash(core) % fl.length];

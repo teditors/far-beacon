@@ -5,6 +5,8 @@
    (the vertex shader collapses each onto its own middle), so a level's far cups cost nothing and never crawl.
    Merged meshes are kept per place and what has been taken, so walking about rebuilds nothing.
    Switch: `things` (the run's, in Tinker: the rules make none) and the look's `thingsDrawn` (draw them or not). */
+import { feline } from './themeflag.js';
+import { FURS, curledCat } from './catkit.js';
 import { P as PT, kit, kitMat } from './kit.js';
 import { addOutline } from './outline.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
@@ -588,6 +590,19 @@ const bigMat = () => BIG || ((BIG = kitMat()), (BIG.dispose = () => {}), BIG);
 const BUILT = new Map(); // a place's merged things, by place, what is left and the quality
 /* The things of area `id` (and what was dropped there), as a group in the area's own frame. pos(t) gives a thing's place:
    [x, y, z] of its tile's middle plus its offset, in metres. ts: metres a tile. */
+// Super Feline Mode (C9): a cat asleep on a bed (nearly always), and on many a table, chest, bench and rug: any
+// furniture with a top big enough to curl up on and low enough to reach. Seeded by the thing, the same every time.
+function catOn(list, t, geo, x, y, z) {
+  if (!geo.boundingBox) geo.computeBoundingBox();
+  const b = geo.boundingBox,
+    top = b.max.y,
+    wide = Math.min(b.max.x - b.min.x, b.max.z - b.min.z);
+  if (top > 1.3 || wide < 0.42 || /chair|stool|pew|throne|coffin|anvil/.test(t.k)) return;
+  const h = Math.abs((t.x * 73856093) ^ (t.y * 19349663) ^ (String(t.k).length * 83492791) ^ Math.round((t.px || 0) * 1000)),
+    bed = /bed|cot|cradle/.test(t.k);
+  if ((h % 100) / 100 > (bed ? 0.9 : 0.35)) return;
+  list.push({ g: curledCat(FURS[(h >> 7) % FURS.length]), x, y: y + top, z, ry: ((h >> 3) % 628) / 100 });
+}
 function thingsGroup(S, id, ts, pos, frame, list) {
   if (!thingsOn()) return null;
   const left = list || R.thingsLeft(S, id),
@@ -614,7 +629,7 @@ function thingsGroup(S, id, ts, pos, frame, list) {
       );
     });
   if (!left.length && !dropped.length) return null;
-  const key = [id, S.seed, left.length, dropped.length, Q.label, S.realm || '', frame, ts].join('|');
+  const key = [id, S.seed, left.length, dropped.length, Q.label, S.realm || '', frame, ts, feline() ? 'cat' : ''].join('|');
   let g = BUILT.get(key);
   if (!g) {
     const mark = R.C.civ && S.civ ? (R.trait(S, 'affinity') || {}).color : undefined,
@@ -624,7 +639,9 @@ function thingsGroup(S, id, ts, pos, frame, list) {
       const kd = R.thingKind(t.k);
       if (!kd) continue;
       const [x, y, z] = pos(t);
-      (kd.fixed ? big : small).push({ g: modelGeo(t.k, colourOf(t, mark), t.old, t), x, y: y + (t.h || 0), z, ry: t.ry || 0 });
+      const geo = modelGeo(t.k, colourOf(t, mark), t.old, t);
+      (kd.fixed ? big : small).push({ g: geo, x, y: y + (t.h || 0), z, ry: t.ry || 0 });
+      if (kd.fixed && feline()) catOn(big, t, geo, x, y + (t.h || 0), z); // C9: a cat asleep on it, often
     }
     g = new THREE.Group();
     g.userData.things = id;

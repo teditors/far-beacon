@@ -18,7 +18,7 @@ old new young high low far near good bad best better worse worst grey gray black
 light bright dim deep shallow wide thin thick heavy hard soft dry wet hot warm still clear rare odd strange true false
 open shut fallen broken lost hidden empty full whole round tall flat sweet bitter foul sickly fevered golden blessed
 ordinary twin last ever never always once again something nothing places place end side look make guard
-held march wild rough beyond arms recently visible dressing keeping reading fell north south east west s t d x ing un ar al ir os eth i ur esh ak ek im ki tu ma ni`.split(
+held march wild rough beyond arms recently visible dressing keeping reading fell north south east west breaks s t d x ing un ar al ir os eth i ur esh ak ek im ki tu ma ni`.split(
   /\s+/,
 );
 

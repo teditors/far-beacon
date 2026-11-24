@@ -6,7 +6,7 @@
    watches you), the cucumber (bumpy, with googly eyes) and, for the docile ones, dust bunnies (grey fluff with long
    ears). Same joints as the models they replace (actors.js: 0 body, 1 and 2 the gait, 3 and 4 the arms, 5 the head,
    6 a tail, 7 a serpent's body, 8 the bright eyes), so they walk, look and lunge as before. */
-import { P as PT } from './kit.js';
+import { P as PT, kit } from './kit.js';
 
 // fur, by the person's seed: ginger, grey, black, white, cream, brown tabby, blue-grey, tortoiseshell brown
 const FURS = [0xe08a3a, 0x8f8f98, 0x26252a, 0xf2efe8, 0xe8c890, 0x9a6a48, 0x6e7a8a, 0x5a3a2a];
@@ -182,3 +182,26 @@ function catCreature(k, form, eye) {
   }
 }
 export { FURS, furOf, eyeOf, catHead, catTail, catCreature };
+
+/* A cat curled asleep (for Super Feline Mode's rooms: on beds, tables, chests and rugs; view/things.js), about 0.5 m
+   long, nose tucked under its tail. Cached by fur; a plain kit geometry, so it merges with the furniture. */
+const CURLED = new Map();
+function curledCat(fur) {
+  if (CURLED.has(fur)) return CURLED.get(fur);
+  const k = kit(),
+    light = fur === 0x26252a ? 0x3a393f : 0xf2ece2;
+  k.add(PT.blob(0.22, 1), fur, { y: 0.1, sx: 1.15, sy: 0.55, sz: 0.95 }, { round: true }); // the loaf
+  k.add(PT.ball(0.1, 10, 8), fur, { x: 0.17, y: 0.13, z: 0.1 }); // the head, tucked in
+  for (const s of [-1, 1])
+    k.add(PT.cone(0.04, 0.09, 4), fur, { x: 0.2 + s * 0.05, y: 0.23, z: 0.12, rz: -s * 0.3 }, { flat: true });
+  k.add(PT.ball(0.045, 6, 4), light, { x: 0.24, y: 0.1, z: 0.18 }); // a white muzzle peeking out
+  // the tail wrapped round the front
+  for (let i = 0; i < 6; i++) {
+    const a = -0.4 + i * 0.42;
+    k.add(PT.ball(0.045, 6, 4), fur, { x: Math.cos(a) * 0.24, y: 0.05, z: Math.sin(a) * 0.22 + 0.02 });
+  }
+  const g = k.build();
+  CURLED.set(fur, g);
+  return g;
+}
+export { curledCat };

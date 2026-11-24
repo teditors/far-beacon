@@ -14,7 +14,7 @@ need(t, 'no feline theme in content');
 
 // the words a catted text must not hold: names and core words of the base game, less those the theme itself uses
 const banned = W.banned(R, ID);
-for (const o of [t.exact, t.phrases, t.words])
+for (const o of [t.exact, t.phrases, t.words, Object.fromEntries(t.lines.map(([re, l], i) => [i, l]))])
   for (const k in o) for (const w of o[k].toLowerCase().match(/[a-z']+/g) || []) banned.delete(w.replace(/'s$/, ''));
 const leaks = new Map();
 function check(text, where) {

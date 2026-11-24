@@ -279,6 +279,8 @@ async def main():
             assert w_ not in hud, 'Super Feline Mode: %r still on the screen: %r' % (w_, hud[:400])
         await pg.keyboard.down('w'); await pg.wait_for_timeout(1200); await pg.keyboard.up('w')
         await shot('16-feline-walk')
+        pov = await pg.evaluate("()=>{const c=document.getElementById('catpov');return !!c&&getComputedStyle(c).display!=='none'&&c.querySelectorAll('.whisk').length}")
+        assert pov == 2, 'no cat\'s-eye view (whiskers) in the mode: %r' % pov
         await pg.click('#btn-menu'); await pg.wait_for_timeout(200)
         await shot('17-feline-menu')
         # Andrew's cat songs: offered in the mode; from a page on the disk there are none to fetch, and it says so
@@ -291,6 +293,7 @@ async def main():
         for w_ in ['Water', 'Warmth', 'Menu', 'Far Beacon']:
             assert w_ in hud, 'Super Feline Mode off: %r did not come back: %r' % (w_, hud[:400])
         assert 'Kibble' not in hud and 'Meownu' not in hud, 'Super Feline Mode off: cat words left: %r' % hud[:400]
+        assert await pg.evaluate("()=>{const c=document.getElementById('catpov');return !c||getComputedStyle(c).display==='none'}"), 'the whiskers stayed after the mode was turned off'
         steps.append('super feline mode on and off')
         await b.close()
         print('smoke steps:', ', '.join(steps))

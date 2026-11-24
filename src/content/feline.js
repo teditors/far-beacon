@@ -12,11 +12,15 @@
    rare      the chance a world simply is feline, whether asked or not (the `felineroll` switch)
 
    Another theme is another entry in `themes` with the same fields. */
+import voice from './felinevoice.js';
+
 export default {
   themes: [
     {
       id: 'feline',
       name: 'Super Feline Mode',
+      lines: voice.lines, // whole lines in a cat's own words (felinevoice.js)
+      quips: voice.quips, // the cat's inner monologue, shown by the view
       rare: 1 / 50,
       rolledNote: 'This world simply is feline. It happens, about one world in fifty. Nobody asked the cats.',
       chosenNote: 'You asked for this. The cats approve.',
@@ -44,6 +48,8 @@ export default {
       },
       keep: ['ok', 'xp', 'hp', 'ac', 'mm', 'km', 'n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw', 'd'],
 
+      // words that change only with a capital: the nouns of generated country names, which are verbs elsewhere
+      cased: { Breaks: 'Sofa Cracks', Keep: 'Cushion Keep' },
       exact: {
         'Far Beacon': 'Far Red Dot',
         'Far Beacon 3D': 'Far Red Dot: Super Feline Mode',
@@ -445,7 +451,7 @@ export default {
         searches: 'rummages',
         searched: 'rummaged',
         searching: 'rummaging',
-        survey: 'stare intently at',
+        survey: 'stare at',
         study: 'sniff',
         studies: 'sniffs',
         swim: 'paddle (ugh)',
@@ -540,7 +546,6 @@ export default {
         knolls: 'pouffes',
         barrens: 'bare floorboards',
         badlands: 'bad-carpet lands',
-        breaks: 'sofa cracks',
         valley: 'sofa dip',
         moor: 'rug',
         moors: 'rugs',
@@ -1029,9 +1034,6 @@ export default {
         said: 'meowed',
         speak: 'meow',
         speaks: 'meows',
-        tell: 'mew',
-        tells: 'mews',
-        told: 'mewed',
         ask: 'mrrp at',
         asks: 'mrrps',
         buy: 'trade treats for',
