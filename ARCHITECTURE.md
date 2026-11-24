@@ -174,6 +174,32 @@ Every place you walk into is an area; commission 4 added four kinds of level and
 - **Fields** (`view/fields.js`): fields round towns in sight, built with the land; `T.inField` keeps trees, rocks and
   grass off them.
 
+## Themes: Super Feline Mode (commission 9)
+
+A theme dresses a world as something else without touching a rule. It is content (`content/feline.js`, in
+`C.themes`): a dictionary of renamings (whole texts, phrases, words), name styles, flourishes, a sound bank, a rare
+chance. The rules only say which theme a world wears and turn text into it; the view applies it everywhere.
+
+- **Which theme**: `themeOf(s)` (rules/theme.js). `s.theme` is the player's choice ('feline', or 'none' to refuse);
+  with none, a theme with a `rare` chance rolls from the seed on its own stream (`theme:<id>`), unless `s.off[<id>roll]`.
+  Nothing is stored for a rolled world, so no save changes. `setTheme(s, id)` chooses.
+- **Words**: `themed(text, id)` (pure, cached; tested in Node by tests/theme.test.js). The view never calls it itself:
+  `view/theme.js` watches the page (a MutationObserver on text, and the placeholder, title and aria-label attributes,
+  and the page's title) and turns every text as it appears, keeping the original beside it, so switching off puts every
+  word back. `syncTheme()` runs after every `render()`; when the theme changes it turns or restores the page, sets
+  `TH.id` (`view/themeflag.js`), marks `body.theme-feline` (CSS in shell.html) and calls `onThemeChange` listeners
+  (ui.js rebuilds the scene and shows the splash, `view/catsplash.js`). Text that must not be turned sits under an
+  element with `data-notheme`. New text needs nothing: it is turned because it is shown.
+- **Models**: the view's model makers read `feline()` (themeflag.js) and use the catted kit: `view/catkit.js` (cat
+  heads, tails, the feline foes, on the same joints as actors.js) and `view/catworld.js` (the beacon, the camp, ruins,
+  roofs, cat trees, the sun). The theme is in `cachedModel`'s key (scene.js) and in actors' and trees' model keys.
+- **Sound**: sound.js asks `bank()` (the theme's `sounds`): each instrument of the score becomes a voice in
+  `view/catsound.js` (meow, mrrow, trill, purr), the foes' calls and events (nap, fight, click) become cat sounds.
+- **Andrew's songs**: `view/catsongs.js` plays audio files from `cat-songs/` beside the page (list in
+  `cat-songs/index.json`), fetched only when the player turns the soundtrack on; `tools/catsongs.js <dir>` copies
+  `assets/cat-songs/` there, and `tools/site.sh` does it for every published copy. The score falls silent under them.
+- **Another theme** is another entry in `themes` with the same fields; models and sounds for it would read `TH.id`.
+
 ## The look (commission 6)
 
 The art direction is in `ART.md`. What a place looks like is content (`content/looks.js`): layers of palette and style

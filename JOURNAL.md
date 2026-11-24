@@ -4,6 +4,45 @@ The brief (COMMISSION.md): Super Feline Mode. The same game, but every word, fac
 nobody could doubt the developer has a troubling obsession with them. A theme layer rather than edits everywhere; a
 switch; a rare roll that makes a world feline whether asked or not. Pieces, newest first below.
 
+## C9.3: a cat soundtrack, and Andrew's cat songs
+
+**What it is.** The score keeps its tunes and their shapes; in the mode its instruments meow. The sound bank is content
+(`sounds` in content/feline.js): the harpsichord, lute and pipe become **meows** (a buzzy voice through two formant
+filters that open "m-e" and close "-ow", gliding up and back down at the note's pitch: a long note a full meow, a short
+one a mew, a very short one a chirp), the bass a **mrrow** an octave down with a rolled start, the organ a **trill**
+(the "brrrp" a cat greets you with), and the pads and drones under the land's airs a **purr** (a low rumble pulsed about
+25 times a second). Bells stay bells: they are on collars now. The voices are made like every other sound, with Web
+Audio, in `view/catsound.js`.
+
+The world's sounds too: the dog next door woofs, the vacuum cleaner winds up, the spray bottle goes psst-psst, the
+cucumber hisses, and when a fight begins you hiss back. A nap, a sleep, making camp or lighting a fire purrs; filling
+up trills; searching meows; a kill chirps; every button chirps.
+
+**Andrew's songs** (`view/catsongs.js`, `tools/catsongs.js`, `assets/cat-songs/`). An optional full soundtrack for the
+mode from Andrew's own audio files, kept out of the one-file game: the page does not grow by a byte. Put the files in
+`assets/cat-songs/` (any of mp3, ogg, opus, m4a, wav, flac, webm; titles from the file names, or a `songs.json` for
+titles and order: see its README). `node tools/catsongs.js <dir>` copies them beside a built page with a list
+(`cat-songs/index.json`), and `tools/site.sh` does that for every published copy. In the mode, Menu, Settings offers
+"Andrew's cat songs (full soundtrack, loaded separately)"; nothing is fetched until it is ticked. Then the songs play
+in a shuffled loop at the music volume, the composed score falls silent under them, and the note under the box says
+how many there are and which is playing (his titles are left uncatted). With no list, no songs or a page opened from
+the disk it says "No songs found next to this page" and the meowed score plays on. A device setting
+(`SET.catSongs`), not the run's.
+
+**One thing to know.** The site is rebuilt by `tools/site.sh` as it is on `main`, so the songs are copied beside the
+published pages only once this commission is merged (or if `node tools/catsongs.js` is run into a copy by hand).
+
+**Tests.** In a browser, served over HTTP with a made-up three-second purr as the only song: the list was read, the
+song played ("1 song: now Test purr"), and with no list the note said so (a check by hand, not committed: no audio file
+is committed). The browser test ticks the box in the mode and finds "No songs" from the page on the disk. Sound starts
+and runs in the mode (the browser test's sound check).
+
+**Choices made.** Meows replace the plucked and blown voices rather than join them: a harpsichord under a meow is two
+melodies, and the brief asks for a cat soundtrack. Bells kept, as collar bells. The purr under the land's airs plays
+on the bar's root rather than every note of its chord: three purrs at once is a motorboat.
+
+**Commit and switch.** C9.3; the mode's switches, and the device setting for the songs.
+
 ## C9.2: cat faces, cat foes, and a catted land
 
 **What it is** (`view/catkit.js`, `view/catworld.js`, through the models' own makers). When the world is feline

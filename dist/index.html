@@ -6559,6 +6559,12 @@
           "Sip, don't gulp": "Lap, don't gulp",
           Pick: "Pointy pick",
           Saw: "Toothy saw",
+          // the end of a run
+          "Dead of thirst": "Out of kibble (a tragedy in one bowl)",
+          Frozen: "Too chilly to go on (no lap was found)",
+          "Send another traveller": "Send another cat (there are always more cats)",
+          "Abandon this world": "Knock this world off the table",
+          "Same world again": "Same litter again",
           // the troubles
           "The relic": "The Laser Pointer",
           "The great beast": "The Great Vacuum",
@@ -6733,7 +6739,6 @@
           "bring a light": "bring a nightlight",
           "they spring": "they pounce",
           "a people": "a breed",
-          "kitchen knife": "kitchen knife (not a toy)",
           "shield wall": "cushion wall",
           "sea-people": "fish-cats"
         },
@@ -7607,7 +7612,6 @@
           wheel: "hamster wheel (stolen)",
           moss: "catmoss",
           fungus: "fuzzy mould",
-          altar: "windowsill altar",
           frame: "box frame",
           carrier: "carrier (the dreaded one)",
           trapper: "mouse-trapper",
@@ -7615,11 +7619,8 @@
           channel: "drain",
           carvers: "scratchers",
           builders: "box-builders",
-          traders: "treat-traders",
           flooded: "splashy",
-          anvil: "cold anvil",
           anvils: "cold anvils",
-          sack: "paper bag",
           cart: "laundry cart",
           jar: "treat jar",
           hammer: "squeaky hammer",
@@ -10547,11 +10548,11 @@
     return { river, at, forward, road: road2, roadAt };
   }
   function crossings(seed, world2, cx, cy) {
-    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world2.cols) + ":" + cy), S3 = edgeRoll(seed, "h:" + cx + ":" + cy), N3 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world2.rows));
+    const E2 = edgeRoll(seed, "v:" + cx + ":" + cy), Wst = edgeRoll(seed, "v:" + wrap(cx - 1, world2.cols) + ":" + cy), S4 = edgeRoll(seed, "h:" + cx + ":" + cy), N3 = edgeRoll(seed, "h:" + cx + ":" + wrap(cy - 1, world2.rows));
     return [
       { side: "east", river: E2.river, road: E2.road, inflow: !E2.forward, x: W - 1, y: E2.at, x2: W - 1, y2: E2.roadAt },
       { side: "west", river: Wst.river, road: Wst.road, inflow: Wst.forward, x: 0, y: Wst.at, x2: 0, y2: Wst.roadAt },
-      { side: "south", river: S3.river, road: S3.road, inflow: !S3.forward, x: S3.at, y: H - 1, x2: S3.roadAt, y2: H - 1 },
+      { side: "south", river: S4.river, road: S4.road, inflow: !S4.forward, x: S4.at, y: H - 1, x2: S4.roadAt, y2: H - 1 },
       { side: "north", river: N3.river, road: N3.road, inflow: N3.forward, x: N3.at, y: 0, x2: N3.roadAt, y2: 0 }
     ];
   }
@@ -16497,9 +16498,9 @@
     return out;
   }
   function abandonSpec(spec) {
-    const A3 = U().abandoned;
-    spec.wall = spec.wall.concat(A3.wall);
-    spec.small = spec.small.concat(A3.small);
+    const A4 = U().abandoned;
+    spec.wall = spec.wall.concat(A4.wall);
+    spec.small = spec.small.concat(A4.small);
     return spec;
   }
   function survivor(things, r) {
@@ -17810,14 +17811,14 @@
     const land2 = landAround(s), r = mulberry2(s.seed ^ 5370206), T5 = new Float32Array(4096);
     for (let i = 0; i < 4096; i++) T5[i] = r();
     yield;
-    const noise = (per, salt) => {
+    const noise2 = (per, salt) => {
       const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T5[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
       return (x, z) => {
         const u = ((x + HALF) / WORLD + land2.cx) * per, v = ((z + HALF) / WORLD + land2.cy) * per, x0 = Math.floor(u), z0 = Math.floor(v), tx = smooth(u - x0), tz = smooth(v - z0);
         return (at(x0, z0) * (1 - tx) + at(x0 + 1, z0) * tx) * (1 - tz) + (at(x0, z0 + 1) * (1 - tx) + at(x0 + 1, z0 + 1) * tx) * tz;
       };
     };
-    const nBig = noise(3, 1), nMid = noise(12, 2), nFine = noise(46, 3), tint2 = noise(25, 4);
+    const nBig = noise2(3, 1), nMid = noise2(12, 2), nFine = noise2(46, 3), tint2 = noise2(25, 4);
     const field = (g, ease) => (x, z) => {
       const fx = clamp2((x + HALF) / TS - 0.5 + MARGIN, 0, EW - 1.001), fz = clamp2((z + HALF) / TS - 0.5 + MARGIN, 0, EW - 1.001), ix = Math.floor(fx), iz = Math.floor(fz), tx = ease ? smooth(fx - ix) : fx - ix, tz = ease ? smooth(fz - iz) : fz - iz;
       return (g[iz * EW + ix] * (1 - tx) + g[iz * EW + ix + 1] * tx) * (1 - tz) + (g[(iz + 1) * EW + ix] * (1 - tx) + g[(iz + 1) * EW + ix + 1] * tx) * tz;
@@ -18035,17 +18036,17 @@
     return null;
   }
   var realmPalette = (seed) => L3().realm.palettes[Math.floor(roll2(seed, "look:realm") * L3().realm.palettes.length)];
-  function lookContext(R2, S3, biome) {
-    const rec = R2.outdoorRec ? R2.outdoorRec(S3) : null, b = biome || R2.biomeOf(S3), realm = S3.realm && S3.realms && S3.realms[S3.realm], rr = rec && R2.regionRareOf ? R2.regionRareOf(S3, rec.id) : null, mp = R2.mainPlot ? R2.mainPlot(S3) : null;
+  function lookContext(R2, S4, biome) {
+    const rec = R2.outdoorRec ? R2.outdoorRec(S4) : null, b = biome || R2.biomeOf(S4), realm = S4.realm && S4.realms && S4.realms[S4.realm], rr = rec && R2.regionRareOf ? R2.regionRareOf(S4, rec.id) : null, mp = R2.mainPlot ? R2.mainPlot(S4) : null;
     return {
-      seed: S3.seed >>> 0,
+      seed: S4.seed >>> 0,
       biome: b ? b.id : "",
       climate: climateOf(b),
       biomeSky: b && b.sky !== void 0 ? b.sky : null,
-      region: rec ? (S3.realm ? S3.realm + ":" : "") + rec.id : "",
-      year: S3.year || "",
+      region: rec ? (S4.realm ? S4.realm + ":" : "") + rec.id : "",
+      year: S4.year || "",
       trouble: mp ? mp.kind : "",
-      cursed: !!(S3.curses && rec && S3.curses[rec.id]),
+      cursed: !!(S4.curses && rec && S4.curses[rec.id]),
       rare: rr ? rr.id : "",
       realm: realm ? realm.seed >>> 0 : null
     };
@@ -18113,7 +18114,7 @@
   for (const k of COLS) TC[k] = new THREE.Color();
   function updateLook(day, dusk, at, storm) {
     if (!lookOnNow() || !V.S || R.isDark(V.S) || R.levelLook(V.S)) return NOW.look = null;
-    const S3 = V.S, base = V.base;
+    const S4 = V.S, base = V.base;
     let look2;
     if (base && base.share && base.share.length > 1 && at) {
       look2 = null;
@@ -18121,7 +18122,7 @@
       base.share.forEach((f, i) => {
         const w = f(at.x, at.z);
         if (w <= 1e-3) return;
-        const l = lookFor(lookContext(R, S3, base.land.biomes[i]), day, dusk, storm);
+        const l = lookFor(lookContext(R, S4, base.land.biomes[i]), day, dusk, storm);
         if (!look2) {
           look2 = l;
           total = w;
@@ -18133,7 +18134,7 @@
         for (const k of NUMS) look2[k] += (l[k] - look2[k]) * t2;
       });
     }
-    if (!look2) look2 = lookFor(lookContext(R, S3), day, dusk, storm);
+    if (!look2) look2 = lookFor(lookContext(R, S4), day, dusk, storm);
     for (const k of COLS) TC[k].setRGB(look2[k][0], look2[k][1], look2[k][2]);
     look2.c = TC;
     NOW.look = look2;
@@ -18277,12 +18278,12 @@
   var GROUND = null;
   function groundTexture() {
     if (GROUND && GROUND.image.width === (Q.texPx >= 256 ? 256 : 128)) return GROUND;
-    const px = Q.texPx >= 256 ? 256 : 128, S3 = px / 128, r = rnd(91), big = noiseField(px, 4, 1), mid = noiseField(px, 12, 2), fine = noiseField(px, 40, 3);
+    const px = Q.texPx >= 256 ? 256 : 128, S4 = px / 128, r = rnd(91), big = noiseField(px, 4, 1), mid = noiseField(px, 12, 2), fine = noiseField(px, 40, 3);
     const grass = new Float32Array(px * px);
     for (let i = 0; i < px * px; i++) grass[i] = 0.5 + (big[i] - 0.5) * 0.35 + (mid[i] - 0.5) * 0.3;
-    for (let k = 0; k < 900 * S3 * S3; k++) {
+    for (let k = 0; k < 900 * S4 * S4; k++) {
       const x = r() * px, y = r() * px, lean = (r() - 0.5) * 0.5;
-      stroke(grass, px, x, y, lean, -1, (3 + Math.floor(r() * 4)) * S3, 0, r() < 0.5 ? -0.22 : 0.2);
+      stroke(grass, px, x, y, lean, -1, (3 + Math.floor(r() * 4)) * S4, 0, r() < 0.5 ? -0.22 : 0.2);
     }
     const grains = new Float32Array(px * px);
     for (let y = 0; y < px; y++)
@@ -18290,21 +18291,21 @@
         const i = y * px + x;
         grains[i] = 0.5 + (mid[i] - 0.5) * 0.35 + (fine[i] - 0.5) * 0.45 + 0.07 * Math.sin(y / px * Math.PI * 2 * 6 + big[i] * 5);
       }
-    for (let k = 0; k < 700 * S3 * S3; k++) grains[Math.floor(r() * px * px)] += r() < 0.5 ? -0.25 : 0.2;
+    for (let k = 0; k < 700 * S4 * S4; k++) grains[Math.floor(r() * px * px)] += r() < 0.5 ? -0.25 : 0.2;
     const rock = new Float32Array(px * px);
     for (let i = 0; i < px * px; i++) rock[i] = 0.5 + (Math.round(mid[i] * 4) / 4 - 0.5) * 0.4 + (fine[i] - 0.5) * 0.2;
     for (let k = 0; k < 26; k++) {
       let x = r() * px, y = r() * px, a = r() * Math.PI * 2;
       for (let s = 0; s < 6; s++) {
         a += (r() - 0.5) * 1.2;
-        stroke(rock, px, x, y, Math.cos(a), Math.sin(a), 5 * S3, 0, -0.18);
-        x += Math.cos(a) * 5 * S3;
-        y += Math.sin(a) * 5 * S3;
+        stroke(rock, px, x, y, Math.cos(a), Math.sin(a), 5 * S4, 0, -0.18);
+        x += Math.cos(a) * 5 * S4;
+        y += Math.sin(a) * 5 * S4;
       }
     }
     const snow = new Float32Array(px * px);
     for (let i = 0; i < px * px; i++) snow[i] = 0.5 + (big[i] - 0.5) * 0.25 + (mid[i] - 0.5) * 0.12;
-    for (let k = 0; k < 160 * S3 * S3; k++) snow[Math.floor(r() * px * px)] += 0.25;
+    for (let k = 0; k < 160 * S4 * S4; k++) snow[Math.floor(r() * px * px)] += 0.25;
     const d = new Uint8Array(px * px * 4);
     for (let i = 0; i < px * px; i++) {
       d[i * 4] = toByte(grass[i]);
@@ -18621,13 +18622,13 @@
   function textures() {
     const px = Q.texPx >= 256 ? 256 : 128;
     if (TEX && TEX.px === px) return TEX;
-    const sm2 = (a, b, v) => v <= a ? 0 : v >= b ? 1 : ((v - a) / (b - a)) ** 2 * (3 - 2 * (v - a) / (b - a)), S3 = px / 128, r = rnd(1913), N3 = px * px, big = noiseField(px, 4, 11), mid = noiseField(px, 12, 12), fine = noiseField(px, 40, 13), F2 = fbm(px, 14);
+    const sm2 = (a, b, v) => v <= a ? 0 : v >= b ? 1 : ((v - a) / (b - a)) ** 2 * (3 - 2 * (v - a) / (b - a)), S4 = px / 128, r = rnd(1913), N3 = px * px, big = noiseField(px, 4, 11), mid = noiseField(px, 12, 12), fine = noiseField(px, 40, 13), F2 = fbm(px, 14);
     const grass = new Float32Array(N3);
     for (let i = 0; i < N3; i++) grass[i] = 0.5 + (big[i] - 0.5) * 0.3 + (mid[i] - 0.5) * 0.35;
-    for (let k = 0; k < 260 * S3 * S3; k++) {
+    for (let k = 0; k < 260 * S4 * S4; k++) {
       const cx = r() * px, cy = r() * px;
       for (let b = 0; b < 6; b++) {
-        const x = cx + (r() - 0.5) * 5 * S3, y = cy + (r() - 0.5) * 3 * S3, lean = (r() - 0.5) * 0.7, len = (3 + Math.floor(r() * 5)) * S3;
+        const x = cx + (r() - 0.5) * 5 * S4, y = cy + (r() - 0.5) * 3 * S4, lean = (r() - 0.5) * 0.7, len = (3 + Math.floor(r() * 5)) * S4;
         stroke(grass, px, x, y + len, lean * 0.4, -1, Math.ceil(len * 0.4), 0, -0.2);
         stroke(grass, px, x, y, lean, -1, Math.ceil(len * 0.6), 0, 0.24);
       }
@@ -18638,7 +18639,7 @@
         const i = y * px + x, ph = y / px * 9 + big[i] * 2.2 + mid[i] * 0.8, w = ph - Math.floor(ph);
         sand[i] = 0.5 + (w < 0.72 ? w / 0.72 * 0.3 - 0.1 : 0.2 - (w - 0.72) / 0.28 * 0.5) * 0.75 + F2[i] * 0.12;
       }
-    for (let k = 0; k < 500 * S3 * S3; k++) sand[Math.floor(r() * N3)] += r() < 0.5 ? -0.2 : 0.18;
+    for (let k = 0; k < 500 * S4 * S4; k++) sand[Math.floor(r() * N3)] += r() < 0.5 ? -0.2 : 0.18;
     const rock = new Float32Array(N3), plates = cracks(px, 5, 21, 0.9);
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
@@ -18647,14 +18648,14 @@
       }
     const snow = new Float32Array(N3);
     for (let i = 0; i < N3; i++) snow[i] = 0.58 + (big[i] - 0.5) * 0.3 + (mid[i] - 0.5) * 0.14;
-    for (let k = 0; k < 220 * S3 * S3; k++) snow[Math.floor(r() * N3)] += 0.3;
+    for (let k = 0; k < 220 * S4 * S4; k++) snow[Math.floor(r() * N3)] += 0.3;
     const earth = new Float32Array(N3), clods = cracks(px, 14, 31, 1);
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
         const i = y * px + x, c = clods(x, y);
         earth[i] = 0.34 + (0.18 + (c.b - 0.5) * 0.16 - c.dy * 0.16 + F2[i] * 0.2) * sm2(0.03, 0.08, c.edge);
       }
-    for (let k = 0; k < 600 * S3 * S3; k++) earth[Math.floor(r() * N3)] += r() < 0.5 ? -0.25 : 0.15;
+    for (let k = 0; k < 600 * S4 * S4; k++) earth[Math.floor(r() * N3)] += r() < 0.5 ? -0.25 : 0.15;
     const gravel = new Float32Array(N3), peb = stones(px, 22, rnd(41), 0.95), pc = px / 22;
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
@@ -18666,7 +18667,7 @@
       const p = mid[i] * 0.7 + big[i] * 0.3;
       mud[i] = p > 0.56 ? 0.28 + (p - 0.56) * 0.2 : p > 0.5 ? 0.62 : 0.5 + (fine[i] - 0.5) * 0.18 + F2[i] * 0.1;
     }
-    for (let k = 0; k < 40 * S3; k++) stroke(mud, px, r() * px, r() * px, r() - 0.5, r() - 0.5, 10 * S3, S3 > 1 ? 1 : 0, -0.12);
+    for (let k = 0; k < 40 * S4; k++) stroke(mud, px, r() * px, r() * px, r() - 0.5, r() - 0.5, 10 * S4, S4 > 1 ? 1 : 0, -0.12);
     const crust = new Float32Array(N3), pans = cracks(px, 6, 51, 0.8);
     for (let y = 0; y < px; y++)
       for (let x = 0; x < px; x++) {
@@ -19334,10 +19335,10 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     const L5 = R.C.townLooks;
     return biome && biome.parts && biome.parts.climate || biome && L5.biomeClimate[biome.id] || "temperate";
   }
-  function styleOf(S3, townId2, biome) {
-    const L5 = R.C.townLooks, t2 = townId2 ? R.townById(S3, townId2) : null, culture = t2 ? t2 === S3.town ? S3.townCulture : t2.culture : null, area = t2 && t2.area;
-    if (!biome) biome = area && S3.areas[area] ? R.byId(R.C.biomes, S3.areas[area].biome) : R.biomeOf(S3);
-    const climate = climateOf2(biome), st = Object.assign({ climate }, L5.climates[climate] || L5.climates.temperate), off = S3.off && S3.off.towns, tr = culture && !off && L5.trades[culture.trade] || {}, cu = culture && !off && L5.customs[culture.custom] || {}, ra = culture && !off && culture.rare && L5.rares[culture.rare] || {};
+  function styleOf(S4, townId2, biome) {
+    const L5 = R.C.townLooks, t2 = townId2 ? R.townById(S4, townId2) : null, culture = t2 ? t2 === S4.town ? S4.townCulture : t2.culture : null, area = t2 && t2.area;
+    if (!biome) biome = area && S4.areas[area] ? R.byId(R.C.biomes, S4.areas[area].biome) : R.biomeOf(S4);
+    const climate = climateOf2(biome), st = Object.assign({ climate }, L5.climates[climate] || L5.climates.temperate), off = S4.off && S4.off.towns, tr = culture && !off && L5.trades[culture.trade] || {}, cu = culture && !off && L5.customs[culture.custom] || {}, ra = culture && !off && culture.rare && L5.rares[culture.rare] || {};
     Object.assign(st, {
       props: tr.props || ["barrel", "crates"],
       chimneys: tr.chimneys !== void 0 ? tr.chimneys : 0.3,
@@ -19353,12 +19354,12 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     for (const k in ra) st[k] = ra[k];
     if (ra.walls) st.wallMix = [ra.walls];
     if (ra.lost) {
-      const stone = R.trait(S3, "style").stone;
+      const stone = R.trait(S4, "style").stone;
       st.walls = "stone";
       st.wall = [stone, stone];
-      st.banners = [R.trait(S3, "affinity").color];
+      st.banners = [R.trait(S4, "affinity").color];
     }
-    st.banners = st.banners.map((c) => c === "god" ? hex2(R.godOf(S3).color) : c);
+    st.banners = st.banners.map((c) => c === "god" ? hex2(R.godOf(S4).color) : c);
     st.biome = biome;
     return st;
   }
@@ -19911,8 +19912,8 @@ vFade = sin(ph * 3.14159);`
     }
     return out;
   }
-  function townGroup(S3, townId2, map, ts) {
-    const st = styleOf(S3, townId2), r = dice(hash3((townId2 || "town") + ":" + S3.seed)), K2 = kits(st), group2 = new THREE.Group(), W3 = R.W, size = W3 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T5 = map.terrain, walled = !!(S3.areas[townId2] && S3.areas[townId2].walled), c = 18;
+  function townGroup(S4, townId2, map, ts) {
+    const st = styleOf(S4, townId2), r = dice(hash3((townId2 || "town") + ":" + S4.seed)), K2 = kits(st), group2 = new THREE.Group(), W3 = R.W, size = W3 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T5 = map.terrain, walled = !!(S4.areas[townId2] && S4.areas[townId2].walled), c = 18;
     K2.ground.add(P4.box(size, 0.1, size), st.ground, { y: 0.03 }, { uv: 2.5, jitter: 0.04 });
     K2.cobble.add(P4.box(13 * ts, 0.1, 13 * ts), st.plinth, { y: 0.06 }, { uv: 3, jitter: 0.03 });
     const kindAt2 = {};
@@ -19920,7 +19921,7 @@ vFade = sin(ph * 3.14159);`
       const s = map.sites[k];
       if (s.kind === "elder" || s.kind === "inn" || s.kind === "shop") kindAt2[k] = s.kind;
     }
-    const ruled = R.interiorsOn && R.interiorsOn(S3, townId2 || "town") ? R.buildingsOf(S3, townId2 || "town") : [];
+    const ruled = R.interiorsOn && R.interiorsOn(S4, townId2 || "town") ? R.buildingsOf(S4, townId2 || "town") : [];
     for (const b of blocks(map, walled)) {
       const rb = ruled.find((x) => x.x0 === b.x0 && x.y0 === b.y0);
       if (rb) {
@@ -20059,8 +20060,8 @@ vFade = sin(ph * 3.14159);`
       }
     }
   }
-  function hamletGroup(S3, biome, seed) {
-    const st = styleOf(S3, null, biome), r = dice(seed), K2 = kits(st), group2 = new THREE.Group();
+  function hamletGroup(S4, biome, seed) {
+    const st = styleOf(S4, null, biome), r = dice(seed), K2 = kits(st), group2 = new THREE.Group();
     st.props = ["woodpile", "barrel"];
     st.banners = [];
     for (const [x, z, a] of [
@@ -20203,10 +20204,10 @@ vFade = sin(ph * 3.14159);`
   }
   var _c2;
   var _g;
-  function roadsGroup(S3, T5, colourAt) {
+  function roadsGroup(S4, T5, colourAt) {
     _c2 = _c2 || new THREE.Color();
     _g = _g || new THREE.Color();
-    const group2 = new THREE.Group(), base = R.civOf(S3).search.roads ? "old" : "track", towns = T5.land.sites.filter((q) => q.st.kind === "town").map((q) => ({ x: (q.x + 0.5) * TS - HALF, z: (q.y + 0.5) * TS - HALF })), lines = roadLines(T5), hi = Q.ratio > 2, step2 = hi ? 1.2 : 2.2, edgeReach = hi ? 900 : 480, buckets = /* @__PURE__ */ new Map(), bk = (x, z) => Math.floor(x / 16) + "," + Math.floor(z / 16), built = {}, inst = { kerb: [], block: [], post: [], parapet: [], rail: [], deck: [] };
+    const group2 = new THREE.Group(), base = R.civOf(S4).search.roads ? "old" : "track", towns = T5.land.sites.filter((q) => q.st.kind === "town").map((q) => ({ x: (q.x + 0.5) * TS - HALF, z: (q.y + 0.5) * TS - HALF })), lines = roadLines(T5), hi = Q.ratio > 2, step2 = hi ? 1.2 : 2.2, edgeReach = hi ? 900 : 480, buckets = /* @__PURE__ */ new Map(), bk = (x, z) => Math.floor(x / 16) + "," + Math.floor(z / 16), built = {}, inst = { kerb: [], block: [], post: [], parapet: [], rail: [], deck: [] };
     const wl = T5.water ? T5.water.level : null, wmask = T5.water ? T5.water.mask : () => 0;
     const buf = (k) => built[k] || (built[k] = { pos: [], col: [], gcol: [], ru: [], idx: [], n: 0 });
     for (const ln of lines) {
@@ -20223,7 +20224,7 @@ vFade = sin(ph * 3.14159);`
         return best;
       }), deckY = (p) => wl ? wl(p.x, p.z) + 0.9 : -Infinity;
       let run = null;
-      const r = mulberry2(Math.round(pts[0].x * 7) ^ Math.round(pts[0].z * 13) ^ S3.seed | 0);
+      const r = mulberry2(Math.round(pts[0].x * 7) ^ Math.round(pts[0].z * 13) ^ S4.seed | 0);
       for (let i = 0; i < pts.length; i++) {
         const p = pts[i], a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
         let dx = b.x - a.x, dz = b.z - a.z;
@@ -20444,7 +20445,7 @@ if (lum > 0.5) diffuseColor.rgb *= (0.5 + (lum - 0.5) * 0.35) / lum;`
     ashen: [[6971472, 4866616, 1]]
   };
   var BOUNDS = { temperate: "hedge", wet: "drystone", cold: "drystone", hot: "mudwall", steppe: "fence", ashen: "drystone" };
-  function fieldsGroup(S3, T5, towns, townHalf) {
+  function fieldsGroup(S4, T5, towns, townHalf) {
     const group2 = new THREE.Group(), fields = [];
     if (!fieldsOn() || !towns.length) return { group: group2, inField: () => false };
     const land2 = T5.land, clear = (x, z) => {
@@ -20458,7 +20459,7 @@ if (lum > 0.5) diffuseColor.rgb *= (0.5 + (lum - 0.5) * 0.35) / lum;`
     const hi = !!Q.shadows && Q.ratio > 2, reach3 = hi ? 900 : 560, cell = hi ? 2 : 4;
     for (const t2 of towns) {
       if (Math.max(Math.abs(t2.x), Math.abs(t2.z)) > reach3) continue;
-      const r = mulberry2(S3.seed ^ Math.imul(Math.round(t2.x) + 9973, 2654435761) ^ Math.imul(Math.round(t2.z) + 7919, 40503) | 0), bio = land2.biomes[land2.biome[T5.etile(t2.x, t2.z)]], cl = climateOf2(bio), crops = CROPS[cl] || CROPS.temperate, bound = BOUNDS[cl] || "hedge", want = 5 + Math.floor(r() * 5);
+      const r = mulberry2(S4.seed ^ Math.imul(Math.round(t2.x) + 9973, 2654435761) ^ Math.imul(Math.round(t2.z) + 7919, 40503) | 0), bio = land2.biomes[land2.biome[T5.etile(t2.x, t2.z)]], cl = climateOf2(bio), crops = CROPS[cl] || CROPS.temperate, bound = BOUNDS[cl] || "hedge", want = 5 + Math.floor(r() * 5);
       for (let tries = 0; tries < 60 && fields.filter((f) => f.town === t2).length < want; tries++) {
         const a = r() * Math.PI * 2, d = townHalf + 14 + r() * 80, cx = t2.x + Math.cos(a) * d, cz = t2.z + Math.sin(a) * d, w = 18 + r() * 16, h = 12 + r() * 12, f = { town: t2, x0: cx - w / 2, x1: cx + w / 2, z0: cz - h / 2, z1: cz + h / 2, bound };
         const pts = [];
@@ -20702,8 +20703,8 @@ if (lum > 0.5) diffuseColor.rgb *= (0.5 + (lum - 0.5) * 0.35) / lum;`
       }
     }
   }
-  function ruinGroup(S3, seed) {
-    const civ = S3.civ, style = R.trait(S3, "style"), st = STYLE[civ.style] || STYLE.river, age = AGE[civ.age] || AGE.old, doom = civ.doom, affinity = R.trait(S3, "affinity"), r = dice2(seed), Z2 = { st, age, r, stone: kit(), wood: kit(), cloth: kit(), dark: kit() }, base = C2(style.stone), moss = C2(5929530), soot = C2(1972760), tmp3 = C2(0);
+  function ruinGroup(S4, seed) {
+    const civ = S4.civ, style = R.trait(S4, "style"), st = STYLE[civ.style] || STYLE.river, age = AGE[civ.age] || AGE.old, doom = civ.doom, affinity = R.trait(S4, "affinity"), r = dice2(seed), Z2 = { st, age, r, stone: kit(), wood: kit(), cloth: kit(), dark: kit() }, base = C2(style.stone), moss = C2(5929530), soot = C2(1972760), tmp3 = C2(0);
     const mossy = Math.min(0.8, age.moss + (st.moss || 0));
     Z2.colAt = (y, rr) => {
       tmp3.copy(base).multiplyScalar(0.85 + rr() * 0.25);
@@ -21225,8 +21226,8 @@ ${rich ? `{
       return g;
     },
     // the god's shrine: a ring of standing stones with lintels, an altar, and the god's light over it
-    shrine(S3) {
-      const g = new THREE.Group(), k = kit(), col = R.godOf(S3).color;
+    shrine(S4) {
+      const g = new THREE.Group(), k = kit(), col = R.godOf(S4).color;
       for (let i = 0; i < 5; i++) {
         const a = i / 5 * Math.PI * 2, x = Math.cos(a) * 4, z = Math.sin(a) * 4;
         k.add(P4.box(0.9, 5.2, 0.7), 9276036, { x, y: 2.6, z, ry: -a, rz: i % 2 * 0.04 }, { uv: 1.5, jitter: 0.08 });
@@ -21305,7 +21306,7 @@ ${rich ? `{
       return g;
     },
     // a door of old stone, carved pillars and a lintel, with another sky showing through
-    door(S3, st) {
+    door(S4, st) {
       const g = new THREE.Group(), k = kit();
       for (const sx of [-2.7, 2.7]) {
         courses(k, 8025192, 0.8, 0.7, 7, 6, sx, 0);
@@ -21321,8 +21322,8 @@ ${rich ? `{
       return g;
     },
     // the locked place, by its kind: a castle of towers, a barrow under turf with a stone door, a stepped temple
-    vault(S3) {
-      const g = new THREE.Group(), k = kit(), turf = kit(), id = S3.quest.vault.id, col = id === "temple" ? 6060664 : id === "barrow" ? 6122058 : 6973022;
+    vault(S4) {
+      const g = new THREE.Group(), k = kit(), turf = kit(), id = S4.quest.vault.id, col = id === "temple" ? 6060664 : id === "barrow" ? 6122058 : 6973022;
       if (id === "castle") {
         for (const [x, z, w, d] of [
           [0, -8, 16, 1.6],
@@ -21387,9 +21388,9 @@ ${rich ? `{
       return g;
     }
   };
-  function landmark(kind2, S3, st) {
+  function landmark(kind2, S4, st) {
     if (!marksOn() || !L4[kind2]) return null;
-    return L4[kind2](S3, st);
+    return L4[kind2](S4, st);
   }
 
   // src/view/grass.js
@@ -23259,9 +23260,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var bigMat = () => BIG || (BIG = kitMat(), BIG.dispose = () => {
   }, BIG);
   var BUILT2 = /* @__PURE__ */ new Map();
-  function thingsGroup(S3, id, ts, pos, frame2, list) {
+  function thingsGroup(S4, id, ts, pos, frame2, list) {
     if (!thingsOn()) return null;
-    const left = list || R.thingsLeft(S3, id), map = list ? null : R.mapOf(S3, id), dropped = [];
+    const left = list || R.thingsLeft(S4, id), map = list ? null : R.mapOf(S4, id), dropped = [];
     for (const k in map && map.depots || {})
       map.depots[k].items.forEach((it, i) => {
         if (!it.thing) return;
@@ -23282,10 +23283,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         );
       });
     if (!left.length && !dropped.length) return null;
-    const key2 = [id, S3.seed, left.length, dropped.length, Q.label, S3.realm || "", frame2, ts].join("|");
+    const key2 = [id, S4.seed, left.length, dropped.length, Q.label, S4.realm || "", frame2, ts].join("|");
     let g = BUILT2.get(key2);
     if (!g) {
-      const mark2 = R.C.civ && S3.civ ? (R.trait(S3, "affinity") || {}).color : void 0, big = [], small = [];
+      const mark2 = R.C.civ && S4.civ ? (R.trait(S4, "affinity") || {}).color : void 0, big = [], small = [];
       for (const t2 of left.concat(dropped)) {
         const kd = R.thingKind(t2.k);
         if (!kd) continue;
@@ -23478,60 +23479,286 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     return out;
   }
 
+  // src/view/catsound.js
+  var A2 = null;
+  var NOISE = null;
+  var mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  function useAudio(ctx, noise2) {
+    A2 = ctx;
+    NOISE = noise2;
+  }
+  function voice(t2, f0, vel, dur, out, shape) {
+    const o = A2.createOscillator(), f12 = A2.createBiquadFilter(), f2 = A2.createBiquadFilter(), g = A2.createGain(), mix2 = A2.createGain();
+    o.type = "sawtooth";
+    const up = shape.up || 1.12, down = shape.down || 0.78;
+    o.frequency.setValueAtTime(f0 * 0.92, t2);
+    o.frequency.linearRampToValueAtTime(f0 * up, t2 + dur * 0.35);
+    o.frequency.linearRampToValueAtTime(f0 * down, t2 + dur);
+    f12.type = f2.type = "bandpass";
+    f12.Q.value = 5;
+    f2.Q.value = 7;
+    f12.frequency.setValueAtTime(350, t2);
+    f12.frequency.linearRampToValueAtTime(shape.open || 900, t2 + dur * 0.3);
+    f12.frequency.linearRampToValueAtTime(600, t2 + dur);
+    f2.frequency.setValueAtTime(1200, t2);
+    f2.frequency.linearRampToValueAtTime(shape.bright || 2400, t2 + dur * 0.3);
+    f2.frequency.linearRampToValueAtTime(900, t2 + dur);
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel, t2 + Math.min(0.05, dur * 0.2));
+    g.gain.setTargetAtTime(vel * 0.7, t2 + dur * 0.3, dur * 0.3);
+    g.gain.setTargetAtTime(1e-4, t2 + dur * 0.85, 0.05);
+    o.connect(f12);
+    o.connect(f2);
+    f12.connect(mix2);
+    f2.connect(mix2);
+    mix2.gain.value = 2.2;
+    mix2.connect(g).connect(out);
+    o.start(t2);
+    o.stop(t2 + dur + 0.4);
+  }
+  function meow(t2, m, vel, dur, out) {
+    const d = Math.max(0.12, Math.min(1.2, dur));
+    if (d < 0.18) return voice(t2, mtof(m + 12), vel * 0.8, d, out, { up: 1.35, down: 1.2, open: 1100, bright: 3e3 });
+    if (d < 0.35) return voice(t2, mtof(m + 12), vel, d, out, { up: 1.18, down: 0.9, open: 1e3, bright: 2800 });
+    voice(t2, mtof(m + 12), vel, d, out, { up: 1.12, down: 0.72 });
+  }
+  function mrrow(t2, m, vel, dur, out) {
+    const d = Math.max(0.2, Math.min(1.4, dur));
+    trill(t2, m, vel * 0.5, 0.12, out);
+    voice(t2 + 0.08, mtof(m), vel, d, out, { up: 1.08, down: 0.8, open: 700, bright: 1800 });
+  }
+  function trill(t2, m, vel, dur, out) {
+    const o = A2.createOscillator(), am = A2.createOscillator(), ag = A2.createGain(), g = A2.createGain();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(mtof(m + 12) * 0.9, t2);
+    o.frequency.linearRampToValueAtTime(mtof(m + 12) * 1.15, t2 + dur);
+    am.frequency.value = 30;
+    ag.gain.value = vel * 0.5;
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel * 0.5, t2 + 0.03);
+    g.gain.setTargetAtTime(1e-4, t2 + dur, 0.05);
+    am.connect(ag).connect(g.gain);
+    o.connect(g).connect(out);
+    o.start(t2);
+    am.start(t2);
+    o.stop(t2 + dur + 0.3);
+    am.stop(t2 + dur + 0.3);
+  }
+  function purr(t2, m, vel, dur, out) {
+    const d = Math.max(0.6, dur), s = A2.createBufferSource(), f = A2.createBiquadFilter(), o = A2.createOscillator(), am = A2.createOscillator(), ag = A2.createGain(), g = A2.createGain();
+    s.buffer = NOISE;
+    s.loop = true;
+    f.type = "lowpass";
+    f.frequency.value = 220;
+    o.type = "sawtooth";
+    o.frequency.value = m ? Math.max(40, Math.min(110, mtof(m) / 2)) : 55;
+    am.frequency.value = 24 + Math.random() * 3;
+    ag.gain.value = vel * 0.6;
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel * 0.6, t2 + d * 0.3);
+    g.gain.linearRampToValueAtTime(1e-4, t2 + d);
+    am.connect(ag).connect(g.gain);
+    s.connect(f);
+    o.connect(f);
+    f.connect(g).connect(out);
+    s.start(t2, Math.random());
+    o.start(t2);
+    am.start(t2);
+    for (const x of [s, o, am]) x.stop(t2 + d + 0.1);
+  }
+  function noise(t2, vel, freq, dur, out, type, attack2) {
+    const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
+    s.buffer = NOISE;
+    f.type = type || "highpass";
+    f.frequency.value = freq;
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel, t2 + (attack2 || 0.01));
+    g.gain.setTargetAtTime(1e-4, t2 + dur * 0.7, dur * 0.2);
+    s.connect(f).connect(g).connect(out);
+    s.start(t2, Math.random());
+    s.stop(t2 + dur + 0.2);
+    return f;
+  }
+  var hiss = (t2, vel, out) => noise(t2, vel, 3500, 0.9, out, "highpass", 0.015);
+  function woof(t2, vel, out) {
+    for (const dt of [0, 0.32]) {
+      const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(260, t2 + dt);
+      o.frequency.exponentialRampToValueAtTime(120, t2 + dt + 0.18);
+      f.type = "lowpass";
+      f.frequency.value = 900;
+      g.gain.setValueAtTime(1e-4, t2 + dt);
+      g.gain.linearRampToValueAtTime(vel, t2 + dt + 0.01);
+      g.gain.setTargetAtTime(1e-4, t2 + dt + 0.1, 0.04);
+      o.connect(f).connect(g).connect(out);
+      o.start(t2 + dt);
+      o.stop(t2 + dt + 0.4);
+      noise(t2 + dt, vel * 0.4, 700, 0.12, out, "bandpass");
+    }
+  }
+  function vacuum(t2, vel, out) {
+    const f = noise(t2, vel * 0.9, 300, 2.2, out, "bandpass", 0.3);
+    f.frequency.setValueAtTime(300, t2);
+    f.frequency.exponentialRampToValueAtTime(1800, t2 + 1.5);
+    const o = A2.createOscillator(), g = A2.createGain();
+    o.type = "square";
+    o.frequency.setValueAtTime(80, t2);
+    o.frequency.exponentialRampToValueAtTime(420, t2 + 1.5);
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel * 0.15, t2 + 0.4);
+    g.gain.setTargetAtTime(1e-4, t2 + 1.8, 0.2);
+    o.connect(g).connect(out);
+    o.start(t2);
+    o.stop(t2 + 2.5);
+  }
+  var spray = (t2, vel, out) => (noise(t2, vel, 5e3, 0.18, out), noise(t2 + 0.25, vel, 5e3, 0.18, out));
+  function squeak(t2, vel, out) {
+    const o = A2.createOscillator(), g = A2.createGain();
+    o.frequency.setValueAtTime(1800, t2);
+    o.frequency.exponentialRampToValueAtTime(2600, t2 + 0.08);
+    g.gain.setValueAtTime(1e-4, t2);
+    g.gain.linearRampToValueAtTime(vel * 0.3, t2 + 0.01);
+    g.gain.setTargetAtTime(1e-4, t2 + 0.08, 0.03);
+    o.connect(g).connect(out);
+    o.start(t2);
+    o.stop(t2 + 0.3);
+  }
+  function catVoice(name, t2, m, vel, dur, out) {
+    if (!A2) return false;
+    if (name === "meow") meow(t2, m, vel, dur, out);
+    else if (name === "mrrow") mrrow(t2, m, vel, dur, out);
+    else if (name === "trill") trill(t2, m, vel, Math.max(0.15, Math.min(0.6, dur)), out);
+    else if (name === "purr") purr(t2, m, vel, dur, out);
+    else return false;
+    return true;
+  }
+  function catSound(name, t2, vel, out) {
+    if (!A2) return false;
+    if (name === "hiss") hiss(t2, vel, out);
+    else if (name === "woof") woof(t2, vel, out);
+    else if (name === "vacuum") vacuum(t2, vel, out);
+    else if (name === "spray") spray(t2, vel, out);
+    else if (name === "squeak") squeak(t2, vel, out);
+    else if (name === "purr") purr(t2, 0, vel, 2.6, out);
+    else if (name === "trill") trill(t2, 72, vel, 0.35, out);
+    else if (name === "chirp") meow(t2, 76, vel, 0.12, out);
+    else if (name === "meow") meow(t2, 67, vel, 0.8, out);
+    else return false;
+    return true;
+  }
+
+  // src/view/catsongs.js
+  var S3 = { list: null, tried: false, audio: null, i: 0, order: [], note: "", loading: null };
+  var wanted = () => TH.id === "feline" && !!SET.catSongs && !SET.mute;
+  var songsPlaying = () => !!(S3.audio && !S3.audio.paused && wanted());
+  async function fetchList() {
+    try {
+      if (location.protocol === "file:") throw new Error("file");
+      const r = await fetch("cat-songs/index.json", { cache: "no-cache" });
+      if (!r.ok) throw new Error(r.status);
+      const j = await r.json();
+      S3.list = (Array.isArray(j) ? j : j.songs || []).filter((x) => x && x.file);
+      S3.note = S3.list.length ? S3.list.length + (S3.list.length === 1 ? " song" : " songs") : "No songs added yet";
+    } catch (e) {
+      S3.list = [];
+      S3.note = "No songs found next to this page";
+    }
+    S3.order = S3.list.map((_, i) => i).sort(() => Math.random() - 0.5);
+  }
+  async function loadList() {
+    if (S3.list) return;
+    if (!S3.loading) S3.loading = fetchList().finally(() => S3.loading = null);
+    return S3.loading;
+  }
+  function playNext() {
+    if (!S3.list || !S3.list.length || !wanted()) return;
+    const song = S3.list[S3.order[S3.i++ % S3.order.length]];
+    if (!S3.audio) {
+      S3.audio = new Audio();
+      S3.audio.addEventListener("ended", playNext);
+      S3.audio.addEventListener("error", () => setTimeout(playNext, 500));
+    }
+    S3.audio.src = "cat-songs/" + encodeURI(song.file);
+    S3.audio.volume = Math.max(0, Math.min(1, SET.music === void 0 ? 0.55 : SET.music));
+    S3.nowPlaying = song.title || song.file;
+    S3.audio.play().catch(() => {
+    });
+  }
+  async function updateSongs() {
+    if (!wanted()) {
+      if (S3.audio && !S3.audio.paused) S3.audio.pause();
+      return;
+    }
+    if (!S3.list) await loadList();
+    if (!S3.list.length) return;
+    if (!S3.audio || !S3.audio.src) return playNext();
+    S3.audio.volume = Math.max(0, Math.min(1, SET.music === void 0 ? 0.55 : SET.music));
+    if (S3.audio.paused && !S3.audio.ended) S3.audio.play().catch(() => {
+    });
+  }
+  function setCatSongs(on3) {
+    SET.catSongs = !!on3;
+    saveSettings();
+    updateSongs();
+  }
+  var songsNote = () => S3.loading ? "Looking for songs..." : S3.list ? S3.note + (songsPlaying() && S3.nowPlaying ? ": now " + S3.nowPlaying : "") : "";
+
   // src/view/sound.js
   LOOK_SWITCHES.push(["sound", "Sound and music"]);
   if (SET.music === void 0) SET.music = 0.55;
   if (SET.sfx === void 0) SET.sfx = 0.8;
-  var A2 = null;
+  var A3 = null;
   var master;
   var musicBus;
   var sfxBus;
   var verb;
-  var NOISE;
+  var NOISE2;
   var on2 = () => lookOn("sound") && !SET.mute;
   function start() {
-    if (A2) {
-      if (A2.state === "suspended" && !document.hidden) A2.resume();
+    if (A3) {
+      if (A3.state === "suspended" && !document.hidden) A3.resume();
       return;
     }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC || !on2()) return;
-    A2 = new AC();
-    master = A2.createGain();
+    A3 = new AC();
+    master = A3.createGain();
     master.gain.value = 0.9;
-    master.connect(A2.destination);
-    musicBus = A2.createGain();
-    sfxBus = A2.createGain();
+    master.connect(A3.destination);
+    musicBus = A3.createGain();
+    sfxBus = A3.createGain();
     musicBus.connect(master);
     sfxBus.connect(master);
-    verb = A2.createConvolver();
-    const len = Math.floor(A2.sampleRate * 2.6), ir = A2.createBuffer(2, len, A2.sampleRate);
+    verb = A3.createConvolver();
+    const len = Math.floor(A3.sampleRate * 2.6), ir = A3.createBuffer(2, len, A3.sampleRate);
     for (let ch = 0; ch < 2; ch++) {
       const d = ir.getChannelData(ch);
       for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
     }
     verb.buffer = ir;
-    const wet = A2.createGain();
+    const wet = A3.createGain();
     wet.gain.value = 0.55;
     verb.connect(wet);
     wet.connect(musicBus);
-    NOISE = A2.createBuffer(1, A2.sampleRate * 2, A2.sampleRate);
-    const nd = NOISE.getChannelData(0);
+    NOISE2 = A3.createBuffer(1, A3.sampleRate * 2, A3.sampleRate);
+    const nd = NOISE2.getChannelData(0);
     for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    useAudio(A3, NOISE2);
     makeAmbience();
     volumes();
   }
   function volumes() {
-    if (!A2) return;
-    const t2 = A2.currentTime;
+    if (!A3) return;
+    const t2 = A3.currentTime;
     musicBus.gain.setTargetAtTime(on2() ? SET.music * 0.5 : 0, t2, 0.3);
     sfxBus.gain.setTargetAtTime(on2() ? SET.sfx : 0, t2, 0.1);
   }
   ["pointerdown", "keydown", "touchstart"].forEach((e) => document.addEventListener(e, start, { passive: true }));
   document.addEventListener("visibilitychange", () => {
-    if (!A2) return;
-    if (document.hidden) A2.suspend();
-    else if (on2()) A2.resume();
+    if (!A3) return;
+    if (document.hidden) A3.suspend();
+    else if (on2()) A3.resume();
   });
   LOOK_CHANGED.push((id) => {
     if (id !== "sound") return;
@@ -23550,15 +23777,15 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     g.gain.linearRampToValueAtTime(peak, t2 + a);
     g.gain.exponentialRampToValueAtTime(1e-4, t2 + a + d);
   };
-  var mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  var mtof2 = (m) => 440 * Math.pow(2, (m - 69) / 12);
   function bell(t2, m, vel, out) {
     for (const [mul, k] of [
       [1, 1],
       [2.76, 0.3],
       [5.4, 0.08]
     ]) {
-      const o = A2.createOscillator(), g = A2.createGain();
-      o.frequency.value = mtof(m) * mul;
+      const o = A3.createOscillator(), g = A3.createGain();
+      o.frequency.value = mtof2(m) * mul;
       env(g, t2, 5e-3, vel * k, 2.8 / mul);
       o.connect(g).connect(out);
       o.start(t2);
@@ -23566,28 +23793,28 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     }
   }
   function pluck(t2, m, vel, out) {
-    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain();
+    const o = A3.createOscillator(), f = A3.createBiquadFilter(), g = A3.createGain();
     o.type = "triangle";
-    o.frequency.value = mtof(m);
+    o.frequency.value = mtof2(m);
     f.type = "lowpass";
-    f.frequency.setValueAtTime(mtof(m) * 6, t2);
-    f.frequency.exponentialRampToValueAtTime(mtof(m) * 1.2, t2 + 0.6);
+    f.frequency.setValueAtTime(mtof2(m) * 6, t2);
+    f.frequency.exponentialRampToValueAtTime(mtof2(m) * 1.2, t2 + 0.6);
     env(g, t2, 4e-3, vel, 1.1);
     o.connect(f).connect(g).connect(out);
     o.start(t2);
     o.stop(t2 + 1.3);
   }
   function pad(t2, m, vel, dur, out, wave) {
-    const f = A2.createBiquadFilter(), g = A2.createGain();
+    const f = A3.createBiquadFilter(), g = A3.createGain();
     f.type = "lowpass";
-    f.frequency.value = Math.min(2400, mtof(m) * 3);
+    f.frequency.value = Math.min(2400, mtof2(m) * 3);
     g.gain.setValueAtTime(1e-4, t2);
     g.gain.linearRampToValueAtTime(vel, t2 + dur * 0.4);
     g.gain.linearRampToValueAtTime(1e-4, t2 + dur);
     for (const det of [-7, 6]) {
-      const o = A2.createOscillator();
+      const o = A3.createOscillator();
       o.type = wave || "triangle";
-      o.frequency.value = mtof(m);
+      o.frequency.value = mtof2(m);
       o.detune.value = det;
       o.connect(f);
       o.start(t2);
@@ -23596,7 +23823,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     f.connect(g).connect(out);
   }
   function drum(t2, vel, out, pitch) {
-    const o = A2.createOscillator(), g = A2.createGain();
+    const o = A3.createOscillator(), g = A3.createGain();
     o.frequency.setValueAtTime(pitch || 110, t2);
     o.frequency.exponentialRampToValueAtTime((pitch || 110) * 0.45, t2 + 0.25);
     env(g, t2, 3e-3, vel, 0.35);
@@ -23606,8 +23833,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     noiseHit(t2, vel * 0.25, 900, 0.08, out);
   }
   function noiseHit(t2, vel, freq, dur, out, type, q) {
-    const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
-    s.buffer = NOISE;
+    const s = A3.createBufferSource(), f = A3.createBiquadFilter(), g = A3.createGain();
+    s.buffer = NOISE2;
     f.type = type || "bandpass";
     f.frequency.value = freq;
     f.Q.value = q || 1;
@@ -23621,10 +23848,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (HARP) return HARP;
     const n = 32, re = new Float32Array(n), im = new Float32Array(n);
     for (let k = 1; k < n; k++) im[k] = Math.abs(Math.sin(k * Math.PI * 0.13)) / k * (k < 3 ? 1 : 1.3);
-    return HARP = A2.createPeriodicWave(re, im);
+    return HARP = A3.createPeriodicWave(re, im);
   }
   function harpsichord(t2, m, vel, dur, out) {
-    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain(), fr = mtof(m), ring2 = 0.25 + Math.max(0, 84 - m) * 0.018;
+    const o = A3.createOscillator(), f = A3.createBiquadFilter(), g = A3.createGain(), fr = mtof2(m), ring2 = 0.25 + Math.max(0, 84 - m) * 0.018;
     o.setPeriodicWave(harpWave());
     o.frequency.value = fr;
     f.type = "lowpass";
@@ -23639,7 +23866,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     o.stop(t2 + Math.min(dur + 0.25, ring2 * 5));
   }
   function organ(t2, m, vel, dur, out) {
-    const g = A2.createGain();
+    const g = A3.createGain();
     g.gain.setValueAtTime(1e-4, t2);
     g.gain.linearRampToValueAtTime(vel * 0.7, t2 + 0.06);
     g.gain.setValueAtTime(vel * 0.7, t2 + Math.max(0.07, dur - 0.05));
@@ -23648,9 +23875,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       [1, "sine", 1],
       [2, "triangle", 0.35]
     ]) {
-      const o = A2.createOscillator(), og = A2.createGain();
+      const o = A3.createOscillator(), og = A3.createGain();
       o.type = type;
-      o.frequency.value = mtof(m) * mul;
+      o.frequency.value = mtof2(m) * mul;
       og.gain.value = k;
       o.connect(og).connect(g);
       o.start(t2);
@@ -23659,10 +23886,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     g.connect(out);
   }
   function pipe(t2, m, vel, dur, out) {
-    const o = A2.createOscillator(), lfo = A2.createOscillator(), lg = A2.createGain(), g = A2.createGain();
-    o.frequency.value = mtof(m);
+    const o = A3.createOscillator(), lfo = A3.createOscillator(), lg = A3.createGain(), g = A3.createGain();
+    o.frequency.value = mtof2(m);
     lfo.frequency.value = 5.2;
-    lg.gain.value = mtof(m) * 6e-3;
+    lg.gain.value = mtof2(m) * 6e-3;
     lfo.connect(lg).connect(o.frequency);
     g.gain.setValueAtTime(1e-4, t2);
     g.gain.linearRampToValueAtTime(vel * 0.8, t2 + 0.07);
@@ -23673,21 +23900,23 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     o.stop(t2 + dur + 0.5);
     lfo.stop(t2 + dur + 0.5);
   }
+  var bank = () => TH.id && (R.themeById(TH.id) || {}).sounds || null;
   function playNote(n, t2, dur, out) {
-    const voice = n.voice, one = (tt, m, v, d) => {
-      if (voice === "harpsichord" || voice === "bass") harpsichord(tt, m, v * (voice === "bass" ? 0.9 : 1), d, out);
-      else if (voice === "lute") pluck(tt, m, v, out);
-      else if (voice === "organ") organ(tt, m, v * 0.8, d, out);
-      else if (voice === "pipe") pipe(tt, m, v, d, out);
-      else if (voice === "pad") pad(tt, m, v * 0.4, Math.max(1, d), out, "sine");
-      else if (voice === "drone") pad(tt, m, v, Math.max(1, d), out, "sine");
+    const b = bank(), cat2 = b && b.voices[n.voice], voice2 = n.voice, one = (tt, m, v, d) => {
+      if (cat2 && catVoice(cat2, tt, m, v, d, out)) return;
+      if (voice2 === "harpsichord" || voice2 === "bass") harpsichord(tt, m, v * (voice2 === "bass" ? 0.9 : 1), d, out);
+      else if (voice2 === "lute") pluck(tt, m, v, out);
+      else if (voice2 === "organ") organ(tt, m, v * 0.8, d, out);
+      else if (voice2 === "pipe") pipe(tt, m, v, d, out);
+      else if (voice2 === "pad") pad(tt, m, v * 0.4, Math.max(1, d), out, "sine");
+      else if (voice2 === "drone") pad(tt, m, v, Math.max(1, d), out, "sine");
       else bell(tt, m, v * 0.6, out);
     };
-    if (n.trill && dur > 0.3 && voice !== "bell" && voice !== "organ") {
+    if (n.trill && dur > 0.3 && voice2 !== "bell" && voice2 !== "organ") {
       const s = 0.07, k = Math.min(8, Math.floor(dur * 0.6 / s));
       for (let i = 0; i < k; i++) one(t2 + i * s, i % 2 ? n.m : n.m + 2, n.v * 0.8, s);
       one(t2 + k * s, n.m, n.v, dur - k * s);
-    } else if (n.turn && dur > 0.4 && voice !== "bell" && voice !== "organ") {
+    } else if (n.turn && dur > 0.4 && voice2 !== "bell" && voice2 !== "organ") {
       const s = 0.08;
       [n.m + 2, n.m, n.m - 1].forEach((m, i) => one(t2 + i * s, m, n.v * 0.8, s));
       one(t2 + 3 * s, n.m, n.v, dur - 3 * s);
@@ -23695,36 +23924,41 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var KEYS = [];
   function placeKey() {
-    const S3 = V.S;
-    if (!S3) return "land";
-    if (S3.combat) {
-      const foe2 = S3.creatures.find((c) => c.id === S3.combat.cid);
+    const S4 = V.S;
+    if (!S4) return "land";
+    if (S4.combat) {
+      const foe2 = S4.creatures.find((c) => c.id === S4.combat.cid);
       return foe2 && (foe2.lair || foe2.boss || foe2.named) ? "fight:boss" : "fight";
     }
-    const rec = R.areaRec(S3);
+    const rec = R.areaRec(S4);
     for (const f of KEYS) {
-      const k = f(S3, rec);
+      const k = f(S4, rec);
       if (k) return k;
     }
     if (rec.kind === "deep") return "deep:" + rec.theme;
     if (rec.kind === "vault") return "vault";
     if (rec.kind === "sky") return "sky:" + rec.place;
     if (rec.kind === "sea") return "sea:" + rec.place;
-    if (R.levelLook(S3)) return "deep";
+    if (R.levelLook(S4)) return "deep";
     if (rec.kind === "town") {
-      const t2 = R.curTown(S3), cul = t2 === S3.town ? S3.townCulture : t2 && t2.culture;
+      const t2 = R.curTown(S4), cul = t2 === S4.town ? S4.townCulture : t2 && t2.culture;
       return "town:" + (cul && cul.rare || t2 && t2.size || "town");
     }
-    if (R.aloft && R.aloft(S3)) return "sky";
-    if (S3.weather.storm) return "storm";
-    if (S3.player.swims || S3.terrain[S3.player.y * R.W + S3.player.x] === R.DEEP) return "sea";
-    if (S3.realm) return "elsewhere:" + S3.realm;
-    if (S3.curses && S3.curses[R.outdoorRec(S3).id]) return "blight";
-    const b = R.biomeOf(S3), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", h = R.clock(S3).hour;
+    if (R.aloft && R.aloft(S4)) return "sky";
+    if (S4.weather.storm) return "storm";
+    if (S4.player.swims || S4.terrain[S4.player.y * R.W + S4.player.x] === R.DEEP) return "sea";
+    if (S4.realm) return "elsewhere:" + S4.realm;
+    if (S4.curses && S4.curses[R.outdoorRec(S4).id]) return "blight";
+    const b = R.biomeOf(S4), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", h = R.clock(S4).hour;
     return "land:" + climate + ":" + (h >= 20 || h < 5 ? "night" : "day") + ":" + b.id;
   }
   var M2 = { key: null, tune: null, next: 0, gain: null, duck: 0 };
   function music(now) {
+    if (songsPlaying()) {
+      if (M2.gain) M2.gain.gain.setTargetAtTime(0, now, 0.6);
+      M2.key = null;
+      return;
+    }
     const key2 = placeKey(), X11 = R.C.music;
     if (key2 !== M2.key) {
       const old = M2.gain;
@@ -23732,7 +23966,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         old.gain.setTargetAtTime(0, now, 1.2);
         setTimeout(() => old.disconnect(), 6e3);
       }
-      M2.gain = A2.createGain();
+      M2.gain = A3.createGain();
       M2.gain.gain.setValueAtTime(1e-4, now);
       M2.gain.gain.setTargetAtTime(1, now, 1.5);
       M2.gain.connect(musicBus);
@@ -23745,8 +23979,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     while (M2.next < now + 0.6) {
       const t2 = M2.next, bar = nextBar(tu), len = bar.beats * bar.spb;
       for (const n of bar.notes) playNote(n, t2 + n.t * bar.spb, n.d * bar.spb, out);
-      if (pl.drone && tu.bar % 2 === 1) pad(t2, bar.chord[0] - 12, 0.045, len * 2.1, out, "sine");
-      if (pl.pad && tu.bar % 2 === 0) for (const m of bar.chord) pad(t2, m, 0.024, len * 1.9, out, "triangle");
+      const b = bank();
+      if (pl.drone && tu.bar % 2 === 1)
+        b && catVoice(b.voices.drone, t2, bar.chord[0] - 12, 0.08, len * 2.1, out) || pad(t2, bar.chord[0] - 12, 0.045, len * 2.1, out, "sine");
+      if (pl.pad && tu.bar % 2 === 0) {
+        if (b && b.voices.pad) catVoice(b.voices.pad, t2, bar.chord[0], 0.05, len * 1.9, out);
+        else for (const m of bar.chord) pad(t2, m, 0.024, len * 1.9, out, "triangle");
+      }
       if (pl.drums) {
         for (let i = 0; i < bar.beats; i++)
           if (i !== 3 || Math.random() < 0.5) drum(t2 + i * bar.spb, i === 0 ? 0.3 : 0.18, out, i === 0 ? 90 : 120);
@@ -23756,11 +23995,11 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var lastEvent = 0;
   function eventMusic(kind2) {
-    if (!A2 || !on2() || A2.state !== "running") return;
-    const now = A2.currentTime;
+    if (!A3 || !on2() || A3.state !== "running") return;
+    const now = A3.currentTime;
     if (kind2 === "discovery" && now - lastEvent < 4) return;
     lastEvent = now;
-    const notes = eventPiece(R.C.music, kind2, Math.floor(Math.random() * 1e9)), g = A2.createGain(), end = notes.reduce((a, n) => Math.max(a, n.t + n.d), 0);
+    const notes = eventPiece(R.C.music, kind2, Math.floor(Math.random() * 1e9)), g = A3.createGain(), end = notes.reduce((a, n) => Math.max(a, n.t + n.d), 0);
     g.gain.value = 1;
     g.connect(musicBus);
     g.connect(verb);
@@ -23775,8 +24014,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   R.on("plotDone", () => eventMusic("discovery"));
   var AMB = {};
   function loopNoise(type, freq, q) {
-    const s = A2.createBufferSource(), f = A2.createBiquadFilter(), g = A2.createGain();
-    s.buffer = NOISE;
+    const s = A3.createBufferSource(), f = A3.createBiquadFilter(), g = A3.createGain();
+    s.buffer = NOISE2;
     s.loop = true;
     f.type = type;
     f.frequency.value = freq;
@@ -23792,17 +24031,17 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     AMB.water = loopNoise("bandpass", 1100, 1.2);
     AMB.bustle = loopNoise("bandpass", 380, 1.5);
   }
-  var level = (n, v, k) => n.g.gain.setTargetAtTime(v, A2.currentTime, k || 0.6);
-  function waterNear(S3) {
-    if (R.levelLook(S3)) return 0;
-    const { x, y } = S3.player;
+  var level = (n, v, k) => n.g.gain.setTargetAtTime(v, A3.currentTime, k || 0.6);
+  function waterNear(S4) {
+    if (R.levelLook(S4)) return 0;
+    const { x, y } = S4.player;
     let best = 0;
     for (let dy = -2; dy <= 2; dy++)
       for (let dx = -2; dx <= 2; dx++) {
         const xx = x + dx, yy = y + dy;
         if (xx < 0 || yy < 0 || xx >= R.W || yy >= R.H) continue;
-        const i = yy * R.W + xx, st = S3.sites[i];
-        if (S3.terrain[i] === 4 || st && (st.kind === "spring" || st.kind === "pool" || st.kind === "well"))
+        const i = yy * R.W + xx, st = S4.sites[i];
+        if (S4.terrain[i] === 4 || st && (st.kind === "spring" || st.kind === "pool" || st.kind === "well"))
           best = Math.max(best, 1 - Math.hypot(dx, dy) / 3);
       }
     return best;
@@ -23814,21 +24053,21 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var nextCrackle = 0;
   var seen2 = { hp: null, chp: null, combat: false };
   function world(now, dt) {
-    const S3 = V.S, look2 = R.levelLook(S3), rec = R.areaRec(S3), under2 = look2 && !look2.void, storm = S3.weather.storm ? R.stormOfNow(S3) : null, stormName = storm ? (storm.name || "").toLowerCase() : "", up = R.aloft && R.aloft(S3);
+    const S4 = V.S, look2 = R.levelLook(S4), rec = R.areaRec(S4), under2 = look2 && !look2.void, storm = S4.weather.storm ? R.stormOfNow(S4) : null, stormName = storm ? (storm.name || "").toLowerCase() : "", up = R.aloft && R.aloft(S4);
     gust += dt * 0.3;
     const w = under2 ? 0.01 : (0.035 + 0.025 * Math.sin(gust) * Math.sin(gust * 0.37)) * (storm ? 3 : 1) * (up ? 2.2 : 1);
     level(AMB.wind, w, 1);
     AMB.wind.f.frequency.setTargetAtTime(380 + 260 * (0.5 + 0.5 * Math.sin(gust * 0.7)) + (up ? 300 : 0), now, 1);
     const wet = storm && !under2 && /rain|hail|storm|sleet/.test(stormName) && !/dust|sand|ash/.test(stormName);
     level(AMB.rain, wet ? rec.kind === "town" ? 0.05 : 0.08 : 0, 1.2);
-    level(AMB.water, waterNear(S3) * 0.06, 0.8);
+    level(AMB.water, waterNear(S4) * 0.06, 0.8);
     level(AMB.bustle, rec.kind === "town" ? 0.045 + 0.02 * Math.sin(now * 0.5) : 0, 1);
     if (rec.kind === "town" && now > nextClink) {
       nextClink = now + 1.5 + Math.random() * 4;
       if (Math.random() < 0.5) noiseHit(now, 0.05, 2400 + Math.random() * 1200, 0.12, sfxBus, "bandpass", 8);
       else pluck(now, 72 + Math.floor(Math.random() * 5) * 2, 0.02, sfxBus);
     }
-    const camp = S3.camp && S3.camp.area === S3.area && Math.abs(S3.camp.i % R.W - S3.player.x) + Math.abs(Math.floor(S3.camp.i / R.W) - S3.player.y) <= 1;
+    const camp = S4.camp && S4.camp.area === S4.area && Math.abs(S4.camp.i % R.W - S4.player.x) + Math.abs(Math.floor(S4.camp.i / R.W) - S4.player.y) <= 1;
     if (camp && now > nextCrackle) {
       nextCrackle = now + 0.05 + Math.random() * 0.4;
       noiseHit(now, 0.03 + Math.random() * 0.05, 1800 + Math.random() * 3e3, 0.03, sfxBus, "highpass");
@@ -23836,24 +24075,28 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const stride = 1.7;
     if (P3.walked - lastWalk > stride) {
       lastWalk = P3.walked;
-      step(now, S3, look2);
+      step(now, S4, look2);
     } else if (P3.walked < lastWalk) lastWalk = P3.walked;
     if (now > nextCall) {
       nextCall = now + 6 + Math.random() * 10;
-      const c = S3.creatures.find((c2) => Math.abs(c2.x - S3.player.x) + Math.abs(c2.y - S3.player.y) <= 4 && !c2.bound);
-      if (c) call(now, R.spOf(S3, c).form, 0.08);
+      const c = S4.creatures.find((c2) => Math.abs(c2.x - S4.player.x) + Math.abs(c2.y - S4.player.y) <= 4 && !c2.bound);
+      if (c) call(now, R.spOf(S4, c).form, 0.08);
     }
-    const cbt = S3.combat, foe2 = cbt && S3.creatures.find((c) => c.id === cbt.cid);
-    if (cbt && !seen2.combat && foe2) call(now, R.spOf(S3, foe2).form, 0.18);
+    const cbt = S4.combat, foe2 = cbt && S4.creatures.find((c) => c.id === cbt.cid);
+    if (cbt && !seen2.combat && foe2) {
+      call(now, R.spOf(S4, foe2).form, 0.18);
+      const b = bank();
+      if (b && b.events.danger) catSound(b.events.danger, now + 0.7, 0.22, sfxBus);
+    }
     seen2.combat = !!cbt;
-    if (seen2.hp !== null && S3.player.hp < seen2.hp) hurt2(now);
-    seen2.hp = S3.player.hp;
+    if (seen2.hp !== null && S4.player.hp < seen2.hp) hurt2(now);
+    seen2.hp = S4.player.hp;
     const chp = foe2 ? foe2.hp : null;
     if (seen2.chp !== null && chp !== null && chp < seen2.chp) blow(now);
     seen2.chp = chp;
   }
-  function step(t2, S3, look2) {
-    const ti = S3.player.y * R.W + S3.player.x, ter = S3.terrain[ti], b = R.biomeOf(S3), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", kind2 = R.areaRec(S3).kind;
+  function step(t2, S4, look2) {
+    const ti = S4.player.y * R.W + S4.player.x, ter = S4.terrain[ti], b = R.biomeOf(S4), climate = b.parts && b.parts.climate || { salt: "hot", taiga: "cold", moor: "wet" }[b.id] || "temperate", kind2 = R.areaRec(S4).kind;
     let ground = "grass";
     if (look2) ground = look2.kit === "planks" ? "wood" : look2.void && !look2.kit ? "grass" : "stone";
     else if (kind2 === "town") ground = "stone";
@@ -23872,8 +24115,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     else noiseHit(t2, v * 1.1, 3e3 + Math.random() * 1500, 0.04, sfxBus, "bandpass", 4);
   }
   function call(t2, form, vel) {
+    const bk = bank();
+    if (bk && bk.calls[form] && catSound(bk.calls[form], t2, vel, sfxBus)) return;
     if (form === "serpent") return noiseHit(t2, vel * 0.8, 5e3, 0.9, sfxBus, "highpass");
-    const o = A2.createOscillator(), f = A2.createBiquadFilter(), g = A2.createGain(), [a, b, dur, type] = form === "hound" ? [440, 700, 1.4, "sawtooth"] : form === "brute" ? [90, 60, 0.7, "sawtooth"] : [220, 180, 2.2, "sine"];
+    const o = A3.createOscillator(), f = A3.createBiquadFilter(), g = A3.createGain(), [a, b, dur, type] = form === "hound" ? [440, 700, 1.4, "sawtooth"] : form === "brute" ? [90, 60, 0.7, "sawtooth"] : [220, 180, 2.2, "sine"];
     o.type = type;
     o.frequency.setValueAtTime(a, t2);
     o.frequency.linearRampToValueAtTime(b, t2 + dur * 0.4);
@@ -23889,19 +24134,24 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var blow = (t2) => (noiseHit(t2, 0.35, 700, 0.12, sfxBus, "lowpass"), drum(t2, 0.3, sfxBus, 70));
   var hurt2 = (t2) => (noiseHit(t2, 0.3, 400, 0.2, sfxBus, "lowpass"), pluck(t2, 40, 0.15, sfxBus));
   R.on("did", (s, d) => {
-    if (!A2 || !on2()) return;
-    const t2 = A2.currentTime;
+    if (!A3 || !on2()) return;
+    const t2 = A3.currentTime;
+    const b = bank(), ev = b && b.events[d.id];
+    if (ev) catSound(ev, t2, 0.3, sfxBus);
     if (d.id === "attack") noiseHit(t2, 0.12, 1600, 0.18, sfxBus, "bandpass", 0.7);
     else if (d.id === "drink" || d.id === "fill" || d.id === "fillWater") noiseHit(t2, 0.08, 900, 0.4, sfxBus, "bandpass", 4);
   });
   R.on("killed", () => {
-    if (!A2 || !on2()) return;
-    const t2 = A2.currentTime;
+    if (!A3 || !on2()) return;
+    const t2 = A3.currentTime, b = bank();
+    if (b && catSound(b.events.kill, t2, 0.25, sfxBus)) return;
     for (const [i, m] of [67, 71, 74].entries()) bell(t2 + i * 0.12, m, 0.06, sfxBus);
   });
   document.addEventListener("click", (e) => {
-    if (!A2 || !on2() || !(e.target && e.target.closest && e.target.closest("button"))) return;
-    const t2 = A2.currentTime, o = A2.createOscillator(), g = A2.createGain();
+    if (!A3 || !on2() || !(e.target && e.target.closest && e.target.closest("button"))) return;
+    const t2 = A3.currentTime, b = bank();
+    if (b && b.events.click && catSound(b.events.click, t2, 0.08, sfxBus)) return;
+    const o = A3.createOscillator(), g = A3.createGain();
     o.frequency.setValueAtTime(1300, t2);
     o.frequency.exponentialRampToValueAtTime(700, t2 + 0.05);
     env(g, t2, 2e-3, 0.05, 0.06);
@@ -23911,11 +24161,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   });
   var lastUpdate = 0;
   function updateSound(dt) {
-    if (!A2 || !V.S || A2.state !== "running") return;
+    if (!A3 || !V.S || A3.state !== "running") return;
     if (!on2()) return;
-    const now = A2.currentTime;
+    const now = A3.currentTime;
     if (now - lastUpdate < 0.1) return;
     lastUpdate = now;
+    if ((updateSound.n = (updateSound.n || 0) + 1) % 10 === 0) updateSongs();
     music(now);
     world(now, 0.1);
     const over = V.S.over ? V.S.over.won ? "win" : "death" : null;
@@ -23924,9 +24175,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var METER = null;
   function soundLevel() {
-    if (!A2) return null;
+    if (!A3) return null;
     if (!METER) {
-      METER = A2.createAnalyser();
+      METER = A3.createAnalyser();
       METER.fftSize = 2048;
       master.connect(METER);
     }
@@ -23936,13 +24187,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     for (const x of d) peak = Math.max(peak, Math.abs(x)), sum2 += x * x;
     return { peak, rms: Math.sqrt(sum2 / d.length) };
   }
-  var soundState = () => ({ running: !!A2 && A2.state === "running", mood: M2.key, level: soundLevel() });
+  var soundState = () => ({ running: !!A3 && A3.state === "running", mood: M2.key, level: soundLevel() });
 
   // src/view/rooms.js
   var TUNES = { elder: "hall", temple: "temple", inn: "inn", shop: "shop", smith: "smithy", mapmaker: "library" };
-  KEYS.push((S3, rec) => {
+  KEYS.push((S4, rec) => {
     if (rec.kind !== "house") return null;
-    const L5 = R.houseOf(S3, S3.area);
+    const L5 = R.houseOf(S4, S4.area);
     if (!L5) return "in:home";
     return "in:" + (L5.empty ? "abandoned" : TUNES[L5.kind] || (L5.grade >= 2 ? "rich" : "home"));
   });
@@ -23970,8 +24221,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     return lk;
   }
   var BUILT3 = /* @__PURE__ */ new Map();
-  function houseGroup(S3, id, L5) {
-    const key2 = id + "|" + S3.seed;
+  function houseGroup(S4, id, L5) {
+    const key2 = id + "|" + S4.seed;
     if (BUILT3.has(key2)) return BUILT3.get(key2);
     const lk = lookOf(L5), walls = kit(), floor = kit(), ceil = kit(), wood = kit(), glow2 = kit(), W3 = R.W, cells = L5.cells;
     let x0 = W3, y0 = W3, x1 = -1, y1 = -1;
@@ -24228,8 +24479,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   })();
   var BUILD = {
     // the shadow of a place in the sky, and the place itself hanging high above it, seen from far off
-    shadow(S3, st) {
-      const g = new THREE.Group(), k = (S3.skies || []).find((x) => x.id === st.sky), kind2 = k ? k.kind : "isle", d = new THREE.Mesh(new THREE.CircleGeometry(16, 20).rotateX(-Math.PI / 2), glow(1909808, 0.35, true));
+    shadow(S4, st) {
+      const g = new THREE.Group(), k = (S4.skies || []).find((x) => x.id === st.sky), kind2 = k ? k.kind : "isle", d = new THREE.Mesh(new THREE.CircleGeometry(16, 20).rotateX(-Math.PI / 2), glow(1909808, 0.35, true));
       d.position.y = 0.4;
       g.add(d);
       const up = new THREE.Group(), far = (c) => std(c, { fog: false, transparent: true, opacity: 0.85 });
@@ -24259,7 +24510,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       return g;
     },
     // someone at a small fire in the wilds (only the ashes, once they have gone on)
-    wayfarer(S3, st) {
+    wayfarer(S4, st) {
       const g = new THREE.Group();
       if (fxOn()) {
         if (st.gone) g.add(box2(1.4, 0.15, 1.4, std(3813415), 0, 0.08, 0));
@@ -24286,7 +24537,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       return g;
     },
     // a door of old stone, alone in the land, with another sky showing through it
-    door(S3, st) {
+    door(S4, st) {
       const g = new THREE.Group(), stone = std(7828330);
       g.add(box2(1.2, 7, 1.2, stone, -2.6, 3.5, 0), box2(1.2, 7, 1.2, stone, 2.6, 3.5, 0), box2(6.6, 1.2, 1.4, stone, 0, 7.4, 0));
       const sky = new THREE.Mesh(new THREE.PlaneGeometry(4, 6.8), glow(st.back ? 12572912 : 11832544, 0.85));
@@ -24297,8 +24548,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     },
     // a place in the water: a mast for a wreck, a cluster of hulls for a floating town, a ring of standing stones for
     // the merfolk's halls or a drowned shrine, and a dark cave mouth on the shore
-    seaplace(S3, st) {
-      const g = new THREE.Group(), p = (S3.seaPlaces || []).find((x) => x.id === st.place), kind2 = p ? p.kind : "wreck";
+    seaplace(S4, st) {
+      const g = new THREE.Group(), p = (S4.seaPlaces || []).find((x) => x.id === st.place), kind2 = p ? p.kind : "wreck";
       if (kind2 === "wreck") g.add(box2(0.5, 9, 0.5, std(4864554), 0, 2.5, 0), box2(4, 0.3, 0.3, std(4864554), 0, 5.5, 0));
       else if (kind2 === "raft") {
         for (let i = 0; i < 7; i++) g.add(box2(3, 1.2, 7, std(6965808), Math.cos(i * 0.9) * 7, 0.2, Math.sin(i * 0.9) * 7));
@@ -24336,9 +24587,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       g.add(m, d);
       return g;
     },
-    hamlet(S3, st, at) {
+    hamlet(S4, st, at) {
       if (townsOn() && at)
-        return cachedModel("hamlet" + S3.seed + ":" + at.seed, () => hamletGroup(S3, at.biome, at.seed).add(BUILD.well()));
+        return cachedModel("hamlet" + S4.seed + ":" + at.seed, () => hamletGroup(S4, at.biome, at.seed).add(BUILD.well()));
       const g = new THREE.Group(), wall2 = std(12101768), roof2 = std(6965810);
       g.add(BUILD.well());
       for (const [x, z, r] of [
@@ -24897,7 +25148,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     buildDynamic();
     return true;
   }
-  function* buildLand(S3, timed) {
+  function* buildLand(S4, timed) {
     const group2 = new THREE.Group();
     let tp = performance.now();
     const part = (k) => {
@@ -24906,7 +25157,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       PF.parts[k] = n - tp;
       tp = n;
     };
-    const base = yield* makeTerrainG(S3);
+    const base = yield* makeTerrainG(S4);
     part("land");
     yield;
     const T5 = base, land2 = T5.land, pal = land2.biomes.map((b) => ({
@@ -25083,7 +25334,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     part("ground");
     if (roadsDrawn) {
       yield;
-      const rd = roadsGroup(S3, T5, (x, z) => colourAt(x, z));
+      const rd = roadsGroup(S4, T5, (x, z) => colourAt(x, z));
       group2.add(rd.group);
       T5.roadNear = rd.near;
       part("roads");
@@ -25096,7 +25347,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       y: T5.height(centre(q2.x), centre(q2.y)),
       z: centre(q2.y)
     }));
-    const fd = fieldsGroup(S3, T5, towns, townHalf);
+    const fd = fieldsGroup(S4, T5, towns, townHalf);
     group2.add(fd.group);
     T5.inField = fd.inField;
     const nearSite = (x, z) => {
@@ -25158,7 +25409,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         pal.map((p) => p.lush),
         towns,
         townHalf,
-        S3.seed
+        S4.seed
       );
       if (gr) group2.userData.grass = gr;
     }
@@ -25197,17 +25448,17 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       }
       if (st.kind === "town") {
         const id = st.town || "town", tw = towns.find((t2) => t2.id === id);
-        if (!S3.areas[id] || !R.mapOf(S3, id) || !tw) continue;
-        const g2 = interiorGroup(R.mapOf(S3, id), S3.areas[id], TOWN_TS, id);
+        if (!S4.areas[id] || !R.mapOf(S4, id) || !tw) continue;
+        const g2 = interiorGroup(R.mapOf(S4, id), S4.areas[id], TOWN_TS, id);
         g2.position.set(tw.x, tw.y, tw.z);
         g2.userData.townGroup = id;
         group2.add(g2);
         continue;
       }
       if (!BUILD[st.kind]) continue;
-      const g = st.kind !== "well" && st.kind !== "cave" && landmark(st.kind, S3, st) || BUILD[st.kind](S3, st, {
+      const g = st.kind !== "well" && st.kind !== "cave" && landmark(st.kind, S4, st) || BUILD[st.kind](S4, st, {
         biome: land2.biomes[land2.biome[(site.y + MARGIN) * EW + site.x + MARGIN]],
-        seed: S3.seed ^ Math.imul(site.k + 1, 2654435761) ^ land2.cx * 977 + land2.cy * 131
+        seed: S4.seed ^ Math.imul(site.k + 1, 2654435761) ^ land2.cx * 977 + land2.cy * 131
       });
       g.position.set(x, T5.height(x, z), z);
       if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
@@ -25268,26 +25519,26 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     settleActors(dynGroup);
   }
   function drawHouses() {
-    const S3 = V.S, here2 = R.areaRec(S3), inHouse = here2.kind === "house", list = [];
-    if (inHouse) list.push({ id: S3.area, L: R.houseOf(S3, S3.area) });
-    if (R.interiorsOn(S3, V.townId)) {
+    const S4 = V.S, here2 = R.areaRec(S4), inHouse = here2.kind === "house", list = [];
+    if (inHouse) list.push({ id: S4.area, L: R.houseOf(S4, S4.area) });
+    if (R.interiorsOn(S4, V.townId)) {
       const tsz = TOWN_TS, th = R.W * tsz / 2;
-      for (const b of R.buildingsOf(S3, V.townId)) {
-        if (inHouse && b.id === S3.area) continue;
+      for (const b of R.buildingsOf(S4, V.townId)) {
+        if (inHouse && b.id === S4.area) continue;
         const dx = (b.door.x + 0.5) * tsz - th + V.townAt.x - FR.x - P3.x, dz = (b.door.y + 0.5) * tsz - th + V.townAt.z - FR.z - P3.z;
-        if (dx * dx + dz * dz < 22 * 22) list.push({ id: b.id, L: R.houseLayout(S3, V.townId, b) });
+        if (dx * dx + dz * dz < 22 * 22) list.push({ id: b.id, L: R.houseLayout(S4, V.townId, b) });
       }
     }
     for (const { id, L: L5 } of list.slice(0, 4)) {
       if (!L5) continue;
-      const o = houseOrigin(L5), g = houseGroup(S3, id, L5);
+      const o = houseOrigin(L5), g = houseGroup(S4, id, L5);
       g.position.set(V.townAt.x + o.x - FR.x, V.townAt.y + 0.08 - FR.y, V.townAt.z + o.z - FR.z);
       if (g.parent) g.parent.remove(g);
       dynGroup.add(g);
-      if (S3.areas[id]) drawArea(id, "house", null, L5);
+      if (S4.areas[id]) drawArea(id, "house", null, L5);
       else {
-        const gone = new Set(S3.taken && S3.taken[id] || []), hh = R.W * HT / 2, tg = thingsGroup(
-          S3,
+        const gone = new Set(S4.taken && S4.taken[id] || []), hh = R.W * HT / 2, tg = thingsGroup(
+          S4,
           id,
           HT,
           (t2) => [
@@ -25535,7 +25786,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     return m;
   }
   function build() {
-    const S3 = V.S, b = R.biomeOf(S3), rough = Math.max(0, Math.min(1, (b.mountains || 0) * 4 + (b.hills || 0) * 0.8)), rec = R.outdoorRec ? R.outdoorRec(S3) : null, k = [S3.seed, rec ? rec.id : "", S3.realm || "", b.id, Q.skyline].join("|");
+    const S4 = V.S, b = R.biomeOf(S4), rough = Math.max(0, Math.min(1, (b.mountains || 0) * 4 + (b.hills || 0) * 0.8)), rec = R.outdoorRec ? R.outdoorRec(S4) : null, k = [S4.seed, rec ? rec.id : "", S4.realm || "", b.id, Q.skyline].join("|");
     if (k === key && group) return;
     key = k;
     if (group) {
@@ -25543,7 +25794,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       group.traverse((o) => o.geometry && (o.geometry.dispose(), o.material.dispose()));
     }
     group = new THREE.Group();
-    const n = Math.min(RINGS.length, Q.skyline), base = S3.seed ^ (rec ? rec.cx * 7919 + rec.cy * 104729 : 0) | 0;
+    const n = Math.min(RINGS.length, Q.skyline), base = S4.seed ^ (rec ? rec.cx * 7919 + rec.cy * 104729 : 0) | 0;
     for (let i = 0; i < n; i++) group.add(ring(RINGS[i], base + i * 977, rough));
     scene.add(group);
   }
@@ -27448,6 +27699,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       ]);
   }
   function showEnd() {
+    if (V.S.over && V.S.over.won && R.themeOf(V.S) === "feline")
+      setTimeout(() => catSplash({ title: "PURRFECT VICTORY", sub: "The cats are pleased. Briefly.", ms: 5e3 }), 300);
     const c = R.clock(V.S), won = V.S.over.won, left = R.livesLeft(V.S), who = R.charTitle(V.S.char), dist = "with this still undone: " + R.objective(V.S).text.toLowerCase();
     const world2 = el("p", {
       cls: "note",
@@ -27655,19 +27908,19 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     cv2.style.display = "block";
     const css = cv2.clientWidth || 300;
     cv2.style.height = css + "px";
-    const S3 = V.S, w = S3.world, WW = w.cols * R.W, HH2 = w.rows * R.H, dpr = window.devicePixelRatio || 1, n = mapView.zoom, ts = css / n, wrapN = (v, m) => (v % m + m) % m;
+    const S4 = V.S, w = S4.world, WW = w.cols * R.W, HH2 = w.rows * R.H, dpr = window.devicePixelRatio || 1, n = mapView.zoom, ts = css / n, wrapN = (v, m) => (v % m + m) % m;
     cv2.width = cv2.height = Math.round(css * dpr);
     const g = cv2.getContext("2d");
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = "#10151d";
     g.fillRect(0, 0, css, css);
-    const wp = R.worldPos(S3), fx = R.inOverworld(S3) ? (P3.x + G2.half) / G2.ts - S3.player.x : 0.5, fy = R.inOverworld(S3) ? (P3.z + G2.half) / G2.ts - S3.player.y : 0.5, youX = wp.x + fx, youY = wp.y + fy, x0 = youX + mapView.dx - n / 2, y0 = youY + mapView.dy - n / 2;
+    const wp = R.worldPos(S4), fx = R.inOverworld(S4) ? (P3.x + G2.half) / G2.ts - S4.player.x : 0.5, fy = R.inOverworld(S4) ? (P3.z + G2.half) / G2.ts - S4.player.y : 0.5, youX = wp.x + fx, youY = wp.y + fy, x0 = youX + mapView.dx - n / 2, y0 = youY + mapView.dy - n / 2;
     mapView.last = { x0, y0, ts };
     const regions = {};
     const regionAt = (gx, gy) => {
-      const rx = Math.floor(gx / R.W), ry = Math.floor(gy / R.H), cx = wrapN(w.home.cx + rx, w.cols), cy = wrapN(w.home.cy + ry, w.rows), id = R.regionId(S3, cx, cy);
+      const rx = Math.floor(gx / R.W), ry = Math.floor(gy / R.H), cx = wrapN(w.home.cx + rx, w.cols), cy = wrapN(w.home.cy + ry, w.rows), id = R.regionId(S4, cx, cy);
       if (!(id in regions)) {
-        const rec = S3.areas[id], m = rec ? R.mapOf(S3, id) : null;
+        const rec = S4.areas[id], m = rec ? R.mapOf(S4, id) : null;
         regions[id] = m && m.terrain ? { m, cols: R.byId(R.C.biomes, rec.biome).colors, id } : null;
       }
       return { r: regions[id], x: gx - rx * R.W, y: gy - ry * R.H };
@@ -27691,13 +27944,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           g.fillStyle = st.kind === "spring" && st.known && st.foul ? "#6f6a35" : MAPC[st.kind];
           g.fillRect(px + ts / 2 - big / 2, py + ts / 2 - big / 2, big, big);
         }
-        if (m.depots[i] && !(S3.camp && S3.camp.area === r.id && S3.camp.i === i)) {
+        if (m.depots[i] && !(S4.camp && S4.camp.area === r.id && S4.camp.i === i)) {
           g.fillStyle = "#000";
           g.beginPath();
           g.arc(px + ts / 2, py + ts / 2, Math.max(1.5, ts * 0.3), 0, 7);
           g.fill();
         }
-        if (S3.camp && S3.camp.area === r.id && S3.camp.i === i) {
+        if (S4.camp && S4.camp.area === r.id && S4.camp.i === i) {
           g.fillStyle = "#e0a84a";
           g.beginPath();
           g.moveTo(px + ts / 2 - 6, py + ts + 2);
@@ -27707,18 +27960,18 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           g.fill();
         }
       }
-    if (R.inOverworld(S3)) {
-      for (const c of S3.creatures)
-        if (c.seen && Math.max(Math.abs(c.x - S3.player.x), Math.abs(c.y - S3.player.y)) <= 4) {
+    if (R.inOverworld(S4)) {
+      for (const c of S4.creatures)
+        if (c.seen && Math.max(Math.abs(c.x - S4.player.x), Math.abs(c.y - S4.player.y)) <= 4) {
           g.fillStyle = "#e0302a";
           g.beginPath();
-          g.arc((wp.x + c.x - S3.player.x + 0.5 - x0) * ts, (wp.y + c.y - S3.player.y + 0.5 - y0) * ts, 4, 0, 7);
+          g.arc((wp.x + c.x - S4.player.x + 0.5 - x0) * ts, (wp.y + c.y - S4.player.y + 0.5 - y0) * ts, 4, 0, 7);
           g.fill();
         }
     }
-    const gm = R.inOverworld(S3) ? R.goalMark(S3) : null;
+    const gm = R.inOverworld(S4) ? R.goalMark(S4) : null;
     if (gm) {
-      let gx = wrapN(wp.x + gm.x - S3.player.x + 0.5 - x0, WW), gy = wrapN(wp.y + gm.y - S3.player.y + 0.5 - y0, HH2);
+      let gx = wrapN(wp.x + gm.x - S4.player.x + 0.5 - x0, WW), gy = wrapN(wp.y + gm.y - S4.player.y + 0.5 - y0, HH2);
       if (gx > n + 1) gx -= WW;
       if (gy > n + 1) gy -= HH2;
       const cx = n / 2 - mapView.dx, cy = n / 2 - mapView.dy, m = 1.2;
@@ -28103,8 +28356,22 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           render();
           openMenu();
         });
+        const songs = el("input", { type: "checkbox", id: "cat-songs" }), note = el("p", { cls: "note", id: "cat-songs-note", "data-notheme": "1", text: songsNote() });
+        songs.checked = !!SET.catSongs;
+        songs.addEventListener("change", () => {
+          setCatSongs(songs.checked);
+          if (songs.checked) loadList().then(() => note.textContent = songsNote());
+        });
+        if (SET.catSongs) loadList().then(() => note.textContent = songsNote());
         return el("ul", { cls: "items" }, [
-          el("li", { cls: "item" }, [el("label", { for: "feline", text: "Super Feline Mode, for this world" }), cb])
+          el("li", { cls: "item" }, [el("label", { for: "feline", text: "Super Feline Mode, for this world" }), cb]),
+          R.themeOf(V.S) === "feline" ? el("li", { cls: "item" }, [
+            el("div", null, [
+              el("label", { for: "cat-songs", text: "Andrew's cat songs (full soundtrack, loaded separately)" }),
+              note
+            ]),
+            songs
+          ]) : null
         ]);
       })(),
       // sound: music and effects volumes, and a mute (sound.js)

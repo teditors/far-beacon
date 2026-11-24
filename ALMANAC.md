@@ -1339,7 +1339,7 @@ People at a small fire in the wilds, in 35% of regions away from home, put there
 
 ## Themes: Super Feline Mode
 
-**Super Feline Mode** (`feline`): the same rules, every word in its own. Rolled by itself in about 1 world in 50 (switch `felineroll`). 89 whole texts, 130 phrases and 892 words are renamed; names built from content get a name in its style ({n}paws, Mew{l}, {n}whiskers, {n}kins, Purr{l}, {n}fluff, {n}mittens, Sir {n}, {n}-Meow); a text with nothing renamed gets a flourish (Mrrp. Purr. (meow) Mew! *tail flick* Prrrt? *slow blink* Nya.).
+**Super Feline Mode** (`feline`): the same rules, every word in its own. Rolled by itself in about 1 world in 50 (switch `felineroll`). 94 whole texts, 130 phrases and 892 words are renamed; names built from content get a name in its style ({n}paws, Mew{l}, {n}whiskers, {n}kins, Purr{l}, {n}fluff, {n}mittens, Sir {n}, {n}-Meow); a text with nothing renamed gets a flourish (Mrrp. Purr. (meow) Mew! *tail flick* Prrrt? *slow blink* Nya.).
 
 | Race | As a cat |
 | --- | --- |
@@ -1572,6 +1572,11 @@ People at a small fire in the wilds, in 35% of regions away from home, put there
 | Sip, don't gulp | Lap, don't gulp |
 | Pick | Pointy pick |
 | Saw | Toothy saw |
+| Dead of thirst | Out of kibble (a tragedy in one bowl) |
+| Frozen | Too chilly to go on (no lap was found) |
+| Send another traveller | Send another cat (there are always more cats) |
+| Abandon this world | Knock this world off the table |
+| Same world again | Same litter again |
 | The relic | The Laser Pointer |
 | The great beast | The Great Vacuum |
 | Held captive | Kitten up a tree |

@@ -579,9 +579,15 @@ const NO = {};
 for (const k of (process.env.NO || '').split(',').filter(Boolean)) NO[k] = true;
 // SET=sky=1,doors=1 plays worlds made with those world settings (content/worldset.js)
 const SET = R.parseSet(process.env.SET);
+// THEME=feline plays every world in Super Feline Mode (C9), turning every line of the log and the goal into its words
+// as a player would read them: the bot must do exactly as well, since the rules never read the theme
+const THEME = process.env.THEME || null;
+let themedLines = 0;
 function play(seed) {
   trail = [];
   const s = R.newGame(seed, NO, SET);
+  if (THEME) R.setTheme(s, THEME);
+  let seenLog = 0;
   const stats = { seed, searches: 0, flees: 0, fights: 0, town: null, deaths: [], dungeon: null, stuck: false };
   let guard = 0,
     lastTarget = null,
@@ -622,6 +628,11 @@ function play(seed) {
         tg && JSON.stringify(tg),
         R.objective(s).text,
       );
+    }
+    if (THEME) {
+      for (; seenLog < s.log.length; seenLog++) R.themed(s.log[seenLog].msg, R.themeOf(s)), themedLines++;
+      if (s.log.length < seenLog) seenLog = s.log.length;
+      R.themed(R.objective(s).text, R.themeOf(s));
     }
     if (s.combat) {
       stats.fights++;
@@ -839,6 +850,7 @@ for (const r of res)
     cls[d.cls] = (cls[d.cls] || 0) + 1;
   }
 console.log('deaths by cause', JSON.stringify(deaths));
+if (THEME) console.log('theme', THEME + ':', themedLines, 'log lines turned into its words');
 console.log('deaths during goal', JSON.stringify(goals));
 console.log('deaths by class', JSON.stringify(cls));
 console.log(

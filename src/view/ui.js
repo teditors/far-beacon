@@ -10,6 +10,7 @@ import { toHex } from './look.js';
 import { setVolume, soundState } from './sound.js';
 import { syncTheme, onThemeChange } from './theme.js';
 import { catSplash } from './catsplash.js';
+import { setCatSongs, songsNote, loadList } from './catsongs.js';
 
 /* ---------- HUD and panels ---------- */
 function meter(id, v, max, txt) {
@@ -649,6 +650,9 @@ function openTown(section) {
     ]);
 }
 function showEnd() {
+  // Super Feline Mode (C9): a win is a party
+  if (V.S.over && V.S.over.won && R.themeOf(V.S) === 'feline')
+    setTimeout(() => catSplash({ title: 'PURRFECT VICTORY', sub: 'The cats are pleased. Briefly.', ms: 5000 }), 300);
   const c = R.clock(V.S),
     won = V.S.over.won,
     left = R.livesLeft(V.S),
@@ -1446,8 +1450,26 @@ function openMenu() {
         render();
         openMenu();
       });
+      // Andrew's cat songs: a full soundtrack, from files beside the page, fetched only when turned on (catsongs.js)
+      const songs = el('input', { type: 'checkbox', id: 'cat-songs' }),
+        note = el('p', { cls: 'note', id: 'cat-songs-note', 'data-notheme': '1', text: songsNote() }); // Andrew's titles stay his
+      songs.checked = !!SET.catSongs;
+      songs.addEventListener('change', () => {
+        setCatSongs(songs.checked);
+        if (songs.checked) loadList().then(() => (note.textContent = songsNote()));
+      });
+      if (SET.catSongs) loadList().then(() => (note.textContent = songsNote()));
       return el('ul', { cls: 'items' }, [
         el('li', { cls: 'item' }, [el('label', { for: 'feline', text: 'Super Feline Mode, for this world' }), cb]),
+        R.themeOf(V.S) === 'feline'
+          ? el('li', { cls: 'item' }, [
+              el('div', null, [
+                el('label', { for: 'cat-songs', text: "Andrew's cat songs (full soundtrack, loaded separately)" }),
+                note,
+              ]),
+              songs,
+            ])
+          : null,
       ]);
     })(),
     // sound: music and effects volumes, and a mute (sound.js)

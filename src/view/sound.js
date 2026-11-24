@@ -12,6 +12,9 @@
 import { P, R, V } from './ctx.js';
 import { LOOK_CHANGED, LOOK_SWITCHES, SET, lookOn, saveSettings } from './quality.js';
 import { eventPiece, makeTune, nextBar } from './score.js';
+import { TH } from './themeflag.js';
+import { catSound, catVoice, useAudio } from './catsound.js';
+import { songsPlaying, updateSongs } from './catsongs.js';
 
 LOOK_SWITCHES.push(['sound', 'Sound and music']);
 if (SET.music === undefined) SET.music = 0.55;
@@ -56,6 +59,7 @@ function start() {
   NOISE = A.createBuffer(1, A.sampleRate * 2, A.sampleRate);
   const nd = NOISE.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  useAudio(A, NOISE); // C9: the cat voices (catsound.js)
   makeAmbience();
   volumes();
 }
@@ -241,9 +245,14 @@ function pipe(t, m, vel, dur, out) {
   lfo.stop(t + dur + 0.5);
 }
 // Play one note of the score: its voice, and a trill (fast turns with the note above) or a turn when it has one.
+// C9: the theme's sound bank (content/feline.js `sounds`), or null
+const bank = () => (TH.id && (R.themeById(TH.id) || {}).sounds) || null;
 function playNote(n, t, dur, out) {
-  const voice = n.voice,
+  const b = bank(),
+    cat = b && b.voices[n.voice],
+    voice = n.voice,
     one = (tt, m, v, d) => {
+      if (cat && catVoice(cat, tt, m, v, d, out)) return;
       if (voice === 'harpsichord' || voice === 'bass') harpsichord(tt, m, v * (voice === 'bass' ? 0.9 : 1), d, out);
       else if (voice === 'lute') pluck(tt, m, v, out);
       else if (voice === 'organ') organ(tt, m, v * 0.8, d, out);
@@ -300,6 +309,12 @@ function placeKey() {
 }
 const M = { key: null, tune: null, next: 0, gain: null, duck: 0 };
 function music(now) {
+  if (songsPlaying()) {
+    // C9: Andrew's cat songs are playing (catsongs.js): the score falls silent, and starts afresh after
+    if (M.gain) M.gain.gain.setTargetAtTime(0, now, 0.6);
+    M.key = null;
+    return;
+  }
   const key = placeKey(),
     X = R.C.music;
   if (key !== M.key) {
@@ -328,8 +343,14 @@ function music(now) {
       len = bar.beats * bar.spb;
     for (const n of bar.notes) playNote(n, t + n.t * bar.spb, n.d * bar.spb, out);
     // the old washes under the land's airs: a drone on the key note, a pad on the bar's chord
-    if (pl.drone && tu.bar % 2 === 1) pad(t, bar.chord[0] - 12, 0.045, len * 2.1, out, 'sine');
-    if (pl.pad && tu.bar % 2 === 0) for (const m of bar.chord) pad(t, m, 0.024, len * 1.9, out, 'triangle');
+    const b = bank(); // C9: in Super Feline Mode the washes purr
+    if (pl.drone && tu.bar % 2 === 1)
+      (b && catVoice(b.voices.drone, t, bar.chord[0] - 12, 0.08, len * 2.1, out)) ||
+        pad(t, bar.chord[0] - 12, 0.045, len * 2.1, out, 'sine');
+    if (pl.pad && tu.bar % 2 === 0) {
+      if (b && b.voices.pad) catVoice(b.voices.pad, t, bar.chord[0], 0.05, len * 1.9, out);
+      else for (const m of bar.chord) pad(t, m, 0.024, len * 1.9, out, 'triangle');
+    }
     if (pl.drums)
       for (let i = 0; i < bar.beats; i++)
         if (i !== 3 || Math.random() < 0.5) drum(t + i * bar.spb, i === 0 ? 0.3 : 0.18, out, i === 0 ? 90 : 120);
@@ -453,7 +474,11 @@ function world(now, dt) {
   // a fight: the blows, the hurts, the creature's cry when it begins
   const cbt = S.combat,
     foe = cbt && S.creatures.find((c) => c.id === cbt.cid);
-  if (cbt && !seen.combat && foe) call(now, R.spOf(S, foe).form, 0.18);
+  if (cbt && !seen.combat && foe) {
+    call(now, R.spOf(S, foe).form, 0.18);
+    const b = bank();
+    if (b && b.events.danger) catSound(b.events.danger, now + 0.7, 0.22, sfxBus); // C9: and you hiss back
+  }
   seen.combat = !!cbt;
   if (seen.hp !== null && S.player.hp < seen.hp) hurt(now);
   seen.hp = S.player.hp;
@@ -486,6 +511,8 @@ function step(t, S, look) {
 }
 // a creature's voice, by form: a hound's howl, a brute's grunt, a wight's moan, a serpent's hiss
 function call(t, form, vel) {
+  const bk = bank();
+  if (bk && bk.calls[form] && catSound(bk.calls[form], t, vel, sfxBus)) return;
   if (form === 'serpent') return noiseHit(t, vel * 0.8, 5000, 0.9, sfxBus, 'highpass');
   const o = A.createOscillator(),
     f = A.createBiquadFilter(),
@@ -510,19 +537,26 @@ const hurt = (t) => (noiseHit(t, 0.3, 400, 0.2, sfxBus, 'lowpass'), pluck(t, 40,
 R.on('did', (s, d) => {
   if (!A || !on()) return;
   const t = A.currentTime;
+  const b = bank(),
+    ev = b && b.events[d.id];
+  if (ev) catSound(ev, t, 0.3, sfxBus); // C9: a purr when you nap, a hiss when you strike...
   if (d.id === 'attack') noiseHit(t, 0.12, 1600, 0.18, sfxBus, 'bandpass', 0.7);
   else if (d.id === 'drink' || d.id === 'fill' || d.id === 'fillWater') noiseHit(t, 0.08, 900, 0.4, sfxBus, 'bandpass', 4);
 });
 R.on('killed', () => {
   if (!A || !on()) return;
-  const t = A.currentTime;
+  const t = A.currentTime,
+    b = bank();
+  if (b && catSound(b.events.kill, t, 0.25, sfxBus)) return;
   for (const [i, m] of [67, 71, 74].entries()) bell(t + i * 0.12, m, 0.06, sfxBus);
 });
 // a soft click on every button
 document.addEventListener('click', (e) => {
   if (!A || !on() || !(e.target && e.target.closest && e.target.closest('button'))) return;
   const t = A.currentTime,
-    o = A.createOscillator(),
+    b = bank();
+  if (b && b.events.click && catSound(b.events.click, t, 0.08, sfxBus)) return; // a little chirp on every button
+  const o = A.createOscillator(),
     g = A.createGain();
   o.frequency.setValueAtTime(1300, t);
   o.frequency.exponentialRampToValueAtTime(700, t + 0.05);
@@ -540,6 +574,7 @@ function updateSound(dt) {
   const now = A.currentTime;
   if (now - lastUpdate < 0.1) return; // ten times a second is plenty
   lastUpdate = now;
+  if ((updateSound.n = (updateSound.n || 0) + 1) % 10 === 0) updateSongs(); // C9: once a second
   music(now);
   world(now, 0.1);
   // the end of a run: a full close for a win, a lament for a death

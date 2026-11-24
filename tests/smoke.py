@@ -281,6 +281,11 @@ async def main():
         await shot('16-feline-walk')
         await pg.click('#btn-menu'); await pg.wait_for_timeout(200)
         await shot('17-feline-menu')
+        # Andrew's cat songs: offered in the mode; from a page on the disk there are none to fetch, and it says so
+        await pg.check('#cat-songs'); await pg.wait_for_timeout(1200)
+        note = await pg.evaluate("()=>document.getElementById('cat-songs-note').textContent")
+        assert 'No songs' in note, 'the cat songs did not say there were none: %r' % note
+        await pg.uncheck('#cat-songs')
         await pg.uncheck('#feline'); await pg.wait_for_timeout(300); await pg.click('#modal-close'); await pg.wait_for_timeout(200)
         hud = await pg.evaluate("()=>document.getElementById('hud').innerText+' '+document.getElementById('btn-menu').textContent+' '+document.title")
         for w_ in ['Water', 'Warmth', 'Menu', 'Far Beacon']:

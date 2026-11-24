@@ -21,6 +21,8 @@ for ref in $order; do
         "S.getItem=function(k){return g.call(this,p+k)};S.setItem=function(k,v){return s.call(this,p+k,v)};S.removeItem=function(k){return r.call(this,p+k)}})()</script>";
       fs.writeFileSync(out, fs.readFileSync(src, "utf8").replace(/<head[^>]*>/i, (m) => m + shim));
     ' ".site-work/$dir/dist/index.html" "site/$dir/index.html" "$dir"
+    # Andrew's cat songs (commission 9), beside the page and out of it, for builds that have them
+    if [ -f ".site-work/$dir/tools/catsongs.js" ]; then (cd ".site-work/$dir" && node tools/catsongs.js "../../site/$dir" >/dev/null) || true; fi
     when=$(git log -1 --format='%cd' --date=format:'%b %d, %Y' "$ref")
     what=$(git log -1 --format='%s' "$ref" | sed 's/&/\&amp;/g; s/</\&lt;/g')
     rows="$rows<li><a href=\"$dir/\">$branch</a><span>$when: $what</span></li>"
