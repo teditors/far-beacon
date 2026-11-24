@@ -26,6 +26,7 @@ import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 import { thingsGroup } from './things.js';
 import { TH, feline } from './themeflag.js';
 import { catBed, cardboard } from './catworld.js';
+import { FURS, curledCat } from './catkit.js';
 import { HOUSE_TS, houseGroup, houseOrigin } from './rooms.js';
 
 /* ---------- scene ---------- */
@@ -230,6 +231,14 @@ const BUILD = {
         who.position.set(2.2, 0, 0.6);
         who.rotation.y = -1.9;
         g.add(who);
+        // Super Feline Mode (C9.6): a stray curled up by the fire, closer to it than is wise
+        if (feline()) {
+          const cat = new THREE.Mesh(curledCat(FURS[(st.who ? String(st.who).length : 3) % FURS.length]), kitMat());
+          cat.position.set(-1.1, 0, 0.9);
+          cat.scale.setScalar(1.3);
+          cat.rotation.y = 0.8;
+          g.add(cat);
+        }
       }
       return g;
     }
@@ -1575,6 +1584,16 @@ function drawArea(id, kind, nb, L) {
               { key: 'folk:' + id + ':' + folkId(st), speed: 1.4, roam: ts * 0.3, rise: false }
             : { key: 'site:' + id + ':' + k },
         );
+      // Super Feline Mode (C9.5): most townsfolk have a cat, which walks the streets near them
+      if (who && st.kind === 'folk' && feline() && hashStr(st.name || '') % 3 !== 0) {
+        const h = hashStr(st.name || ''),
+          cg = new THREE.Group();
+        cg.add(creatureActor('housecat', 0xffffff, FURS[h % FURS.length]));
+        cg.position.set(x + 1.2, y, z + 0.6);
+        cg.rotation.y = (h % 628) / 100;
+        dynGroup.add(cg);
+        track(cg, cg.children[0], { key: 'cat:' + id + ':' + folkId(st), speed: 2.2, roam: ts * 0.45, rise: false });
+      }
     }
   const camp = !nb && V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
   // the things of the place (C7): furniture, cups, bones..., and things put down again where they were left
@@ -1700,9 +1719,14 @@ function drawArea(id, kind, nb, L) {
   if (camp !== null && feline()) {
     // Super Feline Mode (C9): a cat bed where the tent stood, a warm laptop and the fire (a sunbeam, they say)
     const [x, y, z] = at(camp, 5, 3),
-      bed = catBed();
+      bed = catBed(),
+      // and a cat already asleep in it, as there always is in any bed you want
+      cat = new THREE.Mesh(curledCat(FURS[(V.S.seed + camp) % FURS.length]), kitMat());
     bed.position.set(x, y, z);
-    dynGroup.add(bed);
+    cat.position.set(x + 0.2, y + 1.12, z - 0.2);
+    cat.scale.setScalar(3);
+    cat.rotation.y = 2.2;
+    dynGroup.add(bed, cat);
     if (fxOn()) {
       const f = fire(1);
       f.position.set(x - 3.5, ground(x - 3.5, z + 3) + 0.05, z + 3);

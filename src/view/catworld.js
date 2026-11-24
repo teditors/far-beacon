@@ -171,3 +171,22 @@ function sunWhiskers(disc, r, color) {
   return g;
 }
 export { catBeacon, catBed, cardboard, roofEars, catTree, sunWhiskers };
+
+/* A cat sitting up on a roof ridge or a flat roof, looking out over the street, its tail hanging down the slope.
+   k: a plain kit (the town's `cats`); x, y, z: where it sits; ry: which way it faces; fur: its colour. */
+function roofCat(k, x, y, z, ry, fur) {
+  const s = 2.6, // roof cats are big cats: they must read from the street
+    at = (lx, ly, lz) => {
+      const c = Math.cos(ry),
+        sn = Math.sin(ry);
+      return { x: x + (lx * c + lz * sn) * s, y: y + ly * s, z: z + (-lx * sn + lz * c) * s };
+    },
+    light = fur === 0x26252a ? 0x3a393f : 0xf2ece2;
+  k.add(P.blob(0.2, 1), fur, Object.assign(at(0, 0.2, 0), { sx: s * 0.8, sy: s * 1.2, sz: s * 0.9 }), { round: true }); // body, sitting up
+  k.add(P.ball(0.13, 10, 8), fur, Object.assign(at(0, 0.5, 0.06), { s })); // head
+  k.add(P.ball(0.05, 6, 4), light, Object.assign(at(0, 0.46, 0.17), { s })); // muzzle
+  for (const e of [-1, 1])
+    k.add(P.cone(0.05, 0.11, 4), fur, Object.assign(at(e * 0.07, 0.65, 0.04), { s, rz: -e * 0.3, ry }), { flat: true });
+  for (let i = 0; i < 5; i++) k.add(P.ball(0.04, 6, 4), fur, Object.assign(at(0.05, 0.05 - i * 0.09, -0.18 - i * 0.03), { s })); // tail down the roof
+}
+export { roofCat };

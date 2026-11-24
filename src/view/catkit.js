@@ -141,6 +141,28 @@ function catCreature(k, form, eye) {
         { bone: 0 },
       );
     }
+  } else if (form === 'housecat') {
+    // a town cat (C9.5): a real cat, about knee high, that walks the streets with its person; eye is its fur here
+    const fur = eye,
+      light = fur === 0x26252a ? 0x3a393f : 0xf2ece2,
+      hp = [0, 0.32, 0.22];
+    k.add(PT.blob(0.2, 1), fur, { y: 0.3, sx: 0.75, sy: 0.7, sz: 1.35 }, { bone: 0, round: true });
+    k.add(PT.ball(0.11, 10, 8), fur, { y: 0.42, z: 0.3 }, { bone: 5, pivot: hp });
+    k.add(PT.ball(0.045, 6, 4), light, { y: 0.39, z: 0.39 }, { bone: 5, pivot: hp });
+    for (const s of [-1, 1]) {
+      k.add(PT.cone(0.04, 0.09, 4), fur, { x: s * 0.06, y: 0.53, z: 0.28, rz: -s * 0.3 }, { bone: 5, pivot: hp, flat: true });
+      k.add(PT.ball(0.018, 6, 4), 0x8ad04a, { x: s * 0.045, y: 0.44, z: 0.4 }, { bone: 8, pivot: hp });
+    }
+    for (const [x, z, b] of [
+      [-0.07, 0.17, 1],
+      [0.07, 0.17, 2],
+      [-0.07, -0.17, 2],
+      [0.07, -0.17, 1],
+    ])
+      k.add(PT.cyl(0.03, 0.03, 0.24, 5), fur, { x, y: 0.12, z }, { bone: b, pivot: [x, 0.24, z] });
+    // the tail, up like a question mark
+    k.add(PT.cyl(0.022, 0.03, 0.34, 5), fur, { y: 0.48, z: -0.3, rx: -0.3 }, { bone: 6, pivot: [0, 0.32, -0.26] });
+    k.add(PT.ball(0.03, 6, 4), fur, { y: 0.64, z: -0.33 }, { bone: 6, pivot: [0, 0.32, -0.26] });
   } else if (form === 'dustbunny') {
     // a dust bunny: a ball of grey fluff with long ears and tiny feet
     k.add(PT.blob(0.45, 1), 0x9a9aa0, { y: 0.5, sy: 0.85 }, { bone: 0 });

@@ -6,7 +6,7 @@ switch; a rare roll that makes a world feline whether asked or not. Pieces, newe
 
 ## Summary
 
-Four pieces, newest first below. The first three and a commit of polish made the mode; the fourth came after Andrew
+Five pieces, newest first below. The first three and a commit of polish made the mode; the fourth came after Andrew
 said "Get catty". Every check passes,
 the full one with the browser test, which now chooses Super Feline Mode on the new world screen, taps the splash away,
 finds cat words where the plain ones were, tries the cat songs, and turns the mode off again to find every word back.
@@ -19,6 +19,7 @@ No save migration: the choice is one optional field (`s.theme`), and a rolled wo
 | C9.3 | A cat soundtrack (the score meows, mrrows, trills and purrs; foes woof, whirr and psst; you hiss and purr) and the player for Andrew's own cat songs, outside the one-file game | the same; device setting `catSongs` | solid |
 | (polish) | A paw print for you on the maps, a party for a win, the end screens' words | | small |
 | C9.4 | Being a cat: whiskers, ears, a swiping paw, slow blinks and naps in the view; paw prints behind you; 3 a.m. zoomies; 36 lines rewritten in a cat's own voice; an inner monologue in thought bubbles; cats asleep on the beds and tables | the same | pearl |
+| C9.5 | The world talks like a cat: the elder's tale, townsfolk, epitaphs, the god's terms, the inn, the shop and every trouble's ending in a cat's own voice (82 lines in all); a cat asleep in your camp bed, strays by the wayfarers' fires; big cats sitting on two roofs in five; a cat walking the streets with most townsfolk | the same | solid |
 
 **The bot, with the mode on and off** (`THEME=feline node tests/playtest.js 150`, three seed sets of 150): off 30, 14
 and 20 wins (20%, 9%, 13%); on 30, 14 and 20. Not merely within noise: the same worlds, won and lost the same way,
@@ -41,9 +42,9 @@ voices. Andrew's songs never go in it.
    was like that); the inn is a Cat Café, the shop a Pet Shop, the coin treats, and the bandages cones of shame.
 
 **What I would do next** (1 to 3 of the first list are done in C9.4).
-1. More lines in a cat's voice: the elder's tale, rumours and epitaphs, the windows of the town's people.
+1. More lines in a cat's voice: the troubles' own steps and endings, the wayfarers, the lost people's lore.
 2. A cat flap in every door, scratch marks on the walls, a knocked-over cup by every table.
-3. Cats in the towns' streets as well as the people (sunning on walls, on roofs).
+3. The troubles' own requests (the givers' speeches) and the wayfarers' talk in a cat's voice.
 4. A second theme through the same layer (Andrew may have one in mind); the dictionary, kit and sound bank are its
    whole shape.
 5. Merge, so `tools/site.sh` on `main` copies Andrew's songs beside the published pages, then add the songs.
@@ -51,6 +52,43 @@ voices. Andrew's songs never go in it.
 **CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
 
 | v0.20 | Commission 9: Super Feline Mode, a total conversion to cats with the rules untouched. Chosen on the new world screen or in Settings, or rolled by itself in about one world in fifty, it dresses every word (breeds for races, Meowladins and Clawgues, kibble for water, naps, catnip, treats, the Red Dot and the Laser Pointer, hissy fits and furricanes, the Vacuum Tyrant, the Cult of the Cucumber), every face (cat heads on everyone), every foe (the dog next door, vacuum cleaners, spray bottles, cucumbers, dust bunnies), the land (a scratching-post beacon, cat-bed camps, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun) and the sound (a score of meows, trills and purrs), with a splash of flying cats. You are a cat: whiskers and a swiping paw in the view, paw prints behind you, 3 a.m. zoomies, a thought bubble of cat opinions, the commonest lines rewritten in a cat's own voice, and a cat asleep on every bed. An optional full soundtrack of Andrew's own cat songs is published beside the game and fetched only when turned on. Turning it off restores everything. See `JOURNAL.md` |
+
+## C9.5: the world talks like a cat, and cats everywhere
+
+**More lines in a cat's own voice** (31 more in `content/felinevoice.js`, 67 in all): the elder's tale ("You came across
+the open ground ALONE? With your little paws? Then listen. The Red Dot is fading... Nobody shuts a cat out of
+anything."), the elder's errand ("carry it to the beacon in your mouth, as is traditional... Do not drop it on anyone's
+pillow"), the key ("We have kept it three litters, and not one of us has dared open the tin. Mostly because we have no
+thumbs."), every townsperson's idle line, the god's terms ("It demands: Never waste kibble. Also tuna."), the warnings
+about creatures ("I saw one once. I went up the curtains and stayed there for a day."), every epitaph in the graveyard
+("Walked to the north to see what was there. It was a box. They are still in it."; "Bested by a Chilly-nose Woofer.
+Eight lives ago. We do not talk about it."), the inn ("A cat bed, a radiator and a whole tin of tuna. You wake purring.
+You were brushed in your sleep and did not even mind."), the shop ("You trade 12 treats for the Glow-mouse. You will
+ignore it and play with the bag."), the tin opened at the locked place, and the dark below ("which is fine, you are a
+cat, but the RULES say you need a light").
+
+**Every trouble ends as a cat would tell it** (15 more lines, 82 in all). The great beast's horn is laid on the table
+"then knocked off the table, then laid on again"; the kitten "is down from the tree at last"; the Bath Curse ends as "the
+bath drains with a horrible gurgle"; the sickness with "nobody has to go to the Vet. The cat carrier is put back in the
+attic, where it belongs, forever"; the Vacuum King's paper crown ("You sit in the crown"); the Vacuum Tyrant's castle of
+cushions drifts away "unplugged"; the Secret Pudding ("Somebody licks the spoon. It was you."); the feud between the
+indoor cats and the outdoor cats; the crunchy cat cookies delivered "only slightly nibbled"; the Cult of the Cucumber
+"goes up the curtains and is never seen again"; and the stolen cookies: "it was the dog".
+
+**Cats in the wilds.** A cat already asleep in your camp's cat bed (as there always is in any bed you want), and a stray
+curled up at every wayfarer's fire, closer to it than is wise.
+
+**Cats on the roofs.** About two roofs in five have a big cat sitting on the ridge (or on a flat roof), facing the
+street, tail down the slope, in one of the eight furs: twice life size, so they read from the street as cats. Chosen
+from the building's place, never from the town's own random stream, so nothing else about the town moves. In their own
+mesh (one draw call a town, outlined).
+
+**Cats in the streets.** Two townsfolk in three have a cat of their own, a real knee-high cat in one of the eight
+furs, tail up like a question mark, that walks the streets near them, wanders, stops, and turns to look at you, on the
+same joints and walking as the people (a new form, `housecat`, in catkit.js; known by its person's name, so it walks on
+from where it was when the scene is rebuilt).
+
+**Commit and switch.** C9.5; the mode's switches.
 
 ## C9.4: being a cat (a cat's-eye view, a cat's own voice, cats on everything)
 

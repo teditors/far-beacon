@@ -6820,6 +6820,159 @@
       [
         "You fill up with foul water and feel it at once\\.",
         "You eat the yucky kibble and feel it at once. A hairball is on its way."
+      ],
+      // the town's people, the elder, the graves, the shop (C9.5)
+      [
+        '"You came across the open ground alone\\? Then listen\\. The beacon is dying\\. It was lit with the (.+), and the (.+) locked that away in the (.+) before the end\\."',
+        '"You came across the open ground ALONE? With your little paws? Then listen. The Red Dot is fading. It was lit with the $1, and the $2 shut it in the $3 before the end, which was rude of them. Nobody shuts a cat out of anything."'
+      ],
+      [
+        '"You came across the open ground alone\\? Then listen\\. The shrine has stood empty since the (.+) took from it the (.+), and the (.+) locked that away in the (.+) before the end\\."',
+        '"You came across the open ground ALONE? Then listen. The sunbeam shrine has been empty since the $1 took the $2 from it, and the $3 shut it in the $4. An empty shrine is just a cold windowsill."'
+      ],
+      [
+        '"Bring it out, and carry it to the (.+)\\. I have marked both on your map, and the springs our people use on the way\\."',
+        `"Fetch it, and carry it to the $1 in your mouth, as is traditional. I have marked both on your sniff map, and the kibble bowls we use on the way. Do not drop it on anyone's pillow."`
+      ],
+      [
+        '"Here is the key\\. We have kept it three generations, and not one of us has dared use it\\."',
+        '"Here is the tin opener. We have kept it three litters, and not one of us has dared open the tin. Mostly because we have no thumbs."'
+      ],
+      [
+        '"The key is gone\\. The (.+) took the last warden, key and all\\. Its lair is marked too\\. I am sorry\\."',
+        '"The tin opener is gone. The $1 took the last lap-warden, tin opener and all. Its lair is marked too. I would go myself, but I am very busy lying here."'
+      ],
+      [
+        '"Fine weather for it, if you like weather\\."',
+        '"Fine weather for it, if you like weather. I prefer a windowsill and a view of weather."'
+      ],
+      [
+        '"Mind the well, it is deeper than it looks\\."',
+        '"Mind the food bowl. It is emptier than it looks. It is always emptier than it looks."'
+      ],
+      [
+        '"The ruins\\? Leave them be\\. Nothing good ever came out of a ruin\\."',
+        '"The cardboard ruins? Leave them be. Well. Sit in them first. Then leave them be."'
+      ],
+      [
+        '"My grandmother saw the beacon lit, once\\. She said it turned the clouds gold\\."',
+        '"My grandmother saw the Red Dot lit, once. She chased it for eleven years. She never caught it. None of us ever catch it."'
+      ],
+      ['"Buy something, or get out of my light\\."', '"Buy something, or get out of my sunbeam."'],
+      [
+        '"They say the old people could talk to the springs\\."',
+        '"They say the old breed could open doors by themselves. Witchcraft."'
+      ],
+      [
+        "They went out for water and did not come back\\.",
+        "Went out for kibble. Did not come back. Probably being fed by another family."
+      ],
+      ["Beloved\\. Lost in the (.+)\\.", "Beloved. Lost in the $1. Had it coming: went outside on purpose."],
+      ["Killed by an? (.+)\\.", "Bested by a $1. Eight lives ago. We do not talk about it."],
+      [
+        "Walked to the (\\S+) to see what was there\\.",
+        "Walked to the $1 to see what was there. It was a box. They are still in it."
+      ],
+      ["Kept the well for forty years\\.", "Guarded the food bowl for forty years. Never once let it be half full."],
+      ["Taken by the cold in a hard winter\\.", "Taken by the chill in a hard radiator season. Could not find a lap."],
+      ["She found the (\\S+) and never told us where\\.", "She found the $1 and never told us where. Typical cat."],
+      [
+        '"Watch out for the (.+?)\\. (.+)"',
+        '"Watch out for the $1. $2 I saw one once. I went up the curtains and stayed there for a day."'
+      ],
+      [
+        '"Our god is (.+)\\. Its terms are these: (.+) Its shrine is marked on your map\\."',
+        '"Our Cat God is $1. It demands: $2 Also tuna. Its sunbeam shrine is marked on your sniff map."'
+      ],
+      [
+        '"You have learned all you will learn from me\\. Go and use it\\."',
+        '"You have learned all I will teach. Now go and ignore it, as cats do."'
+      ],
+      [
+        "A bed, a fire and a meal\\. You wake whole\\.",
+        "A cat bed, a radiator and a whole tin of tuna. You wake purring. You were brushed in your sleep and did not even mind."
+      ],
+      [
+        "The key turns\\. Cold air comes up the stair\\.",
+        "The tin opener bites, and turns, and turns. The lid lifts. A smell of very old tuna comes up the stair."
+      ],
+      ["You cannot afford that\\.", "You cannot afford that. You stare at it until someone gives it to you. Nobody does."],
+      ["You cannot afford a bed\\.", "You cannot afford a bed. You will sit in the box it came in instead."],
+      ["You buy the (.+) for (\\d+) coin\\.", "You trade $2 treats for the $1. You will ignore it and play with the bag."],
+      ["You sell the (.+) for (\\d+) coin\\.", "You swap the $1 for $2 treats. It was beneath you anyway."],
+      ["No one here will buy that\\.", "No one here will buy that. Their loss. You leave it on their doorstep anyway."],
+      [
+        "It is black as pitch inside\\. You need a light: (.*)",
+        "It is dark inside, which is fine, you are a cat, but the RULES say you need a light: $1"
+      ],
+      [
+        "You climb out into the (daylight|night)\\.",
+        "You squeeze out through the gap into the $1, and at once want to go back in."
+      ],
+      // the troubles' endings (C9.6): the payoff, as a cat sees it
+      [
+        "You lay the horn of the (.+) on the table in (.+)\\. By morning the herds are out on the hills again, and the roads are walked without fear\\.",
+        "You lay the squeaky horn of the $1 on the table in $2, then knock it off the table, then lay it on again. By morning the hills are safe for napping, and the catwalks are strutted without fear."
+      ],
+      [
+        "(.+) is home\\. (.+) lights every lamp it has\\.",
+        "$1 is down from the tree at last. $2 lights every warm lamp it has, and nobody sits in front of them but you."
+      ],
+      [
+        "(.+) is home, thin and sunburnt and alive\\.",
+        "$1 is home, thin and sunburnt and alive, and demanding dinner as if nothing had happened."
+      ],
+      [
+        "The black stone cracks from top to foot\\. By the time you are back in (.+), there is green along the ditches\\.",
+        "The bath drains with a horrible gurgle. The Bath Curse is lifted. By the time you are back in $1, there is catgrass along the ditches and nobody is wet."
+      ],
+      [
+        "The feverwort is boiled in every pot in (.+)\\. In three days the bell for the dead stops ringing\\.",
+        "The fevermint is steeped in every bowl in $1. In three days nobody has to go to the Vet. The cat carrier is put back in the attic, where it belongs, forever."
+      ],
+      [
+        "You set the iron crown on the table in (.+)\\. Nothing comes up out of the ground at night any more\\.",
+        "You set the paper crown of the Vacuum King on the table in $1. Nothing roars out from under the sofa at night any more. You sit in the crown."
+      ],
+      [
+        "The castle in the sky drifts away on the wind, empty\\. In (.+) they bring in the harvest, and keep all of it\\.",
+        "The castle of cushions drifts away on the draught, empty, its Vacuum Tyrant unplugged. In $1 they bring in the kibble harvest, and keep all of it, and give you the first bowl."
+      ],
+      [
+        "The pearl-moss is steeped in every kettle in (.+)\\. The coughing stops\\.",
+        "The Secret Pudding is shared out in every bowl in $1. The hairballs stop. Somebody licks the spoon. It was you."
+      ],
+      [
+        "(.+) is home, and will not stop talking about the other sky\\. (.+) bricks up the door\\.",
+        "$1 is back inside, and will not stop meowing about the other side of the door. $2 bricks up the cat flap. $1 sits by it, yowling, every night."
+      ],
+      [
+        "The feud is over, one way or another\\. (.+) and (.+) will remember who you were\\.",
+        "The war between the indoor cats and the outdoor cats is over, one way or another. $1 and $2 will remember who you were, and pretend they do not."
+      ],
+      [
+        "The charter is read aloud in both squares\\. (.*)",
+        "The treaty of the fence is read aloud in both squares, slowly, with a lot of tail-flicking. $1"
+      ],
+      [
+        "The bales are in (.+) in time\\. The merchants there know your name now, and sell to you for less\\.",
+        "The crunchy cat cookies are in $1 in time, and only slightly nibbled. The Pet Shop there knows your name now, and gives you treats for less."
+      ],
+      [
+        "The sigil goes into the well of (.+), and the masks go into the fire\\.",
+        "The cucumber goes into the compost of $1, and the Cult of the Cucumber goes up the curtains and is never seen again."
+      ],
+      [
+        "The warband scatters without its captain\\. (.+) opens its gates and comes out into the fields for the first time in a month\\.",
+        "The dogs scatter without their Alpha. $1 opens its cat flaps and comes out to sun itself in the fields for the first time in a month."
+      ],
+      [
+        "The bell of (.+) rings again at noon\\. They ring it once more for you\\.",
+        "The jingle bell of $1 rings again at noon. They found who stole the crunchy cat cookies (it was the dog). They ring it once more for you."
+      ],
+      [
+        "You set the (.+) on the shrine\\. Something that was held breath for an age lets go\\.",
+        "You set the $1 on the sunbeam shrine. Something that has held its breath for an age lets go, and purrs."
       ]
     ],
     quips: {
@@ -19739,6 +19892,208 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     disc2.add(g);
     return g;
   }
+  function roofCat(k, x, y, z, ry, fur) {
+    const s = 2.6, at = (lx2, ly2, lz) => {
+      const c = Math.cos(ry), sn = Math.sin(ry);
+      return { x: x + (lx2 * c + lz * sn) * s, y: y + ly2 * s, z: z + (-lx2 * sn + lz * c) * s };
+    }, light = fur === 2499882 ? 3815743 : 15920354;
+    k.add(P4.blob(0.2, 1), fur, Object.assign(at(0, 0.2, 0), { sx: s * 0.8, sy: s * 1.2, sz: s * 0.9 }), { round: true });
+    k.add(P4.ball(0.13, 10, 8), fur, Object.assign(at(0, 0.5, 0.06), { s }));
+    k.add(P4.ball(0.05, 6, 4), light, Object.assign(at(0, 0.46, 0.17), { s }));
+    for (const e of [-1, 1])
+      k.add(P4.cone(0.05, 0.11, 4), fur, Object.assign(at(e * 0.07, 0.65, 0.04), { s, rz: -e * 0.3, ry }), { flat: true });
+    for (let i = 0; i < 5; i++) k.add(P4.ball(0.04, 6, 4), fur, Object.assign(at(0.05, 0.05 - i * 0.09, -0.18 - i * 0.03), { s }));
+  }
+
+  // src/view/catkit.js
+  var FURS = [14715450, 9408408, 2499882, 15921128, 15255696, 10119752, 7240330, 5913130];
+  var EYES = [9097290, 15777840, 4894952, 15245370];
+  var furOf = (seed) => FURS[Math.abs(seed | 0) % FURS.length];
+  var eyeOf = (seed) => EYES[(Math.abs(seed | 0) >> 3) % EYES.length];
+  function catHead(k, fur, eye, H2, y) {
+    const o = { bone: 5, pivot: H2 }, light = fur === 2499882 ? 3815743 : 16447214, pink = 15900848;
+    k.add(P4.ball(0.175, 12, 9), fur, { y, sx: 1.12, sy: 0.95 }, o);
+    for (const s of [-1, 1]) {
+      k.add(
+        P4.cone(0.075, 0.17, 4),
+        fur,
+        { x: s * 0.11, y: y + 0.17, z: -0.01, rz: -s * 0.3, ry: Math.PI / 4 },
+        Object.assign({ flat: true }, o)
+      );
+      k.add(
+        P4.cone(0.045, 0.11, 4),
+        pink,
+        { x: s * 0.108, y: y + 0.155, z: 0.02, rz: -s * 0.3, ry: Math.PI / 4 },
+        Object.assign({ flat: true }, o)
+      );
+      k.add(P4.ball(0.055, 8, 6), light, { x: s * 0.045, y: y - 0.06, z: 0.15, sz: 0.8 }, o);
+      k.add(P4.ball(0.034, 8, 6), eye, { x: s * 0.07, y: y + 0.03, z: 0.155, sx: 1.25, sy: 0.85 }, { bone: 8, pivot: H2 });
+      k.add(P4.box(8e-3, 0.045, 0.01), 1052688, { x: s * 0.07, y: y + 0.03, z: 0.19 }, o);
+      for (const w of [-1, 0, 1])
+        k.add(
+          P4.box(0.2, 6e-3, 6e-3),
+          16053492,
+          { x: s * 0.15, y: y - 0.06 + w * 0.018, z: 0.16, rz: s * w * 0.15, ry: -s * 0.25 },
+          o
+        );
+    }
+    k.add(P4.ball(0.022, 6, 4), pink, { y: y - 0.025, z: 0.19, sy: 0.7 }, o);
+    k.add(P4.ball(0.03, 6, 4), light, { y: y - 0.1, z: 0.14 }, o);
+  }
+  function catTail(k, fur, y) {
+    const o = { bone: 6, pivot: [0, y, -0.2] };
+    k.add(P4.cyl(0.045, 0.055, 0.5, 6), fur, { y: y - 0.12, z: -0.38, rx: -1.1 }, o);
+    k.add(P4.cyl(0.04, 0.045, 0.4, 6), fur, { y: y + 0.18, z: -0.62, rx: -0.3 }, o);
+    k.add(P4.ball(0.045, 6, 4), fur, { y: y + 0.38, z: -0.67 }, o);
+  }
+  function catCreature(k, form, eye) {
+    const W3 = 16777215, D3 = 12105912;
+    if (form === "hound") {
+      k.add(P4.blob(0.5, 1), W3, { y: 0.8, sx: 0.66, sy: 0.6, sz: 1.35 }, { bone: 0, round: true });
+      const hp = [0, 1, 0.7];
+      k.add(P4.blob(0.3, 1), W3, { y: 1.2, z: 0.95, sx: 1.1 }, { bone: 5, pivot: hp, round: true });
+      k.add(P4.box(0.26, 0.2, 0.3), D3, { y: 1.1, z: 1.22 }, { bone: 5, pivot: hp });
+      k.add(P4.ball(0.06, 6, 4), 1381653, { y: 1.18, z: 1.38 }, { bone: 5, pivot: hp });
+      k.add(P4.box(0.16, 0.03, 0.14), 13647952, { y: 1.02, z: 1.28 }, { bone: 5, pivot: hp });
+      for (const s of [-1, 1]) {
+        k.add(P4.box(0.08, 0.32, 0.18), D3, { x: s * 0.3, y: 1.08, z: 0.9, rz: s * 0.25 }, { bone: 5, pivot: hp });
+        k.add(P4.box(0.08, 0.06, 0.03), eye, { x: s * 0.1, y: 1.3, z: 1.2 }, { bone: 8, pivot: hp });
+      }
+      k.add(P4.cyl(0.27, 0.27, 0.09, 10), 13641784, { y: 1.02, z: 0.72, rx: 0.9 }, { bone: 0 });
+      k.add(P4.cyl(0.07, 0.07, 0.02, 8), 15777840, { y: 0.84, z: 0.92, rx: Math.PI / 2 }, { bone: 0 });
+      for (const [x, z, b] of [
+        [-0.2, 0.5, 1],
+        [0.2, 0.5, 2],
+        [-0.2, -0.5, 2],
+        [0.2, -0.5, 1]
+      ])
+        k.add(P4.cyl(0.08, 0.1, 0.7, 6), W3, { x, y: 0.38, z }, { bone: b, pivot: [x, 0.75, z] });
+      k.add(P4.cyl(0.04, 0.07, 0.6, 5), W3, { y: 1.05, z: -0.85, rx: -0.6 }, { bone: 6, pivot: [0, 0.95, -0.7] });
+    } else if (form === "brute") {
+      for (const [x, b] of [
+        [-0.5, 1],
+        [0.5, 2]
+      ])
+        k.add(
+          P4.cyl(0.25, 0.25, 0.14, 10),
+          2105380,
+          { x, y: 0.25, z: -0.2, rz: Math.PI / 2 },
+          { bone: b, pivot: [x, 0.25, -0.2] }
+        );
+      k.add(P4.box(1.2, 0.36, 1.2), W3, { y: 0.32, z: 0.2 }, { bone: 0 });
+      k.add(P4.box(1.24, 0.1, 0.12), 2763312, { y: 0.14, z: 0.82 }, { bone: 0 });
+      k.add(P4.cyl(0.42, 0.5, 1.8, 12), W3, { y: 1.4, z: -0.15 }, { bone: 0 });
+      k.add(P4.cyl(0.46, 0.46, 0.5, 12), 13641784, { y: 1.5, z: -0.15 }, { bone: 0 });
+      k.add(P4.cyl(0.05, 0.05, 1, 6), 2763312, { y: 2.75, z: -0.2 }, { bone: 0 });
+      k.add(P4.box(0.5, 0.1, 0.12), 2763312, { y: 3.25, z: -0.2 }, { bone: 0 });
+      const hp = [0, 0.4, 0.6];
+      k.add(P4.box(0.6, 0.22, 0.08), 16052416, { y: 0.4, z: 0.82 }, { bone: 5, pivot: hp });
+      k.add(P4.box(0.14, 0.08, 0.03), eye, { x: -0.16, y: 0.42, z: 0.87 }, { bone: 8, pivot: hp });
+      k.add(P4.box(0.14, 0.08, 0.03), eye, { x: 0.16, y: 0.42, z: 0.87 }, { bone: 8, pivot: hp });
+      for (const [x, b] of [
+        [-0.55, 3],
+        [0.55, 4]
+      ]) {
+        for (let i = 0; i < 4; i++)
+          k.add(
+            P4.cyl(0.11, 0.11, 0.26, 8),
+            i % 2 ? 3816e3 : 5592412,
+            { x, y: 1.9 - i * 0.27, z: 0.1 },
+            { bone: b, pivot: [x, 2, 0.1] }
+          );
+        k.add(P4.cone(0.17, 0.32, 8), 2763312, { x, y: 0.75, z: 0.1, rx: Math.PI }, { bone: b, pivot: [x, 2, 0.1] });
+      }
+    } else if (form === "wight") {
+      k.add(P4.cyl(0.42, 0.42, 1.5, 12), W3, { y: 1.35 }, { bone: 0 });
+      k.add(P4.cyl(0.25, 0.42, 0.3, 12), W3, { y: 2.25 }, { bone: 0 });
+      k.add(P4.cyl(0.38, 0.38, 0.5, 12), 5943528, { y: 1 }, { bone: 0 });
+      const hp = [0, 2.4, 0];
+      k.add(P4.box(0.36, 0.34, 0.75), 15217738, { y: 2.6, z: 0.15 }, { bone: 5, pivot: hp });
+      k.add(P4.cyl(0.07, 0.07, 0.22, 8), 15217738, { y: 2.65, z: 0.6, rx: Math.PI / 2 }, { bone: 5, pivot: hp });
+      k.add(P4.box(0.1, 0.07, 0.03), eye, { x: -0.1, y: 2.68, z: 0.53 }, { bone: 8, pivot: hp });
+      k.add(P4.box(0.1, 0.07, 0.03), eye, { x: 0.1, y: 2.68, z: 0.53 }, { bone: 8, pivot: hp });
+      k.add(P4.box(0.12, 0.42, 0.12), 15217738, { y: 2.3, z: 0.45, rx: 0.3 }, { bone: 3, pivot: [0, 2.45, 0.4] });
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.05;
+        k.add(
+          P4.ball(0.08 + i % 3 * 0.03, 6, 4),
+          14216952,
+          { x: Math.cos(a) * 0.7, y: 1.2 + i % 3 * 0.5, z: Math.sin(a) * 0.7 },
+          { bone: 0 }
+        );
+      }
+    } else if (form === "housecat") {
+      const fur = eye, light = fur === 2499882 ? 3815743 : 15920354, hp = [0, 0.32, 0.22];
+      k.add(P4.blob(0.2, 1), fur, { y: 0.3, sx: 0.75, sy: 0.7, sz: 1.35 }, { bone: 0, round: true });
+      k.add(P4.ball(0.11, 10, 8), fur, { y: 0.42, z: 0.3 }, { bone: 5, pivot: hp });
+      k.add(P4.ball(0.045, 6, 4), light, { y: 0.39, z: 0.39 }, { bone: 5, pivot: hp });
+      for (const s of [-1, 1]) {
+        k.add(P4.cone(0.04, 0.09, 4), fur, { x: s * 0.06, y: 0.53, z: 0.28, rz: -s * 0.3 }, { bone: 5, pivot: hp, flat: true });
+        k.add(P4.ball(0.018, 6, 4), 9097290, { x: s * 0.045, y: 0.44, z: 0.4 }, { bone: 8, pivot: hp });
+      }
+      for (const [x, z, b] of [
+        [-0.07, 0.17, 1],
+        [0.07, 0.17, 2],
+        [-0.07, -0.17, 2],
+        [0.07, -0.17, 1]
+      ])
+        k.add(P4.cyl(0.03, 0.03, 0.24, 5), fur, { x, y: 0.12, z }, { bone: b, pivot: [x, 0.24, z] });
+      k.add(P4.cyl(0.022, 0.03, 0.34, 5), fur, { y: 0.48, z: -0.3, rx: -0.3 }, { bone: 6, pivot: [0, 0.32, -0.26] });
+      k.add(P4.ball(0.03, 6, 4), fur, { y: 0.64, z: -0.33 }, { bone: 6, pivot: [0, 0.32, -0.26] });
+    } else if (form === "dustbunny") {
+      k.add(P4.blob(0.45, 1), 10132128, { y: 0.5, sy: 0.85 }, { bone: 0 });
+      for (let i = 0; i < 7; i++) {
+        const a = i * 0.9;
+        k.add(
+          P4.blob(0.16, 0),
+          11579574,
+          { x: Math.cos(a) * 0.38, y: 0.45 + Math.sin(i * 2.1) * 0.25, z: Math.sin(a) * 0.38 },
+          { bone: 0 }
+        );
+      }
+      const hp = [0, 0.7, 0.2];
+      for (const s of [-1, 1]) {
+        k.add(P4.cyl(0.06, 0.1, 0.55, 6), 11053230, { x: s * 0.16, y: 1.15, z: 0, rz: -s * 0.2 }, { bone: 5, pivot: hp });
+        k.add(P4.box(0.07, 0.07, 0.03), eye, { x: s * 0.14, y: 0.62, z: 0.42 }, { bone: 8, pivot: hp });
+        k.add(
+          P4.ball(0.08, 6, 4),
+          9079440,
+          { x: s * 0.2, y: 0.07, z: 0.15 },
+          { bone: s < 0 ? 1 : 2, pivot: [s * 0.2, 0.2, 0.15] }
+        );
+      }
+    } else {
+      for (let i = 0; i < 8; i++) {
+        const z = 1.1 - i * 0.5, r = 0.3 - i * 0.012;
+        k.add(P4.blob(r, 1), i % 2 ? 3836474 : 4890698, { y: r * 0.95, z, sz: 1.6 }, { bone: 7, pivot: [0, 0, i], round: true });
+        k.add(P4.ball(0.05, 5, 4), 2779690, { x: (i % 2 ? 1 : -1) * r * 0.7, y: r * 1.4, z }, { bone: 7, pivot: [0, 0, i] });
+      }
+      k.add(P4.cyl(0.05, 0.07, 0.25, 6), 8022586, { y: 0.3, z: -2.85, rx: Math.PI / 2 }, { bone: 7, pivot: [0, 0, 8] });
+      const hp = [0, 0.7, 1.2];
+      k.add(P4.blob(0.3, 1), 4890698, { y: 0.75, z: 1.5, sx: 1, sy: 0.9, sz: 1.3 }, { bone: 5, pivot: hp, round: true });
+      for (const s of [-1, 1]) {
+        k.add(P4.ball(0.11, 8, 6), 16777215, { x: s * 0.13, y: 1.02, z: 1.65 }, { bone: 5, pivot: hp });
+        k.add(P4.ball(0.05, 6, 4), eye, { x: s * 0.13, y: 1.02, z: 1.76 }, { bone: 8, pivot: hp });
+      }
+    }
+  }
+  var CURLED = /* @__PURE__ */ new Map();
+  function curledCat(fur) {
+    if (CURLED.has(fur)) return CURLED.get(fur);
+    const k = kit(), light = fur === 2499882 ? 3815743 : 15920354;
+    k.add(P4.blob(0.22, 1), fur, { y: 0.1, sx: 1.15, sy: 0.55, sz: 0.95 }, { round: true });
+    k.add(P4.ball(0.1, 10, 8), fur, { x: 0.17, y: 0.13, z: 0.1 });
+    for (const s of [-1, 1])
+      k.add(P4.cone(0.04, 0.09, 4), fur, { x: 0.2 + s * 0.05, y: 0.23, z: 0.12, rz: -s * 0.3 }, { flat: true });
+    k.add(P4.ball(0.045, 6, 4), light, { x: 0.24, y: 0.1, z: 0.18 });
+    for (let i = 0; i < 6; i++) {
+      const a = -0.4 + i * 0.42;
+      k.add(P4.ball(0.045, 6, 4), fur, { x: Math.cos(a) * 0.24, y: 0.05, z: Math.sin(a) * 0.22 + 0.02 });
+    }
+    const g = k.build();
+    CURLED.set(fur, g);
+    return g;
+  }
 
   // src/view/buildings.js
   LOOK_SWITCHES.push(["towns", "Towns built in their own style"]);
@@ -19898,6 +20253,8 @@ vFade = sin(ph * 3.14159);`
       stone: kit(),
       cloth: kit(),
       glow: kit(),
+      cats: kit(),
+      // C9: cats on the roofs, in their own colours
       lamps: [],
       smoke: []
     };
@@ -19921,6 +20278,7 @@ vFade = sin(ph * 3.14159);`
     add(K2.wood, kitMat({ map: surface("wood") }), true);
     add(K2.stone, kitMat({ map: surface("stone") }), true);
     add(K2.cloth, kitMat({ map: surface("cloth"), side: THREE.DoubleSide }));
+    add(K2.cats, kitMat(), true);
     add(K2.glow, GLOW);
     if (K2.smoke.length && !Q.lite) group2.add(smokeOf(K2.smoke, st.smoke));
     if (K2.lamps.length) {
@@ -20078,10 +20436,20 @@ vFade = sin(ph * 3.14159);`
         K2.wood.add(P4.box(a, 0.9, b2), trim, { x: cx + x, y: 0.45, z: cz + z }, { uv: 1.5 });
     }
   }
+  var cat0 = (x, z) => Math.abs(Math.round(x * 10) * 73856093 ^ Math.round(z * 10) * 19349663);
   function roof(K2, st, r, cx, cz, w, d, wallH, wcol, kind2) {
     const col = r.pick(st.roofCol);
     if (st.roof === "flat") {
       K2.roof.add(P4.box(w + 0.2, 0.3, d + 0.2), col, { x: cx, y: wallH + 0.15, z: cz }, { uv: 3 });
+      if (feline() && cat0(cx, cz) % 100 < 35)
+        roofCat(
+          K2.cats,
+          cx + w * 0.25,
+          wallH + 0.3,
+          cz + d * 0.25,
+          (cat0(cx, cz) >> 5) % 628 / 100,
+          FURS[(cat0(cx, cz) >> 12) % FURS.length]
+        );
       for (const [x, z, a2, b] of [
         [0, d / 2, w + 0.2, 0.3],
         [0, -d / 2, w + 0.2, 0.3],
@@ -20132,7 +20500,21 @@ vFade = sin(ph * 3.14159);`
       }
     }
     K2.wood.add(P4.box(0.3, 0.3, len + 0.1), st.trim, { x: cx, y: wallH + h + 0.18, z: cz, ry }, { uv: 2 });
-    if (feline()) roofEars(K2, cx, cz, wallH + h, len, along, col);
+    if (feline()) {
+      roofEars(K2, cx, cz, wallH + h, len, along, col);
+      const hh = cat0(cx, cz);
+      if (hh % 100 < 40) {
+        const f = ((hh >> 8) % 100 / 100 - 0.5) * (len - 1.5), [ox2, oz] = turn4(0, f, ry);
+        roofCat(
+          K2.cats,
+          cx + ox2,
+          wallH + h + 0.3,
+          cz + oz,
+          ry + ((hh >> 4) % 2 ? Math.PI / 2 : -Math.PI / 2),
+          FURS[(hh >> 12) % FURS.length]
+        );
+      }
+    }
   }
   function tents2(K2, st, r, b) {
     choose(K2, st, r);
@@ -21985,178 +22367,6 @@ ${rich ? `{
       blooms.instanceMatrix.needsUpdate = blooms.instanceColor.needsUpdate = true;
     }
     return { tufts, blooms, update };
-  }
-
-  // src/view/catkit.js
-  var FURS = [14715450, 9408408, 2499882, 15921128, 15255696, 10119752, 7240330, 5913130];
-  var EYES = [9097290, 15777840, 4894952, 15245370];
-  var furOf = (seed) => FURS[Math.abs(seed | 0) % FURS.length];
-  var eyeOf = (seed) => EYES[(Math.abs(seed | 0) >> 3) % EYES.length];
-  function catHead(k, fur, eye, H2, y) {
-    const o = { bone: 5, pivot: H2 }, light = fur === 2499882 ? 3815743 : 16447214, pink = 15900848;
-    k.add(P4.ball(0.175, 12, 9), fur, { y, sx: 1.12, sy: 0.95 }, o);
-    for (const s of [-1, 1]) {
-      k.add(
-        P4.cone(0.075, 0.17, 4),
-        fur,
-        { x: s * 0.11, y: y + 0.17, z: -0.01, rz: -s * 0.3, ry: Math.PI / 4 },
-        Object.assign({ flat: true }, o)
-      );
-      k.add(
-        P4.cone(0.045, 0.11, 4),
-        pink,
-        { x: s * 0.108, y: y + 0.155, z: 0.02, rz: -s * 0.3, ry: Math.PI / 4 },
-        Object.assign({ flat: true }, o)
-      );
-      k.add(P4.ball(0.055, 8, 6), light, { x: s * 0.045, y: y - 0.06, z: 0.15, sz: 0.8 }, o);
-      k.add(P4.ball(0.034, 8, 6), eye, { x: s * 0.07, y: y + 0.03, z: 0.155, sx: 1.25, sy: 0.85 }, { bone: 8, pivot: H2 });
-      k.add(P4.box(8e-3, 0.045, 0.01), 1052688, { x: s * 0.07, y: y + 0.03, z: 0.19 }, o);
-      for (const w of [-1, 0, 1])
-        k.add(
-          P4.box(0.2, 6e-3, 6e-3),
-          16053492,
-          { x: s * 0.15, y: y - 0.06 + w * 0.018, z: 0.16, rz: s * w * 0.15, ry: -s * 0.25 },
-          o
-        );
-    }
-    k.add(P4.ball(0.022, 6, 4), pink, { y: y - 0.025, z: 0.19, sy: 0.7 }, o);
-    k.add(P4.ball(0.03, 6, 4), light, { y: y - 0.1, z: 0.14 }, o);
-  }
-  function catTail(k, fur, y) {
-    const o = { bone: 6, pivot: [0, y, -0.2] };
-    k.add(P4.cyl(0.045, 0.055, 0.5, 6), fur, { y: y - 0.12, z: -0.38, rx: -1.1 }, o);
-    k.add(P4.cyl(0.04, 0.045, 0.4, 6), fur, { y: y + 0.18, z: -0.62, rx: -0.3 }, o);
-    k.add(P4.ball(0.045, 6, 4), fur, { y: y + 0.38, z: -0.67 }, o);
-  }
-  function catCreature(k, form, eye) {
-    const W3 = 16777215, D3 = 12105912;
-    if (form === "hound") {
-      k.add(P4.blob(0.5, 1), W3, { y: 0.8, sx: 0.66, sy: 0.6, sz: 1.35 }, { bone: 0, round: true });
-      const hp = [0, 1, 0.7];
-      k.add(P4.blob(0.3, 1), W3, { y: 1.2, z: 0.95, sx: 1.1 }, { bone: 5, pivot: hp, round: true });
-      k.add(P4.box(0.26, 0.2, 0.3), D3, { y: 1.1, z: 1.22 }, { bone: 5, pivot: hp });
-      k.add(P4.ball(0.06, 6, 4), 1381653, { y: 1.18, z: 1.38 }, { bone: 5, pivot: hp });
-      k.add(P4.box(0.16, 0.03, 0.14), 13647952, { y: 1.02, z: 1.28 }, { bone: 5, pivot: hp });
-      for (const s of [-1, 1]) {
-        k.add(P4.box(0.08, 0.32, 0.18), D3, { x: s * 0.3, y: 1.08, z: 0.9, rz: s * 0.25 }, { bone: 5, pivot: hp });
-        k.add(P4.box(0.08, 0.06, 0.03), eye, { x: s * 0.1, y: 1.3, z: 1.2 }, { bone: 8, pivot: hp });
-      }
-      k.add(P4.cyl(0.27, 0.27, 0.09, 10), 13641784, { y: 1.02, z: 0.72, rx: 0.9 }, { bone: 0 });
-      k.add(P4.cyl(0.07, 0.07, 0.02, 8), 15777840, { y: 0.84, z: 0.92, rx: Math.PI / 2 }, { bone: 0 });
-      for (const [x, z, b] of [
-        [-0.2, 0.5, 1],
-        [0.2, 0.5, 2],
-        [-0.2, -0.5, 2],
-        [0.2, -0.5, 1]
-      ])
-        k.add(P4.cyl(0.08, 0.1, 0.7, 6), W3, { x, y: 0.38, z }, { bone: b, pivot: [x, 0.75, z] });
-      k.add(P4.cyl(0.04, 0.07, 0.6, 5), W3, { y: 1.05, z: -0.85, rx: -0.6 }, { bone: 6, pivot: [0, 0.95, -0.7] });
-    } else if (form === "brute") {
-      for (const [x, b] of [
-        [-0.5, 1],
-        [0.5, 2]
-      ])
-        k.add(
-          P4.cyl(0.25, 0.25, 0.14, 10),
-          2105380,
-          { x, y: 0.25, z: -0.2, rz: Math.PI / 2 },
-          { bone: b, pivot: [x, 0.25, -0.2] }
-        );
-      k.add(P4.box(1.2, 0.36, 1.2), W3, { y: 0.32, z: 0.2 }, { bone: 0 });
-      k.add(P4.box(1.24, 0.1, 0.12), 2763312, { y: 0.14, z: 0.82 }, { bone: 0 });
-      k.add(P4.cyl(0.42, 0.5, 1.8, 12), W3, { y: 1.4, z: -0.15 }, { bone: 0 });
-      k.add(P4.cyl(0.46, 0.46, 0.5, 12), 13641784, { y: 1.5, z: -0.15 }, { bone: 0 });
-      k.add(P4.cyl(0.05, 0.05, 1, 6), 2763312, { y: 2.75, z: -0.2 }, { bone: 0 });
-      k.add(P4.box(0.5, 0.1, 0.12), 2763312, { y: 3.25, z: -0.2 }, { bone: 0 });
-      const hp = [0, 0.4, 0.6];
-      k.add(P4.box(0.6, 0.22, 0.08), 16052416, { y: 0.4, z: 0.82 }, { bone: 5, pivot: hp });
-      k.add(P4.box(0.14, 0.08, 0.03), eye, { x: -0.16, y: 0.42, z: 0.87 }, { bone: 8, pivot: hp });
-      k.add(P4.box(0.14, 0.08, 0.03), eye, { x: 0.16, y: 0.42, z: 0.87 }, { bone: 8, pivot: hp });
-      for (const [x, b] of [
-        [-0.55, 3],
-        [0.55, 4]
-      ]) {
-        for (let i = 0; i < 4; i++)
-          k.add(
-            P4.cyl(0.11, 0.11, 0.26, 8),
-            i % 2 ? 3816e3 : 5592412,
-            { x, y: 1.9 - i * 0.27, z: 0.1 },
-            { bone: b, pivot: [x, 2, 0.1] }
-          );
-        k.add(P4.cone(0.17, 0.32, 8), 2763312, { x, y: 0.75, z: 0.1, rx: Math.PI }, { bone: b, pivot: [x, 2, 0.1] });
-      }
-    } else if (form === "wight") {
-      k.add(P4.cyl(0.42, 0.42, 1.5, 12), W3, { y: 1.35 }, { bone: 0 });
-      k.add(P4.cyl(0.25, 0.42, 0.3, 12), W3, { y: 2.25 }, { bone: 0 });
-      k.add(P4.cyl(0.38, 0.38, 0.5, 12), 5943528, { y: 1 }, { bone: 0 });
-      const hp = [0, 2.4, 0];
-      k.add(P4.box(0.36, 0.34, 0.75), 15217738, { y: 2.6, z: 0.15 }, { bone: 5, pivot: hp });
-      k.add(P4.cyl(0.07, 0.07, 0.22, 8), 15217738, { y: 2.65, z: 0.6, rx: Math.PI / 2 }, { bone: 5, pivot: hp });
-      k.add(P4.box(0.1, 0.07, 0.03), eye, { x: -0.1, y: 2.68, z: 0.53 }, { bone: 8, pivot: hp });
-      k.add(P4.box(0.1, 0.07, 0.03), eye, { x: 0.1, y: 2.68, z: 0.53 }, { bone: 8, pivot: hp });
-      k.add(P4.box(0.12, 0.42, 0.12), 15217738, { y: 2.3, z: 0.45, rx: 0.3 }, { bone: 3, pivot: [0, 2.45, 0.4] });
-      for (let i = 0; i < 6; i++) {
-        const a = i * 1.05;
-        k.add(
-          P4.ball(0.08 + i % 3 * 0.03, 6, 4),
-          14216952,
-          { x: Math.cos(a) * 0.7, y: 1.2 + i % 3 * 0.5, z: Math.sin(a) * 0.7 },
-          { bone: 0 }
-        );
-      }
-    } else if (form === "dustbunny") {
-      k.add(P4.blob(0.45, 1), 10132128, { y: 0.5, sy: 0.85 }, { bone: 0 });
-      for (let i = 0; i < 7; i++) {
-        const a = i * 0.9;
-        k.add(
-          P4.blob(0.16, 0),
-          11579574,
-          { x: Math.cos(a) * 0.38, y: 0.45 + Math.sin(i * 2.1) * 0.25, z: Math.sin(a) * 0.38 },
-          { bone: 0 }
-        );
-      }
-      const hp = [0, 0.7, 0.2];
-      for (const s of [-1, 1]) {
-        k.add(P4.cyl(0.06, 0.1, 0.55, 6), 11053230, { x: s * 0.16, y: 1.15, z: 0, rz: -s * 0.2 }, { bone: 5, pivot: hp });
-        k.add(P4.box(0.07, 0.07, 0.03), eye, { x: s * 0.14, y: 0.62, z: 0.42 }, { bone: 8, pivot: hp });
-        k.add(
-          P4.ball(0.08, 6, 4),
-          9079440,
-          { x: s * 0.2, y: 0.07, z: 0.15 },
-          { bone: s < 0 ? 1 : 2, pivot: [s * 0.2, 0.2, 0.15] }
-        );
-      }
-    } else {
-      for (let i = 0; i < 8; i++) {
-        const z = 1.1 - i * 0.5, r = 0.3 - i * 0.012;
-        k.add(P4.blob(r, 1), i % 2 ? 3836474 : 4890698, { y: r * 0.95, z, sz: 1.6 }, { bone: 7, pivot: [0, 0, i], round: true });
-        k.add(P4.ball(0.05, 5, 4), 2779690, { x: (i % 2 ? 1 : -1) * r * 0.7, y: r * 1.4, z }, { bone: 7, pivot: [0, 0, i] });
-      }
-      k.add(P4.cyl(0.05, 0.07, 0.25, 6), 8022586, { y: 0.3, z: -2.85, rx: Math.PI / 2 }, { bone: 7, pivot: [0, 0, 8] });
-      const hp = [0, 0.7, 1.2];
-      k.add(P4.blob(0.3, 1), 4890698, { y: 0.75, z: 1.5, sx: 1, sy: 0.9, sz: 1.3 }, { bone: 5, pivot: hp, round: true });
-      for (const s of [-1, 1]) {
-        k.add(P4.ball(0.11, 8, 6), 16777215, { x: s * 0.13, y: 1.02, z: 1.65 }, { bone: 5, pivot: hp });
-        k.add(P4.ball(0.05, 6, 4), eye, { x: s * 0.13, y: 1.02, z: 1.76 }, { bone: 8, pivot: hp });
-      }
-    }
-  }
-  var CURLED = /* @__PURE__ */ new Map();
-  function curledCat(fur) {
-    if (CURLED.has(fur)) return CURLED.get(fur);
-    const k = kit(), light = fur === 2499882 ? 3815743 : 15920354;
-    k.add(P4.blob(0.22, 1), fur, { y: 0.1, sx: 1.15, sy: 0.55, sz: 0.95 }, { round: true });
-    k.add(P4.ball(0.1, 10, 8), fur, { x: 0.17, y: 0.13, z: 0.1 });
-    for (const s of [-1, 1])
-      k.add(P4.cone(0.04, 0.09, 4), fur, { x: 0.2 + s * 0.05, y: 0.23, z: 0.12, rz: -s * 0.3 }, { flat: true });
-    k.add(P4.ball(0.045, 6, 4), light, { x: 0.24, y: 0.1, z: 0.18 });
-    for (let i = 0; i < 6; i++) {
-      const a = -0.4 + i * 0.42;
-      k.add(P4.ball(0.045, 6, 4), fur, { x: Math.cos(a) * 0.24, y: 0.05, z: Math.sin(a) * 0.22 + 0.02 });
-    }
-    const g = k.build();
-    CURLED.set(fur, g);
-    return g;
   }
 
   // src/view/actors.js
@@ -24978,6 +25188,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           who.position.set(2.2, 0, 0.6);
           who.rotation.y = -1.9;
           g.add(who);
+          if (feline()) {
+            const cat2 = new THREE.Mesh(curledCat(FURS[(st.who ? String(st.who).length : 3) % FURS.length]), kitMat());
+            cat2.position.set(-1.1, 0, 0.9);
+            cat2.scale.setScalar(1.3);
+            cat2.rotation.y = 0.8;
+            g.add(cat2);
+          }
         }
         return g;
       }
@@ -26065,6 +26282,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
               { key: "folk:" + id + ":" + folkId(st), speed: 1.4, roam: ts * 0.3, rise: false }
             ) : { key: "site:" + id + ":" + k }
           );
+        if (who && st.kind === "folk" && feline() && hashStr(st.name || "") % 3 !== 0) {
+          const h = hashStr(st.name || ""), cg = new THREE.Group();
+          cg.add(creatureActor("housecat", 16777215, FURS[h % FURS.length]));
+          cg.position.set(x + 1.2, y, z + 0.6);
+          cg.rotation.y = h % 628 / 100;
+          dynGroup.add(cg);
+          track(cg, cg.children[0], { key: "cat:" + id + ":" + folkId(st), speed: 2.2, roam: ts * 0.45, rise: false });
+        }
       }
     const camp = !nb && V.S.camp && V.S.camp.area === id ? V.S.camp.i : null;
     if (!nb) {
@@ -26175,9 +26400,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       }
     }
     if (camp !== null && feline()) {
-      const [x, y, z] = at(camp, 5, 3), bed = catBed();
+      const [x, y, z] = at(camp, 5, 3), bed = catBed(), cat2 = new THREE.Mesh(curledCat(FURS[(V.S.seed + camp) % FURS.length]), kitMat());
       bed.position.set(x, y, z);
-      dynGroup.add(bed);
+      cat2.position.set(x + 0.2, y + 1.12, z - 0.2);
+      cat2.scale.setScalar(3);
+      cat2.rotation.y = 2.2;
+      dynGroup.add(bed, cat2);
       if (fxOn()) {
         const f = fire2(1);
         f.position.set(x - 3.5, ground(x - 3.5, z + 3) + 0.05, z + 3);

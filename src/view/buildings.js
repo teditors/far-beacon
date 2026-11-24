@@ -10,7 +10,8 @@ import { addOutline } from './outline.js';
 import { surface } from './paint.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { feline } from './themeflag.js';
-import { roofEars } from './catworld.js';
+import { roofCat, roofEars } from './catworld.js';
+import { FURS } from './catkit.js';
 
 LOOK_SWITCHES.push(['towns', 'Towns built in their own style']);
 const townsOn = () => lookOn('towns') && lookOn('light');
@@ -203,6 +204,7 @@ function kits(st) {
     stone: kit(),
     cloth: kit(),
     glow: kit(),
+    cats: kit(), // C9: cats on the roofs, in their own colours
     lamps: [],
     smoke: [],
   };
@@ -230,6 +232,7 @@ function finish(K, st, group) {
   add(K.wood, kitMat({ map: surface('wood') }), true);
   add(K.stone, kitMat({ map: surface('stone') }), true);
   add(K.cloth, kitMat({ map: surface('cloth'), side: THREE.DoubleSide }));
+  add(K.cats, kitMat(), true);
   add(K.glow, GLOW);
   if (K.smoke.length && !Q.lite) group.add(smokeOf(K.smoke, st.smoke));
   if (K.lamps.length) {
@@ -415,11 +418,22 @@ function building(K, st, r, b) {
       K.wood.add(P.box(a, 0.9, b2), trim, { x: cx + x, y: 0.45, z: cz + z }, { uv: 1.5 });
   }
 }
+// C9: a number from a place, for choosing roof cats without drawing from the town's own stream
+const cat0 = (x, z) => Math.abs((Math.round(x * 10) * 73856093) ^ (Math.round(z * 10) * 19349663));
 // The roof over a building: its climate's shape, a gable end in the wall's colour, snow on cold roofs.
 function roof(K, st, r, cx, cz, w, d, wallH, wcol, kind) {
   const col = r.pick(st.roofCol);
   if (st.roof === 'flat') {
     K.roof.add(P.box(w + 0.2, 0.3, d + 0.2), col, { x: cx, y: wallH + 0.15, z: cz }, { uv: 3 });
+    if (feline() && cat0(cx, cz) % 100 < 35)
+      roofCat(
+        K.cats,
+        cx + w * 0.25,
+        wallH + 0.3,
+        cz + d * 0.25,
+        ((cat0(cx, cz) >> 5) % 628) / 100,
+        FURS[(cat0(cx, cz) >> 12) % FURS.length],
+      ); // C9
     for (const [x, z, a, b] of [
       [0, d / 2, w + 0.2, 0.3],
       [0, -d / 2, w + 0.2, 0.3],
@@ -479,7 +493,23 @@ function roof(K, st, r, cx, cz, w, d, wallH, wcol, kind) {
     }
   }
   K.wood.add(P.box(0.3, 0.3, len + 0.1), st.trim, { x: cx, y: wallH + h + 0.18, z: cz, ry }, { uv: 2 });
-  if (feline()) roofEars(K, cx, cz, wallH + h, len, along, col); // C9: cat ears on the ridge
+  if (feline()) {
+    roofEars(K, cx, cz, wallH + h, len, along, col); // C9: cat ears on the ridge
+    const hh = cat0(cx, cz);
+    if (hh % 100 < 40) {
+      // and now and then a cat on it, somewhere along the ridge, facing the street (seeded by place: no draw from r)
+      const f = (((hh >> 8) % 100) / 100 - 0.5) * (len - 1.5),
+        [ox, oz] = turn(0, f, ry);
+      roofCat(
+        K.cats,
+        cx + ox,
+        wallH + h + 0.3,
+        cz + oz,
+        ry + ((hh >> 4) % 2 ? Math.PI / 2 : -Math.PI / 2),
+        FURS[(hh >> 12) % FURS.length],
+      );
+    }
+  }
 }
 // Round tents (the steppe): as many as fit along the block, each with a dome of felt and a smoke hole.
 function tents(K, st, r, b) {
