@@ -1,3 +1,285 @@
+# Commission 8
+
+The brief (COMMISSION.md): character. Surfaces you can tell apart at a glance and no visible tiling, roads that look
+made, made things that read as made, rooms furnished by what they are for, High pushed much further, and two bugs (the
+traveller at the fire, small towns that are only a menu). Pieces with switches, as before.
+
+## Summary
+
+Seven entries, newest first below, in six commits (C8.6 and C8.7 went in together). Every check passes, the full one
+with the browser test, which now also sits down at a wayfarer's fire and checks the answer shows. No save migration:
+the new state is optional (a town record's `hamlet`, `talk`, `told`; a thing's `of`), and old saves load, their
+hamlets becoming towns as they do.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C8.1 | The traveller at the fire answers: every choice in a talking window shows what it brought, and a "Go on" when they leave | (fix) | a needed fix |
+| C8.2 | Hamlets on the land are small towns you walk into: elder, inn, shop, a service, dwellings with rooms | `steads` | pearl |
+| C8.3 | Ground with character: eight kinds you can tell apart, crisp lined edges, no tiling, patches, flowers, chalky whites | `grounds` | pearl |
+| C8.4 | Roads that look made: cobbled streets with kerbs, the lost people's old slab roads half buried, rutted tracks, bridges | `roads` | pearl |
+| C8.5 | Rooms furnished by use: real floors, rooms by wealth, altars and pews, laid tables, things where they belong, broken abandoned houses, the god's shrine; poor and rich furniture | `rooms`, `furniture` | pearl, and a long-hidden bug found |
+| C8.6 | High pushed: more land and trees, deeper grass, stones and leaves, finer ground; grass green from behind; lighter rooms; Low and Medium kept as cheap | (quality) | solid |
+| C8.7 | Fields round the towns, bounded by walls, hedges or fences by climate | `fields` | small pearl |
+
+**Numbers, before and after** (`python3 tools/bench.py fallback low medium high rooms`, software renderer, three
+seeds, about 8% noise; before is v0.18 measured the same day): frame ms Fallback 63.7 → 66.8, Low 361 → 368, Medium
+360 → 379, High 465 → 894; draw calls the same or fewer below High (Medium 145 → 141), High 154 → 161; triangles Low
+583k → 595k, Medium 595k → 607k, High 768k → 1,090k. The land takes about 100 ms more to build on Low and Medium (in
+slices over frames). A full room is a little cheaper on every level for more things (C8.6). The largest save with every
+region visited: 153 → 180 KB (the hamlets' streets). The bot: 30 / 150 (20%), 28 / 150 (19%) and 20 / 150 (13%) over three seed sets of 150, every piece
+on (floor: 8%).
+
+**My three best.**
+1. **The floor under the plinth (C8.5)**: since commission 7 every room's floor was the building's solid stone
+   plinth, grey slabs half a metre up, with the furniture sunk in it. Cutting the plinth to a ring round the walls
+   gave every room its own boards, earth, stone or tiles, and made everything in it stand where it should: the single
+   biggest change to how the interiors look, and one line of cause.
+2. **Hamlets as towns (C8.2)**: the brief's bug fixed by making them what the game already knew how to make, without
+   moving anything else in a world: rolled where they always were, made towns once the world exists.
+3. **Roads as their own ribbons (C8.4)**: a narrow made way along a smoothed line with an edge and a verge is the
+   difference between a grey square and a road; three kinds and bridges come almost free once the line exists.
+
+**What I would do next.**
+1. Town streets in the same spirit as the roads: the squares and lanes inside towns are one paving; give them kerbs,
+   gutters, a worn middle, and steps to the doors.
+2. People in the rooms (still from commission 7): a cook at the hearth, a priest at the altar, a family at the laid
+   table. The rooms now say where each would stand.
+3. The ground on High could take a little relief (a normal from the grain) and the water a shoreline of foam and reeds.
+4. Upper floors and cellars; and the steppe's tents opened, now that rooms are made by use (a round room is a ring of
+   wall tiles round a hearth).
+5. On the Pixel: walk an open field and a road on High with the meter on, and compare Medium with v0.18.
+
+**About the browser test.** Its walk over a border, and once its walk into a house, failed now and then all
+commission, with no page error: in some rolled worlds the character, carrying what the test had bought and picked up
+and a full skin of water, was over their carry limit and could not move. The test now leaves the extras behind and
+carries four measures for those walks; its assertions say
+what they saw when they fail.
+
+**CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
+
+| v0.19 | Commission 8: character. The ground has eight kinds you can tell apart at a glance (grass, sand, rock, snow, earth, gravel, mud, salt crust) with crisp lined edges, no visible tiling, patches of lush and dry grass, bare earth and flowers. Roads look made: cobbled streets with kerbs near towns, the lost people's old slab roads half under the turf, rutted tracks with waymarks, bridges over rivers; fields with walls, hedges or fences round every town. Rooms are furnished by what they are for: real floors (they were hidden under the building's plinth), rooms by wealth, altars with the god's own shrine and pews, tables laid, pots by the hearth, abandoned houses broken and cobwebbed, poor and rich beds, tables, chairs and chests. High pushed much further (more land, deeper grass, stones and leaves underfoot, finer ground); Low and Medium as cheap as before. Fixes: the traveller at the fire answers, and hamlets on the land are small towns you walk into. See `JOURNAL.md` |
+
+## C8.7: fields round the towns
+
+**What it is** (`view/fields.js`). Round every town in sight lie five to nine fields, squared to the town's streets,
+on level open ground away from water, woods, roads and other places: ploughed in rows of a crop of the climate (wheat,
+barley, cabbages, flax in flower and fallow in temperate lands; hay in the wet; barley and turnips in the cold;
+millet and watered beans in the heat; grazing on the steppe), each bounded by what its people build with: a drystone
+wall in the cold, wet and ashen lands, a hedge in temperate ones, a low mud-brick wall in the heat, a post-and-rail
+fence on the steppe, with a gap for the gate on the side toward the town. Trees, rocks and grass keep off them. View
+only: the rules know nothing of them and they never block the way. A town now sits in worked land, so it reads as a
+place people live from, and it answers "field boundaries" in the brief's list of made things.
+
+**Cost.** One mesh for the fields' ground and one instanced mesh per kind of boundary (four draw calls at most); 4 m
+cells and plain hedges below High, 2 m cells and rounder hedges on High; only towns within about 560 m (900 m on High).
+Not on the hidden Fallback.
+
+**Switch.** `fields` (Settings, the look). Picture: `docs/look/after/fields.jpg`.
+
+## C8.6: High pushed further, and the cheaper levels kept as they were
+
+**What changed on High** (`quality.js`): more land drawn (30 tiles round the region, was 26), trees whole out to
+720 m (560), a deeper and denser ring of grass and flowers (74 m and 42,000 tufts; 56 m and 20,000), and **stones and
+fallen leaves underfoot** (`pebbles`, grass.js: up to 9,000 small stones, lit as balls, and leaves under trees, most
+where little grass grows). High alone reads the ground's macro per pixel, adds a second, turned reading of the grain,
+a finer one close to, and the meadow's flowers; and has finer roads (a point every 1.2 m, close-set kerbs) and fields.
+
+**For every level:**
+- **Grass blades are green from behind** (kit.js `frontLit`): three's two-sided Lambert material lit a blade's back as
+  if it faced the ground, so half of every tuft was black: the dark spikes all over the fields in the pictures.
+- **Rooms a little lighter** (run.js): the sky's light through the windows and the lamp are stronger indoors, so what
+  is in a room reads.
+
+**Keeping Low and Medium as they were.** Measured as the work went (the probe below), the new ground, roads and fields
+first cost Low and Medium about 45% more frame time on this renderer. Brought back: on Low and Medium the ground's
+macro noise is given to each point of the land (`macroAt`) rather than read per pixel, and there is no finer reading
+or flowers, so the ground is two texture reads a pixel as before; roads are laid coarser with longer kerb stones, and
+their edges and the fields only near the player's region; hedges are plainer; the hidden Fallback keeps the old grey
+road tiles and has no fields. The macro's tile is 168 m (a region is six) and the grain's 4.8 m (210 to a region), so
+neither jumps when the land is rebuilt across a border.
+
+**Numbers** (`python3 tools/bench.py fallback low medium high rooms`, software renderer at 412 x 915, seeds 11 / 222 /
+3333, about 8% noise; before is v0.18 measured the same day):
+
+| | build ms | draw calls | triangles | frame ms |
+| --- | --- | --- | --- | --- |
+| before, Fallback | 80 | 75 | 110,521 | 63.7 |
+| after, Fallback | 74 | 70 | 109,635 | 66.8 |
+| before, Low | 307 | 124 | 583,226 | 361.3 |
+| after, Low | 447 | 124 | 594,852 | 367.6 |
+| before, Medium | 320 | 145 | 595,388 | 359.5 |
+| after, Medium | 418 | 141 | 606,908 | 378.9 |
+| before, High | 343 | 154 | 767,856 | 464.7 |
+| after, High | 539 | 161 | 1,089,715 | 893.7 |
+
+Low and Medium draw within the noise of before (+2% and +5%), with the same draw calls. Their land takes about 100 ms
+more to build (the ground's eight kinds and macro per point, the roads and fields), but it is built in slices over
+frames while the old land stands, so it is not a pause. High spends about twice the frame of before on this
+renderer, which is where Andrew asked for it to go; on the Pixel the software renderer's cost per texture read and per
+pixel is far higher than a phone GPU's, so expect much less. **A full room** (seed 11's elder's hall, 68 things, and a
+house, 97 things): 108 / 113 ms on Low (was 113 / 113), 110 / 116 on Medium (121 / 118), 145 / 148 on High (153 /
+152): more things, a little cheaper, since the room's floor is no longer hidden under the building's plinth.
+
+**Switches.** None of its own: the quality levels, and `grass`, `grounds`, `roads`, `fields` (Settings).
+
+## C8.5: rooms furnished by what they are for
+
+**What it was.** Commission 7's rooms had the right kinds of things, but placed at random along the walls and over
+the floor, in big bare rooms; and every room's floor was the building's own solid stone plinth, grey slabs drawn half
+a metre above the real floor, with the furniture standing sunk into it (`docs/look/before/dwelling-*.jpg`).
+
+**What changed.**
+- **The floor** (view): a building you walk into stands on a plinth round its foot only, so inside you see the room's
+  own floor: boards in a house, earth in a poor one, stone in a temple or a hall, tiles in the heat; boards narrower.
+- **Rooms by wealth and kind** (`rules/rooms.js`, `content/rooms.js`): a poor dwelling a living room with the hearth,
+  a sleeping room, a store and a workroom; a middling one a kitchen of its own as well; a rich one a dining room and a
+  study besides. A temple has a **nave** and a **vestry**, a mapmaker's house its **stacks**. Rooms are about 5 m a side
+  now (four tiles, was five), so a house has more of them, each fuller. A fire only where people sit, cook or sleep.
+- **Placed by function**: an altar against the far wall from the door; pews (or a library's bookcases) in rows with an
+  aisle up the middle from the door; nothing in front of a doorway; a table where there is room round it, with a chair
+  on every side there is room for, facing it, and a place laid before each in a living room, kitchen, dining room, hall
+  or taproom (a plate, and a cup where they have them). **What goes with each piece**: pots and a kettle on the floor
+  before the hearth with firewood beside it and a stool facing it; a nightstand or a chest beside a bed; a stool at the
+  workbench; an anvil before the forge with a bucket; the god's shrine and candlesticks on the altar; scales and a
+  ledger on the counter; a jug on the washstand.
+- **Small things where they belong** (`near`): pots by the hearth, plates on the table, tools on the bench, books in the
+  bookcase, candles on the nightstand and the altar; buckets, brooms and baskets on the floor against a wall.
+- **Abandoned houses**: some furniture gone, the rest broken (a bed fallen in, a table on a short leg, chairs on their
+  side, a chest's lid flung back, a cupboard's door hanging, pews collapsed), cobwebs, fallen plaster and boards,
+  shards; one thing in two such houses has come through whole.
+- **The god's place**: the shrine on a temple's altar is the world's god's own, by its domain (a bowl of still water, a
+  cairn, a lidless eye, an ever-burning brazier, a staff and sandals, a broken shield, a sheaf, an open eye), in its
+  colour; holy symbols in its temple are named for it ("holy symbol of Tethael").
+- **More things, with variants** (`view/furniture.js`): new furniture (nightstand, sideboard, pew, washstand, cradle,
+  tall candlestand, vestments) and small things (candlestick in tin, brass or silver; ladle, ledger, scales, censer,
+  offerings); a poor, a middling and a rich bed (straw pallet, wooden bed, four-poster with curtains), table (trestle,
+  plank, turned legs with a linen runner), chair (stool-like, ladder-back, carved with arms and a cushion), chest (rope
+  hasp, iron-bound, painted with a domed lid) and lamp (clay oil lamp, lamp, candelabrum); broken versions as above.
+
+**Also.** A hamlet in an old save whose region's map was packed away could not become a town (C8.2: it read the packed
+map); it reads it unpacked now.
+
+**Switches.** `rooms` (Tinker; `NO=rooms`: commission 7's furnishing), and the look's `furniture` (Settings: the plain
+models). Tests (pieces.test.js, `rooms`): in 16 worlds every temple has its altar, the shrine of the god on it and pews;
+most tables have two seats or more; fewer than one small thing in twenty lies loose in the middle of a floor; rich
+houses have a dining room or a study; every abandoned house is cobwebbed and old; NO=rooms furnishes as before.
+Pictures: `docs/look/{before,after}/dwelling-1.jpg` to `dwelling-3.jpg`, `empty-house.jpg`, `temple.jpg`,
+`shop.jpg`, `smithy.jpg`.
+
+## C8.4: roads that look made, and bridges
+
+**What it was.** A road was its whole 28 m tile painted grey: as wide as a field, blocky, a staircase wherever it ran
+on a slant (the rules lay roads tile by tile), and hard to tell from bare ground (`docs/look/before/road.jpg`).
+
+**What it is now** (`src/view/roads.js`). Each road is its own narrow ribbon laid on the land along a smoothed line
+through its tiles (three passes of corner cutting turn the staircase into a road that runs on the slant and bends),
+with a made surface, an edge, and a verge of trodden ground that fades into the land. Three kinds:
+- **A street** within about 110 m of a town's block: rows of rounded setts with dark joints, lit on top, worn lighter
+  down the middle, and a kerb of dressed stones along both sides (4.2 m).
+- **An old road of the lost people**, in a world where they were road-builders: big slabs in staggered courses, turf
+  in the joints, whole stretches half-buried under the grass (or sand, or snow: the ground's own colour), an edge that
+  wanders where stones are missing, and edge blocks still standing in places, some tipped or sunk (4.8 m).
+- **A track** where they were not (the plot's old ways): beaten earth with two dark wheel ruts, a strip of grass
+  between them that thins where the wheels wander, a wide trodden verge, and now and then a leaning waymark post (3.2 m).
+- **Bridges**: where a road crosses a stream or a river it rises on ramps to a deck a little above the water, with
+  stone parapets for a street or an old road, and a rail on posts over a deck of planks for a track.
+
+The ribbons are one mesh per kind; the kerbs, blocks, posts, parapets, rails and planks are instanced: at most nine
+draw calls for every road in sight, and a few thousand triangles. Building them takes about 25 ms of the land's build
+(one slice of it). Grass no longer grows on the made way (`roadNear`), but does on the rest of the old road tile.
+
+**Switch.** `roads` (Settings, the look): off, the old grey tiles. Tests (pieces.test.js, `the ground`): a staircase
+of road tiles becomes one smooth line close to its tiles, a straight road stops at a town's block, and two roads make
+two lines. Pictures: `docs/look/{before,after}/road.jpg`, `road-2.jpg`, and after only `road-old.jpg`,
+`road-old-2.jpg`, `road-town.jpg`, `bridge.jpg`.
+
+## C8.3: ground with character
+
+**What it was.** The ground had one texture of four grains (grass, grains, rock, snow) repeated every 5 m, mixed by
+weights read from the colour, with a finer copy close to. In an open field the repeat showed plainly, and sand, earth,
+mud, gravel and salt were all "grains": told apart only by their colour. Salt flats and snow were blown out to white in
+the sun.
+
+**What it is now** (`src/view/grounds.js`).
+- **Eight kinds** in two textures: grass (clumps of blades, lit tips, shaded roots), sand (long bent wind ripples with a
+  lit crest and a shaded lee), rock (broad plates of their own tone split by dark cracks), snow (drifts and glitter),
+  earth (clods lit on top, cracks between), gravel (round pebbles packed close, each lit above and shaded below), mud
+  (dark pools with light rims, streaks), crust (a salt or ash pan's big pale polygons with raised dark cracks). Each
+  pattern has its own scale and shape, exaggerated, and each kind its own tint over the biome's colour (sand warm, rock
+  cool, mud dark, earth russet).
+- **Which kind** comes from the colour (so generated biomes work), the slope (cliffs are rock), and the rules: a bog is
+  mud, a salt pan or ash field crust, a frozen lake snow, scree gravel, a wood's floor earth and leaf, a stream's banks
+  mud (`kindsOf`, `specialKind`).
+- **No tiling**: a macro texture of four noises over a 190 m tile slides where the grain is read by up to 1.7 m, so the
+  repeat never lines up; on High a second reading, turned 37 degrees and at 1.6 times the scale, is blended in by the
+  noise as well. The land's own colour also wanders more (warmer and cooler, lighter and darker, over a few hundred m).
+- **Patches a painter would lay in**: lusher and drier grass in drifts of 20 to 40 m, sharp-edged bare earth through
+  the grass, and close to, in a meadow's low patches, a few round dots of flowers (white, yellow, violet).
+- **Edges**: where two kinds meet, the weights are nudged by noise and cubed, so the stronger kind wins with a crisp,
+  wobbling edge; a thin darker line runs along it.
+- **Chalky, not white**: pale ground's lightness is eased above one half, so salt shows its polygons and snow its
+  drifts in full sun (ART.md: whites stay chalky).
+
+**Cost.** Five texture reads a pixel of ground on Low and Medium (two before), seven on High; the vertex data grows by
+four numbers a point. Measured with the rest at the end.
+
+**Switch.** `grounds` (Settings, the look): off, the ground of commission 7. Tests (pieces.test.js, `the ground`): the
+colour and context of a point give the right kind (green grass, pale warm sand, pale salt where hot and snow where
+cold, brown earth, a cliff rock, a bog mud), the weights sum to one, and the hand-made biomes' special grounds read as
+crust, mud and snow. Pictures: `docs/look/{before,after}/field-near.jpg`, `field-far.jpg`, `field-knolls.jpg`,
+`field-moor.jpg`, `salt-day.jpg`, `taiga-day.jpg`.
+
+## C8.2: hamlets are real places (steads)
+
+**What it was.** A hamlet on the land was four little houses you could not enter round a well, and a menu (a bed by
+the fire, a bundle of wood, a few potions, a rumour): a town in name only.
+
+**What it is now.** Every hamlet is a small town of its own, of the size the town life piece already knew as a
+hamlet: lanes and a little square, an elder with news and errands, an inn with a bed, a shop, one more service (a
+healer, a priest, a mapmaker...), a few dwellings, every building one you walk into with rooms and things like any
+town's, and its own culture, people and tune (the hamlet's musette). It stands on its 5 x 5 block of the land like any
+town, is told as a hamlet the first time you walk in ("Coldcroft, a hamlet. Smoke from three chimneys, a dog, a well
+with a bucket on a chain. Every door is open to a traveller."), and keeps the hamlet's name.
+
+**How.** `rules/steads.js`, imported last. The hamlet is still rolled where it always was (with its region), so no
+world changes as it is made; once the world exists (`worldBorn`, last of all), every hamlet becomes a town through
+`townAt` (split out of `addTown` in moretowns.js, so the two make towns the same way) at the size asked for
+(`want`, read by town life's `rollLife`). A region built later has its hamlet made a town as it is built. Where the
+hamlet's own tile has no room for a block (a spring beside it, water), the nearest place within five tiles that has
+room is used; a hamlet in a region that already has a town, or with no room near, is gone (its region's town stands in
+for it). Things left on the block go to the tile below its gate, as when towns first got blocks. **Old saves**: their
+hamlets become towns as they load (`AFTER_LOAD`), except one the traveller is standing among, which waits until they
+have walked off. No change to the shape of the state (a town record has three optional fields, `hamlet`, `talk`,
+`told`), so no migration.
+
+Some 3 to 5 hamlets a world. The largest save with every region visited goes from 153 to 180 KB (a town's streets are
+kept like any town's).
+
+**Also.** A bed at an inn now gives drink through the night: a traveller with nine measures of water died of thirst in
+an inn's bed in a hot land while the tests walked through more towns than before.
+
+**Switch.** `steads` (at creation, and in play: no more hamlets become towns). Tests (pieces.test.js, `steads`): in 16
+worlds every hamlet is a town of size hamlet with a site on the land, a hall, an inn, a shop and a dwelling to walk into
+and plenty of rooms; none is left a menu; an old save's hamlets become towns; NO=steads keeps them hamlets. The
+more-towns test now walks into each of them too. Picture: `docs/look/after/hamlet.jpg`.
+
+**Verdict.** The fix the brief asked for, and more places worth finding.
+
+## C8.1: the traveller at the fire answers
+
+**What it was.** At a wayfarer's fire, "Sit and listen" (and any choice after which the wayfarer moves on: a measure of
+water that was the last, the map, sharing water with the lost traveller) did its work in the rules, but the window
+asked the rules again what the wayfarer offered, got nothing (they had gone on), and returned without changing: the
+same window, the same "Yes", and the answer hidden in the log behind it. It looked like nothing happened.
+
+**What changed.** A choice in any of these windows (a wayfarer, a hamlet, a town's healer, priest, trainer, smith,
+mapmaker or stable, the sky's people) now shows what it brought at the top of the window, in italics: the pilgrim's
+news, the price paid, "You cannot afford that". When the person has gone on, the window stays on what they said, with
+a "Go on" button. The browser test now sits down at a wayfarer's fire, takes the first choice and checks the answer is
+in the window.
+
+**Switch.** None (a fix).
+
 # Commission 7
 
 **On merging (v0.18):** Andrew kept everything except the ink lines over everything in other worlds (C6.5, switch

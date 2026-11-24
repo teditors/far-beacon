@@ -82,7 +82,7 @@ function houseGroup(S, id, L) {
     cz = (top + bot) / 2,
     w = right - left,
     d = bot - top;
-  floor.add(P.box(w + 0.6, 0.1, d + 0.6), lk.fcol, { x: cx, y: 0.04, z: cz }, { uv: 1.6, jitter: 0.04 });
+  floor.add(P.box(w + 0.6, 0.1, d + 0.6), lk.fcol, { x: cx, y: 0.04, z: cz }, { uv: 1.0, jitter: 0.04 });
   ceil.add(P.box(w + 0.6, 0.12, d + 0.6), '#6a5038', { x: cx, y: CEIL + 0.06, z: cz }, { uv: 2 });
   // beams across the shorter span
   const along = w < d;

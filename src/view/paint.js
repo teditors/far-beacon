@@ -490,6 +490,7 @@ function surface(name, v) {
 }
 const SURFACES = Object.keys(MAKERS);
 export { groundMaterial, groundTexture, surfaceOf, surface, paintOn, SURFACES, warmSurfaces };
+export { rnd, noiseField, stroke, fbm, stones, dataTexture, toByte, cellOf, bevel };
 // Make every surface ahead of need, one at a time when the page is idle, so the first town seen does not wait for its
 // textures (each takes up to a few tens of milliseconds at High's size).
 function warmSurfaces() {

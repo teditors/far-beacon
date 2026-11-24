@@ -1,6 +1,6 @@
 {
   "name": "far-beacon",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "A first-person survival-exploration roguelike in the browser",
   "directories": {
     "test": "tests"

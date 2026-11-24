@@ -22,19 +22,31 @@ function addTown(s, cx, cy, r, near) {
     if (p && !keeps(p)) p = null;
   }
   if (!p) return null;
-  flatten(m, p.x, p.y, 2, 3);
+  return townAt(s, rec, p.x, p.y, r);
+}
+/* Make a town at outdoor tile (x, y) of region record rec, whose map is built (parked or live): the block is levelled,
+   the site set, its record made and every TOWN_MAKERS hook run with s.town standing for it, then its streets built.
+   opts: { name, size (a townLife size id the town is made at), extra fields for the record }. */
+function townAt(s, rec, x, y, r, opts) {
+  opts = opts || {};
+  const m = rec.id === s.area ? s : rec.map;
+  flatten(m, x, y, 2, 3);
   const id = 't_' + rec.id,
-    t = makeTownRec(s, r, p.x, p.y);
+    t = makeTownRec(s, r, x, y);
+  if (opts.name) t.name = opts.name;
   for (let k = 0; k < 6 && allTowns(s).some((o) => o.name === t.name); k++)
     t.name = C.town.a[Math.floor(r() * C.town.a.length)] + C.town.b[Math.floor(r() * C.town.b.length)];
   t.id = id;
   t.area = rec.id;
-  m.sites[idx(p.x, p.y)] = { kind: 'town', town: id };
+  if (opts.size) t.want = opts.size;
+  Object.assign(t, opts.extra || {});
+  m.sites[idx(x, y)] = { kind: 'town', town: id };
   (s.towns = s.towns || []).push(t);
   const rt = stream(s.seed, 'town:' + id);
   withTown(s, t, () => {
     for (const f of TOWN_MAKERS) f(s, t, rt);
   });
+  delete t.want;
   ensureTown(s);
   return t;
 }
@@ -64,4 +76,4 @@ NOTES.push((s) =>
       ]
     : [],
 );
-export { addTown };
+export { addTown, townAt };

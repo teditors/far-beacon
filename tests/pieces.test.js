@@ -559,12 +559,12 @@ const findSeed = (fn, from = 1) => {
   need(homeTown >= 5 && homeTown <= 30, 'the town stayed home in ' + homeTown + ' of 60 worlds');
   need(R.findSite(R.newGame(5, { plot: true }), 'vault').area === 'overworld', 'NO=plot still moved the locked place');
 }
-// Hamlets: in some regions away from home, with water, shelter, a bed and goods.
+// Hamlets: in some regions away from home, with water, shelter, a bed and goods (as they were, with steads off).
 {
   let n = 0,
     used = 0;
   for (let i = 1; i <= 20; i++) {
-    const s = R.newGame(i);
+    const s = R.newGame(i, { steads: true });
     for (const id in s.areas) {
       const m = s.areas[id].map;
       if (!m || !m.sites || id === 'overworld') continue;
@@ -591,6 +591,47 @@ const findSeed = (fn, from = 1) => {
     }
   }
   need(n > 20 && used, 'only ' + n + ' hamlets in 20 worlds');
+}
+// Steads (C8.2): every hamlet on the land is a small town you walk into, with its elder, inn and shop and buildings
+// with rooms; none is left a menu; an old save's hamlets become towns as it loads; switched off, they stay hamlets.
+{
+  let n = 0,
+    left = 0,
+    rooms = 0;
+  const fs = require('fs'),
+    path = require('path');
+  for (let i = 1; i <= 16; i++) {
+    const s = R.newGame(i);
+    for (let cy = 0; cy < s.world.rows; cy++) for (let cx = 0; cx < s.world.cols; cx++) R.ensureRegion(s, cx, cy);
+    for (const id in s.areas) {
+      const m = s.areas[id].kind === 'region' && !s.areas[id].realm ? R.mapOf(s, id) : null;
+      if (m) for (const k in m.sites) if (m.sites[k].kind === 'hamlet') left++;
+    }
+    for (const t of (s.towns || []).filter((t) => t.hamlet)) {
+      n++;
+      need(t.size === 'hamlet', t.name + ' is a ' + t.size + ', not a hamlet');
+      need(R.mapOf(s, t.area).sites[t.y * R.W + t.x].town === t.id, t.name + ' has no site on the land');
+      const bs = R.buildingsOf(s, t.id);
+      need(
+        ['elder', 'inn', 'shop'].every((k) => bs.some((b) => b.kind === k)) && bs.some((b) => b.kind === 'house'),
+        t.name + ' lacks a hall, an inn, a shop or a dwelling to walk into',
+      );
+      for (const b of bs) rooms += R.houseLayout(s, t.id, b).rooms.length;
+    }
+  }
+  need(n >= 20 && !left, 'steads: ' + n + ' hamlets made towns in 16 worlds, ' + left + ' left as menus');
+  need(rooms > n * 8, 'steads: only ' + rooms + ' rooms in ' + n + ' hamlets');
+  const off = R.newGame(4, { steads: true });
+  need(!(off.towns || []).some((t) => t.hamlet), 'NO=steads still made a hamlet a town');
+  // an old save: its hamlets were menus; loaded, they are towns
+  let old = 0;
+  for (const f of fs.readdirSync(path.join(__dirname, 'fixtures')).filter((f) => f.startsWith('save-v9'))) {
+    const raw = fs.readFileSync(path.join(__dirname, 'fixtures', f), 'utf8');
+    if (!raw.includes('"hamlet"')) continue;
+    const st = R.deserialize(raw).state;
+    old += (st.towns || []).filter((t) => t.hamlet).length;
+  }
+  need(old > 0, "no old save's hamlet became a town");
 }
 // Tiers: finds away from home are finer, and a finer affix does more.
 {
@@ -653,6 +694,8 @@ const findSeed = (fn, from = 1) => {
       s.creatures = [];
       s.player.stamina = 100;
       s.player.coin = 100;
+      s.player.items = s.player.items.filter((it) => it.eq); // what was bought in the last town would be too heavy
+      s.player.water = Math.max(s.player.water, 6); // and the nights at the inns thirsty
       need(
         R.move(s, 0, -1) && R.areaRec(s).kind === 'town' && s.area === t.id && R.curTown(s) === t,
         'seed ' + i + ': could not walk into ' + t.name,
@@ -684,7 +727,7 @@ const findSeed = (fn, from = 1) => {
     }
   }
   need(cultures === towns, 'some other towns have no culture');
-  need(!(R.newGame(3, { moretowns: true }).towns || []).length, 'NO=moretowns still made towns');
+  need(!(R.newGame(3, { moretowns: true }).towns || []).filter((t) => !t.hamlet).length, 'NO=moretowns still made towns');
 }
 // Crafting: kills, searches and gathering give materials; each recipe makes what it says; a torch lights the dark.
 {
@@ -924,6 +967,84 @@ const findSeed = (fn, from = 1) => {
   R.jumpTo(off, R.places(off).find((p) => p.group === 'Towns').id);
   need(!R.interiorsOn(off, off.area) && !R.places(off).some((p) => p.group === 'Houses'), 'NO=interiors still opens buildings');
 }
+// Rooms by use (C8.5): a temple's nave has its altar, the god's shrine on it and pews before it; a table has its
+// seats and its places laid; small things stand where they belong, never loose in the middle of a floor; a rich
+// dwelling has a dining room or a study; an abandoned house is broken, cobwebbed and old; switched off, none of it.
+{
+  let naves = 0,
+    shrines = 0,
+    tables = 0,
+    seated = 0,
+    loose = 0,
+    smalls = 0,
+    rich = 0,
+    richRooms = 0,
+    empties = 0,
+    ruined = 0;
+  for (let seed = 1; seed <= 16; seed++) {
+    const s = R.newGame(seed);
+    R.setGodMode(s, true);
+    for (const p of R.places(s).filter((q) => q.group === 'Towns')) {
+      R.jumpTo(s, p.id);
+      if (!R.interiorsOn(s, s.area)) continue;
+      for (const b of R.buildingsOf(s, s.area)) {
+        const L = R.houseLayout(s, s.area, b),
+          fixedAt = new Set(L.things.filter((t) => R.thingKind(t.k).fixed).map((t) => t.y * R.W + t.x));
+        if (b.kind === 'temple') {
+          naves++;
+          const altar = L.things.find((t) => t.k === 'altar'),
+            icon = L.things.find((t) => t.k === 'icon');
+          if (altar && icon && icon.dom && icon.h > 0.5 && L.things.some((t) => t.k === 'pew')) shrines++;
+          for (const t of L.things.filter((t) => t.k === 'holy')) need(t.of, 'a holy symbol in a temple is not of its god');
+        }
+        for (const t of L.things.filter((t) => t.k === 'table' && !t.old)) {
+          tables++;
+          const near = L.things.filter(
+            (u) => ['chair', 'stool'].includes(u.k) && Math.hypot(u.x + u.px - t.x - t.px, u.y + u.pz - t.y - t.pz) < 1.6,
+          );
+          if (near.length >= 2) seated++;
+        }
+        for (const t of L.things) {
+          if (R.thingKind(t.k).fixed || t.h > 0) continue;
+          smalls++;
+          const k = t.y * R.W + t.x;
+          // on the floor: by a wall, or by the furniture it belongs to
+          if (
+            L.terrain[k] !== R.WALL &&
+            ![k, k - 1, k + 1, k - R.W, k + R.W].some((q) => fixedAt.has(q) || L.terrain[q] === R.WALL)
+          )
+            loose++;
+        }
+        if (b.kind === 'house' && L.grade === 2 && L.rooms.length >= 3) {
+          rich++;
+          if (L.rooms.some((r) => ['dining', 'study'].includes(r.purpose))) richRooms++;
+        }
+        if (L.empty) {
+          empties++;
+          if (L.things.some((t) => ['cobweb', 'rubble', 'planks'].includes(t.k)) && L.things.filter((t) => !t.old).length <= 1)
+            ruined++;
+        }
+      }
+    }
+  }
+  need(naves >= 5 && shrines === naves, 'rooms: ' + shrines + ' of ' + naves + ' temples have an altar with the shrine and pews');
+  need(tables > 50 && seated / tables > 0.8, 'rooms: only ' + seated + ' of ' + tables + ' tables have two seats or more');
+  need(
+    smalls > 200 && loose / smalls < 0.05,
+    'rooms: ' + loose + ' of ' + smalls + ' small things loose in the middle of a floor',
+  );
+  need(!rich || richRooms / rich > 0.8, 'rooms: ' + richRooms + ' of ' + rich + ' rich houses have a dining room or a study');
+  need(empties >= 3 && ruined === empties, 'rooms: ' + ruined + ' of ' + empties + ' abandoned houses look abandoned');
+  const off = R.newGame(11, { rooms: true });
+  R.setGodMode(off, true);
+  R.jumpTo(off, R.places(off).find((p) => p.group === 'Towns').id);
+  need(
+    !R.buildingsOf(off, off.area).some((b) =>
+      R.houseLayout(off, off.area, b).things.some((t) => ['pew', 'nightstand', 'icon'].includes(t.k)),
+    ),
+    'NO=rooms still furnishes by use',
+  );
+}
 // Theft: in a house where people live, taking a thing is seen and undone; in an empty one, or with theft off, it is not.
 {
   const s = R.newGame(11);
@@ -1135,8 +1256,55 @@ async function scoreChecks() {
   );
   for (const e of ['discovery', 'win', 'death']) need(S.eventPiece(X, e, 3).length >= 6, 'music: no piece for ' + e);
 }
+// Ground with character (C8.3, view only): which of the eight kinds a point of land is.
+async function groundChecks() {
+  const G = await import('../src/view/grounds.js'),
+    k = (hex, steep, ctx) => {
+      const c = { r: ((hex >> 16) & 255) / 255, g: ((hex >> 8) & 255) / 255, b: (hex & 255) / 255 },
+        out = G.kindsOf(
+          c,
+          steep || 0,
+          Object.assign({ forest: 0, water: 0, special: 0, spec: 'earth', cold: false }, ctx),
+          new Float32Array(8),
+        );
+      need(Math.abs(out.reduce((a, b) => a + b, 0) - 1) < 1e-5, 'ground: weights do not sum to 1');
+      return G.KINDS[out.indexOf(Math.max(...out))];
+    };
+  need(k(0x6f9a4a) === 'grass', 'ground: green is not grass');
+  need(k(0xdccfa6) === 'sand', 'ground: pale warm is not sand');
+  need(
+    k(0xf1ecdf) === 'crust' && k(0xf1ecdf, 0, { cold: true }) === 'snow',
+    'ground: pale is not salt where hot, snow where cold',
+  );
+  need(k(0x7a5a3a) === 'earth', 'ground: brown is not earth');
+  need(k(0x6f9a4a, 0.9) === 'rock', 'ground: a cliff is not rock');
+  need(k(0x6f9a4a, 0, { special: 1, spec: 'mud' }) === 'mud', 'ground: a bog is not mud');
+  const spec = (id) => G.specialKind(R.byId(R.C.biomes, id));
+  // roads (C8.4): a staircase of road tiles becomes one smooth line near the tiles, none inside a town's block
+  const RD = await import('../src/view/roads.js'),
+    EW = R.W + 4,
+    road = new Uint8Array(EW * EW),
+    tiles = [];
+  for (let k = 0; k < 14; k++) tiles.push([4 + Math.ceil(k / 2), 6 + Math.floor(k / 2)]); // a diagonal, as the rules lay one
+  for (let x = 20; x <= 30; x++) tiles.push([x, 20]); // and a straight road into a town at (30, 20)
+  for (const [x, y] of tiles) road[(y + 2) * EW + x + 2] = 1;
+  const lines = RD.roadLines({ land: { road, sites: [{ x: 28, y: 20, st: { kind: 'town' } }] } }),
+    tc = (t) => (t + 0.5) * 28 - (R.W * 28) / 2;
+  need(lines.length === 2, 'roads: ' + lines.length + ' lines for two roads');
+  for (const ln of lines)
+    for (const p of ln.pts) {
+      const d = Math.min(...tiles.map(([x, y]) => Math.hypot(tc(x) - p.x, tc(y) - p.z)));
+      need(d < 20, 'roads: a point of a line is ' + d.toFixed(1) + ' m from its tiles');
+      need(!(p.x > tc(25.5) && Math.abs(p.z - tc(20)) < 20), "roads: a road runs into a town's block");
+    }
+  const diag = lines.find((l) => l.pts.length > 40);
+  need(diag, 'roads: the diagonal was not smoothed');
+  need(spec('salt') === 'crust' && spec('moor') === 'mud' && spec('taiga') === 'snow', 'ground: special grounds read wrong');
+}
 lookChecks()
   .catch((e) => errs.push('the look: ' + (e.stack || e)))
+  .then(() => groundChecks())
+  .catch((e) => errs.push('the ground: ' + (e.stack || e)))
   .then(() => scoreChecks())
   .catch((e) => errs.push('the score: ' + (e.stack || e)))
   .then(() => {
@@ -1145,6 +1313,6 @@ lookChecks()
       process.exit(1);
     }
     console.log(
-      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, tiers, world size, more towns, crafting, trade, the look, the score, things, interiors, theft, secrets',
+      'pieces ok: year, rolled gods, artifacts, rare regions, creature specials, exotics, towns, errands, odd weather, generated biomes, odd levels, relic natures, lairs, far finds, town life, roster, plot, hamlets, steads, tiers, world size, more towns, crafting, trade, the look, the ground, the score, things, interiors, rooms, theft, secrets',
     );
   });

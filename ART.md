@@ -73,6 +73,18 @@ lilac shade). The lift is a very dark version of the shade; the gain a very ligh
 the meter on (it names the layers) and `python3 tools/look.py`. Keep it readable: a person must stand out against the
 land in it.
 
+## Surfaces and made things (commission 8)
+
+- **Every kind of ground reads at a glance**: grass, sand, rock, snow, earth, gravel, mud and salt crust each have
+  their own pattern (size and shape) and a tint of their own, exaggerated; where two meet the edge is crisp and lined.
+  A new biome needs no art: its colours and its special ground's name choose the kinds (`view/grounds.js`).
+- **No repeat may show**: anything tiled is read through the macro noise (slid, and on High turned and blended).
+- **Pale stays chalky**: ground and roads ease their lightness above one half, so salt and snow keep their pattern.
+- **Made things are straight and jointed**: roads have a made edge (kerbs, edge stones, a verge), bridges a parapet or
+  a rail, fields a wall, a hedge or a fence by climate; furniture has legs, boards and handles you can count.
+- **Use shows**: a room is furnished for what it is for (a table laid, pots by the fire, pews before the altar); an
+  abandoned place is broken, tipped and cobwebbed, not merely darker.
+
 ## Making new things
 
 - **A building or a prop**: build it with the kit (`kit.js`), a few parts, colours in the vertices, a painted surface
@@ -93,7 +105,7 @@ land in it.
 | Fallback (hidden) | the old Low: plain light, no sky, no finish, fog in steps; chosen by itself when frames stay slow |
 | Low (the old High) | the look's palettes, bands, outlines on people and creatures, the finish and grade, shadows, two rings of far hills |
 | Medium | Low, and outlines on buildings, ruins and landmarks, the paper grain, three rings of far hills |
-| High | Medium, a finer picture (2.5 pixels per point), more land, grass and shadow detail, outlines on near trees, four rings of far hills |
+| High | Medium, a finer picture (2.5 pixels per point), more land (30 tiles round, was 26), trees whole to 720 m, a deeper and denser ring of grass and flowers (74 m), stones and leaves underfoot, the ground's finer reading, turned second reading and flowers, finer roads and fields, shadow detail, outlines on near trees, four rings of far hills |
 
 Prefer techniques that cost little per pixel: colour, fog and light are free; a full-screen pass is one texture read
 per pixel per tap. Measure with `python3 tools/bench.py fallback low medium high`.

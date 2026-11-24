@@ -126,14 +126,14 @@ TALK.push({
       p = s.player,
       opts = [];
     if (o.water && st.have > 0) {
+      // shown even when your skins are full, so the water-carrier always has something to offer (the choice says why not)
       const room = Math.max(0, Math.floor(waterCap(s) - p.water));
-      if (room > 0)
-        opts.push({
-          id: 'water',
-          label: 'A measure of water (' + st.have + ' left)',
-          price: o.water.price,
-          note: 'fills one more',
-        });
+      opts.push({
+        id: 'water',
+        label: 'A measure of water (' + st.have + ' left)',
+        price: o.water.price,
+        note: room > 0 ? 'fills one more' : 'your skins are full',
+      });
     }
     if (o.map)
       opts.push({
@@ -172,6 +172,10 @@ TALK.push({
       return false;
     }
     if (opt === 'water') {
+      if (waterCap(s) - p.water < 1) {
+        say(s, 'Your skins are already full.');
+        return false;
+      }
       p.coin -= op.price;
       p.water = Math.min(waterCap(s), p.water + 1);
       st.have--;

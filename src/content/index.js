@@ -42,6 +42,7 @@ import townLooks from './townlooks.js';
 import looks from './looks.js';
 import music from './music.js';
 import things from './things.js';
+import rooms from './rooms.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -87,4 +88,13 @@ export const CONTENT = Object.assign(
   looks,
   music,
   things,
+  rooms,
 );
+// Rooms by use (C8.5) adds its furniture, small things and rooms to the things' own lists, so every piece sees them.
+{
+  const T = CONTENT.things,
+    U = CONTENT.roomsByUse;
+  for (const k of U.kinds) if (!T.kinds.some((e) => e.id === k.id)) T.kinds.push(k);
+  Object.assign(T.sizes, U.sizes);
+  for (const id in U.rooms) if (!T.rooms[id]) T.rooms[id] = U.rooms[id];
+}

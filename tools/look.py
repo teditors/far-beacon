@@ -64,6 +64,43 @@ DOOR = """const bs = Rules.buildingsOf(S, S.area); const b = bs.find((x) => x.ki
 OUTDOOR = """const L2 = Rules.houseOf(S, S.area), e = L2.exit, ts2 = 5 * 28 / 36 / 3, h2 = 18 * ts2, ex = e % 36, ey = Math.floor(e / 36);
   const dx = ex - L2.entry.x, dy = ey - L2.entry.y; g.P.x = (L2.entry.x + 0.5 - dx * 3.2) * ts2 - h2; g.P.z = (L2.entry.y + 0.5 - dy * 3.2) * ts2 - h2;
   g.P.yaw = Math.atan2(-dx, -dy); g.P.pitch = -0.02; await wait(600);"""
+# commission 8: inside a building of a kind (or an empty house), found in any town of the world and walked into
+KIND = """let ok = false; for (const t of Rules.places(S).filter((p) => p.group === 'Towns')) { Rules.jumpTo(S, t.id);
+    const b = Rules.buildingsOf(S, S.area).find((x) => %s); if (!b) continue;
+    S.player.x = b.door.ox; S.player.y = b.door.oy; %s Rules.move(S, b.door.x - b.door.ox, b.door.y - b.door.oy); ok = S.area === b.id; break; }
+  if (!ok) return false; g.refresh(); g.buildStatic(); g.refresh();
+  const L = Rules.houseOf(S, S.area), ts = 5 * 28 / 36 / 3, h = 18 * ts; let x0 = 99, x1 = 0, y0 = 99, y1 = 0; const room = %d;
+  for (let k = 0; k < 36 * 36; k++) if (L.cells[k] === Math.min(room, L.rooms.length - 1)) { x0 = Math.min(x0, k %% 36); x1 = Math.max(x1, k %% 36); y0 = Math.min(y0, Math.floor(k / 36)); y1 = Math.max(y1, Math.floor(k / 36)); }
+  // stand in the room's corner nearest its door and look across to the far corner, down a little
+  const e = L.entry, near = (a, b, v) => (Math.abs(v - a) <= Math.abs(v - b) ? a + 0.9 : b + 0.1);
+  const sx = near(x0, x1, e.x), sy = near(y0, y1, e.y), fx = sx < (x0 + x1) / 2 ? x1 + 1 : x0, fy = sy < (y0 + y1) / 2 ? y1 + 1 : y0;
+  g.P.x = sx * ts - h; g.P.z = sy * ts - h; g.P.yaw = Math.atan2(-(fx - sx), -(fy - sy)); g.P.pitch = -0.14; await wait(600);"""
+EMPTY = "Rules.houseLayout(S, S.area, x).empty"
+# an open field underfoot and toward the horizon, and a road looked along
+FIELD = " g.P.pitch = %s; await wait(400);"
+ROAD = """Rules.travelTo(S, 'overworld', 18, 18); %s g.refresh(); let best = null;
+  for (const id of Object.keys(S.areas)) { const rec = S.areas[id]; if (rec.kind !== 'region' || rec.realm) continue; const m = Rules.mapOf(S, id);
+    const ks = Object.keys(m.road || {}).map(Number); if (ks.length < 12) continue;
+    for (const k of ks) { const x = k %% 36, y = Math.floor(k / 36); if (x < 6 || y < 6 || x > 29 || y > 29) continue;
+      for (const [dx, dy] of [[1, 0], [0, 1]]) if (m.road[k + dx + dy * 36] !== undefined && m.road[k + 2 * dx + 2 * dy * 36] !== undefined && m.road[k - dx - dy * 36] !== undefined) { best = { id, x, y, dx, dy }; break; }
+      if (best) break; } if (best) break; }
+  if (!best) return false; Rules.travelTo(S, best.id, best.x, best.y); g.refresh(); g.buildStatic(); g.refresh();
+  const cx = (best.x + 0.5) * 28 - 504, cz = (best.y + 0.5) * 28 - 504; g.P.x = cx - best.dx * 10 + best.dy * 0.5; g.P.z = cz - best.dy * 10 + best.dx * 0.5;
+  g.P.yaw = Math.atan2(-best.dx, -best.dy); g.P.pitch = -0.18; await wait(800);"""
+ROADTOWN = """const t = S.town, d = Rules.townDoor(S); Rules.travelTo(S, Rules.townArea(S), d.x, d.y); %s g.refresh();
+  let best = null; for (const k of Object.keys(S.road).map(Number)) { const x = k %% 36, y = Math.floor(k / 36), c = Math.max(Math.abs(x - t.x), Math.abs(y - t.y));
+    if (c >= 4 && c <= 6 && (!best || c > best.c)) best = { x, y, c }; }
+  if (!best) return false; Rules.travelTo(S, Rules.townArea(S), best.x, best.y); g.refresh(); g.buildStatic(); g.refresh();
+  const a = g.V.townAt; if (!a) return false; const px = (best.x + 0.5) * 28 - 504, pz = (best.y + 0.5) * 28 - 504;
+  g.P.x = px; g.P.z = pz; g.P.yaw = Math.atan2(-(a.x - px), -(a.z - pz)); g.P.pitch = -0.1; await wait(600);"""
+# a road over a river, from the bank (any of a few worlds)
+BRIDGE = """let f = null; for (const id of Object.keys(S.areas)) { const rec = S.areas[id]; if (rec.kind !== 'region' || rec.realm) continue; Rules.ensureRegion(S, rec.cx, rec.cy); const m = Rules.mapOf(S, id);
+    for (const k of Object.keys(m.road || {}).map(Number)) if (m.terrain[k] === 4) { const x = k %% 36, y = Math.floor(k / 36); if (x > 3 && y > 3 && x < 32 && y < 32) { f = { id, x, y }; break; } } if (f) break; }
+  if (!f) return false; Rules.travelTo(S, f.id, f.x, f.y); %s g.refresh(); g.buildStatic(); g.refresh();
+  const cx = (f.x + 0.5) * 28 - 504, cz = (f.y + 0.5) * 28 - 504; g.P.x = cx + 16; g.P.z = cz + 20; g.P.yaw = Math.atan2(-(cx - g.P.x), -(cz - g.P.z)); g.P.pitch = -0.12; await wait(600);"""
+HAMLET = """const t = (S.towns || []).find((t) => t.hamlet && !t.realm); if (!t) return false; const d = Rules.townDoor(S, t);
+  Rules.travelTo(S, t.area, d.x, d.y + 2); %s g.refresh(); g.buildStatic(); g.refresh(); const a = g.V.townAt; if (!a) return false;
+  g.P.x = a.x + 6; g.P.z = a.z + 95; g.P.yaw = 0.05; g.P.pitch = -0.02; await wait(600);"""
 SHOTS = [
     ('salt-day', 11, {}, region('Salt', DAY)),
     ('salt-night', 11, {}, region('Salt', NIGHT)),
@@ -92,6 +129,26 @@ SHOTS = [
     ('house-inn', 222, {}, HOUSE % (1, 'S.time = 21 * 60 - 360;')),
     ('house-door', 11, {}, town(0, DAY) + DOOR),
     ('house-out', 11, {}, HOUSE % (2, DAY) + OUTDOOR),
+    # commission 8: surfaces, roads, rooms by use, a temple, a hamlet
+    ('field-near', 7, {}, region('Elder Downs', DAY) + FIELD % '-0.55'),
+    ('field-far', 7, {}, region('Elder Downs', DAY) + FIELD % '-0.12'),
+    ('field-knolls', 3333, {}, region('Knolls', DAY) + FIELD % '-0.3'),
+    ('field-moor', 3333, {}, region('High Moor (3, 1)', DAY) + FIELD % '-0.3'),
+    ('road', 11, {}, ROAD % DAY),
+    ('road-2', 3333, {}, ROAD % DAY),
+    ('road-old', 12, {}, ROAD % DAY),
+    ('road-old-2', 14, {}, ROAD % DAY),
+    ('road-town', 11, {}, ROADTOWN % DAY),
+    ('bridge', 222, {}, BRIDGE % DAY),
+    ('dwelling-1', 11, {}, KIND % ("x.kind === 'house' && !" + EMPTY.replace('x).', 'x).'), DAY, 0)),
+    ('dwelling-2', 11, {}, KIND % ("x.kind === 'house' && !" + EMPTY, DAY, 1)),
+    ('dwelling-3', 222, {}, KIND % ("x.kind === 'house' && !" + EMPTY, DAY, 2)),
+    ('empty-house', 11, {}, KIND % (EMPTY, DAY, 0)),
+    ('temple', 11, {}, KIND % ("x.kind === 'temple'", DAY, 0)),
+    ('shop', 222, {}, KIND % ("x.kind === 'shop'", DAY, 0)),
+    ('smithy', 11, {}, KIND % ("x.kind === 'smith'", DAY, 0)),
+    ('hamlet', 11, {}, HAMLET % DAY),
+    ('fields', 11, {}, "const d = Rules.townDoor(S); Rules.travelTo(S, Rules.townArea(S), d.x, d.y + 2); " + DAY + " g.refresh(); g.buildStatic(); g.refresh(); let f = null; g.scene.traverse((o) => { if (!f && o.userData.fields === true) f = o; }); if (!f) return false; const p = f.geometry.attributes.position, w = new THREE.Vector3(p.getX(0), 0, p.getZ(0)).applyMatrix4(f.matrixWorld), c = new THREE.Vector3(p.getX(40), 0, p.getZ(40)).applyMatrix4(f.matrixWorld); g.P.x = w.x - 12; g.P.z = w.z - 12; g.P.yaw = Math.atan2(-(c.x - g.P.x), -(c.z - g.P.z)); g.P.pitch = -0.12; await wait(800);"),
     ('rare-sepia', 9, {}, region('Home', DAY)),
     ('rare-reds', 251, {}, region('Home', 'S.time = 17.8 * 60 - 360;')),
     ('storm', 222, {}, region('(1, 1)', DAY + 'S.weather.storm = Rules.stormOfNow ? true : true;')),

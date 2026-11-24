@@ -26,5 +26,19 @@ makes a contact sheet of a set.
 | `sea`, `under-sea` | a coast in a world with a sea, and a drowned place under it |
 | `other-world`, `other-world-2`, `other-world-3` | through a door: pale flat colour, a palette per world |
 
+**Commission 8** (`before/` is v0.18 on High; `after/` is commission 8 on High; same places and framing):
+
+| Picture | What it shows |
+| --- | --- |
+| `field-near`, `field-far`, `field-knolls`, `field-moor` | open fields underfoot and toward the horizon: eight kinds of ground, no tiling, patches of lush and dry grass, bare earth, flowers, pebbles (C8.3, C8.6) |
+| `salt-day`, `taiga-day` | salt pans' crust and snow drifts, chalky rather than blown white (C8.3) |
+| `road`, `road-2` | a track: two ruts, grass between, trodden verges (C8.4) |
+| `road-old`, `road-old-2` | an old road of the lost people: worn slabs half under the turf (after only) |
+| `road-town`, `bridge` | a cobbled street with kerbs near a town; a bridge over a river (after only) |
+| `dwelling-1`, `dwelling-2`, `dwelling-3` | rooms of dwellings: a living room, a kitchen with its table laid, a bedroom (C8.5) |
+| `empty-house` | an abandoned house: broken furniture, cobwebs, fallen plaster (C8.5) |
+| `temple`, `shop`, `smithy` | a temple's nave with pews before the altar and the god's shrine; a shop's counter; a smithy (C8.5) |
+| `hamlet`, `fields` | a hamlet on the land is a small town you walk into (C8.2); fields round a town (C8.7) (after only) |
+
 The meter (Menu, Settings, "Show the performance meter") names the look's layers wherever you stand, for example
 "look: Steel blue, Hard blue, Gold dusk (turned 12°)".

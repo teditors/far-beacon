@@ -15,6 +15,8 @@ import { C, W, H, WALL, FLOOR, byId, idx, say, stream } from './core.js';
 import { GENERATORS, enterArea, leaveArea, mapOf, townById, areaRec } from './areas.js';
 import { MOVES, NOTES, SWITCHES, PLACES } from './hooks.js';
 import { THING_MAKERS, furnish, mergeSpec, thingKind } from './things.js';
+import { abandonSpec, doorOf, furnishByUse, planFor, roomsOn, survivor } from './rooms.js';
+import { godOf } from './core.js';
 
 const HS = 3; // house tiles to a town tile
 const X = () => C.things;
@@ -169,15 +171,27 @@ function layoutOf(s, rec) {
     exit = idx(door.x + dv[0], door.y + dv[1]);
   terrain[idx(door.x, door.y)] = FLOOR;
   const open = [[idx(door.x, door.y), dv[0], dv[1]]];
-  // the rooms: the building's kind lists them, the first by the door; a house has as many as its size allows
+  // wealth, emptiness, the town's ways
   const kind = b.kind || 'house',
-    list = X().buildings[kind] || X().buildings.house,
+    rec2 = s.areas[t.area || 'overworld'],
+    biome = rec2 ? byId(C.biomes, rec2.biome) : null,
+    climate = CLIMATE(biome),
+    empty = kind === 'house' && r() < 0.07 + (s.year === 'lean' ? 0.06 : 0),
+    wealth = (wealthBase[t.size] !== undefined ? wealthBase[t.size] : 0.7) + (kindBonus[kind] || 0) + (r() - 0.5) * 0.9,
+    grade = Math.max(0, Math.min(2, Math.round(wealth))),
+    lost = cul.rare === 'unfallen',
+    byUse = roomsOn(s);
+  // the rooms: the building's kind lists them, the first by the door; a house has as many as its size allows (with
+  // rooms by use, C8.5: a dwelling's rooms follow its wealth)
+  const list = byUse ? planFor(kind, grade) : X().buildings[kind] || X().buildings.house,
     // part it into rooms of five to eight tiles a side, both ways for a big building, as many as its kind has rooms
     spanX = fx1 - fx0 - 1, // walkable tiles across
     spanY = fy1 - fy0 - 1,
     want = Math.max(1, list.length),
-    nX0 = Math.max(1, Math.floor((spanX + 1) / 5)),
-    nY0 = Math.max(1, Math.floor((spanY + 1) / 5)),
+    // rooms by use (C8.5) part a building into rooms of four tiles and more a side (about 5 m), not five
+    part = byUse ? 4 : 5,
+    nX0 = Math.max(1, Math.floor((spanX + 1) / part)),
+    nY0 = Math.max(1, Math.floor((spanY + 1) / part)),
     // no more rooms than the kind has, splitting the longer way first
     nX = spanX >= spanY ? Math.min(nX0, want) : Math.min(nX0, Math.max(1, Math.floor(want / Math.min(nY0, want)))),
     nY = Math.max(1, Math.min(nY0, Math.floor(want / nX))),
@@ -228,14 +242,6 @@ function layoutOf(s, rec) {
     rank = [];
   order.forEach((p, i) => (rank[p] = i));
   for (let k = 0; k < W * H; k++) if (cells[k] >= 0) cells[k] = rank[cells[k]];
-  // wealth, emptiness, the town's ways
-  const rec2 = s.areas[t.area || 'overworld'],
-    biome = rec2 ? byId(C.biomes, rec2.biome) : null,
-    climate = CLIMATE(biome),
-    empty = kind === 'house' && r() < 0.07 + (s.year === 'lean' ? 0.06 : 0),
-    wealth = (wealthBase[t.size] !== undefined ? wealthBase[t.size] : 0.7) + (kindBonus[kind] || 0) + (r() - 0.5) * 0.9,
-    grade = Math.max(0, Math.min(2, Math.round(wealth))),
-    lost = cul.rare === 'unfallen';
   let fishing = false;
   {
     const m = rec2 && mapOf(s, rec2.id);
@@ -302,13 +308,35 @@ function layoutOf(s, rec) {
       },
     };
     const floor = tiles.filter((k) => terrain[k] === FLOOR).length;
-    furnish(
-      s,
-      spec,
-      room,
-      { r, ts: 1.3, inset: 0.45, grade, old: empty, ware: lost, own: !empty, place: purpose, floor, perRound: 9, perMiddle: 22 },
-      things,
-    );
+    const o = {
+      r,
+      ts: 1.3,
+      inset: 0.45,
+      grade,
+      old: empty,
+      ware: lost,
+      own: !empty,
+      place: purpose,
+      floor,
+      perRound: byUse ? 6 : 9,
+      perMiddle: byUse ? 14 : 22,
+    };
+    if (byUse) {
+      room.door = doorOf(ri, ri === 0 ? open.slice(0, 1) : open.slice(1), cells, terrain);
+      if (room.door === null) room.door = doorOf(ri, open, cells, terrain);
+      o.abandoned = empty;
+      if (kind === 'temple') {
+        const g = godOf(s);
+        o.god = {
+          name: g.name.split(',')[0],
+          dom: (s.godRoll && s.godRoll.domain) || { thirst: 'water', climber: 'heights' }[g.id] || g.id,
+        };
+      }
+      // a fire only where people sit, cook or sleep: no stove in the store or the workroom
+      if (!['living', 'kitchen', 'taproom', 'hall', 'sickroom', 'sleeping', 'study', 'dining', 'smithy'].includes(purpose))
+        spec.wall = spec.wall.filter(([k2]) => !['stove', 'hearth', 'woodstack'].includes(k2));
+      furnishByUse(s, empty ? abandonSpec(spec) : spec, room, o, things);
+    } else furnish(s, spec, room, o, things);
     rooms.push({ purpose, tiles });
   }
   // what stands in the middle of a room is in the way (a rug, a seat or a bench is not), so long as every part of the
@@ -324,16 +352,17 @@ function layoutOf(s, rec) {
     for (let k = 0; k < W * H; k++) if (terrain[k] === FLOOR && !seen2.has(k)) return false;
     return true;
   };
+  if (byUse && empty) survivor(things, r);
   for (const th of things) {
     const kd = thingKind(th.k);
-    if (!kd.fixed || ['rug', 'chair', 'stool', 'bench'].includes(th.k)) continue;
+    if (!kd.fixed || ['rug', 'chair', 'stool', 'bench', 'pew', 'cobweb', 'icon'].includes(th.k)) continue;
     for (const k of th.tiles || [idx(th.x, th.y)]) {
       if (terrain[k] !== FLOOR || doorways.has(k)) continue;
       terrain[k] = WALL;
       if (!walkAll()) terrain[k] = FLOOR;
     }
   }
-  for (const th of things) delete th.tiles;
+  for (const th of things) delete th.tiles, delete th.wall;
   const L = { terrain, cells, rooms, open, entry: door, exit, things, grade, empty, kind, ox, oy, side: d.side, climate };
   if (LAYOUTS.size > 32) LAYOUTS.delete(LAYOUTS.keys().next().value);
   LAYOUTS.set(key, L);

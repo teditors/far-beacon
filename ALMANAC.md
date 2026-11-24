@@ -327,6 +327,13 @@ An item is a base, up to one prefix and one suffix, and sometimes a lost people'
 | Branch of coral |  | 0.5 | 0 | 3 |  |
 | Helmet |  | 2 | 0 | 2 |  |
 | Round shield |  | 3 | 0 | 2 |  |
+| Shards of a pot |  | 0.3 | 0 | 0 |  |
+| Candlestick |  | 0.5 | 0 | 2 |  |
+| Ladle |  | 0.2 | 0 | 1 |  |
+| Ledger |  | 0.8 | 0 | 2 |  |
+| Pair of scales |  | 1 | 0 | 4 |  |
+| Censer |  | 0.6 | 0 | 3 |  |
+| Bowl of offerings |  | 0.4 | 0 | 1 |  |
 
 ### Flasks (a flask is one of these, unknown until drunk or studied)
 
@@ -696,6 +703,24 @@ Commission 7: the ordinary things in rooms, ruins, caves and levels, made from t
 | branch of coral | 0.5 | 3 |  | old |  |
 | helmet | 2 | 2 |  | dented |  |
 | round shield | 3 | 2 |  | split |  |
+| nightstand | furniture |  | rough / wooden / inlaid |  |  |
+| sideboard | furniture |  | plain / oak / carved |  |  |
+| pew | furniture |  |  |  |  |
+| washstand | furniture |  |  |  |  |
+| cradle | furniture |  |  |  |  |
+| tall candlestand | furniture |  |  |  |  |
+| row of vestments | furniture |  |  |  |  |
+| shrine | furniture |  |  |  |  |
+| cobweb | furniture |  |  |  |  |
+| heap of fallen plaster | furniture |  |  |  |  |
+| fallen boards | furniture |  |  |  |  |
+| shards of a pot | 0.3 | 0 |  | old |  |
+| candlestick | 0.5 | 2 | tin / brass / silver | tarnished |  |
+| ladle | 0.2 | 1 |  | rusted |  |
+| ledger | 0.8 | 2 |  | mouldering |  |
+| pair of scales | 1 | 4 |  | tarnished |  |
+| censer | 0.6 | 3 |  | tarnished |  |
+| bowl of offerings | 0.4 | 1 |  | mouldering |  |
 
 
 | Room | Along the walls | In the middle | Small things |
@@ -714,6 +739,10 @@ Commission 7: the ordinary things in rooms, ruins, caves and levels, made from t
 | study | bookcase, bookcase, shelf, chest | table, lectern | map, scroll, book, inkpot, candle |
 | stable | crate, sack, barrel, woodstack |  | bucket, horseshoe, broom, scythe, apple, basket |
 | workroom | bench_w, shelf, crate | stool | hammer, saw, basket, bucket |
+| dining | sideboard, cupboard, shelf, tapestry | table, rug | plate, cup, bowl, candle, candlestick, jug, spoon, knife, bread, vase |
+| nave | candlestand, tapestry, candlestand |  | candle, holy, censer, offering, book |
+| vestry | robes, cupboard, chest, shelf | table | candle, censer, book, scroll, holy, candlestick |
+| stacks | bookcase, bookcase | lectern | book, scroll, map, inkpot, candle |
 
 
 | Building | Rooms, the first by the door |
@@ -1306,3 +1335,8 @@ People at a small fire in the wilds, in 35% of regions away from home, put there
 | a pilgrim | 3 | sign | "I go where the old stories go. Sit with me a while, and I will tell you what I have seen on the road." |
 | a trapper | 2 | mats | "Hides, bone: I buy them all, and I sell bandages to the ones who bleed for them." |
 | a lost traveller | 1 | need | "Water. Please. I lost my skin at the river and I have not drunk in two days." |
+
+
+## Not yet catalogued
+
+These content menus have no section in tools/almanac.js yet: roomsByUse.

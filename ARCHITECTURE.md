@@ -158,6 +158,22 @@ Every place you walk into is an area; commission 4 added four kinds of level and
 - **Secret value** (`rules/secrets.js`): rolled in `THING_FINISH`, revealed by appraisal through `ITEM_NAMES` /
   `ITEM_VALUES`.
 
+## Commission 8: hamlets, ground, roads, fields, rooms by use
+
+- **Steads** (`rules/steads.js`, imported last): once a world is made, each hamlet the regions rolled becomes a small
+  town (`townAt` in moretowns.js, with `size: 'hamlet'`); a region built later has its hamlet made a town as it is
+  built; old saves convert as they load (`AFTER_LOAD`). A town record may carry `hamlet`, `talk`, `told`.
+- **Rooms by use** (`rules/rooms.js`, data `content/rooms.js`, merged into `C.things` in content/index.js):
+  `furnishByUse` replaces `furnish` for houses when `s.off.rooms` is not set: `far` and `rows` placement, seats round
+  tables, `groups` (what goes with a piece), `near` (where a small thing belongs), abandoned houses. A dwelling's rooms
+  come from `plans` by wealth. The view draws new kinds and grade or broken variants in `view/furniture.js`.
+- **The ground** (`view/grounds.js`): eight kinds in two textures; `kindsOf` gives each point of the land its weights
+  (`surf`, `surf2` attributes) and `macroAt` its macro noise on Low and Medium (`mac`); High reads the macro per pixel.
+- **Roads** (`view/roads.js`): `roadLines` turns the road tiles into smoothed lines; `roadsGroup` lays the ribbons
+  (street, old, track) and the instanced edges and bridges; `T.roadNear` tells grass and fields where the way is.
+- **Fields** (`view/fields.js`): fields round towns in sight, built with the land; `T.inField` keeps trees, rocks and
+  grass off them.
+
 ## The look (commission 6)
 
 The art direction is in `ART.md`. What a place looks like is content (`content/looks.js`): layers of palette and style
@@ -186,6 +202,10 @@ a few shared bricks. Every piece of the look has a switch of its own, a setting 
 | Module | What it does |
 | --- | --- |
 | `light.js` | the sun, the sky's light and the moon, by the hour; Lambert (per-vertex) light everywhere |
+| `grounds.js` | the ground's eight kinds, the macro noise, crisp edges and flowers (C8.3) |
+| `roads.js` | roads as their own ribbons with made edges, and bridges (C8.4) |
+| `fields.js` | fields round the towns, with walls, hedges or fences (C8.7) |
+| `furniture.js` | the new furniture, poor and rich versions, broken ones (C8.5) |
 | `paint.js` | every texture, made in code: the ground's four grains (mixed per point by `surfaceOf`) and grey surfaces (stone, brick, wood, thatch, tiles, cloth, plaster) multiplied into a colour |
 | `kit.js` | the modelling kit: a model is parts (box, cone, ball...) with colours and places, merged into one geometry (one draw call; instanced, a whole forest is one); parts can hang from joints; `swaying` bends tops in the wind |
 | `plants.js` | a shape for each woodland, near and far versions, sorted by distance from the player as they walk (`updateLOD`) |

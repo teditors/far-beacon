@@ -88,7 +88,7 @@ async def main():
         await goto('inn'); await press('The inn'); await pg.locator('#modal-body button', has_text='A bed').click(); await pg.wait_for_timeout(150); await pg.click('#modal-close'); steps.append('inn')
         # into a house on foot (C7.4): in the street before a building's door, facing it, walk in; take something; walk out
         hid = await pg.evaluate("""()=>{const g=window.__g,S=g.S,bs=Rules.buildingsOf(S,S.area),b=bs.find(x=>x.kind==='house')||bs[0];if(!b)return null;
-          S.player.x=b.door.ox;S.player.y=b.door.oy;g.refresh();const ts=5*28/36,h=18*ts,dx=b.door.ox-b.door.x,dy=b.door.oy-b.door.y;
+          S.player.items=S.player.items.filter(i=>i.eq);S.player.water=Math.min(4,Rules.waterCap(S));S.player.x=b.door.ox;S.player.y=b.door.oy;g.refresh();const ts=5*28/36,h=18*ts,dx=b.door.ox-b.door.x,dy=b.door.oy-b.door.y;
           g.P.x=(b.door.x+0.5)*ts-h+dx*ts*0.9;g.P.z=(b.door.y+0.5)*ts-h+dy*ts*0.9;g.P.yaw=Math.atan2(dx,dy);g.P.pitch=0;window.__door=b;return b.id}""")
         assert hid, 'the town has no building to walk into'
         await pg.keyboard.down('w')
@@ -162,7 +162,7 @@ async def main():
         steps.append('fight(%d turns)' % fought)
         await shot('4-after-fight')
         # walk east off the edge of the home region into the next one, then look at the world map
-        await pg.evaluate("()=>{const g=window.__g,S=g.S;Rules.travelTo(S,'overworld',18,18);g.refresh();S.combat=null;S.creatures.length=0;S.player.stamina=100;S.player.water=Rules.waterCap(S);document.getElementById('modal').hidden=true;}")
+        await pg.evaluate("()=>{const g=window.__g,S=g.S;Rules.travelTo(S,'overworld',18,18);g.refresh();S.combat=null;S.creatures.length=0;S.player.stamina=100;S.player.items=S.player.items.filter(i=>i.eq);S.player.water=Math.min(4,Rules.waterCap(S));document.getElementById('modal').hidden=true;}")
         crossed = False
         for y in range(4, 32, 3):
             ok = await pg.evaluate("y=>{const g=window.__g,S=g.S;if(S.area!=='overworld')return true;if(!Rules.passable(S,35,y))return false;S.player.x=35;S.player.y=y;g.refresh();g.P.x=35.5*28-504+9;g.P.z=(y+0.5)*28-504;g.P.yaw=-Math.PI/2;return true}", y)
@@ -173,7 +173,7 @@ async def main():
                 if await pg.evaluate("()=>window.__g.S.area") != 'overworld': crossed = True; break
             await pg.keyboard.up('w'); await pg.wait_for_timeout(200)
             if crossed: break
-        assert crossed, 'could not walk into the next region'
+        assert crossed, 'could not walk into the next region: %r' % await pg.evaluate("()=>{const g=window.__g,S=g.S;return {area:S.area,p:[S.player.x,S.player.y],P:[g.P.x|0,g.P.z|0],over:S.over,modal:!document.getElementById('modal').hidden,st:S.player.stamina,w:Rules.weight(S),cap:Rules.carryCap(S),log:S.log.slice(-3).map(l=>l.msg),fps:g.PF&&g.PF.fps}}")
         st = await pg.evaluate("()=>{const g=window.__g,S=g.S;return {x:S.player.x,px:g.P.x,area:S.area,biome:S.biome}}")
         assert st['x'] < 8 and st['px'] < -280, 'did not arrive on the west edge of the next region: %r' % st
         # the new land is built over the next frames, a few milliseconds each, while the old one stands in; then swapped
@@ -202,8 +202,18 @@ async def main():
         await pg.click('#modal-close'); steps.append('another town (' + tname + ')')
         # step out over the south edge from any open tile on it (towns are laid out differently every world)
         left = await pg.evaluate("()=>{const g=window.__g,S=g.S;for(let x=0;x<Rules.W;x++){if(!Rules.passable(S,x,Rules.H-1))continue;S.player.x=x;S.player.y=Rules.H-1;S.combat=null;S.player.stamina=100;if(Rules.move(S,0,1)){g.refresh();return x}}return -1}")
-        assert left >= 0, 'no open tile on the south edge of the other town'
+        assert left >= 0, 'no open tile on the south edge of the other town: %r' % await pg.evaluate("()=>{const S=window.__g.S;return [S.area,S.over,S.player.water,Rules.weight(S),Rules.carryCap(S),S.log.slice(-3).map(l=>l.msg)]}")
         assert await pg.evaluate("()=>Rules.inOverworld(window.__g.S)"), 'could not leave the other town'
+        # a wayfarer at a fire: the first choice answers in the window (C8.1: "Yes" used to do nothing)
+        wf = await pg.evaluate("""()=>{const g=window.__g,S=g.S;for(let cy=0;cy<S.world.rows;cy++)for(let cx=0;cx<S.world.cols;cx++)Rules.ensureRegion(S,cx,cy);
+          for(const id in S.areas){const m=Rules.mapOf(S,id);if(!m||!m.sites||S.areas[id].kind!=='region')continue;for(const k in m.sites){const st=m.sites[k];if(st.kind!=='wayfarer'||st.gone)continue;
+          Rules.travelTo(S,id,(+k)%36,Math.floor(+k/36));S.creatures.length=0;S.combat=null;S.player.coin=100;S.player.water=Rules.waterCap(S);g.refresh();return st.name}}return null}""")
+        if wf:
+            await press('Talk to')
+            await pg.locator('#modal-body ul.items button').first.click(); await pg.wait_for_timeout(200)
+            said = await pg.evaluate("()=>!document.getElementById('modal').hidden&&document.querySelectorAll('#modal-body p.said').length")
+            assert said, 'a wayfarer\'s choice did nothing in the window'
+            await pg.click('#modal-close'); steps.append('a wayfarer (' + wf + ')')
         await pg.click('#btn-map'); await pg.wait_for_timeout(200); await shot('8-world-map')
         assert await pg.evaluate("()=>document.getElementById('worldcv').width>0"), 'no world map'
         await pg.click('#modal-close'); steps.append('world map')
@@ -244,7 +254,7 @@ async def main():
         await shot('10-new-world')
         await pg.locator('#modal-body button', has_text='Make this world').click(); await pg.wait_for_timeout(600)
         await pg.locator('#modal-body button', has_text='Begin').click(); await pg.wait_for_timeout(300)
-        w = await pg.evaluate("()=>{const S=window.__g.S;return [S.world.cols,S.world.rows,(S.towns||[]).filter(t=>!t.realm).length,!!S.cheated]}")
+        w = await pg.evaluate("()=>{const S=window.__g.S;return [S.world.cols,S.world.rows,(S.towns||[]).filter(t=>!t.realm&&!t.hamlet).length,!!S.cheated]}")
         assert w == [3, 3, 0, False], 'the new world did not follow its settings: %r' % w
         steps.append('new world with settings')  # (a door's other world may hold a town of its own: not counted)
         await pg.reload(); await pg.wait_for_timeout(1200); steps.append('reload')

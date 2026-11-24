@@ -231,4 +231,18 @@ function swaying(mat, amount) {
   mat.userData.sway = amount; // for its outline (outline.js), which sways with it
   return mat;
 }
-export { kit, P, kitMat, placeMatrix, WIND, swaying, swayPatch };
+// A two-sided Lambert material lit as its front on both sides (C8.6): three lights a back face as if it faced the other
+// way, so half of every tuft of grass, seen from behind, was black against the lit ground.
+function frontLit(mat) {
+  const was = mat.onBeforeCompile,
+    key = mat.customProgramCacheKey;
+  mat.onBeforeCompile = (sh, r) => {
+    if (was) was(sh, r);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('( gl_FrontFacing ) ? vIndirectFront : vIndirectBack', 'vIndirectFront')
+      .replace('( gl_FrontFacing ) ? vLightFront : vLightBack', 'vLightFront');
+  };
+  mat.customProgramCacheKey = () => (key ? key.call(mat) : '') + '-front';
+  return mat;
+}
+export { kit, P, kitMat, placeMatrix, WIND, swaying, swayPatch, frontLit };

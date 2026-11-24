@@ -5,6 +5,10 @@ import { EW, MARGIN, PAD, SINK, makeTerrainG } from './terrain.js';
 import { LOOK_SWITCHES, Q, SET, lookOn } from './quality.js';
 import { PF, perfBuild } from './perf.js';
 import { groundMaterial, paintOn, surface, surfaceOf } from './paint.js';
+import { groundsMaterial, groundsOn, kindsOf, macroAt, specialKind } from './grounds.js';
+import { climateOf } from './buildings.js';
+import { roadsGroup, roadsOn } from './roads.js';
+import { fieldsGroup } from './fields.js';
 import { hamletGroup, townGroup, townsOn } from './buildings.js';
 import { levelFloor, levelKit, levelMat, levelWalls } from './levels.js';
 import { ruinGroup, ruinsOn } from './ruins.js';
@@ -965,6 +969,8 @@ function* buildLand(S, timed) {
   const T = base,
     land = T.land,
     pal = land.biomes.map((b) => ({
+      spec: specialKind(b),
+      cold: /cold|polar|tundra/.test(climateOf(b)),
       cols: b.colors.map((c) => new THREE.Color(c)),
       lush: new THREE.Color(b.lush !== undefined ? b.lush : b.id === 'taiga' ? 0x5d7a78 : 0x5f8a45),
     })),
@@ -988,10 +994,14 @@ function* buildLand(S, timed) {
     bed = new THREE.Color(),
     MUD = new THREE.Color(0x3a3226);
   // The colour of the ground at a point: each biome's own palette, mixed where two biomes meet.
+  const here = { forest: 0, water: 0, special: 0, spec: 'earth', cold: false, road: 0 },
+    chars = groundsOn() && paintOn(), // the ground with character (grounds.js), and roads of their own (C8.3, C8.4)
+    roadsDrawn = roadsOn();
   const colourAt = (x, z) => {
     const l = T.level(x, z),
       mv = [T.masks[0](x, z), T.masks[1](x, z), T.masks[2](x, z)];
-    let total = 0;
+    let total = 0,
+      most = 0;
     c.setRGB(0, 0, 0);
     lush.setRGB(0, 0, 0);
     for (let b = 0; b < pal.length; b++) {
@@ -1010,6 +1020,7 @@ function* buildLand(S, timed) {
       c.r += cb.r * w;
       c.g += cb.g * w;
       c.b += cb.b * w;
+      if (w > most) (most = w), (here.spec = pal[b].spec), (here.cold = pal[b].cold);
       lush.r += pal[b].lush.r * w;
       lush.g += pal[b].lush.g * w;
       lush.b += pal[b].lush.b * w;
@@ -1017,8 +1028,19 @@ function* buildLand(S, timed) {
     }
     c.multiplyScalar(1 / total);
     lush.multiplyScalar(1 / total);
-    if (T.roadAt(x, z)) c.lerp(paved, 0.85);
-    c.multiplyScalar(0.88 + 0.2 * T.tint(x, z));
+    here.forest = mv[0];
+    here.water = mv[1];
+    here.special = mv[2];
+    here.road = T.roadAt(x, z) && !roadsDrawn ? 1 : 0;
+    if (here.road) c.lerp(paved, 0.85);
+    if (chars) {
+      // the land's colour wanders more: warmer and cooler, lighter and darker, over a few hundred metres
+      const t1 = T.tint(x, z),
+        t2 = T.tint(x * 0.31 + 977, z * 0.31 - 311);
+      c.multiplyScalar(0.84 + 0.3 * t1);
+      c.r *= 0.94 + 0.12 * t2;
+      c.b *= 1.06 - 0.12 * t2;
+    } else c.multiplyScalar(0.88 + 0.2 * T.tint(x, z));
     for (const s of springsNear[T.etile(x, z)] || NONE) {
       const dx = s.x - x,
         dz = s.z - z;
@@ -1051,7 +1073,11 @@ function* buildLand(S, timed) {
       painted = paintOn(),
       NR = smooth ? new Float32Array(cnt * 3) : null,
       SF = painted ? new Float32Array(cnt * 4) : null,
+      SF2 = painted && chars ? new Float32Array(cnt * 4) : null,
+      MAC = SF2 ? new Float32Array(cnt * 4) : null,
+      m4 = [0, 0, 0, 0],
       sw = [0, 0, 0, 0],
+      k8 = new Float32Array(8),
       H = (ix, iz) => g.h[clampI(iz, n) * N1 + clampI(ix, n)];
     for (let iz = 0; iz <= n; iz++) {
       const z = -g.half + iz * g.cell;
@@ -1083,8 +1109,15 @@ function* buildLand(S, timed) {
           shade = 1 + bulge * 0.16 - steep * 0.22;
           if (painted) {
             // what kind of ground this is, for its painted grain (paint.js)
-            surfaceOf(c, steep, sw);
-            SF.set(sw, k * 4);
+            if (SF2) {
+              kindsOf(c, steep, here, k8);
+              MAC.set(macroAt(x, z, m4), k * 4);
+              SF.set(k8.subarray(0, 4), k * 4);
+              SF2.set(k8.subarray(4, 8), k * 4);
+            } else {
+              surfaceOf(c, steep, sw);
+              SF.set(sw, k * 4);
+            }
           }
         }
         col[k * 3] = c.r * shade;
@@ -1126,8 +1159,12 @@ function* buildLand(S, timed) {
     // with the old light, no vertex normals: flat shading takes each face's from the screen
     if (smooth) geo.setAttribute('normal', new THREE.BufferAttribute(NR, 3));
     if (painted) geo.setAttribute('surf', new THREE.BufferAttribute(SF, 4));
+    if (SF2) geo.setAttribute('surf2', new THREE.BufferAttribute(SF2, 4));
+    if (MAC) geo.setAttribute('mac', new THREE.BufferAttribute(MAC, 4));
     const mat = smooth
-      ? groundMaterial()
+      ? SF2
+        ? groundsMaterial()
+        : groundMaterial()
       : new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
     if (Q.grain && !painted) {
       // a fine pattern of light and dark in the ground, about every six metres, so near ground reads as ground
@@ -1169,6 +1206,14 @@ function* buildLand(S, timed) {
     }
   }
   part('ground');
+  // the roads, each its own narrow made way with its edges (roads.js), where the old grey tiles were
+  if (roadsDrawn) {
+    yield;
+    const rd = roadsGroup(S, T, (x, z) => colourAt(x, z));
+    group.add(rd.group);
+    T.roadNear = rd.near;
+    part('roads');
+  }
   // Rocks and trees, tile by tile, from a source that depends only on where the tile is in the world.
   const m = new THREE.Matrix4(),
     q = new THREE.Quaternion(),
@@ -1191,7 +1236,12 @@ function* buildLand(S, timed) {
         y: T.height(centre(q.x), centre(q.y)),
         z: centre(q.y),
       }));
+  // fields round the towns (fields.js), where no tree or rock stands
+  const fd = fieldsGroup(S, T, towns, townHalf);
+  group.add(fd.group);
+  T.inField = fd.inField;
   const nearSite = (x, z) => {
+    if (fd.inField(x, z)) return true;
     for (const t of towns) if (Math.abs(x - t.x) < townHalf + 4 && Math.abs(z - t.z) < townHalf + 4) return true;
     const site = land.siteAt[T.etile(x, z)];
     return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;

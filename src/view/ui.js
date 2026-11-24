@@ -469,10 +469,30 @@ function openPact() {
 }
 // The town's people, one at a time: section is 'elder', 'inn' or 'shop', matching where you are standing.
 // Anyone else in town: what they say and what they offer, from R.serviceInfo.
-function openService() {
-  const info = R.serviceInfo(V.S);
-  if (!info) return;
+// What was said while an action ran (the 'log' event), so a window can answer in place of the log behind it.
+let heard = null;
+R.on('log', (s, d) => heard && heard.push(d));
+function listening(fn) {
+  heard = [];
+  try {
+    act(fn);
+    return heard;
+  } finally {
+    heard = null;
+  }
+}
+// said: what the last choice brought, shown at the top. Once someone has gone on (a wayfarer met at a fire), their
+// window stays open on what they said, with a button to go on, instead of doing nothing (C8.1).
+function openService(said, lastTitle) {
+  const info = R.serviceInfo(V.S),
+    words = (said || []).map((d) => el('p', { cls: 'said ' + (d.tone || ''), text: d.msg }));
+  if (!info) {
+    if (words.length) openModal(lastTitle || '', [...words, el('div', { cls: 'row' }, [btn('Go on', closeModal, 'primary')])]);
+    else closeModal();
+    return;
+  }
   openModal(info.title, [
+    ...words,
     ...info.text.map((t) => el('p', { text: t })),
     info.options.length ? el('p', { cls: 'note', text: 'You have ' + V.S.player.coin + ' coin.' }) : null,
     el(
@@ -485,8 +505,8 @@ function openService() {
             btn(
               o.price ? o.price + ' coin' : 'Yes',
               () => {
-                act(() => R.useService(V.S, o.id, o.arg));
-                if (!V.S.over) openService();
+                const said = listening(() => R.useService(V.S, o.id, o.arg));
+                if (!V.S.over) openService(said, info.title);
               },
               'small' + (V.S.player.coin >= o.price ? ' sel' : ''),
             ),
@@ -1618,6 +1638,7 @@ window.__g = {
     return V.S;
   },
   sound: soundState,
+  SET, // the look's switches, for the measuring tools (bench.py)
   P,
   V,
   VIEW,
