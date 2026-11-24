@@ -67,6 +67,15 @@ need(lines > 500, 'too few log lines played: ' + lines);
 if (leaks.size)
   errs.push(leaks.size + ' base-game words leak through the mode, e.g.\n    ' + [...leaks.values()].slice(0, 12).join('\n    '));
 
+// every trouble's request and ending, and every wayfarer's talk, is in a cat's own words (a whole line, not a swap)
+{
+  const res = t.lines.map(([re]) => new RegExp('^' + re + '$')),
+    fill = (x) => x.replace(/\{days\}/g, '6').replace(/\{[a-z]+\}/g, 'Ashford');
+  const texts = [];
+  for (const k of R.C.plots.kinds) for (const f of ['tell', 'tellHoard', 'end']) if (k[f]) texts.push([k.id + '.' + f, fill(k[f])]);
+  for (const k of R.C.wayfarers.kinds) texts.push([k.id + '.talk', k.talk]);
+  for (const [w, x] of texts) need(res.some((re) => re.test(x)), 'not in a cat\'s own words: ' + w);
+}
 // a sample, to see that it reads
 const sample = ['You fill up at the spring.', 'Hound', 'The tyrant in the sky', 'Human Paladin', 'You rest for an hour.'];
 const want = ['kibble bowl', 'Woofer', 'Vacuum Tyrant', 'Tabby Meowladin', 'nap'];

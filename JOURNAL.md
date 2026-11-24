@@ -6,7 +6,7 @@ switch; a rare roll that makes a world feline whether asked or not. Pieces, newe
 
 ## Summary
 
-Five pieces, newest first below. The first three and a commit of polish made the mode; the fourth came after Andrew
+Six pieces, newest first below. The first three and a commit of polish made the mode; the fourth came after Andrew
 said "Get catty". Every check passes,
 the full one with the browser test, which now chooses Super Feline Mode on the new world screen, taps the splash away,
 finds cat words where the plain ones were, tries the cat songs, and turns the mode off again to find every word back.
@@ -20,6 +20,7 @@ No save migration: the choice is one optional field (`s.theme`), and a rolled wo
 | (polish) | A paw print for you on the maps, a party for a win, the end screens' words | | small |
 | C9.4 | Being a cat: whiskers, ears, a swiping paw, slow blinks and naps in the view; paw prints behind you; 3 a.m. zoomies; 36 lines rewritten in a cat's own voice; an inner monologue in thought bubbles; cats asleep on the beds and tables | the same | pearl |
 | C9.5 | The world talks like a cat: the elder's tale, townsfolk, epitaphs, the god's terms, the inn, the shop and every trouble's ending in a cat's own voice (82 lines in all); a cat asleep in your camp bed, strays by the wayfarers' fires; big cats sitting on two roofs in five; a cat walking the streets with most townsfolk | the same | solid |
+| C9.6 | Every trouble's giver and every wayfarer asks in a cat's voice (102 lines in all), checked by the theme test | the same | solid |
 
 **The bot, with the mode on and off** (`THEME=feline node tests/playtest.js 150`, three seed sets of 150): off 30, 14
 and 20 wins (20%, 9%, 13%); on 30, 14 and 20. Not merely within noise: the same worlds, won and lost the same way,
@@ -44,7 +45,7 @@ voices. Andrew's songs never go in it.
 **What I would do next** (1 to 3 of the first list are done in C9.4).
 1. More lines in a cat's voice: the troubles' own steps and endings, the wayfarers, the lost people's lore.
 2. A cat flap in every door, scratch marks on the walls, a knocked-over cup by every table.
-3. The troubles' own requests (the givers' speeches) and the wayfarers' talk in a cat's voice.
+3. The troubles' steps on the goal line, and the lore of the lost peoples, in a cat's voice.
 4. A second theme through the same layer (Andrew may have one in mind); the dictionary, kit and sound bank are its
    whole shape.
 5. Merge, so `tools/site.sh` on `main` copies Andrew's songs beside the published pages, then add the songs.
@@ -52,6 +53,26 @@ voices. Andrew's songs never go in it.
 **CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
 
 | v0.20 | Commission 9: Super Feline Mode, a total conversion to cats with the rules untouched. Chosen on the new world screen or in Settings, or rolled by itself in about one world in fifty, it dresses every word (breeds for races, Meowladins and Clawgues, kibble for water, naps, catnip, treats, the Red Dot and the Laser Pointer, hissy fits and furricanes, the Vacuum Tyrant, the Cult of the Cucumber), every face (cat heads on everyone), every foe (the dog next door, vacuum cleaners, spray bottles, cucumbers, dust bunnies), the land (a scratching-post beacon, cat-bed camps, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun) and the sound (a score of meows, trills and purrs), with a splash of flying cats. You are a cat: whiskers and a swiping paw in the view, paw prints behind you, 3 a.m. zoomies, a thought bubble of cat opinions, the commonest lines rewritten in a cat's own voice, and a cat asleep on every bed. An optional full soundtrack of Andrew's own cat songs is published beside the game and fetched only when turned on. Turning it off restores everything. See `JOURNAL.md` |
+
+## C9.6: every trouble asks in a cat's voice
+
+The givers of all fifteen troubles now ask as cats would (20 more lines, 102 in all). The great beast "eats out of OUR
+bowls"; the captive is "my sister's kitten, stuck up a tree, and the dogs from next door are camped round it... We have
+no one who can fight: we are all very busy napping"; the Bath Curse ("nothing there grows, the kibble there goes soggy,
+and everything is WET... Then come back and tell us. From a distance. Dry."); the sickness ("If it is not cured, the
+humans will take us ALL to the Vet... Be quick: the cat carrier has been seen."); the Vacuum King "sits on a cushion"
+under the sofa; the Vacuum Tyrant "sucks up our kibble and our toys from under the fridge"; the Secret Pudding is kept
+"UNDER THE WATER. Take these: they let you breathe bathwater for a while. I am so sorry."; the lost child went through
+the cat flap "and now they are on the OTHER SIDE and want to come back in, and then out, and then in"; the feud ("whose
+side you are on. Indoor. The answer is indoor."); the delivery, "without eating any"; the Prophet of the Cucumber ("Do
+not look at the cucumber."); the dogs' siege; and the stolen bell and cookies ("Especially the cookies."). The five
+wayfarers at their fires too ("I have not eaten in two HOURS. I am wasting away. Look at me.").
+
+**Tests.** tests/theme.test.js now checks that every trouble's request (and its hoard variant) and ending, and every
+wayfarer's talk, is matched by a whole line in the cat's own words, so a change to the base game's text that breaks a
+pattern is caught rather than silently falling back to word swaps.
+
+**Commit and switch.** C9.6; the mode's switches.
 
 ## C9.5: the world talks like a cat, and cats everywhere
 
