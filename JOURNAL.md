@@ -23,6 +23,7 @@ No save migration: the choice is one optional field (`s.theme`), and a rolled wo
 | C9.6 | Every trouble's giver and every wayfarer asks in a cat's voice (102 lines in all), checked by the theme test | the same | solid |
 | C9.7 | Menu's How to play rewritten as How to be a cat | the same | small, but read by everyone |
 | C9.8 | Whiskers and blinking taken out of the cat's-eye view, at Andrew's word | | a needed cut |
+| C9.9 | Water drawn as heaps of kibble; a self-rescue when the view and the rules drift apart (a stuck-after-a-nap report) | | pearl (kibble), a safety net |
 
 **The bot, with the mode on and off** (`THEME=feline node tests/playtest.js 150`, three seed sets of 150): off 30, 14
 and 20 wins (20%, 9%, 13%); on 30, 14 and 20. Not merely within noise: the same worlds, won and lost the same way,
@@ -55,6 +56,29 @@ voices. Andrew's songs never go in it.
 **CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
 
 | v0.20 | Commission 9: Super Feline Mode, a total conversion to cats with the rules untouched. Chosen on the new world screen or in Settings, or rolled by itself in about one world in fifty, it dresses every word (breeds for races, Meowladins and Clawgues, kibble for water, naps, catnip, treats, the Red Dot and the Laser Pointer, hissy fits and furricanes, the Vacuum Tyrant, the Cult of the Cucumber), every face (cat heads on everyone), every foe (the dog next door, vacuum cleaners, spray bottles, cucumbers, dust bunnies), the land (a scratching-post beacon, cat-bed camps, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun) and the sound (a score of meows, trills and purrs), with a splash of flying cats. You are a cat: a swiping paw in the view, paw prints behind you, 3 a.m. zoomies, a thought bubble of cat opinions, the commonest lines rewritten in a cat's own voice, and a cat asleep on every bed. An optional full soundtrack of Andrew's own cat songs is published beside the game and fetched only when turned on. Turning it off restores everything. See `JOURNAL.md` |
+
+## C9.9: kibble that looks like kibble, and never wedged
+
+**Kibble.** Andrew: "if water = kibble it should look like kibble." In the mode every water surface (rivers, lakes,
+the sea, pools by springs and in levels) is drawn as a heap of kibble instead (`kibbleMat` in view/water.js, chosen by
+`waterMat` when the world is feline): pieces about 30 cm across in two jumbled layers, in a few browns (and some
+fish-flavoured pink ones), round, ringed with a hole, or star-shaped, shaded as if rounded, dark gaps between them,
+drifting slowly where the water would run. Opaque, no reflections (kibble does not mirror the sky); deep water is a
+darker heap, ice is frost-dried pale. One material on every quality level. Pictures: `feline-kibble-river`,
+`feline-kibble-sea` in docs/look/feline.
+
+**Stuck in a town after a nap.** Andrew napped in a town and could not move afterwards ("possibly wedged between a
+building and the innkeeper"). I could not make it happen: in the rules, resting or sleeping at every open tile next to
+the inn, elder, shop and townsfolk of 40 towns (1,379 tries), and at every open tile inside 52 buildings (4,000 tries),
+always left a way to walk on; in the browser, napping and sleeping by the inn, the elder and the shop and then walking
+in all four directions worked. Townsfolk and their cats never block the way (they are not solid in the rules). So the
+likeliest cause is the view and the rules drifting apart, the view's position ending up on a tile the rules do not let
+anyone stand on, where every step is refused. The view now heals that by itself (run.js): indoors, if where you stand
+is not somewhere you can stand, or is more than a tile from where the rules have you, it puts you back in the middle of
+your own tile and writes a line in the console ("unwedged: ..."), so if it happens again the cause can be found. With
+Andrew's saved run (Menu, Saved game: "Copy this run") the real cause can be checked.
+
+**Commit and switch.** C9.9; the mode's switches (the rescue is for everyone).
 
 ## C9.8: no whiskers, no blinking
 

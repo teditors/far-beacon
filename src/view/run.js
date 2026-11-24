@@ -198,6 +198,22 @@ function tick(dt, now) {
     tileOf = open ? (x) => Math.floor((x + G.half) / G.ts) : toTile;
   let nx = clamp(P.x + dx * sp * dt, -lim, lim),
     nz = clamp(P.z + dz * sp * dt, -lim, lim);
+  // Never wedged (C9, after Andrew was stuck in a town after a nap): standing on a tile no one can stand on, or more
+  // than a tile from where the rules have you, means the view and the rules have drifted apart. Step back to the
+  // middle of your own tile, and say so in the console, so the cause can be found.
+  if (indoor) {
+    const tx0 = toTile(P.x),
+      tz0 = toTile(P.z),
+      standable = R.passable(V.S, tx0, tz0) || R.doorAt(V.S, tx0, tz0),
+      far = Math.abs(tx0 - V.S.player.x) > 1 || Math.abs(tz0 - V.S.player.y) > 1;
+    if (!standable || far) {
+      console.warn('unwedged: view at tile', tx0, tz0, 'rules at', V.S.player.x, V.S.player.y, 'in', V.S.area);
+      P.x = tileX(V.S.player.x);
+      P.z = tileX(V.S.player.y);
+      V.blockedUntil = 0;
+      return;
+    }
+  }
   // walls: keep a little distance from them, and slide along them instead of stopping dead
   const inHouse = R.areaRec(V.S).kind === 'house',
     pad = inHouse ? 0.35 : indoor ? 0.6 : 0,

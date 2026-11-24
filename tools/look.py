@@ -188,6 +188,8 @@ FELINE_SHOTS = [
     ('feline-ruin', 11, {}, RUIN % DAY),
     ('feline-sun', 11, {}, SUN),
     ('feline-house', 11, {}, HOUSE % (2, DAY)),
+    ('feline-kibble-river', 222, {}, BRIDGE % DAY),
+    ('feline-kibble-sea', 34, {'sea': 1, 'size': '5x5'}, "if (!Rules.jumpTo(S, 'region:' + S.seaPlaces[0].area)) return false; " + DAY + " g.refresh(); g.buildStatic(); g.refresh(); g.P.pitch = -0.25;"),
     ('feline-dwelling', 11, {}, KIND % ("x.kind === 'house' && !" + EMPTY, DAY, 1)),
     ('feline-inn', 222, {}, HOUSE % (1, 'S.time = 21 * 60 - 360;')),
 ]

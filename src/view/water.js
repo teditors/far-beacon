@@ -10,6 +10,7 @@
    On Low it is a plain see-through surface lit per vertex. Switch: `water`. */
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { WIND } from './kit.js';
+import { feline } from './themeflag.js';
 
 LOOK_SWITCHES.push(['water', 'Real water']);
 const waterOn = () => lookOn('water') && lookOn('light');
@@ -18,6 +19,7 @@ const SKY = { value: new THREE.Color(0xa8c4dc) };
 const MATS = {};
 // the shared material, rich (ripples, Fresnel, glints, swell) or plain
 function waterMat(far) {
+  if (feline()) return kibbleMat(); // C9: in Super Feline Mode, water is kibble, and looks it
   const rich = !Q.lite && !far,
     key = rich ? 'rich' : 'plain';
   if (MATS[key]) return MATS[key];
@@ -90,6 +92,59 @@ ${
   m.customProgramCacheKey = () => 'water-' + key;
   m.dispose = () => {};
   return (MATS[key] = m);
+}
+/* Kibble (C9, Super Feline Mode): wherever there is water, a heap of kibble instead, drawn per pixel on the same
+   surface: crunchy pieces in a few browns, round, some with a hole, some star-shaped, tumbling slowly downstream in
+   rivers, shaded as if rounded, dark gaps between them; opaque, and only thinning at the very edge of the bank. No
+   reflections: kibble does not mirror the sky. The water's own depth and ice still choose the shade (deep is darker,
+   frozen is pale: frost-dried). One material for every quality. */
+function kibbleMat() {
+  if (MATS.kibble) return MATS.kibble;
+  const m = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: true });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.wTime = WIND.time;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute vec3 wa;\nvarying vec3 vWa;\nvarying vec2 vWp;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWa = wa;\nvWp = position.xz;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWa;\nvarying vec2 vWp;\nuniform float wTime;')
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+{
+  // pieces about 30 cm across (kibble for giants, so it reads from a distance), in two jumbled layers so they pile up,
+  // drifting where the water would run
+  vec2 drift = vec2(wTime * 0.12, wTime * 0.05) * (1.0 - vWa.z) * (1.0 - vWa.y * 0.7);
+  vec3 kib = vec3(0.16, 0.09, 0.05); // the dark between the pieces
+  for (int L = 0; L < 2; L++) {
+    vec2 q = (vWp * 3.2 + drift) * (L == 0 ? 1.0 : 1.13) + (L == 0 ? vec2(0.0) : vec2(0.5, 0.37));
+    vec2 c = floor(q);
+    vec2 f = fract(q) - 0.5;
+    float h = fract(sin(dot(c + float(L) * 31.7, vec2(12.9898, 78.233))) * 43758.5453);
+    vec2 o = (vec2(fract(h * 17.0), fract(h * 29.0)) - 0.5) * 0.3;
+    float rot = h * 6.28;
+    vec2 d2 = mat2(cos(rot), -sin(rot), sin(rot), cos(rot)) * (f - o);
+    float a = atan(d2.y, d2.x);
+    float r = length(d2 * vec2(1.0, 1.0 + h * 0.5));
+    float edge = 0.46 + (h > 0.72 ? 0.08 * cos(a * 5.0) : 0.0); // some are stars
+    float piece = smoothstep(edge + 0.04, edge - 0.04, r);
+    if (h < 0.28) piece *= smoothstep(0.06, 0.11, r); // some have a hole
+    vec3 brown = mix(vec3(0.42, 0.24, 0.11), vec3(0.78, 0.5, 0.25), fract(h * 7.0));
+    brown = mix(brown, vec3(0.62, 0.32, 0.2), step(0.85, fract(h * 3.0))); // a few fish-flavoured ones
+    float round = clamp(1.0 - r / max(edge, 0.01), 0.0, 1.0);
+    brown *= 0.7 + 0.45 * round - 0.22 * smoothstep(0.0, 0.3, d2.y); // lit from above, as if rounded
+    kib = mix(kib, brown, piece);
+  }
+  kib *= mix(1.0, 0.72, vWa.y * (1.0 - vWa.z)); // deep: a deeper heap, darker
+  kib = mix(kib, vec3(0.86, 0.8, 0.72), vWa.z * 0.55); // frozen: frost-dried
+  diffuseColor.rgb = kib;
+  diffuseColor.a = smoothstep(0.0, 0.25, vWa.x);
+}`,
+      );
+  };
+  m.customProgramCacheKey = () => 'kibble';
+  m.dispose = () => {};
+  return (MATS.kibble = m);
 }
 // the sky's colour now, for the water to mirror (run.js, every frame)
 function setWaterSky(c) {

@@ -66,6 +66,8 @@ export default {
         'A new world': 'A new litter',
         'World settings': 'Litter settings',
         Settings: 'Purrferences',
+        'Copy this run': 'Copy this run (for the vet)',
+        'Load the pasted run': 'Load the pasted run (paws crossed)',
         Tinker: 'Batting things about',
         Codex: 'Catalogue',
         Journal: 'Diary of grievances',
