@@ -4,6 +4,53 @@ The brief (COMMISSION.md): Super Feline Mode. The same game, but every word, fac
 nobody could doubt the developer has a troubling obsession with them. A theme layer rather than edits everywhere; a
 switch; a rare roll that makes a world feline whether asked or not. Pieces, newest first below.
 
+## Summary
+
+Three pieces, newest first below, in three commits and a fourth for the summary, map and polish. Every check passes,
+the full one with the browser test, which now chooses Super Feline Mode on the new world screen, taps the splash away,
+finds cat words where the plain ones were, tries the cat songs, and turns the mode off again to find every word back.
+No save migration: the choice is one optional field (`s.theme`), and a rolled world stores nothing.
+
+| # | Piece | Switch | Verdict |
+| --- | --- | --- | --- |
+| C9.1 | The theme layer: every word on every screen catted (breeds, callings, kibble, naps, catnip, treats, the Red Dot, the Laser Pointer, hissy fits and furricanes, the Vacuum Tyrant, the Cult of the Cucumber), names catted by their syllables, a flashy splash of flying cats, pink paw-printed panels | the world's `theme` (new world screen, Settings); `felineroll` | pearl |
+| C9.2 | Cat faces on everyone, the foes a cat fears (the dog next door, the vacuum cleaner, the spray bottle, the cucumber, dust bunnies), a scratching-post beacon, a cat-bed camp with a warm laptop, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun | the same | pearl |
+| C9.3 | A cat soundtrack (the score meows, mrrows, trills and purrs; foes woof, whirr and psst; you hiss and purr) and the player for Andrew's own cat songs, outside the one-file game | the same; device setting `catSongs` | solid |
+| (polish) | A paw print for you on the maps, a party for a win, the end screens' words | | small |
+
+**The bot, with the mode on and off** (`THEME=feline node tests/playtest.js 150`, three seed sets of 150): off 30, 14
+and 20 wins (20%, 9%, 13%); on 30, 14 and 20. Not merely within noise: the same worlds, won and lost the same way,
+every one, since the rules never read the theme (and tests/theme.test.js checks that the same moves make the same
+world with it on and off). With the mode on the bot also turned every log line it saw into cat words as it played
+(about 11,800 lines a set) without a fault.
+
+**Size.** The page grew by about 27 KB (1,085 to 1,112 KB): the dictionary, the splash, the catted models and the cat
+voices. Andrew's songs never go in it.
+
+**My three best jokes.**
+1. **The whole quest is chasing the red dot.** The beacon is the Red Dot, its tower a scratching post with a laser for
+   a beam, the relic a Laser Pointer (when it is a lens: otherwise a jingle bell, a paper crown or a squeaky horn), and
+   the key a tin opener for the sealed tuna tin. The last line becomes: "You set the Laser Pointer of the Tokhirutfluff
+   in the Red Dot. The sunbeam catches, and turns, and holds." and then "The Laser Pointer of the Tokhirutfluff is
+   home, and purring"
+2. **The serpent is a cucumber.** It lies in the grass with googly eyes, hisses, drains your pep, and has a cult.
+3. **The household things have opinions.** A vase (soon to be knocked over), a box (IF I FITS), a hand mirror (who is
+   THAT cat?), a kitchen knife (not a toy), a ball of yarn (MINE), a broom (sworn enemy), a heap of fallen plaster (it
+   was like that); the inn is a Cat Café, the shop a Pet Shop, the coin treats, and the bandages cones of shame.
+
+**What I would do next.**
+1. Lines written by a cat rather than renamed: the hundred lines a player meets most (the elder's tale, rumours, the
+   epitaphs) as whole-line entries in the theme, in a cat's voice, where word swaps read oddly.
+2. Paw prints in the ground where you have walked (a decal pass), and a cat flap in every door.
+3. A cat of your own in first person: whiskers at the edge of the view, a paw that swipes when you strike.
+4. A second theme through the same layer (Andrew may have one in mind); the dictionary, kit and sound bank are its
+   whole shape.
+5. Merge, so `tools/site.sh` on `main` copies Andrew's songs beside the published pages, then add the songs.
+
+**CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
+
+| v0.20 | Commission 9: Super Feline Mode, a total conversion to cats with the rules untouched. Chosen on the new world screen or in Settings, or rolled by itself in about one world in fifty, it dresses every word (breeds for races, Meowladins and Clawgues, kibble for water, naps, catnip, treats, the Red Dot and the Laser Pointer, hissy fits and furricanes, the Vacuum Tyrant, the Cult of the Cucumber), every face (cat heads on everyone), every foe (the dog next door, vacuum cleaners, spray bottles, cucumbers, dust bunnies), the land (a scratching-post beacon, cat-bed camps, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun) and the sound (a score of meows, trills and purrs), with a splash of flying cats. An optional full soundtrack of Andrew's own cat songs is published beside the game and fetched only when turned on. Turning it off restores everything. See `JOURNAL.md` |
+
 ## C9.3: a cat soundtrack, and Andrew's cat songs
 
 **What it is.** The score keeps its tunes and their shapes; in the mode its instruments meow. The sound bank is content

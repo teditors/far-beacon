@@ -1339,7 +1339,7 @@ People at a small fire in the wilds, in 35% of regions away from home, put there
 
 ## Themes: Super Feline Mode
 
-**Super Feline Mode** (`feline`): the same rules, every word in its own. Rolled by itself in about 1 world in 50 (switch `felineroll`). 94 whole texts, 130 phrases and 892 words are renamed; names built from content get a name in its style ({n}paws, Mew{l}, {n}whiskers, {n}kins, Purr{l}, {n}fluff, {n}mittens, Sir {n}, {n}-Meow); a text with nothing renamed gets a flourish (Mrrp. Purr. (meow) Mew! *tail flick* Prrrt? *slow blink* Nya.).
+**Super Feline Mode** (`feline`): the same rules, every word in its own. Rolled by itself in about 1 world in 50 (switch `felineroll`). 94 whole texts, 132 phrases and 894 words are renamed; names built from content get a name in its style ({n}paws, Mew{l}, {n}whiskers, {n}kins, Purr{l}, {n}fluff, {n}mittens, Sir {n}, {n}-Meow); a text with nothing renamed gets a flourish (Mrrp. Purr. (meow) Mew! *tail flick* Prrrt? *slow blink* Nya.).
 
 | Race | As a cat |
 | --- | --- |
@@ -1744,6 +1744,8 @@ People at a small fire in the wilds, in 35% of regions away from home, put there
 | experience | cat-sperience |
 | well-fed | well-fed |
 | red dot | red dot |
+| white dot: you | pink paw print: you |
+| is home | is home, and purring |
 | west wind | westerly hair-dryer |
 | light a fire | find a sunbeam |
 | a light | a nightlight |
@@ -1851,7 +1853,6 @@ People at a small fire in the wilds, in 35% of regions away from home, put there
 | fuels | catnips |
 | coin | treat |
 | coins | treats |
-| gold | treats |
 | load | haul |
 | level | cat-level |
 | levels | cat-levels |
@@ -2580,6 +2581,7 @@ People at a small fire in the wilds, in 35% of regions away from home, put there
 | generous | treat-generous |
 | jealous | jealous (of the dog) |
 | amber | marmalade |
+| gold | golden-marmalade |
 | weeping | drooly |
 | plain | carpet-plain |
 | pans | litter trays |
@@ -2605,6 +2607,8 @@ People at a small fire in the wilds, in 35% of regions away from home, put there
 | brackish | fishy |
 | war | war with the dogs |
 | horn | squeaky horn |
+| lens | Laser Pointer |
+| lenses | Laser Pointers |
 | crown | paper crown |
 | bell | jingle bell |
 | throne | cushion throne |

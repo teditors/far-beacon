@@ -6733,6 +6733,8 @@
           experience: "cat-sperience",
           "well-fed": "well-fed",
           "red dot": "red dot",
+          "white dot: you": "pink paw print: you",
+          "is home": "is home, and purring",
           "west wind": "westerly hair-dryer",
           "light a fire": "find a sunbeam",
           "a light": "a nightlight",
@@ -6843,7 +6845,6 @@
           fuels: "catnips",
           coin: "treat",
           coins: "treats",
-          gold: "treats",
           load: "haul",
           level: "cat-level",
           levels: "cat-levels",
@@ -7581,6 +7582,7 @@
           generous: "treat-generous",
           jealous: "jealous (of the dog)",
           amber: "marmalade",
+          gold: "golden-marmalade",
           weeping: "drooly",
           plain: "carpet-plain",
           pans: "litter trays",
@@ -7606,6 +7608,8 @@
           brackish: "fishy",
           war: "war with the dogs",
           horn: "squeaky horn",
+          lens: "Laser Pointer",
+          lenses: "Laser Pointers",
           crown: "paper crown",
           bell: "jingle bell",
           throne: "cushion throne",
@@ -27846,6 +27850,16 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     g.stroke();
   }
   function youAt(g, px, py) {
+    if (R.themeOf(V.S) === "feline") {
+      g.save();
+      g.translate(px, py);
+      g.rotate(-P3.yaw);
+      g.lineWidth = 1.5;
+      g.strokeStyle = "#141a22";
+      paw(g, 0, 0, 9, 0, "#ff8ac0");
+      g.restore();
+      return;
+    }
     g.beginPath();
     g.arc(px, py, 4.5, 0, 7);
     g.fillStyle = "#fff";

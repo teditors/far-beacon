@@ -9,7 +9,7 @@ import { NOW } from './mood.js';
 import { toHex } from './look.js';
 import { setVolume, soundState } from './sound.js';
 import { syncTheme, onThemeChange } from './theme.js';
-import { catSplash } from './catsplash.js';
+import { catSplash, drawPaw } from './catsplash.js';
 import { setCatSongs, songsNote, loadList } from './catsongs.js';
 
 /* ---------- HUD and panels ---------- */
@@ -828,6 +828,17 @@ function goalAt(g, px, py) {
   g.stroke();
 }
 function youAt(g, px, py) {
+  if (R.themeOf(V.S) === 'feline') {
+    // C9: you are a paw print on the map, pointing the way you face
+    g.save();
+    g.translate(px, py);
+    g.rotate(-P.yaw);
+    g.lineWidth = 1.5;
+    g.strokeStyle = '#141a22';
+    drawPaw(g, 0, 0, 9, 0, '#ff8ac0');
+    g.restore();
+    return;
+  }
   g.beginPath();
   g.arc(px, py, 4.5, 0, 7);
   g.fillStyle = '#fff';

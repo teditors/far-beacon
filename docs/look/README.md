@@ -54,3 +54,4 @@ The meter (Menu, Settings, "Show the performance meter") names the look's layers
 | `feline-beacon` | the beacon as a scratching-post tower with the red laser dot, cat trees behind |
 | `feline-ruin` | a cardboard ruin |
 | `feline-sun` | the sun, with whiskers |
+| `sheet` | six at a glance: the splash, a cat face, the vacuum cleaner, the scratching-post beacon, the cat-bed camp at night, the catted panels on a phone |
