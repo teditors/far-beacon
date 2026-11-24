@@ -4,6 +4,44 @@ The brief (COMMISSION.md): Super Feline Mode. The same game, but every word, fac
 nobody could doubt the developer has a troubling obsession with them. A theme layer rather than edits everywhere; a
 switch; a rare roll that makes a world feline whether asked or not. Pieces, newest first below.
 
+## C9.2: cat faces, cat foes, and a catted land
+
+**What it is** (`view/catkit.js`, `view/catworld.js`, through the models' own makers). When the world is feline
+(`view/themeflag.js`, set by the theme layer), the view builds its models catted:
+
+- **Everyone has a cat's head**: townsfolk, wayfarers, every person drawn. A round head in one of eight furs (ginger,
+  grey, black, white, cream, brown tabby, blue-grey, tortoiseshell brown, by the person's seed), ears with pink
+  insides, a muzzle and chin, a pink nose, three whiskers a side, almond eyes with slit pupils that shine in the dark
+  (the eyes' joint, always bright), paws for hands, and a tail from the small of the back that swishes on the tail's
+  joint. Hats sit between the ears. Same joints, so they walk, glance and turn to watch you as before.
+- **The foes are what a cat fears**: the hound is the dog next door (floppy ears, a red collar with a gold tag, a
+  lolling tongue, a wagging tail); the brute is an upright vacuum cleaner on wheels with a red bag, a handle, two
+  ribbed hoses for arms and a glaring headlight; the wight is a floating spray bottle with a red trigger head that
+  watches you, water sloshing in it and a mist about it; the serpent is a bumpy cucumber with googly eyes; and the
+  docile ones are dust bunnies, grey fluff with long ears. The temper still shows in their eyes.
+- **The land**: the beacon is a 30 m scratching-post tower wrapped in sisal, with carpeted platforms, a bed at the top
+  and a toy on a string, its beam the red laser dot; your camp is a round pink cat bed with a paw print on its
+  cushion, a warm laptop glowing beside the fire; ruins are cardboard (their stones the colour of old boxes, big boxes
+  with tape and open flaps among them); town roofs have cat ears at each end of the ridge; every tall tree is a cat
+  tree (a sisal post with round carpeted platforms in the woodland's own colour, a bed on top, a toy on a string); and
+  the sun has whiskers and ears.
+
+**What it changes in play.** Nothing in the rules. Turning the mode on or off rebuilds the scene (the theme is in the
+models' cache keys), once.
+
+**Pictures** (`python3 tools/look.py feline medium`, in `docs/look/feline/`): a cat-faced townsperson up close and from
+a few steps, a street of cat-eared roofs, a town, the dog next door, the vacuum cleaner, the spray bottle, the cucumber,
+a dust bunny, the cat-bed camp by day and night, the scratching-post beacon among cat trees, a cardboard ruin, and the
+whiskered sun.
+
+**Choices made.** The brief's list of foes is longer than the game's four forms; the docile ones gave a fifth (dust
+bunnies). The bath became the curse (the Bath Curse) rather than a foe, since a spray bottle is the better wight: it
+floats, it is clear, and its touch is cold. The vet is a trouble (the trip to the Vet) rather than a model.
+Furniture and the ground are left as they are: the rooms are a cat's paradise already, and paw prints on the ground
+would cost a shader pass for a joke the land's words already make.
+
+**Commit and switch.** C9.2; the same switches as C9.1.
+
 ## C9.1: the theme layer, every word catted, and a splash
 
 **What it is.** A theme is content: `src/content/feline.js` holds Super Feline Mode as a dictionary (whole texts,

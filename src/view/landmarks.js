@@ -7,6 +7,8 @@ import { addOutline } from './outline.js';
 import { surface } from './paint.js';
 import { fire } from './fx.js';
 import { LOOK_SWITCHES, lookOn } from './quality.js';
+import { feline } from './themeflag.js';
+import { catBeacon } from './catworld.js';
 
 LOOK_SWITCHES.push(['landmarks', 'Landmarks in the style']);
 const marksOn = () => lookOn('landmarks') && lookOn('light');
@@ -36,6 +38,7 @@ function courses(k, col, r0, r1, h, n, x, z) {
 const L = {
   // the beacon: a great stone tower with a brazier at its top, its fire seen from far away, and the beam over it
   beacon() {
+    if (feline()) return catBeacon(); // C9: a scratching-post tower with the red dot
     const g = new THREE.Group(),
       k = kit();
     courses(k, 0x5a5650, 3.6, 2.4, 28, 8);

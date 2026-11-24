@@ -24,6 +24,8 @@ import { toonMat } from './toon.js';
 import { smoothNormals } from './outline.js';
 import { makeLOD, plantsOn, treeMat, treeModel, updateLOD } from './plants.js';
 import { thingsGroup } from './things.js';
+import { TH, feline } from './themeflag.js';
+import { catBed, cardboard } from './catworld.js';
 import { HOUSE_TS, houseGroup, houseOrigin } from './rooms.js';
 
 /* ---------- scene ---------- */
@@ -471,7 +473,10 @@ const BUILD = {
     return g;
   },
   ruin(s, site, at) {
-    if (ruinsOn() && at) return cachedModel('ruin' + s.seed + ':' + at.seed, () => ruinGroup(s, at.seed)); // laid block by block and aged (ruins.js)
+    if (ruinsOn() && at)
+      return cachedModel('ruin' + s.seed + ':' + at.seed, () =>
+        feline() ? cardboard(ruinGroup(s, at.seed), at.seed) : ruinGroup(s, at.seed),
+      ); // laid block by block and aged (ruins.js); cardboard in Super Feline Mode (C9)
     // shape = building habit, stone = style, height = age, tint and props = doom, flag = affinity
     const g = new THREE.Group(),
       body = new THREE.Group(),
@@ -545,7 +550,7 @@ const BUILD = {
 const MODELS = new Map();
 const noop = () => {};
 function cachedModel(key, make) {
-  key += '|' + Q.label + '|' + JSON.stringify(SET.off);
+  key += '|' + Q.label + '|' + JSON.stringify(SET.off) + '|' + (TH.id || ''); // C9: a theme dresses models
   let m = MODELS.get(key);
   if (!m) {
     m = make();
@@ -1616,7 +1621,7 @@ function drawArea(id, kind, nb, L) {
         fog: false,
       });
     if (actorsOn()) {
-      g.add(creatureActor(sp.form, col, eye.color.getHex()));
+      g.add(creatureActor(sp.form, col, eye.color.getHex(), sp.rare));
       if (fxOn()) g.add(blob({ hound: 0.9, brute: 1.4, wight: 0.7, serpent: 1.1 }[sp.form] || 1));
     } else if (sp.form === 'hound')
       g.add(
@@ -1692,7 +1697,18 @@ function drawArea(id, kind, nb, L) {
       });
     }
   }
-  if (camp !== null) {
+  if (camp !== null && feline()) {
+    // Super Feline Mode (C9): a cat bed where the tent stood, a warm laptop and the fire (a sunbeam, they say)
+    const [x, y, z] = at(camp, 5, 3),
+      bed = catBed();
+    bed.position.set(x, y, z);
+    dynGroup.add(bed);
+    if (fxOn()) {
+      const f = fire(1);
+      f.position.set(x - 3.5, ground(x - 3.5, z + 3) + 0.05, z + 3);
+      dynGroup.add(f);
+    }
+  } else if (camp !== null) {
     const [x, y, z] = at(camp, 5, 3),
       t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(0xd9a24a));
     t.position.set(x, y + 1.8, z);

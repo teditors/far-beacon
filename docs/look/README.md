@@ -42,3 +42,15 @@ makes a contact sheet of a set.
 
 The meter (Menu, Settings, "Show the performance meter") names the look's layers wherever you stand, for example
 "look: Steel blue, Hard blue, Gold dusk (turned 12°)".
+
+**Commission 9: Super Feline Mode** (`feline/`, `python3 tools/look.py feline medium`: the same game with the mode on)
+
+| Picture | What it shows |
+| --- | --- |
+| `feline-person-close`, `feline-person-near` | a cat-faced townsperson up close (ears, whiskers, slit eyes that shine) and from a few steps |
+| `feline-street`, `feline-town` | streets whose roofs have cat ears at each end of the ridge |
+| `feline-dog`, `feline-vacuum`, `feline-spray-bottle`, `feline-cucumber`, `feline-dust-bunny` | the foes: the dog next door, the vacuum cleaner, the spray bottle, the cucumber, a dust bunny |
+| `feline-camp`, `feline-camp-day` | the camp: a cat bed with a paw print on its cushion, a warm laptop by the fire, at night and by day |
+| `feline-beacon` | the beacon as a scratching-post tower with the red laser dot, cat trees behind |
+| `feline-ruin` | a cardboard ruin |
+| `feline-sun` | the sun, with whiskers |

@@ -19146,26 +19146,168 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
         stencilZPass: THREE.ReplaceStencilOp
       });
   }
-  function addOutline(mesh2, level2, far, mat) {
-    if (!mesh2 || !outlineOn(level2)) return null;
-    smoothNormals(mesh2.geometry);
+  function addOutline(mesh3, level2, far, mat) {
+    if (!mesh3 || !outlineOn(level2)) return null;
+    smoothNormals(mesh3.geometry);
     const m = mat || outlineMat(far || 60);
-    markStencil(mesh2.material);
+    markStencil(mesh3.material);
     let o;
-    if (mesh2.isInstancedMesh) {
-      o = new THREE.InstancedMesh(mesh2.geometry, m, 1);
-      o.instanceMatrix = mesh2.instanceMatrix;
-      Object.defineProperty(o, "count", { get: () => mesh2.count, set: () => {
+    if (mesh3.isInstancedMesh) {
+      o = new THREE.InstancedMesh(mesh3.geometry, m, 1);
+      o.instanceMatrix = mesh3.instanceMatrix;
+      Object.defineProperty(o, "count", { get: () => mesh3.count, set: () => {
       } });
-    } else o = new THREE.Mesh(mesh2.geometry, m);
-    o.frustumCulled = mesh2.frustumCulled;
+    } else o = new THREE.Mesh(mesh3.geometry, m);
+    o.frustumCulled = mesh3.frustumCulled;
     o.userData.outline = true;
     o.castShadow = o.receiveShadow = false;
     o.raycast = () => {
     };
     o.renderOrder = 1;
-    mesh2.add(o);
+    mesh3.add(o);
     return o;
+  }
+
+  // src/view/themeflag.js
+  var TH = { id: null };
+  var feline = () => TH.id === "feline";
+
+  // src/view/catworld.js
+  var SISAL = 13151866;
+  var CARPET = 9071272;
+  var CARD = 12094040;
+  var mesh = (k, tex) => {
+    const m = new THREE.Mesh(k.build(), kitMat(tex ? { map: surface(tex) } : void 0));
+    addOutline(m, 2);
+    return m;
+  };
+  var glowMat = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: o < 1, opacity: o, fog: false, depthWrite: o >= 1 });
+  function catBeacon() {
+    const g = new THREE.Group(), k = kit();
+    for (let i = 0; i < 24; i++)
+      k.add(P4.cyl(2.2, 2.2, 1.2, 10), i % 2 ? SISAL : 12098664, { y: i * 1.2 + 0.6, ry: i * 0.4 }, { jitter: 0.05 });
+    for (const [y, r, x, z] of [
+      [8, 5, 1.5, 0],
+      [16, 4.2, -1.2, 1],
+      [23, 4.6, 0.8, -1.2]
+    ]) {
+      k.add(P4.cyl(r, r, 0.6, 16), CARPET, { x, y, z }, { jitter: 0.05 });
+      k.add(P4.cyl(0.3, 0.3, 4, 6), SISAL, { x: x + r * 0.7, y: y - 2.2, z });
+    }
+    k.add(P4.cyl(4.2, 3.6, 1.8, 16), CARPET, { y: 29.3 });
+    k.add(P4.cyl(3.4, 3.4, 0.4, 16), 15253720, { y: 30.1 });
+    k.add(P4.cyl(0.05, 0.05, 3, 4), 15658734, { x: 6, y: 6.5 });
+    k.add(P4.ball(0.6, 10, 8), 15217738, { x: 6, y: 4.8 });
+    k.add(P4.box(1.6, 3, 0.3), 1380879, { y: 1.5, z: 2.25 });
+    g.add(mesh(k));
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(2.2, 14, 10), glowMat(16719920, 0.95));
+    dot.position.y = 33;
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 420, 8, 1, true), glowMat(16724032, 0.45));
+    beam.material.side = THREE.DoubleSide;
+    beam.position.y = 240;
+    g.add(dot, beam);
+    return g;
+  }
+  function catBed() {
+    const g = new THREE.Group(), k = kit();
+    k.add(P4.cyl(2.8, 2.5, 1.1, 18), 14178954, { y: 0.55 });
+    k.add(P4.cyl(2.2, 2.2, 0.5, 18), 16046308, { y: 0.9 });
+    k.add(P4.cyl(0.55, 0.55, 0.04, 10), 14178954, { x: 0.2, y: 1.17, z: 0.3 });
+    for (const [x, z] of [
+      [-0.45, -0.45],
+      [-0.05, -0.75],
+      [0.45, -0.75],
+      [0.85, -0.45]
+    ])
+      k.add(P4.cyl(0.18, 0.18, 0.04, 8), 14178954, { x, y: 1.17, z: z + 0.2 });
+    k.add(P4.box(1.4, 0.08, 1), 3816004, { x: -3.2, y: 0.05, z: 0.8 });
+    k.add(P4.box(1.4, 0.9, 0.06), 3816004, { x: -3.2, y: 0.5, z: 0.3, rx: -0.25 });
+    g.add(mesh(k, "cloth"));
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.72), glowMat(10146047, 1));
+    screen.position.set(-3.2, 0.5, 0.34);
+    screen.rotation.x = -0.25;
+    g.add(screen);
+    return g;
+  }
+  function cardboard(group2, seed) {
+    group2.traverse((o) => {
+      if (o.isMesh && o.material && o.material.color && !o.material.transparent && !o.userData.outline) {
+        o.material = o.material.clone();
+        o.material.color.multiply(new THREE.Color(14200968));
+      }
+    });
+    let a = (seed | 0) + 12345;
+    const r = () => (a = a * 16807 % 2147483647) / 2147483647;
+    const k = kit();
+    for (let i = 0; i < 5; i++) {
+      const s = 1.6 + r() * 2.4, x = (r() - 0.5) * 14, z = (r() - 0.5) * 14, ry = r() * 3;
+      k.add(P4.box(s * 1.3, s, s), CARD, { x, y: s / 2, z, ry }, { jitter: 0.06 });
+      k.add(P4.box(s * 1.32, s * 0.12, s * 0.25), 14207136, { x, y: s + 0.01, z, ry });
+      for (const sg of [-1, 1])
+        k.add(P4.box(s * 1.3, 0.05, s * 0.5), CARD, {
+          x: x + Math.sin(ry) * sg * s * 0.62,
+          y: s + s * 0.18,
+          z: z + Math.cos(ry) * sg * s * 0.62,
+          ry,
+          rx: sg * 0.9
+        });
+    }
+    group2.add(mesh(k));
+    return group2;
+  }
+  function roofEars(K2, cx, cz, y, len, along, col) {
+    for (const e of [-1, 1]) {
+      const ex = along ? 0 : e * len / 2 - e * 0.6, ez = along ? e * len / 2 - e * 0.6 : 0;
+      for (const s of [-1, 1]) {
+        const ox2 = along ? s * 0.55 : 0, oz = along ? 0 : s * 0.55;
+        K2.roof.add(
+          P4.cone(0.8, 1.9, 4),
+          col,
+          { x: cx + ex + ox2 * 1.6, y: y + 0.85, z: cz + ez + oz * 1.6, ry: Math.PI / 4 },
+          { flat: true, uv: 2 }
+        );
+      }
+    }
+  }
+  function catTree(k, leaf, far) {
+    if (far) {
+      k.add(P4.cyl(0.14, 0.16, 4.2, 4), SISAL, { y: 2.1 });
+      for (const y of [1.6, 3, 4.2]) k.add(P4.cyl(0.9, 0.9, 0.22, 6), leaf, { y });
+      return;
+    }
+    for (let i = 0; i < 7; i++) k.add(P4.cyl(0.16, 0.16, 0.6, 6), i % 2 ? SISAL : 12098664, { y: i * 0.6 + 0.3, ry: i });
+    for (const [y, r, x, z] of [
+      [1.5, 0.95, 0.25, 0],
+      [2.8, 0.8, -0.2, 0.15],
+      [4, 0.85, 0, -0.1]
+    ]) {
+      k.add(P4.cyl(r, r, 0.2, 10), leaf, { x, y, z });
+    }
+    k.add(P4.cyl(0.75, 0.6, 0.45, 10), leaf, { y: 4.3 });
+    k.add(P4.cyl(0.015, 0.015, 0.7, 3), 15658734, { x: 0.9, y: 1.1 });
+    k.add(P4.ball(0.13, 6, 4), 15217738, { x: 0.9, y: 0.72 });
+  }
+  function sunWhiskers(disc2, r, color) {
+    const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color, fog: false, transparent: true, depthWrite: false });
+    for (const s of [-1, 1]) {
+      for (const w of [-1, 0, 1]) {
+        const p = new THREE.Mesh(new THREE.PlaneGeometry(r * 1.1, r * 0.05), m);
+        p.position.set(s * r * 1.25, -r * 0.15 + w * r * 0.18, 0);
+        p.rotation.z = s * w * 0.18;
+        g.add(p);
+      }
+      const ear = new THREE.Mesh(new THREE.CircleGeometry(r * 0.55, 3), m);
+      ear.position.set(s * r * 0.6, r * 0.82, 0);
+      ear.rotation.z = Math.PI / 2 + s * 0.35;
+      g.add(ear);
+    }
+    g.renderOrder = -9;
+    g.traverse((o) => {
+      o.renderOrder = -9;
+      o.frustumCulled = false;
+    });
+    disc2.add(g);
+    return g;
   }
 
   // src/view/buildings.js
@@ -19560,6 +19702,7 @@ vFade = sin(ph * 3.14159);`
       }
     }
     K2.wood.add(P4.box(0.3, 0.3, len + 0.1), st.trim, { x: cx, y: wallH + h + 0.18, z: cz, ry }, { uv: 2 });
+    if (feline()) roofEars(K2, cx, cz, wallH + h, len, along, col);
   }
   function tents2(K2, st, r, b) {
     choose(K2, st, r);
@@ -20483,18 +20626,18 @@ if (lum > 0.5) diffuseColor.rgb *= (0.5 + (lum - 0.5) * 0.35) / lum;`
     return KITS[look2.kit] ? Object.assign({ name: look2.kit }, KITS[look2.kit]) : Object.assign({ name: "stone" }, KITS.stone);
   }
   function levelWalls(K2, ts, h, color, list, y0) {
-    const mesh2 = new THREE.InstancedMesh(
+    const mesh3 = new THREE.InstancedMesh(
       tileModel(K2.name, ts, h),
       levelMat({ vertexColors: true, color, map: surface(K2.wall) }),
       Math.max(1, list.length)
     ), m = new THREE.Matrix4();
     list.forEach(([x, z], i) => {
       m.makeTranslation(x, y0 || 0, z);
-      mesh2.setMatrixAt(i, m);
+      mesh3.setMatrixAt(i, m);
     });
-    mesh2.count = list.length;
-    mesh2.frustumCulled = false;
-    return mesh2;
+    mesh3.count = list.length;
+    mesh3.frustumCulled = false;
+    return mesh3;
   }
   function levelFloor(K2, size, color, up) {
     const seg = Math.max(1, Math.round(size / 2)), g = new THREE.PlaneGeometry(size, size, seg, seg).rotateX(up ? Math.PI / 2 : -Math.PI / 2), uv = g.attributes.uv;
@@ -20846,10 +20989,10 @@ ${rich ? `{
     geo.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
     geo.setIndex(tri);
     geo.computeBoundingSphere();
-    const mesh2 = new THREE.Mesh(geo, waterMat(hollow));
-    mesh2.renderOrder = 2;
-    mesh2.frustumCulled = false;
-    return mesh2;
+    const mesh3 = new THREE.Mesh(geo, waterMat(hollow));
+    mesh3.renderOrder = 2;
+    mesh3.frustumCulled = false;
+    return mesh3;
   }
   function seaSheet(size, color) {
     const seg = 48, geo = new THREE.PlaneGeometry(size, size, seg, seg).rotateX(-Math.PI / 2), n = geo.attributes.position.count, wa = new Float32Array(n * 3), col = new Float32Array(n * 3), c = new THREE.Color(color).multiplyScalar(0.7);
@@ -21040,12 +21183,12 @@ ${rich ? `{
   // src/view/landmarks.js
   LOOK_SWITCHES.push(["landmarks", "Landmarks in the style"]);
   var marksOn = () => lookOn("landmarks") && lookOn("light");
-  var mesh = (k, tex) => {
+  var mesh2 = (k, tex) => {
     const m = new THREE.Mesh(k.build(), kitMat({ map: tex ? surface(tex) : null }));
     addOutline(m, 2, 80);
     return m;
   };
-  var glowMat = (c, o, fog) => new THREE.MeshBasicMaterial({ color: c, transparent: o < 1, opacity: o, depthWrite: o >= 1, fog: !!fog });
+  var glowMat2 = (c, o, fog) => new THREE.MeshBasicMaterial({ color: c, transparent: o < 1, opacity: o, depthWrite: o >= 1, fog: !!fog });
   function courses(k, col, r0, r1, h, n, x, z) {
     const rows = Math.round(h / 1.2);
     for (let i = 0; i < rows; i++) {
@@ -21061,6 +21204,7 @@ ${rich ? `{
   var L4 = {
     // the beacon: a great stone tower with a brazier at its top, its fire seen from far away, and the beam over it
     beacon() {
+      if (feline()) return catBeacon();
       const g = new THREE.Group(), k = kit();
       courses(k, 5920336, 3.6, 2.4, 28, 8);
       k.add(P4.cyl(3.4, 2.6, 1.4, 8), 4078134, { y: 28.7 }, { flat: true, uv: 2 });
@@ -21069,12 +21213,12 @@ ${rich ? `{
         k.add(P4.box(0.8, 1.4, 0.8), 5920336, { x: Math.cos(a) * 3, y: 30.1, z: Math.sin(a) * 3, ry: -a }, { uv: 2 });
       }
       k.add(P4.box(1.6, 3, 0.3), 1380879, { y: 1.5, z: 3.5 });
-      g.add(mesh(k, "stone"));
+      g.add(mesh2(k, "stone"));
       const f = fire2(3.2);
       f.position.y = 29.4;
-      const orb = new THREE.Mesh(new THREE.SphereGeometry(2.6, 14, 10), glowMat(16758858, 0.85));
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(2.6, 14, 10), glowMat2(16758858, 0.85));
       orb.position.y = 32;
-      const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 420, 8, 1, true), glowMat(16756800, 0.4));
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 420, 8, 1, true), glowMat2(16756800, 0.4));
       beam.material.side = THREE.DoubleSide;
       beam.position.y = 240;
       g.add(f, orb, beam);
@@ -21101,10 +21245,10 @@ ${rich ? `{
       }
       k.add(P4.box(1.8, 1, 1.2), 7236196, { y: 0.5 }, { uv: 1.5 });
       k.add(P4.box(1.4, 0.06, 0.9), col, { y: 1.04 });
-      g.add(mesh(k, "stone"));
-      const o = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 10), glowMat(col, 1));
+      g.add(mesh2(k, "stone"));
+      const o = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 10), glowMat2(col, 1));
       o.position.y = 3;
-      const halo2 = new THREE.Mesh(new THREE.SphereGeometry(1.4, 14, 10), glowMat(col, 0.25));
+      const halo2 = new THREE.Mesh(new THREE.SphereGeometry(1.4, 14, 10), glowMat2(col, 0.25));
       halo2.position.y = 3;
       g.add(o, halo2);
       return g;
@@ -21122,15 +21266,15 @@ ${rich ? `{
       ])
         k.add(P4.blob(r, 1), 6973022, { x, y, z, sy, ry: x }, { flat: true, uv: 3, jitter: 0.1 });
       k.add(P4.box(4.4, 0.5, 1.2), 5920334, { y: 4.4, z: 4.6 }, { uv: 2 });
-      g.add(mesh(k, "plaster"));
+      g.add(mesh2(k, "plaster"));
       const mouth = new THREE.Mesh(
         new THREE.CylinderGeometry(2.1, 2.1, 1.5, 12, 1, false, -Math.PI / 2, Math.PI),
-        glowMat(460810, 1, true)
+        glowMat2(460810, 1, true)
       );
       mouth.rotation.x = Math.PI / 2;
       mouth.rotation.z = Math.PI / 2;
       mouth.position.set(0, 1.6, 4.9);
-      const low = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.8, 1.5), glowMat(460810, 1, true));
+      const low = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.8, 1.5), glowMat2(460810, 1, true));
       low.position.set(0, 0.9, 4.9);
       g.add(mouth, low);
       return g;
@@ -21151,7 +21295,7 @@ ${rich ? `{
       w.add(P4.cyl(0.12, 0.12, 3.6, 6), 6965808, { y: 2.6, rz: Math.PI / 2 });
       for (const sg of [-1, 1]) w.add(P4.box(4.2, 0.12, 1.4), 8016434, { y: 3.4, z: sg * 0.6, rx: sg * 0.5 }, { uv: 1 });
       w.add(P4.cyl(0.3, 0.25, 0.4, 8), 6965808, { y: 1.7 }, { uv: 1 });
-      g.add(mesh(k, "stone"), mesh(w, "wood"));
+      g.add(mesh2(k, "stone"), mesh2(w, "wood"));
       const water2 = new THREE.Mesh(
         new THREE.CircleGeometry(1.3, 14).rotateX(-Math.PI / 2),
         new THREE.MeshBasicMaterial({ color: 3108762 })
@@ -21169,8 +21313,8 @@ ${rich ? `{
       }
       k.add(P4.box(7.4, 1.2, 1.6), 8025192, { y: 7.6 }, { uv: 1.5 });
       k.add(P4.cone(1.2, 1.5, 4), 6972506, { y: 8.9, ry: Math.PI / 4 }, { flat: true, uv: 1.5 });
-      g.add(mesh(k, "stone"));
-      const sky = new THREE.Mesh(new THREE.PlaneGeometry(4.3, 7), glowMat(st.back ? 12572912 : 11832544, 0.85));
+      g.add(mesh2(k, "stone"));
+      const sky = new THREE.Mesh(new THREE.PlaneGeometry(4.3, 7), glowMat2(st.back ? 12572912 : 11832544, 0.85));
       sky.material.side = THREE.DoubleSide;
       sky.position.y = 3.5;
       g.add(sky);
@@ -21238,8 +21382,8 @@ ${rich ? `{
         k.add(P4.prism(9.4, 2.6, 9.4), col, { y: 14.2 }, { uv: 2 });
         k.add(P4.box(2.6, 3, 0.4), 526603, { y: 8.7, z: 3.9 });
       }
-      g.add(mesh(k, "stone"));
-      if (!turf.empty) g.add(mesh(turf, "plaster"));
+      g.add(mesh2(k, "stone"));
+      if (!turf.empty) g.add(mesh2(turf, "plaster"));
       return g;
     }
   };
@@ -21413,6 +21557,161 @@ ${rich ? `{
     return { tufts, blooms, update };
   }
 
+  // src/view/catkit.js
+  var FURS = [14715450, 9408408, 2499882, 15921128, 15255696, 10119752, 7240330, 5913130];
+  var EYES = [9097290, 15777840, 4894952, 15245370];
+  var furOf = (seed) => FURS[Math.abs(seed | 0) % FURS.length];
+  var eyeOf = (seed) => EYES[(Math.abs(seed | 0) >> 3) % EYES.length];
+  function catHead(k, fur, eye, H2, y) {
+    const o = { bone: 5, pivot: H2 }, light = fur === 2499882 ? 3815743 : 16447214, pink = 15900848;
+    k.add(P4.ball(0.175, 12, 9), fur, { y, sx: 1.12, sy: 0.95 }, o);
+    for (const s of [-1, 1]) {
+      k.add(
+        P4.cone(0.075, 0.17, 4),
+        fur,
+        { x: s * 0.11, y: y + 0.17, z: -0.01, rz: -s * 0.3, ry: Math.PI / 4 },
+        Object.assign({ flat: true }, o)
+      );
+      k.add(
+        P4.cone(0.045, 0.11, 4),
+        pink,
+        { x: s * 0.108, y: y + 0.155, z: 0.02, rz: -s * 0.3, ry: Math.PI / 4 },
+        Object.assign({ flat: true }, o)
+      );
+      k.add(P4.ball(0.055, 8, 6), light, { x: s * 0.045, y: y - 0.06, z: 0.15, sz: 0.8 }, o);
+      k.add(P4.ball(0.034, 8, 6), eye, { x: s * 0.07, y: y + 0.03, z: 0.155, sx: 1.25, sy: 0.85 }, { bone: 8, pivot: H2 });
+      k.add(P4.box(8e-3, 0.045, 0.01), 1052688, { x: s * 0.07, y: y + 0.03, z: 0.19 }, o);
+      for (const w of [-1, 0, 1])
+        k.add(
+          P4.box(0.2, 6e-3, 6e-3),
+          16053492,
+          { x: s * 0.15, y: y - 0.06 + w * 0.018, z: 0.16, rz: s * w * 0.15, ry: -s * 0.25 },
+          o
+        );
+    }
+    k.add(P4.ball(0.022, 6, 4), pink, { y: y - 0.025, z: 0.19, sy: 0.7 }, o);
+    k.add(P4.ball(0.03, 6, 4), light, { y: y - 0.1, z: 0.14 }, o);
+  }
+  function catTail(k, fur, y) {
+    const o = { bone: 6, pivot: [0, y, -0.2] };
+    k.add(P4.cyl(0.045, 0.055, 0.5, 6), fur, { y: y - 0.12, z: -0.38, rx: -1.1 }, o);
+    k.add(P4.cyl(0.04, 0.045, 0.4, 6), fur, { y: y + 0.18, z: -0.62, rx: -0.3 }, o);
+    k.add(P4.ball(0.045, 6, 4), fur, { y: y + 0.38, z: -0.67 }, o);
+  }
+  function catCreature(k, form, eye) {
+    const W3 = 16777215, D3 = 12105912;
+    if (form === "hound") {
+      k.add(P4.blob(0.5, 1), W3, { y: 0.8, sx: 0.66, sy: 0.6, sz: 1.35 }, { bone: 0, round: true });
+      const hp = [0, 1, 0.7];
+      k.add(P4.blob(0.3, 1), W3, { y: 1.2, z: 0.95, sx: 1.1 }, { bone: 5, pivot: hp, round: true });
+      k.add(P4.box(0.26, 0.2, 0.3), D3, { y: 1.1, z: 1.22 }, { bone: 5, pivot: hp });
+      k.add(P4.ball(0.06, 6, 4), 1381653, { y: 1.18, z: 1.38 }, { bone: 5, pivot: hp });
+      k.add(P4.box(0.16, 0.03, 0.14), 13647952, { y: 1.02, z: 1.28 }, { bone: 5, pivot: hp });
+      for (const s of [-1, 1]) {
+        k.add(P4.box(0.08, 0.32, 0.18), D3, { x: s * 0.3, y: 1.08, z: 0.9, rz: s * 0.25 }, { bone: 5, pivot: hp });
+        k.add(P4.box(0.08, 0.06, 0.03), eye, { x: s * 0.1, y: 1.3, z: 1.2 }, { bone: 8, pivot: hp });
+      }
+      k.add(P4.cyl(0.27, 0.27, 0.09, 10), 13641784, { y: 1.02, z: 0.72, rx: 0.9 }, { bone: 0 });
+      k.add(P4.cyl(0.07, 0.07, 0.02, 8), 15777840, { y: 0.84, z: 0.92, rx: Math.PI / 2 }, { bone: 0 });
+      for (const [x, z, b] of [
+        [-0.2, 0.5, 1],
+        [0.2, 0.5, 2],
+        [-0.2, -0.5, 2],
+        [0.2, -0.5, 1]
+      ])
+        k.add(P4.cyl(0.08, 0.1, 0.7, 6), W3, { x, y: 0.38, z }, { bone: b, pivot: [x, 0.75, z] });
+      k.add(P4.cyl(0.04, 0.07, 0.6, 5), W3, { y: 1.05, z: -0.85, rx: -0.6 }, { bone: 6, pivot: [0, 0.95, -0.7] });
+    } else if (form === "brute") {
+      for (const [x, b] of [
+        [-0.5, 1],
+        [0.5, 2]
+      ])
+        k.add(
+          P4.cyl(0.25, 0.25, 0.14, 10),
+          2105380,
+          { x, y: 0.25, z: -0.2, rz: Math.PI / 2 },
+          { bone: b, pivot: [x, 0.25, -0.2] }
+        );
+      k.add(P4.box(1.2, 0.36, 1.2), W3, { y: 0.32, z: 0.2 }, { bone: 0 });
+      k.add(P4.box(1.24, 0.1, 0.12), 2763312, { y: 0.14, z: 0.82 }, { bone: 0 });
+      k.add(P4.cyl(0.42, 0.5, 1.8, 12), W3, { y: 1.4, z: -0.15 }, { bone: 0 });
+      k.add(P4.cyl(0.46, 0.46, 0.5, 12), 13641784, { y: 1.5, z: -0.15 }, { bone: 0 });
+      k.add(P4.cyl(0.05, 0.05, 1, 6), 2763312, { y: 2.75, z: -0.2 }, { bone: 0 });
+      k.add(P4.box(0.5, 0.1, 0.12), 2763312, { y: 3.25, z: -0.2 }, { bone: 0 });
+      const hp = [0, 0.4, 0.6];
+      k.add(P4.box(0.6, 0.22, 0.08), 16052416, { y: 0.4, z: 0.82 }, { bone: 5, pivot: hp });
+      k.add(P4.box(0.14, 0.08, 0.03), eye, { x: -0.16, y: 0.42, z: 0.87 }, { bone: 8, pivot: hp });
+      k.add(P4.box(0.14, 0.08, 0.03), eye, { x: 0.16, y: 0.42, z: 0.87 }, { bone: 8, pivot: hp });
+      for (const [x, b] of [
+        [-0.55, 3],
+        [0.55, 4]
+      ]) {
+        for (let i = 0; i < 4; i++)
+          k.add(
+            P4.cyl(0.11, 0.11, 0.26, 8),
+            i % 2 ? 3816e3 : 5592412,
+            { x, y: 1.9 - i * 0.27, z: 0.1 },
+            { bone: b, pivot: [x, 2, 0.1] }
+          );
+        k.add(P4.cone(0.17, 0.32, 8), 2763312, { x, y: 0.75, z: 0.1, rx: Math.PI }, { bone: b, pivot: [x, 2, 0.1] });
+      }
+    } else if (form === "wight") {
+      k.add(P4.cyl(0.42, 0.42, 1.5, 12), W3, { y: 1.35 }, { bone: 0 });
+      k.add(P4.cyl(0.25, 0.42, 0.3, 12), W3, { y: 2.25 }, { bone: 0 });
+      k.add(P4.cyl(0.38, 0.38, 0.5, 12), 5943528, { y: 1 }, { bone: 0 });
+      const hp = [0, 2.4, 0];
+      k.add(P4.box(0.36, 0.34, 0.75), 15217738, { y: 2.6, z: 0.15 }, { bone: 5, pivot: hp });
+      k.add(P4.cyl(0.07, 0.07, 0.22, 8), 15217738, { y: 2.65, z: 0.6, rx: Math.PI / 2 }, { bone: 5, pivot: hp });
+      k.add(P4.box(0.1, 0.07, 0.03), eye, { x: -0.1, y: 2.68, z: 0.53 }, { bone: 8, pivot: hp });
+      k.add(P4.box(0.1, 0.07, 0.03), eye, { x: 0.1, y: 2.68, z: 0.53 }, { bone: 8, pivot: hp });
+      k.add(P4.box(0.12, 0.42, 0.12), 15217738, { y: 2.3, z: 0.45, rx: 0.3 }, { bone: 3, pivot: [0, 2.45, 0.4] });
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.05;
+        k.add(
+          P4.ball(0.08 + i % 3 * 0.03, 6, 4),
+          14216952,
+          { x: Math.cos(a) * 0.7, y: 1.2 + i % 3 * 0.5, z: Math.sin(a) * 0.7 },
+          { bone: 0 }
+        );
+      }
+    } else if (form === "dustbunny") {
+      k.add(P4.blob(0.45, 1), 10132128, { y: 0.5, sy: 0.85 }, { bone: 0 });
+      for (let i = 0; i < 7; i++) {
+        const a = i * 0.9;
+        k.add(
+          P4.blob(0.16, 0),
+          11579574,
+          { x: Math.cos(a) * 0.38, y: 0.45 + Math.sin(i * 2.1) * 0.25, z: Math.sin(a) * 0.38 },
+          { bone: 0 }
+        );
+      }
+      const hp = [0, 0.7, 0.2];
+      for (const s of [-1, 1]) {
+        k.add(P4.cyl(0.06, 0.1, 0.55, 6), 11053230, { x: s * 0.16, y: 1.15, z: 0, rz: -s * 0.2 }, { bone: 5, pivot: hp });
+        k.add(P4.box(0.07, 0.07, 0.03), eye, { x: s * 0.14, y: 0.62, z: 0.42 }, { bone: 8, pivot: hp });
+        k.add(
+          P4.ball(0.08, 6, 4),
+          9079440,
+          { x: s * 0.2, y: 0.07, z: 0.15 },
+          { bone: s < 0 ? 1 : 2, pivot: [s * 0.2, 0.2, 0.15] }
+        );
+      }
+    } else {
+      for (let i = 0; i < 8; i++) {
+        const z = 1.1 - i * 0.5, r = 0.3 - i * 0.012;
+        k.add(P4.blob(r, 1), i % 2 ? 3836474 : 4890698, { y: r * 0.95, z, sz: 1.6 }, { bone: 7, pivot: [0, 0, i], round: true });
+        k.add(P4.ball(0.05, 5, 4), 2779690, { x: (i % 2 ? 1 : -1) * r * 0.7, y: r * 1.4, z }, { bone: 7, pivot: [0, 0, i] });
+      }
+      k.add(P4.cyl(0.05, 0.07, 0.25, 6), 8022586, { y: 0.3, z: -2.85, rx: Math.PI / 2 }, { bone: 7, pivot: [0, 0, 8] });
+      const hp = [0, 0.7, 1.2];
+      k.add(P4.blob(0.3, 1), 4890698, { y: 0.75, z: 1.5, sx: 1, sy: 0.9, sz: 1.3 }, { bone: 5, pivot: hp, round: true });
+      for (const s of [-1, 1]) {
+        k.add(P4.ball(0.11, 8, 6), 16777215, { x: s * 0.13, y: 1.02, z: 1.65 }, { bone: 5, pivot: hp });
+        k.add(P4.ball(0.05, 6, 4), eye, { x: s * 0.13, y: 1.02, z: 1.76 }, { bone: 8, pivot: hp });
+      }
+    }
+  }
+
   // src/view/actors.js
   LOOK_SWITCHES.push(["actors", "People and creatures that move"]);
   var actorsOn = () => lookOn("actors") && lookOn("light");
@@ -21452,11 +21751,11 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (glow2)
       sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vGlow;").replace("#include <fog_fragment>", "#include <fog_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, vColor, vGlow);");
   }
-  function outlineActor(mesh2) {
-    if (!outlineOn(1) || mesh2.material.transparent) return;
-    const u = mesh2.material.userData.u;
+  function outlineActor(mesh3) {
+    if (!outlineOn(1) || mesh3.material.transparent) return;
+    const u = mesh3.material.userData.u;
     addOutline(
-      mesh2,
+      mesh3,
       1,
       60,
       outlineMat(60, (sh) => joints(sh, u, false), "actor")
@@ -21474,7 +21773,20 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }, g.kept = true, g);
   function personModel(cloth, skin, hat, hair, look2) {
     look2 = look2 || {};
-    const outfit = look2.outfit || "tunic", hairdo = look2.hairdo || "cap", trim = look2.trim || new THREE.Color(cloth).multiplyScalar(0.6).getHex(), key2 = ["p", cloth, skin, hat, hair, outfit, hairdo, look2.beard ? 1 : 0, look2.cloak ? 1 : 0, trim].join();
+    const outfit = look2.outfit || "tunic", hairdo = look2.hairdo || "cap", trim = look2.trim || new THREE.Color(cloth).multiplyScalar(0.6).getHex(), cat2 = look2.cat || null, key2 = [
+      "p",
+      cloth,
+      skin,
+      hat,
+      hair,
+      outfit,
+      hairdo,
+      look2.beard ? 1 : 0,
+      look2.cloak ? 1 : 0,
+      trim,
+      cat2 ? cat2.fur + ":" + cat2.eye : ""
+    ].join();
+    if (cat2) skin = cat2.fur;
     if (MODELS[key2]) return MODELS[key2];
     const k = kit(), dark = new THREE.Color(cloth).multiplyScalar(0.6).getHex(), legs = outfit === "coat" ? trim : dark, boot = 3811870, H2 = [0, 1.62, 0];
     for (const [sx, b] of [
@@ -21523,6 +21835,15 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       k.add(P4.ball(0.06, 6, 4), skin, { x: sx, y: 0.8, z: 0.03 }, { bone: b, pivot: [sx, 1.47, 0] });
     }
     k.add(P4.cyl(0.07, 0.08, 0.14, 6), skin, { y: 1.6 }, { bone: 0 });
+    if (cat2) {
+      catHead(k, cat2.fur, cat2.eye, H2, 1.8);
+      catTail(k, cat2.fur, 0.95);
+      if (hat) {
+        k.add(P4.cyl(0.25, 0.25, 0.04, 12), hat, { y: 1.97 }, { bone: 5, pivot: H2 });
+        k.add(P4.cone(0.13, 0.3, 10), hat, { y: 2.13 }, { bone: 5, pivot: H2 });
+      }
+      return MODELS[key2] = kept(k.build());
+    }
     k.add(P4.ball(0.16, 12, 9), skin, { y: 1.8, sy: 1.12 }, { bone: 5, pivot: H2 });
     k.add(P4.ball(0.035, 6, 4), skin, { y: 1.78, z: 0.16 }, { bone: 5, pivot: H2 });
     k.add(P4.ball(0.03, 6, 4), 1709072, { x: -0.055, y: 1.83, z: 0.14 }, { bone: 5, pivot: H2 });
@@ -21544,9 +21865,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     } else k.add(P4.cyl(0.165, 0.165, 0.06, 12), hair, { y: 1.76, z: -0.01 }, { bone: 5, pivot: H2 });
     return MODELS[key2] = kept(k.build());
   }
-  function creatureModel(form, eye) {
-    const key2 = ["c", form, eye].join();
+  function creatureModel(form, eye, cat2) {
+    const key2 = ["c", form, eye, cat2 ? "cat" : ""].join();
     if (MODELS[key2]) return MODELS[key2];
+    if (cat2) {
+      const kc = kit();
+      catCreature(kc, form, eye);
+      return MODELS[key2] = kept(kc.build());
+    }
     const k = kit(), W3 = 16777215, D3 = 12105912, H2 = [0, 0, 0];
     if (form === "hound") {
       k.add(P4.blob(0.5, 1), W3, { y: 0.85, sx: 0.62, sy: 0.6, sz: 1.5 }, { bone: 0 });
@@ -21620,21 +21946,27 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       hairdo: ["cap", "long", "bun", "braid", "bald", "cap"][Math.floor(r(2) * 6)],
       beard: r(3) < 0.3,
       cloak: r(4) < 0.25,
-      trim: TRIMS[Math.floor(r(5) * TRIMS.length)]
-    }, mesh2 = new THREE.Mesh(personModel(cloth, SKIN[s % 5], hat || 0, HAIR[(s >> 3) % 5], look2), actorMat());
-    mesh2.scale.set(0.9 + r(6) * 0.25, 0.92 + r(7) * 0.16, 0.9 + r(6) * 0.25);
-    mesh2.userData.actor = { kind: "person", seed: s };
-    outlineActor(mesh2);
-    return mesh2;
+      trim: TRIMS[Math.floor(r(5) * TRIMS.length)],
+      cat: feline() ? { fur: furOf(s), eye: eyeOf(s) } : null
+    }, mesh3 = new THREE.Mesh(personModel(cloth, SKIN[s % 5], hat || 0, HAIR[(s >> 3) % 5], look2), actorMat());
+    mesh3.scale.set(0.9 + r(6) * 0.25, 0.92 + r(7) * 0.16, 0.9 + r(6) * 0.25);
+    mesh3.userData.actor = { kind: "person", seed: s };
+    outlineActor(mesh3);
+    return mesh3;
   }
-  function creatureActor(form, color, eye) {
-    const ghost = form === "wight", mesh2 = new THREE.Mesh(
-      creatureModel(form, eye),
+  function creatureActor(form, color, eye, rare) {
+    const cat2 = feline();
+    if (cat2) {
+      if (rare === "docile") form = "dustbunny";
+      color = form === "dustbunny" ? 16777215 : new THREE.Color(color).lerp(new THREE.Color(16777215), 0.65).getHex();
+    }
+    const ghost = form === "wight", mesh3 = new THREE.Mesh(
+      creatureModel(form, eye, cat2),
       actorMat(ghost ? { color, transparent: true, opacity: 0.8, depthWrite: false } : { color })
     );
-    mesh2.userData.actor = { kind: form };
-    outlineActor(mesh2);
-    return mesh2;
+    mesh3.userData.actor = { kind: form };
+    outlineActor(mesh3);
+    return mesh3;
   }
   var LAST = /* @__PURE__ */ new Map();
   var live2 = [];
@@ -21646,7 +21978,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     prev = live2.slice();
     live2.length = 0;
   }
-  function track(g, mesh2, o) {
+  function track(g, mesh3, o) {
     const to = g.position.clone();
     let from = null;
     if (o.key && LAST.has(o.key)) {
@@ -21663,8 +21995,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     }
     const dist = from ? Math.hypot(from.pos.x - to.x, from.pos.z - to.z) : 0, a = {
       g,
-      mesh: mesh2,
-      u: mesh2.material.userData.u,
+      mesh: mesh3,
+      u: mesh3.material.userData.u,
       key: o.key || (o.pool ? o.pool + "#" + live2.length : null),
       anchor: to.clone(),
       to: to.clone(),
@@ -21689,7 +22021,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       g.position.copy(from.pos);
     }
     g.rotation.y = a.yaw;
-    mesh2.userData.key = a.key;
+    mesh3.userData.key = a.key;
     live2.push(a);
     return a;
   }
@@ -21814,6 +22146,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var PALE_BARK = 15131092;
   var under = (y) => 0.62 + 0.38 * y;
   var SHAPES = {
+    // C9: Super Feline Mode's cat trees, in place of every tall tree
+    cattree: { aspect: 4.5, make: (k, leaf, far) => catTree(k, leaf, far) },
     conifer: {
       aspect: 4.5,
       make(k, leaf, far) {
@@ -21921,7 +22255,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     [/fern|bracken/, "fern"],
     [/grass|reed|rush/, "grass"]
   ];
+  var TALL = /* @__PURE__ */ new Set(["conifer", "birch", "broad", "pine", "oak", "palm", "willow"]);
   function shapeOf2(forest) {
+    const s = plainShape(forest);
+    return feline() && TALL.has(s) ? "cattree" : s;
+  }
+  function plainShape(forest) {
     if (forest.tree.shape && SHAPES[forest.tree.shape]) return forest.tree.shape;
     const n = (forest.name || "").toLowerCase();
     for (const [re, s] of BY_NAME) if (re.test(n)) return s;
@@ -23609,10 +23948,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   });
   var HT = TOWN_TS / 3;
   var HH = R.W * HT / 2;
-  var TH = R.W * TOWN_TS / 2;
+  var TH2 = R.W * TOWN_TS / 2;
   var INSET = 0.45;
   var CEIL = 2.9;
-  var houseOrigin = (L5) => ({ x: (L5.ox + R.W / 6) * TOWN_TS - TH, z: (L5.oy + R.W / 6) * TOWN_TS - TH });
+  var houseOrigin = (L5) => ({ x: (L5.ox + R.W / 6) * TOWN_TS - TH2, z: (L5.oy + R.W / 6) * TOWN_TS - TH2 });
   var tileC = (i) => (i + 0.5) * HT - HH;
   var LOOKS2 = {
     // walls and floor by climate, then by the building
@@ -24147,7 +24486,11 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       return g;
     },
     ruin(s, site, at) {
-      if (ruinsOn() && at) return cachedModel("ruin" + s.seed + ":" + at.seed, () => ruinGroup(s, at.seed));
+      if (ruinsOn() && at)
+        return cachedModel(
+          "ruin" + s.seed + ":" + at.seed,
+          () => feline() ? cardboard(ruinGroup(s, at.seed), at.seed) : ruinGroup(s, at.seed)
+        );
       const g = new THREE.Group(), body = new THREE.Group(), hb = s.civ.habit, doom = s.civ.doom, col = new THREE.Color(R.trait(s, "style").stone);
       if (doom === "fire") col.multiplyScalar(0.3);
       if (doom === "plague") col.lerp(new THREE.Color(15132374), 0.35);
@@ -24210,7 +24553,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var noop = () => {
   };
   function cachedModel(key2, make) {
-    key2 += "|" + Q.label + "|" + JSON.stringify(SET.off);
+    key2 += "|" + Q.label + "|" + JSON.stringify(SET.off) + "|" + (TH.id || "");
     let m = MODELS3.get(key2);
     if (!m) {
       m = make();
@@ -25050,7 +25393,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         fog: false
       });
       if (actorsOn()) {
-        g.add(creatureActor(sp.form, col, eye.color.getHex()));
+        g.add(creatureActor(sp.form, col, eye.color.getHex(), sp.rare));
         if (fxOn()) g.add(blob({ hound: 0.9, brute: 1.4, wight: 0.7, serpent: 1.1 }[sp.form] || 1));
       } else if (sp.form === "hound")
         g.add(
@@ -25122,7 +25465,16 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         });
       }
     }
-    if (camp !== null) {
+    if (camp !== null && feline()) {
+      const [x, y, z] = at(camp, 5, 3), bed = catBed();
+      bed.position.set(x, y, z);
+      dynGroup.add(bed);
+      if (fxOn()) {
+        const f = fire2(1);
+        f.position.set(x - 3.5, ground(x - 3.5, z + 3) + 0.05, z + 3);
+        dynGroup.add(f);
+      }
+    } else if (camp !== null) {
       const [x, y, z] = at(camp, 5, 3), t2 = new THREE.Mesh(new THREE.ConeGeometry(3, 3.6, 4), std(14262858));
       t2.position.set(x, y + 1.8, z);
       if (fxOn()) {
@@ -25416,6 +25768,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (on3 && !dome) {
       dome = makeDome();
       sunDisc = disc(70, 16773832);
+      sunDisc.userData.cat = sunWhiskers(sunDisc, 70, 16773832);
       moonDisc = disc(40, 14673648);
       scene.add(dome, sunDisc, moonDisc);
     }
@@ -25428,6 +25781,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         sunDisc.position.copy(camera.position).add(d);
         sunDisc.lookAt(camera.position);
         sunDisc.material.opacity = storm ? 0 : Math.max(0, Math.min(1, day * 1.5));
+        sunDisc.userData.cat.visible = feline();
+        for (const o of sunDisc.userData.cat.children) o.material.opacity = sunDisc.material.opacity;
         moonDisc.position.copy(camera.position).sub(d.setY(Math.abs(d.y)));
         moonDisc.lookAt(camera.position);
         moonDisc.material.opacity = storm ? 0 : Math.max(0, 0.9 - day * 1.6);
@@ -26000,9 +26355,6 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     }
   }
 
-  // src/view/themeflag.js
-  var TH2 = { id: null };
-
   // src/view/theme.js
   var ORIG = /* @__PURE__ */ new WeakMap();
   var ATTRS = ["placeholder", "title", "aria-label"];
@@ -26011,7 +26363,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   var baseTitle = null;
   var listeners2 = [];
   var onThemeChange = (fn) => listeners2.push(fn);
-  var T4 = (text) => TH2.id ? R.themed(text, TH2.id) : text;
+  var T4 = (text) => TH.id ? R.themed(text, TH.id) : text;
   var skip = (n) => {
     const p = n.nodeType === 3 ? n.parentNode : n;
     return !p || /^(SCRIPT|STYLE|TEXTAREA)$/.test(p.nodeName) || p.closest && p.closest("[data-notheme]");
@@ -26050,7 +26402,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   function watch() {
     if (observer || typeof MutationObserver === "undefined") return;
     observer = new MutationObserver((list) => {
-      if (!TH2.id) return;
+      if (!TH.id) return;
       for (const m of list) {
         if (m.type === "characterData") turnText(m.target);
         else if (m.type === "attributes") turnAttrs(m.target);
@@ -26089,9 +26441,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   function syncTheme() {
     const id = V.S ? R.themeOf(V.S) : null;
-    if (id === TH2.id) return false;
-    const was = TH2.id;
-    TH2.id = id;
+    if (id === TH.id) return false;
+    const was = TH.id;
+    TH.id = id;
     watch();
     document.body.classList.toggle("theme-feline", id === "feline");
     turnAll();
@@ -26118,7 +26470,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     { fur: "#c9b0e8", dark: "#8a68c0", belly: "#f2e8ff", pattern: "tabby" }
     // a lilac one, for fun
   ];
-  var EYES = ["#7ad04a", "#f0c030", "#4ab0e8", "#e8803a"];
+  var EYES2 = ["#7ad04a", "#f0c030", "#4ab0e8", "#e8803a"];
   var CAPES = ["#e8344a", "#3a6ae8", "#f0c020", "#9a3ae8", "#20b878", "#ff70b0"];
   var EMOJI = ["\u{1F431}", "\u{1F63A}", "\u{1F638}", "\u{1F63B}", "\u{1F639}", "\u{1F408}", "\u{1F408}\u200D\u2B1B", "\u{1F43E}", "\u{1F9F6}", "\u{1F41F}", "\u{1F42D}", "\u{1F380}", "\u{1F451}", "\u{1F514}", "\u{1F95B}", "\u{1F420}", "\u{1FAB6}", "\u{1F4E6}"];
   function cat(c, o, t2) {
@@ -26467,7 +26819,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         size: s,
         seed: rnd2() * 10,
         coat: pick(COATS),
-        eye: pick(EYES),
+        eye: pick(EYES2),
         cape: pick(CAPES),
         color: pick(["#ff5a8a", "#5ab0ff", "#ffd23a", "#8af06a", "#c07aff", "#ff8a3a", "#f0f0f0"]),
         hat: pick(["crown", "bow", "bell", null, null]),

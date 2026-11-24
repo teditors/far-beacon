@@ -1,6 +1,8 @@
 /* Light and weather, behind the quality setting (quality.js): a sky that darkens toward the top with a sun and a moon
    in it, and rain, snow, hail, dust, ash or falling stars while a storm blows. Each is one mesh, updated each frame
    from numbers the frame already has; on Low there is none of it and the sky is the flat colour of the fog. */
+import { feline } from './themeflag.js';
+import { sunWhiskers } from './catworld.js';
 import { P, R, V } from './ctx.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
 import { camera, scene } from './scene.js';
@@ -246,6 +248,7 @@ function updateSky(skyColor, sunPos, day, storm, dt) {
   if (on && !dome) {
     dome = makeDome();
     sunDisc = disc(70, 0xfff2c8);
+    sunDisc.userData.cat = sunWhiskers(sunDisc, 70, 0xfff2c8); // C9: the sun has whiskers in Super Feline Mode
     moonDisc = disc(40, 0xdfe6f0);
     scene.add(dome, sunDisc, moonDisc);
   }
@@ -261,6 +264,8 @@ function updateSky(skyColor, sunPos, day, storm, dt) {
       sunDisc.position.copy(camera.position).add(d);
       sunDisc.lookAt(camera.position);
       sunDisc.material.opacity = storm ? 0 : Math.max(0, Math.min(1, day * 1.5));
+      sunDisc.userData.cat.visible = feline();
+      for (const o of sunDisc.userData.cat.children) o.material.opacity = sunDisc.material.opacity;
       moonDisc.position.copy(camera.position).sub(d.setY(Math.abs(d.y)));
       moonDisc.lookAt(camera.position);
       moonDisc.material.opacity = storm ? 0 : Math.max(0, 0.9 - day * 1.6);

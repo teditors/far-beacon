@@ -8,6 +8,8 @@
 import { P, kit, kitMat, swayPatch, swaying } from './kit.js';
 import { addOutline, outlineMat, outlineOn } from './outline.js';
 import { LOOK_SWITCHES, lookOn } from './quality.js';
+import { feline } from './themeflag.js';
+import { catTree } from './catworld.js';
 
 LOOK_SWITCHES.push(['plants', 'Trees with shapes']);
 
@@ -18,6 +20,8 @@ const BARK = 0x5b4532,
 /* Each shape is built at its usual proportions, `aspect` tall for 1 wide (radius), then squashed to unit height, so
    that the instance's scale (width, height, width) from the rules' numbers gives it back its proportions. */
 const SHAPES = {
+  // C9: Super Feline Mode's cat trees, in place of every tall tree
+  cattree: { aspect: 4.5, make: (k, leaf, far) => catTree(k, leaf, far) },
   conifer: {
     aspect: 4.5,
     make(k, leaf, far) {
@@ -128,7 +132,12 @@ const BY_NAME = [
   [/fern|bracken/, 'fern'],
   [/grass|reed|rush/, 'grass'],
 ];
+const TALL = new Set(['conifer', 'birch', 'broad', 'pine', 'oak', 'palm', 'willow']);
 function shapeOf(forest) {
+  const s = plainShape(forest);
+  return feline() && TALL.has(s) ? 'cattree' : s;
+}
+function plainShape(forest) {
   if (forest.tree.shape && SHAPES[forest.tree.shape]) return forest.tree.shape;
   const n = (forest.name || '').toLowerCase();
   for (const [re, s] of BY_NAME) if (re.test(n)) return s;

@@ -12,6 +12,8 @@ import { P as PT, kit } from './kit.js';
 import { LOOK_SWITCHES, lookOn } from './quality.js';
 import { toonMat } from './toon.js';
 import { addOutline, outlineMat, outlineOn } from './outline.js';
+import { feline } from './themeflag.js';
+import { catCreature, catHead, catTail, eyeOf, furOf } from './catkit.js';
 
 LOOK_SWITCHES.push(['actors', 'People and creatures that move']);
 const actorsOn = () => lookOn('actors') && lookOn('light');
@@ -91,7 +93,21 @@ function personModel(cloth, skin, hat, hair, look) {
   const outfit = look.outfit || 'tunic',
     hairdo = look.hairdo || 'cap',
     trim = look.trim || new THREE.Color(cloth).multiplyScalar(0.6).getHex(),
-    key = ['p', cloth, skin, hat, hair, outfit, hairdo, look.beard ? 1 : 0, look.cloak ? 1 : 0, trim].join();
+    cat = look.cat || null, // C9: { fur, eye } puts a cat's head, paws and tail on them (catkit.js)
+    key = [
+      'p',
+      cloth,
+      skin,
+      hat,
+      hair,
+      outfit,
+      hairdo,
+      look.beard ? 1 : 0,
+      look.cloak ? 1 : 0,
+      trim,
+      cat ? cat.fur + ':' + cat.eye : '',
+    ].join();
+  if (cat) skin = cat.fur;
   if (MODELS[key]) return MODELS[key];
   const k = kit(),
     dark = new THREE.Color(cloth).multiplyScalar(0.6).getHex(),
@@ -145,6 +161,15 @@ function personModel(cloth, skin, hat, hair, look) {
     k.add(PT.ball(0.06, 6, 4), skin, { x: sx, y: 0.8, z: 0.03 }, { bone: b, pivot: [sx, 1.47, 0] }); // hand
   }
   k.add(PT.cyl(0.07, 0.08, 0.14, 6), skin, { y: 1.6 }, { bone: 0 });
+  if (cat) {
+    catHead(k, cat.fur, cat.eye, H, 1.8);
+    catTail(k, cat.fur, 0.95);
+    if (hat) {
+      k.add(PT.cyl(0.25, 0.25, 0.04, 12), hat, { y: 1.97 }, { bone: 5, pivot: H });
+      k.add(PT.cone(0.13, 0.3, 10), hat, { y: 2.13 }, { bone: 5, pivot: H });
+    }
+    return (MODELS[key] = kept(k.build()));
+  }
   k.add(PT.ball(0.16, 12, 9), skin, { y: 1.8, sy: 1.12 }, { bone: 5, pivot: H });
   k.add(PT.ball(0.035, 6, 4), skin, { y: 1.78, z: 0.16 }, { bone: 5, pivot: H }); // nose
   k.add(PT.ball(0.03, 6, 4), 0x1a1410, { x: -0.055, y: 1.83, z: 0.14 }, { bone: 5, pivot: H });
@@ -168,9 +193,15 @@ function personModel(cloth, skin, hat, hair, look) {
 }
 // The creatures, one model for each form, white where the creature's own tint goes and coloured where it should not
 // change (eyes, teeth, claws). The eyes carry the temper's colour, so they are made per colour.
-function creatureModel(form, eye) {
-  const key = ['c', form, eye].join();
+function creatureModel(form, eye, cat) {
+  const key = ['c', form, eye, cat ? 'cat' : ''].join();
   if (MODELS[key]) return MODELS[key];
+  if (cat) {
+    // C9: what a cat fears (catkit.js)
+    const kc = kit();
+    catCreature(kc, form, eye);
+    return (MODELS[key] = kept(kc.build()));
+  }
   const k = kit(),
     W = 0xffffff,
     D = 0xb8b8b8,
@@ -258,6 +289,7 @@ function personActor(cloth, hat, seed, outfit) {
       beard: r(3) < 0.3,
       cloak: r(4) < 0.25,
       trim: TRIMS[Math.floor(r(5) * TRIMS.length)],
+      cat: feline() ? { fur: furOf(s), eye: eyeOf(s) } : null,
     },
     mesh = new THREE.Mesh(personModel(cloth, SKIN[s % 5], hat || 0, HAIR[(s >> 3) % 5], look), actorMat());
   mesh.scale.set(0.9 + r(6) * 0.25, 0.92 + r(7) * 0.16, 0.9 + r(6) * 0.25);
@@ -265,10 +297,15 @@ function personActor(cloth, hat, seed, outfit) {
   outlineActor(mesh);
   return mesh;
 }
-function creatureActor(form, color, eye) {
+function creatureActor(form, color, eye, rare) {
+  const cat = feline();
+  if (cat) {
+    if (rare === 'docile') form = 'dustbunny'; // C9: the docile ones are dust bunnies
+    color = form === 'dustbunny' ? 0xffffff : new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.65).getHex(); // the foes' own colours show
+  }
   const ghost = form === 'wight',
     mesh = new THREE.Mesh(
-      creatureModel(form, eye),
+      creatureModel(form, eye, cat),
       actorMat(ghost ? { color, transparent: true, opacity: 0.8, depthWrite: false } : { color }),
     );
   mesh.userData.actor = { kind: form };

@@ -160,6 +160,35 @@ SHOTS = [
     ('other-world-2', 36, {'doors': 1}, REALM % 'S.time = 17.5 * 60 - 360;'),
     ('other-world-3', 37, {'doors': 1}, REALM % 'S.time = 10 * 60 - 360;'),
 ]
+# commission 9: Super Feline Mode (python3 tools/look.py feline): the same places with the mode on
+FORM = """Rules.travelTo(S, 'overworld', 18, 18); """ + DAY + """ g.refresh(); const c = S.creatures.find((c) => !c.bound); if (!c) return false;
+  const sp = S.species[c.sp]; sp.form = %r; sp.rare = %s; c.cool = 999; S.player.x = c.x; S.player.y = Math.min(35, c.y + 1); g.refresh();
+  let a = null; g.scene.traverse((o) => { if (!a && o.userData.actor && o.userData.actor.kind !== 'person') a = o; }); if (!a) return false;
+  const w = new THREE.Vector3(); a.parent.getWorldPosition(w); g.P.x = w.x + %s; g.P.z = w.z + %s; g.P.yaw = Math.atan2(-(w.x - g.P.x), -(w.z - g.P.z)); g.P.pitch = %s; await wait(2500);"""
+CAMP = """Rules.travelTo(S, 'overworld', 18, 18); %s S.camp = { area: S.area, i: S.player.y * 36 + S.player.x }; g.refresh();
+  const bx = (S.player.x + 0.5) * 28 - 504 + 5, bz = (S.player.y + 0.5) * 28 - 504 + 3; g.P.x = bx + 2; g.P.z = bz + 9;
+  g.P.yaw = Math.atan2(-(bx - 1.5 - g.P.x), -(bz + 1 - g.P.z)); g.P.pitch = -0.32; await wait(800);"""
+BEACON = """const b = Rules.findSite(S, 'beacon'); if (!b) return false; Rules.travelTo(S, b.area, b.x, Math.min(35, b.y + 3)); %s g.refresh(); g.buildStatic(); g.refresh();
+  const cx = (b.x + 0.5) * 28 - 504, cz = (b.y + 0.5) * 28 - 504; g.P.x = cx + 10; g.P.z = cz + 60; g.P.yaw = Math.atan2(-(cx - g.P.x), -(cz - g.P.z)); g.P.pitch = 0.22; await wait(800);"""
+SUN = region('(0, 1)', 'S.time = 17.2 * 60 - 360;') + """ await wait(500); let s = null; g.scene.traverse((o) => { if (!s && o.userData.cat) s = o; }); if (!s) return false;
+  const d = s.position.clone().sub(new THREE.Vector3(g.P.x, s.position.y - 1, g.P.z)); d.y = s.position.y - (g.P.y || 0); d.normalize(); g.P.yaw = Math.atan2(-d.x, -d.z); g.P.pitch = Math.asin(Math.max(-0.2, Math.min(0.6, d.y))) - 0.05; await wait(600);"""
+FELINE_SHOTS = [
+    ('feline-person-close', 11, {}, town(0, 'S.time = 16 * 60 - 360;') + PERSON % (0.75, 0.75, 0.0)),
+    ('feline-person-near', 11, {}, town(0, 'S.time = 16 * 60 - 360;') + PERSON % (3.0, 3.0, -0.1)),
+    ('feline-street', 11, {}, town(0, 'S.time = 16 * 60 - 360;') + "g.P.z -= 46; g.P.x += 3; g.P.yaw = -0.5; g.P.pitch = 0.05; await wait(1500);"),
+    ('feline-town', 222, {}, town(1, DAY)),
+    ('feline-dog', 11, {}, FORM % ('hound', 'null', 2.4, 4.6, -0.25)),
+    ('feline-vacuum', 11, {}, FORM % ('brute', 'null', 3.5, 7.5, -0.12)),
+    ('feline-spray-bottle', 11, {}, FORM % ('wight', 'null', 2.8, 6.0, -0.05)),
+    ('feline-cucumber', 11, {}, FORM % ('serpent', 'null', 5.5, 1.5, -0.3)),
+    ('feline-dust-bunny', 11, {}, FORM % ('hound', "'docile'", 1.4, 3.0, -0.35)),
+    ('feline-camp', 11, {}, CAMP % NIGHT),
+    ('feline-camp-day', 11, {}, CAMP % DAY),
+    ('feline-beacon', 11, {}, BEACON % DAY),
+    ('feline-ruin', 11, {}, RUIN % DAY),
+    ('feline-sun', 11, {}, SUN),
+]
+if SET == 'feline': SHOTS = FELINE_SHOTS
 async def main():
     os.makedirs(OUT, exist_ok=True)
     only = [a for a in sys.argv[3:]]
@@ -175,17 +204,18 @@ async def main():
         total = 0
         for (name, seed, setting, js) in SHOTS:
             if only and name not in only: continue
-            ok = await pg.evaluate("""async ([seed, set, js]) => {
+            ok = await pg.evaluate("""async ([seed, set, js, feline]) => {
               const g = window.__g, wait = (ms) => new Promise((r) => setTimeout(r, ms));
               g.newWorld(seed, set); document.querySelectorAll('#modal-close').forEach((b) => b.click());
               const S = g.S; S.weather.storm = false; S.weather.changeAt = 1e9; Rules.setGodMode(S, true);
+              if (feline) { Rules.setTheme(S, 'feline'); g.refresh(); await wait(300); const c = document.getElementById('catsplash'); if (c) c.remove(); }
               S.creatures.forEach((c) => (c.cool = 999));
               const r = await (new Function('g', 'S', 'wait', 'return (async () => {' + js + '})()'))(g, S, wait);
               document.getElementById('modal').hidden = true;
               // the picture only: hide the panels and buttons
               for (const e of document.body.children) if (!e.querySelector('canvas') && e.tagName !== 'CANVAS') e.style.visibility = 'hidden';
               return r !== false;
-            }""", [seed, setting, js])
+            }""", [seed, setting, js, SET == 'feline'])
             if not ok: print('  skipped', name); continue
             await pg.wait_for_timeout(1200)
             path = os.path.join(OUT, name + '.jpg')

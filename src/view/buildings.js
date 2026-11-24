@@ -9,6 +9,8 @@ import { P, WIND, kit, kitMat } from './kit.js';
 import { addOutline } from './outline.js';
 import { surface } from './paint.js';
 import { LOOK_SWITCHES, Q, lookOn } from './quality.js';
+import { feline } from './themeflag.js';
+import { roofEars } from './catworld.js';
 
 LOOK_SWITCHES.push(['towns', 'Towns built in their own style']);
 const townsOn = () => lookOn('towns') && lookOn('light');
@@ -477,6 +479,7 @@ function roof(K, st, r, cx, cz, w, d, wallH, wcol, kind) {
     }
   }
   K.wood.add(P.box(0.3, 0.3, len + 0.1), st.trim, { x: cx, y: wallH + h + 0.18, z: cz, ry }, { uv: 2 });
+  if (feline()) roofEars(K, cx, cz, wallH + h, len, along, col); // C9: cat ears on the ridge
 }
 // Round tents (the steppe): as many as fit along the block, each with a dome of felt and a smoke hole.
 function tents(K, st, r, b) {
