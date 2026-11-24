@@ -1,3 +1,74 @@
+# Commission 9
+
+The brief (COMMISSION.md): Super Feline Mode. The same game, but every word, face, foe and sound is about cats, so that
+nobody could doubt the developer has a troubling obsession with them. A theme layer rather than edits everywhere; a
+switch; a rare roll that makes a world feline whether asked or not. Pieces, newest first below.
+
+## C9.1: the theme layer, every word catted, and a splash
+
+**What it is.** A theme is content: `src/content/feline.js` holds Super Feline Mode as a dictionary (whole texts,
+phrases, words), a list of name styles and a few flourishes. `src/rules/theme.js` turns any text into the theme's
+words (`R.themed(text, id)`: pure, cached, tested in Node) and says which theme a world wears (`R.themeOf(s)`).
+`src/view/theme.js` is the one place it is applied: a watcher on the page catches every piece of text as it is shown
+(HUD, log, every panel, button, option, placeholder and the page's title) and puts the cat words in its place, keeping
+the original beside it, so turning the mode off puts every word back. The screens never know a theme exists.
+
+How a text is turned: a whole-text match first ("The tyrant in the sky" is "The Vacuum Tyrant on the Top Shelf"),
+then phrases ("the well" is "the food bowl", "light a fire" is "find a sunbeam"), then each word (water is kibble,
+plurals and possessives found by themselves, a capital kept), then names: a word built from the syllables content
+makes names from (towns, elders, gods, lost peoples) gets a cat name in one of nine styles, the same every time
+("Ashford" becomes "Ashfordpaws" or "Sir Ashford" or "Mewashford"). "A" and "an" are mended ("an elf" is "a Siamese").
+A text in which nothing changed gets a flourish ("Mrrp.", "*slow blink*", "Prrrt?"), so nothing the player reads is
+left as it was.
+
+**What it changes in play.** Nothing in the rules: the mode is words, and a world played with it on and off is the
+same world (tested). What the player sees: every race a breed (Tabby, Munchkin, Siamese, Singapura, Half-alley-cat,
+Scottish Fold, Norwegian Forest Cat, Turkish Van, Abyssinian, Maine Coon, Sphynx, Savannah, Bengal, Bombay, Stray,
+Smoke Persian, Cornish Rex, Ragdoll, British Shorthair, Somali, Fishing Cat...), every class catted (Scrapcat,
+Rangefur, Clawgue, Purrist, Whiskard, Meowladin should one ever appear, Furbarian, Meownk, Caterwauler, Purrchant,
+Necromeowncer, Litter-scooper...), abilities (Swat, Pawsterity, Catstitution, Curiosity, Whiskerdom, Purrsonality),
+the meters (Fluff, Zoomies, Kibble, Purr, Pep), catnip for fuel, treats for coin, naps for rest, a cat bed for the
+tent and a cardboard box for shelter, sunbeams for fires, the Red Dot for the beacon, the Laser Pointer for the relic,
+a tin opener for the key and a tuna tin for the locked place. Foes: the Woofer (the dog next door), the Vacuum Cleaner,
+the Spray Bottle and the Cucumber; the docile ones are dust bunnies. Storms are hissy fits, blizzards furricanes, rain a hairball shower, dust storms litter
+storms, falling stars falling laser dots. Towns are colonies with a Top Cat, a Cat Café and a Pet Shop. The troubles:
+the Great Vacuum, a kitten up a tree, the Bath Curse, the trip to the Vet, the Vacuum King under the Sofa, the Secret
+Pudding, the Crunchy Cat Cookies delivery, the Cult of the Cucumber, indoor cats against outdoor cats. The legendary
+treasures: the Golden Feather Wand, the Infinite Box, the Bottomless Bowl, the Ninth Life, the Warm Laptop of Legend.
+
+**Turning it on.** On the new world screen ("Super Feline Mode (everything is cats)") and in Menu, Settings ("Super
+Feline Mode, for this world"); the choice is `s.theme` ('feline', or 'none' to refuse it), optional, so no save
+migration. And about one world in fifty simply is feline, rolled from the seed on its own stream, so nothing else in
+the world changes and nothing is stored: switch `felineroll` (Tinker, and `NO=felineroll`). The journal says which.
+
+**The splash** (`view/catsplash.js`). When a world turns feline (chosen, toggled on, rolled, or a feline run loaded),
+a full-screen party: cats in nine coats (ginger and grey tabbies, tuxedo, calico, Siamese points, black, cream, brown,
+and a lilac one) flying in superhero capes with tails waving, spinning cat heads with crowns, bows, bells and now and
+then sunglasses, slow blinks, balls of yarn unspooling, fish, mice with twitching tails, feathers, red laser dots
+darting about, emoji cats and toys, paw prints raining down over a turning pink sunburst, and SUPER FELINE MODE in
+wobbling rainbow letters. Seven seconds or a tap. All drawn in code. With reduced motion asked for, a still card.
+
+**The page.** In the mode the panels take a pink trim and a faint pattern of paw prints, the top card grows two cat
+ears, and every panel's title starts with =^.^=.
+
+**Tests.** `tests/theme.test.js` (in `check.js`): every string in content, every string literal in the rules and the
+screens (ui.js, shell.html), the log of 25 worlds played at random (over 600 lines), the goal line, the journal's notes
+and every creature's and town's name is turned, and none of them may still hold a word from the base game's names
+(every word in a race, class, item, creature, place, weather or trouble name, and the core words: water, fire, tent,
+camp, rest...) unless the theme itself uses it. With no theme every text is exactly itself. Also: about 40 of 2000
+worlds roll feline, `NO=felineroll` stops it, a rolled world loads feline, choosing and refusing work, and the same
+moves give the same world with the mode on and off. The browser test chooses the mode on the new world screen, sees
+the splash and taps it away, finds Kibble, Purr, Meownu and the Red Dot on the screen and no Water or Warmth, then
+turns the mode off in Settings and finds every word back. (It also refuses the mode for its own walk, since a world
+it rolls could be feline.) The Almanac has a section listing every renaming.
+
+**Choices made.** A watcher on the page rather than a call at each of the hundreds of places text is set: the brief
+asks for a theme layer, and this is the one place every word passes. Names are turned by their syllables rather than
+replaced, so a cat name still tells two towns apart. Parenthetical asides ("box (IF I FITS)", "vase (soon to be
+knocked over)") on household things, where a cat's opinion is the joke.
+
+**Commit and switch.** C9.1, switches: the world's `theme` (Settings, new world screen) and `felineroll`.
+
 # Commission 8
 
 The brief (COMMISSION.md): character. Surfaces you can tell apart at a glance and no visible tiling, roads that look

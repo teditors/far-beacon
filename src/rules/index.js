@@ -171,8 +171,14 @@ import { HOUSE_SCALE, buildingsOf, doorAt, houseLayout, houseOf, interiorsOn } f
 import './theft.js';
 import { secretOf } from './secrets.js';
 import { steadAll } from './steads.js'; // last: hamlets become towns once every other town has its place
+import { setTheme, themeById, themeOf, themeRolled, themed } from './theme.js'; // commission 9: words only
 
 const api = {
+  setTheme,
+  themeById,
+  themeOf,
+  themeRolled,
+  themed,
   secretOf,
   steadAll,
   HOUSE_SCALE,

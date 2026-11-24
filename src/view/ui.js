@@ -8,6 +8,8 @@ import { PF, autoQuality } from './perf.js';
 import { NOW } from './mood.js';
 import { toHex } from './look.js';
 import { setVolume, soundState } from './sound.js';
+import { syncTheme, onThemeChange } from './theme.js';
+import { catSplash } from './catsplash.js';
 
 /* ---------- HUD and panels ---------- */
 function meter(id, v, max, txt) {
@@ -99,7 +101,23 @@ function render() {
       );
     }
   }
+  syncTheme(); // commission 9: the world's theme, on every word (view/theme.js)
 }
+// A world that turns feline: the scene is rebuilt with cat faces and cat foes, and a splash celebrates it.
+onThemeChange((id, was) => {
+  guard('redrawing for the theme', () => {
+    buildStatic();
+    buildDynamic();
+  });
+  if (id === 'feline' && !was) {
+    const t = R.themeById(id),
+      rolled = R.themeRolled(V.S);
+    catSplash({
+      title: 'SUPER FELINE MODE',
+      sub: rolled ? t.announceRolled + '. ' + t.rolledNote : t.announce + '. ' + t.chosenNote,
+    });
+  }
+});
 function openModal(title, body) {
   $('modal-title').textContent = title;
   const b = $('modal-body');
@@ -1095,8 +1113,11 @@ function openNewWorld() {
       choose('trouble', 'The great trouble', troubles, cur('trouble')),
     ]),
   ]);
+  const felineIn = el('input', { type: 'checkbox', id: 'nw-feline' });
+  felineIn.checked = !!lastSet.feline;
   openModal('A new world', [
     el('div', { cls: 'row' }, [el('label', { for: 'nw-seed', text: 'Seed' }), seedIn]),
+    el('div', { cls: 'row' }, [el('label', { for: 'nw-feline', text: 'Super Feline Mode (everything is cats)' }), felineIn]),
     details,
     el('div', { cls: 'row' }, [
       btn(
@@ -1109,6 +1130,7 @@ function openNewWorld() {
             else if (k === 'size' || k === 'trouble') set[k] = f.value;
             else set[k] = parseFloat(f.value);
           }
+          set.feline = felineIn.checked;
           lastSet = set;
           start(parseInt(seedIn.value, 10) || 1, set);
         },
@@ -1412,6 +1434,20 @@ function openMenu() {
       return el('ul', { cls: 'items' }, [
         el('li', { cls: 'item' }, [el('label', { for: 'perf-meter', text: 'Show the performance meter' }), cb]),
         el('li', { cls: 'item' }, [el('label', { for: 'battery', text: 'Save battery: 30 frames a second' }), bat]),
+      ]);
+    })(),
+    // Super Feline Mode for this world (commission 9): words, faces, foes and sounds; the rules are untouched
+    (() => {
+      const cb = el('input', { type: 'checkbox', id: 'feline' });
+      cb.checked = R.themeOf(V.S) === 'feline';
+      cb.addEventListener('change', () => {
+        R.setTheme(V.S, cb.checked ? 'feline' : null);
+        save();
+        render();
+        openMenu();
+      });
+      return el('ul', { cls: 'items' }, [
+        el('li', { cls: 'item' }, [el('label', { for: 'feline', text: 'Super Feline Mode, for this world' }), cb]),
       ]);
     })(),
     // sound: music and effects volumes, and a mute (sound.js)

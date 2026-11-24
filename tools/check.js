@@ -13,6 +13,7 @@ const steps = [
   ['plots', 'node', ['tests/plots.test.js']],
   ['c4', 'node', ['tests/c4.test.js']],
   ['explore', 'node', ['tests/explore.js']],
+  ['theme', 'node', ['tests/theme.test.js']],
   ['almanac', 'node', ['tools/almanac.js', '--check']],
 ];
 if (!quick) steps.push(['playtest', 'node', ['tests/playtest.js', '40']], ['browser', 'python3', ['tests/smoke.py']]);

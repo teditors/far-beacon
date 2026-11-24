@@ -43,6 +43,7 @@ import looks from './looks.js';
 import music from './music.js';
 import things from './things.js';
 import rooms from './rooms.js';
+import feline from './feline.js';
 
 export const CONTENT = Object.assign(
   {},
@@ -89,6 +90,7 @@ export const CONTENT = Object.assign(
   music,
   things,
   rooms,
+  feline,
 );
 // Rooms by use (C8.5) adds its furniture, small things and rooms to the things' own lists, so every piece sees them.
 {

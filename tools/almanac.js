@@ -1278,6 +1278,57 @@ section('Wayfarers', ['wayfarers'], () => {
   line();
 });
 
+section('Themes: Super Feline Mode', ['themes'], () => {
+  for (const t of C.themes) {
+    const T = (x) => R.themed(x, t.id);
+    line(
+      '**' +
+        t.name +
+        '** (`' +
+        t.id +
+        '`): the same rules, every word in its own. Rolled by itself in about 1 world in ' +
+        Math.round(1 / t.rare) +
+        ' (switch `' +
+        t.id +
+        'roll`). ' +
+        Object.keys(t.exact).length +
+        ' whole texts, ' +
+        Object.keys(t.phrases).length +
+        ' phrases and ' +
+        Object.keys(t.words).length +
+        ' words are renamed; names built from content get a name in its style (' +
+        t.nameStyles.join(', ') +
+        '); a text with nothing renamed gets a flourish (' +
+        t.flourishes.join(' ') +
+        ').',
+    );
+    line();
+    table(
+      ['Race', 'As a cat'],
+      C.races.filter((r) => !/-/.test(r.id)).map((r) => [r.name, T(r.name)]),
+    );
+    table(
+      ['Class', 'As a cat'],
+      C.classes.map((c) => [c.name, T(c.name)]),
+    );
+    table(
+      ['Creature', 'As a cat sees it'],
+      C.creature.forms.map((f) => [f.name, T(f.name)]),
+    );
+    table(
+      ['Trouble', 'As a cat'],
+      C.plots.kinds.map((k) => [k.name, T(k.name)]),
+    );
+    table(
+      ['Item', 'As a cat'],
+      C.bases.map((b) => [b.name, T(b.name)]),
+    );
+    table(['Whole text', 'Becomes'], Object.entries(t.exact));
+    table(['Phrase', 'Becomes'], Object.entries(t.phrases));
+    table(['Word', 'Becomes'], Object.entries(t.words));
+  }
+});
+
 /* ---------------- writing it out ---------------- */
 
 function render() {

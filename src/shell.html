@@ -457,6 +457,129 @@
       input[type='range'] {
         accent-color: var(--accent);
       }
+      /* Super Feline Mode (commission 9): a pink trim and paw prints on every panel, cat ears on the panels' heads */
+      body.theme-feline {
+        --accent: #ff8ac0;
+        --line: #6a4a66;
+        --panel: rgba(40, 24, 40, 0.82);
+        --solid: #2e2032;
+        --water: #e8c890;
+        --warm: #ff9ec7;
+      }
+      body.theme-feline .card,
+      body.theme-feline .sheet,
+      body.theme-feline .act {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='%23ff9ec7' fill-opacity='0.09'%3E%3Cellipse cx='20' cy='26' rx='7' ry='6'/%3E%3Cellipse cx='12' cy='16' rx='2.6' ry='3.4'/%3E%3Cellipse cx='18' cy='11' rx='2.6' ry='3.4'/%3E%3Cellipse cx='24' cy='11' rx='2.6' ry='3.4'/%3E%3Cellipse cx='29' cy='16' rx='2.6' ry='3.4'/%3E%3Cellipse cx='46' cy='54' rx='7' ry='6'/%3E%3Cellipse cx='38' cy='44' rx='2.6' ry='3.4'/%3E%3Cellipse cx='44' cy='39' rx='2.6' ry='3.4'/%3E%3Cellipse cx='50' cy='39' rx='2.6' ry='3.4'/%3E%3Cellipse cx='55' cy='44' rx='2.6' ry='3.4'/%3E%3C/g%3E%3C/svg%3E");
+      }
+      body.theme-feline .sheet-head h2::before {
+        content: '=^.^= ';
+        color: var(--accent);
+      }
+      body.theme-feline .card {
+        position: relative;
+      }
+      body.theme-feline #hud .card:first-child::before,
+      body.theme-feline #hud .card:first-child::after {
+        content: '';
+        position: absolute;
+        top: -9px;
+        width: 0;
+        height: 0;
+        border-left: 9px solid transparent;
+        border-right: 9px solid transparent;
+        border-bottom: 10px solid var(--line);
+      }
+      body.theme-feline #hud .card:first-child::before {
+        left: 14px;
+      }
+      body.theme-feline #hud .card:first-child::after {
+        right: 14px;
+      }
+      /* the splash */
+      #catsplash {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        cursor: pointer;
+        overflow: hidden;
+        transition: opacity 0.4s;
+      }
+      #catsplash.cs-out {
+        opacity: 0;
+      }
+      #catsplash canvas {
+        position: absolute;
+        inset: 0;
+      }
+      #catsplash .cs-card {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(92vw, 640px);
+        padding: 18px 16px 14px;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.82);
+        border: 4px solid #ff4f9a;
+        border-radius: 28px;
+        box-shadow:
+          0 8px 0 #c0306e,
+          0 12px 40px rgba(120, 0, 60, 0.35);
+        color: #6a1a44;
+        animation: cs-bob 1.6s ease-in-out infinite;
+      }
+      #catsplash h1 {
+        margin: 0 0 6px;
+        font: 700 clamp(28px, 8vw, 58px) / 1.05 var(--font-display);
+        letter-spacing: 0.02em;
+      }
+      #catsplash .cs-word {
+        display: inline-block;
+        white-space: nowrap;
+      }
+      #catsplash .cs-word span {
+        display: inline-block;
+        animation:
+          cs-hue 2s linear infinite,
+          cs-wob 0.9s ease-in-out infinite alternate;
+        color: #ff2f86;
+        text-shadow:
+          2px 2px 0 #fff,
+          4px 4px 0 #ffb0d4;
+        white-space: pre;
+      }
+      #catsplash p {
+        margin: 4px 0;
+        font: 600 clamp(14px, 3.6vw, 18px) / 1.3 var(--font-body);
+      }
+      #catsplash .cs-tap {
+        opacity: 0.7;
+        font-size: 13px;
+      }
+      @keyframes cs-hue {
+        to {
+          filter: hue-rotate(360deg);
+        }
+      }
+      @keyframes cs-wob {
+        from {
+          transform: translateY(-4px) rotate(-6deg);
+        }
+        to {
+          transform: translateY(4px) rotate(6deg);
+        }
+      }
+      @keyframes cs-bob {
+        50% {
+          transform: translate(-50%, -53%) rotate(-1deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #catsplash h1 span,
+        #catsplash .cs-card {
+          animation: none;
+        }
+      }
     </style>
   </head>
   <body>

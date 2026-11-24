@@ -457,6 +457,129 @@
       input[type='range'] {
         accent-color: var(--accent);
       }
+      /* Super Feline Mode (commission 9): a pink trim and paw prints on every panel, cat ears on the panels' heads */
+      body.theme-feline {
+        --accent: #ff8ac0;
+        --line: #6a4a66;
+        --panel: rgba(40, 24, 40, 0.82);
+        --solid: #2e2032;
+        --water: #e8c890;
+        --warm: #ff9ec7;
+      }
+      body.theme-feline .card,
+      body.theme-feline .sheet,
+      body.theme-feline .act {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='%23ff9ec7' fill-opacity='0.09'%3E%3Cellipse cx='20' cy='26' rx='7' ry='6'/%3E%3Cellipse cx='12' cy='16' rx='2.6' ry='3.4'/%3E%3Cellipse cx='18' cy='11' rx='2.6' ry='3.4'/%3E%3Cellipse cx='24' cy='11' rx='2.6' ry='3.4'/%3E%3Cellipse cx='29' cy='16' rx='2.6' ry='3.4'/%3E%3Cellipse cx='46' cy='54' rx='7' ry='6'/%3E%3Cellipse cx='38' cy='44' rx='2.6' ry='3.4'/%3E%3Cellipse cx='44' cy='39' rx='2.6' ry='3.4'/%3E%3Cellipse cx='50' cy='39' rx='2.6' ry='3.4'/%3E%3Cellipse cx='55' cy='44' rx='2.6' ry='3.4'/%3E%3C/g%3E%3C/svg%3E");
+      }
+      body.theme-feline .sheet-head h2::before {
+        content: '=^.^= ';
+        color: var(--accent);
+      }
+      body.theme-feline .card {
+        position: relative;
+      }
+      body.theme-feline #hud .card:first-child::before,
+      body.theme-feline #hud .card:first-child::after {
+        content: '';
+        position: absolute;
+        top: -9px;
+        width: 0;
+        height: 0;
+        border-left: 9px solid transparent;
+        border-right: 9px solid transparent;
+        border-bottom: 10px solid var(--line);
+      }
+      body.theme-feline #hud .card:first-child::before {
+        left: 14px;
+      }
+      body.theme-feline #hud .card:first-child::after {
+        right: 14px;
+      }
+      /* the splash */
+      #catsplash {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        cursor: pointer;
+        overflow: hidden;
+        transition: opacity 0.4s;
+      }
+      #catsplash.cs-out {
+        opacity: 0;
+      }
+      #catsplash canvas {
+        position: absolute;
+        inset: 0;
+      }
+      #catsplash .cs-card {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(92vw, 640px);
+        padding: 18px 16px 14px;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.82);
+        border: 4px solid #ff4f9a;
+        border-radius: 28px;
+        box-shadow:
+          0 8px 0 #c0306e,
+          0 12px 40px rgba(120, 0, 60, 0.35);
+        color: #6a1a44;
+        animation: cs-bob 1.6s ease-in-out infinite;
+      }
+      #catsplash h1 {
+        margin: 0 0 6px;
+        font: 700 clamp(28px, 8vw, 58px) / 1.05 var(--font-display);
+        letter-spacing: 0.02em;
+      }
+      #catsplash .cs-word {
+        display: inline-block;
+        white-space: nowrap;
+      }
+      #catsplash .cs-word span {
+        display: inline-block;
+        animation:
+          cs-hue 2s linear infinite,
+          cs-wob 0.9s ease-in-out infinite alternate;
+        color: #ff2f86;
+        text-shadow:
+          2px 2px 0 #fff,
+          4px 4px 0 #ffb0d4;
+        white-space: pre;
+      }
+      #catsplash p {
+        margin: 4px 0;
+        font: 600 clamp(14px, 3.6vw, 18px) / 1.3 var(--font-body);
+      }
+      #catsplash .cs-tap {
+        opacity: 0.7;
+        font-size: 13px;
+      }
+      @keyframes cs-hue {
+        to {
+          filter: hue-rotate(360deg);
+        }
+      }
+      @keyframes cs-wob {
+        from {
+          transform: translateY(-4px) rotate(-6deg);
+        }
+        to {
+          transform: translateY(4px) rotate(6deg);
+        }
+      }
+      @keyframes cs-bob {
+        50% {
+          transform: translate(-50%, -53%) rotate(-1deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #catsplash h1 span,
+        #catsplash .cs-card {
+          animation: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -6356,6 +6479,1180 @@
     }
   };
 
+  // src/content/feline.js
+  var feline_default = {
+    themes: [
+      {
+        id: "feline",
+        name: "Super Feline Mode",
+        rare: 1 / 50,
+        rolledNote: "This world simply is feline. It happens, about one world in fifty. Nobody asked the cats.",
+        chosenNote: "You asked for this. The cats approve.",
+        announce: "This world is FELINE",
+        announceRolled: "Surprise! This world rolled FELINE",
+        nameKeys: ["names", "a", "b", "c", "people", "beastNames"],
+        nameStyles: ["{n}paws", "Mew{l}", "{n}whiskers", "{n}kins", "Purr{l}", "{n}fluff", "{n}mittens", "Sir {n}", "{n}-Meow"],
+        flourishes: ["Mrrp.", "Purr.", "(meow)", "Mew!", "*tail flick*", "Prrrt?", "*slow blink*", "Nya."],
+        // the sound bank: which voice each instrument of the score becomes, the foes' calls, and sounds for events
+        sounds: {
+          voices: { harpsichord: "meow", lute: "meow", pipe: "meow", bass: "mrrow", organ: "trill", pad: "purr", drone: "purr" },
+          calls: { hound: "woof", brute: "vacuum", wight: "spray", serpent: "hiss" },
+          events: {
+            rest: "purr",
+            sleep: "purr",
+            makeCamp: "purr",
+            fire: "purr",
+            flee: "hiss",
+            danger: "hiss",
+            kill: "chirp",
+            click: "chirp",
+            fill: "trill",
+            search: "meow"
+          }
+        },
+        keep: ["ok", "xp", "hp", "ac", "mm", "km", "n", "s", "e", "w", "ne", "nw", "se", "sw", "d"],
+        exact: {
+          "Far Beacon": "Far Red Dot",
+          "Far Beacon 3D": "Far Red Dot: Super Feline Mode",
+          Close: "Shoo",
+          Menu: "Meownu",
+          Pack: "Toy box",
+          "Pack +": "Toy box +",
+          Map: "Sniff map",
+          Begin: "Pounce!",
+          "Roll again": "Shake the treat tin again",
+          "Another name": "Another name (they will ignore it anyway)",
+          "New world": "New litter",
+          "Make this world": "Knock this world off the table",
+          "A new world": "A new litter",
+          "World settings": "Litter settings",
+          Settings: "Purrferences",
+          Tinker: "Batting things about",
+          Codex: "Catalogue",
+          Journal: "Diary of grievances",
+          "How to play": "How to be a cat",
+          Goal: "Current obsession",
+          Troubles: "Cat-astrophes",
+          Traveller: "The cat",
+          "This world": "This litter box",
+          "Creatures met": "Things hissed at",
+          "Saved game": "Saved nap",
+          Done: "Licked clean.",
+          "Done.": "Licked clean.",
+          "Failed.": "Knocked off the table.",
+          Follow: "Stalk",
+          followed: "stalking",
+          Mute: "Silence the yowling",
+          Music: "Yowls and purrs",
+          "Sounds of the world": "Sounds of the litter",
+          "Rolled from the seed": "Rolled from the catnip seed",
+          Rolled: "Rolled like a ball of yarn",
+          Clear: "Sunbeamy",
+          Health: "Fluff",
+          Abilities: "Cattributes",
+          Mana: "Zoomies",
+          Water: "Kibble",
+          Warmth: "Purr",
+          Stamina: "Pep",
+          Light: "Find a sunbeam",
+          Hide: "Mouse hide",
+          "Sip, don't gulp": "Lap, don't gulp",
+          Pick: "Pointy pick",
+          Saw: "Toothy saw",
+          // the troubles
+          "The relic": "The Laser Pointer",
+          "The great beast": "The Great Vacuum",
+          "Held captive": "Kitten up a tree",
+          "Lost in the wild": "Lost outdoors",
+          "The curse on the land": "The Bath Curse",
+          "The sickness": "The trip to the Vet",
+          "The king under the hill": "The Vacuum King under the Sofa",
+          "The tyrant in the sky": "The Vacuum Tyrant on the Top Shelf",
+          "The drowned cure": "The Secret Pudding",
+          "Lost beyond the door": "Locked outside",
+          "The feud": "Indoor cats against outdoor cats",
+          "The caravan": "The Crunchy Cat Cookies delivery",
+          "The cult": "The Cult of the Cucumber",
+          "The siege": "The dogs at the cat flap",
+          "Something stolen": "Who stole the crunchy cat cookies?",
+          // the legendary treasures (artifacts)
+          Dewcatcher: "the Bottomless Bowl",
+          "the Unfailing": "the Infinite Box",
+          Wellspring: "the Dripping Tap of Legend",
+          Emberheart: "the Warm Laptop of Legend",
+          "the Banked Coal": "the Heated Blanket",
+          Hearthkeeper: "the Radiator Throne",
+          Longstride: "the Zoomie Booties",
+          "the Wayfarer": "the Wandering Paw",
+          Milestealer: "the Wheel of Endless Running",
+          Peakwalker: "the Curtain Climber",
+          "the Goat-King": "the King of the Top Shelf",
+          Cloudstep: "the Fluffy Pounce",
+          Hush: "Silent Toe-Beans",
+          "the Unheard": "the Velvet Paw",
+          Mothwing: "the Golden Feather Wand",
+          Tireless: "the Endless Nap",
+          "the Long Watch": "the Window Vigil",
+          "Second Wind": "the Ninth Life",
+          Farsight: "the Laser Eye",
+          "the Open Eye": "the Unblinking Stare",
+          Starglass: "the Shiny Marble",
+          Widowmaker: "the Mouse-Ender",
+          "the Red Tooth": "the Red Claw",
+          Lastword: "the Final Hiss",
+          "the Unbroken": "the Glass That Would Not Fall",
+          Stonehide: "the Chonk Coat",
+          Bulwark: "the Cushion Fort"
+        },
+        phrases: {
+          "far beacon": "Far Red Dot",
+          "the well": "the food bowl",
+          "a well": "a food bowl",
+          wells: "food bowls",
+          "well at": "food bowl at",
+          "the rest of": "the rest of",
+          "as well": "as well",
+          "make camp": "curl up",
+          "great trouble": "great cat-astrophe",
+          "locked place": "sealed tuna tin",
+          "town of": "colony of",
+          "god mode": "Ceiling Cat mode",
+          "dust storm": "litter storm",
+          "sand storm": "litter storm",
+          rainstorm: "hairball shower",
+          "rain storm": "hairball shower",
+          blizzard: "furricane",
+          hailstorm: "hail of kibble",
+          "fall of ash": "fall of litter dust",
+          "thick fog": "thick fog of dander",
+          "warm wind": "hair-dryer wind",
+          "shower of falling stars": "shower of falling laser dots",
+          "falling stars": "falling laser dots",
+          "salt flats": "Great Litter Desert",
+          "high moor": "High Rug",
+          "snowbound taiga": "Cotton-wool Cat-tree Forest",
+          "open sea": "Open Bathtub",
+          "floating castle": "floating castle of cushions",
+          "cloud city": "city of fluff clouds",
+          "drifting isle": "drifting cushion",
+          "low moon": "low moon of cheese",
+          "flying carpet": "Flying Cat Bed",
+          "griffin's bridle": "Pigeon's Harness",
+          "diving helm": "Goldfish-Bowl Helmet",
+          "draught of gills": "Milk of Fishiness",
+          "frame pack": "Carry Crate",
+          "pack mule": "Obliging Dog",
+          "camp kit": "Cat Bed Kit",
+          "great axe": "Great Swat",
+          "leather armor": "Leather Harness",
+          "mail shirt": "Chain-mail Jumper",
+          "healing salve": "Healing Lick",
+          "warming draught": "Warm Milk",
+          "fur cloak": "Fluff Cape",
+          "hide boots": "Mouse-hide Booties",
+          "bone spear": "Fish-bone Fishing-rod Toy",
+          "ball of yarn": "ball of yarn (MINE)",
+          "flask of springwater": "Saucer of Fresh Kibble",
+          "flask of brine": "Saucer of Tuna Juice",
+          "flask of firewine": "Saucer of Spicy Milk",
+          "flask of vigor": "Saucer of Zoomie Juice",
+          "flask of mending": "Saucer of Licking Better",
+          "jug of water": "jug of kibble",
+          "loaf of bread": "loaf of bread (sat on)",
+          "dried fish": "dried fish (OMG)",
+          "kitchen knife": "kitchen knife (not a toy)",
+          "pair of dice": "pair of dice (batted under the sofa)",
+          "hand mirror": "hand mirror (who is THAT cat?)",
+          "holy symbol": "holy fish symbol",
+          "inkpot and quill": "inkpot and quill (knocked over)",
+          "rag doll": "rag mouse",
+          "wooden horse": "wooden mouse",
+          "spinning wheel": "spinning wheel of yarn",
+          "stone coffin": "stone litter tray",
+          "ore cart": "laundry cart",
+          "stack of firewood": "stack of scratching logs",
+          "water jar": "kibble jar",
+          "sack of grain": "sack of kibble",
+          "rack of arms": "rack of feather wands",
+          "drying rack": "drying rack (warm, ideal)",
+          "old map": "old sniff map",
+          "branch of coral": "branch of coral (fishy)",
+          "round shield": "round dinner plate",
+          "shards of a pot": "shards of a pot (not me)",
+          "pair of scales": "pair of scales (for weighing treats)",
+          "bowl of offerings": "bowl of offerings (eaten)",
+          "heap of fallen plaster": "heap of fallen plaster (it was like that)",
+          "row of vestments": "row of hanging things to climb",
+          "tall candlestand": "tall candlestand (wobbly)",
+          "length of chain": "length of jingly chain",
+          "fishing net": "fishing net (fishy!)",
+          "net float": "bobbing net float",
+          "bundle of herbs": "bundle of catnip",
+          "oil lamp": "warm lamp",
+          "pale mushroom": "pale mushroom (do not eat)",
+          "long table": "long table to knock things off",
+          "dwarf-hold": "Munchkin burrow",
+          "stone-kin": "British Shorthair",
+          "half-orc": "Half-alley-cat",
+          "half-giant": "Savannah",
+          "forest-born": "Maine Coon",
+          "ghoul-kin": "Sphynx",
+          "old mine": "old litter mine",
+          "flooded cistern": "flooded water bowl",
+          "fungus cavern": "damp cupboard of mushrooms",
+          "floating town": "floating colony on a lily pad",
+          "merfolk halls": "Fish-cat halls",
+          "sea cave": "bath cupboard",
+          "drowned shrine": "drowned food bowl",
+          "the deep seam": "the Deep Sofa Crack",
+          "deep water": "deep bathwater",
+          "dry mother": "Dry Mother of Kibble",
+          "the lidless": "the Unblinking Stare",
+          "high places": "top shelves",
+          "lost people": "lost breed",
+          "lost peoples": "lost breeds",
+          "a lost people": "a lost breed",
+          "some lost people": "some lost breed",
+          "the people who never fell": "the cats who always land on their feet",
+          "suspicious of strangers": "hissy with strangers",
+          "keepers of old lore": "keepers of old cat lore",
+          "charcoal-burners": "radiator-huggers",
+          "pressure plate": "squeaky floorboard",
+          "pick up": "bat at and pick up",
+          "one-eyed": "One-Whiskered",
+          "the long dark": "the long night without a sunbeam",
+          "a year of two moons": "a year of two moons (two bowls!)",
+          "hit die": "Fluff die",
+          "performance meter": "purr-formance meter",
+          experience: "cat-sperience",
+          "well-fed": "well-fed",
+          "red dot": "red dot",
+          "west wind": "westerly hair-dryer",
+          "light a fire": "find a sunbeam",
+          "a light": "a nightlight",
+          "bring a light": "bring a nightlight",
+          "they spring": "they pounce",
+          "a people": "a breed",
+          "kitchen knife": "kitchen knife (not a toy)",
+          "shield wall": "cushion wall",
+          "sea-people": "fish-cats"
+        },
+        words: {
+          // the peoples: every race a breed
+          human: "Tabby",
+          humans: "Tabbies",
+          dwarf: "Munchkin",
+          dwarves: "Munchkins",
+          dwarfs: "Munchkins",
+          elf: "Siamese",
+          elves: "Siamese",
+          elven: "Siamese",
+          halfling: "Singapura",
+          orc: "alley cat",
+          gnome: "Scottish Fold",
+          highlander: "Norwegian Forest Cat",
+          riverfolk: "Turkish Van",
+          plainsfolk: "Abyssinian",
+          lostborn: "Stray",
+          ashborn: "Smoke Persian",
+          saltkin: "Cornish Rex",
+          mothfolk: "Ragdoll",
+          scalekin: "Bengal",
+          crowfolk: "Bombay",
+          wispborn: "Turkish Angora",
+          windborn: "Somali",
+          merrow: "Fishing Cat",
+          giant: "Savannah",
+          ghoul: "Sphynx",
+          merfolk: "fish-cats",
+          race: "breed",
+          races: "breeds",
+          people: "cats",
+          peoples: "breeds",
+          person: "cat",
+          folk: "kitties",
+          kin: "kittens",
+          born: "born (in a box)",
+          // the callings
+          class: "calling",
+          classes: "callings",
+          fighter: "Scrapcat",
+          ranger: "Rangefur",
+          rogue: "Clawgue",
+          cleric: "Purrist",
+          wizard: "Whiskard",
+          paladin: "Meowladin",
+          votary: "Votabby",
+          delver: "Boxdelver",
+          nomad: "Nomeow",
+          knight: "Kitnight",
+          barbarian: "Furbarian",
+          monk: "Meownk",
+          hunter: "Mouser",
+          bard: "Caterwauler",
+          merchant: "Purrchant",
+          scout: "Peekaboo",
+          herbalist: "Catnipper",
+          pilgrim: "Purrgrim",
+          druid: "Mewid",
+          sapper: "Litterdigger",
+          duelist: "Swatter",
+          necromancer: "Necromeowncer",
+          witch: "Witch's Cat",
+          dowser: "Bowlsniffer",
+          lamplighter: "Lightswitch-flicker",
+          gravedigger: "Litter-scooper",
+          // abilities
+          strength: "Swat",
+          dexterity: "Pawsterity",
+          constitution: "Catstitution",
+          intelligence: "Curiosity",
+          wisdom: "Whiskerdom",
+          charisma: "Purrsonality",
+          // the traveller and their state
+          traveller: "wanderpuss",
+          travellers: "wanderpusses",
+          wayfarer: "wanderpuss",
+          wayfarers: "wanderpusses",
+          health: "fluff",
+          hp: "fluff",
+          mana: "zoomies",
+          water: "kibble",
+          waters: "kibbles",
+          waterskin: "kibble pouch",
+          springwater: "fresh kibble",
+          drink: "crunch",
+          drinks: "crunches",
+          drank: "crunched",
+          drinking: "crunching",
+          thirst: "peckishness",
+          thirsty: "peckish",
+          warmth: "purr",
+          warm: "purry",
+          warms: "purrs",
+          warming: "purring",
+          stamina: "pep",
+          exhausted: "all napped out",
+          tired: "sleepy",
+          fuel: "catnip",
+          fuels: "catnips",
+          coin: "treat",
+          coins: "treats",
+          gold: "treats",
+          load: "haul",
+          level: "cat-level",
+          levels: "cat-levels",
+          xp: "purr-points",
+          armor: "harness",
+          armour: "harness",
+          rest: "nap",
+          rests: "naps",
+          rested: "napped",
+          resting: "napping",
+          sleep: "snooze",
+          sleeps: "snoozes",
+          slept: "snoozed",
+          sleeping: "snoozing",
+          wake: "stretch awake",
+          wakes: "stretches you awake",
+          eat: "nom",
+          eats: "noms",
+          food: "noms",
+          hungry: "peckish",
+          hunger: "peckishness",
+          walk: "prowl",
+          walks: "prowls",
+          walked: "prowled",
+          walking: "prowling",
+          run: "zoom",
+          runs: "zooms",
+          flee: "scarper",
+          fleeing: "scarpering",
+          fled: "scarpered",
+          fight: "scrap",
+          fights: "scraps",
+          fighting: "scrapping",
+          attack: "pounce",
+          attacks: "pounces",
+          strike: "swat",
+          strikes: "swats",
+          hit: "swat",
+          hits: "swats",
+          kill: "defeat",
+          kills: "defeats",
+          killed: "sent packing",
+          dead: "out of lives",
+          dies: "uses up a life",
+          died: "used up a life",
+          die: "use up a life",
+          death: "lost life",
+          bite: "nibble",
+          bites: "nibbles",
+          wounds: "scratches",
+          wound: "scratch",
+          wounding: "scratching",
+          hurt: "ruffle",
+          hurts: "ruffles",
+          heal: "lick better",
+          heals: "licks better",
+          healing: "licking",
+          mend: "lick",
+          mending: "licking",
+          climb: "scramble",
+          climbs: "scrambles",
+          search: "rummage",
+          searches: "rummages",
+          searched: "rummaged",
+          searching: "rummaging",
+          survey: "stare intently at",
+          study: "sniff",
+          studies: "sniffs",
+          swim: "paddle (ugh)",
+          swims: "paddles (ugh)",
+          fly: "leap",
+          flying: "leaping",
+          flies: "leaps",
+          breathe: "purr",
+          // shelter, fire and camp
+          camp: "basket",
+          camps: "baskets",
+          tent: "cat bed",
+          tents: "cat beds",
+          shelter: "cardboard box",
+          shelters: "cardboard boxes",
+          sheltered: "boxed in",
+          fire: "sunbeam",
+          fires: "sunbeams",
+          campfire: "warm laptop",
+          flame: "sunbeam",
+          flames: "sunbeams",
+          hearth: "radiator",
+          hearths: "radiators",
+          smoke: "steam from the kettle",
+          ember: "warm spot",
+          embers: "warm spots",
+          coal: "warm spot",
+          torch: "nightlight",
+          torches: "nightlights",
+          lantern: "glow-mouse",
+          lanterns: "glow-mice",
+          lamp: "warm lamp",
+          lamps: "warm lamps",
+          lit: "sunbeamed",
+          candle: "tempting flicker",
+          candles: "tempting flickers",
+          beacon: "Red Dot",
+          beacons: "Red Dots",
+          cold: "chilly",
+          colds: "chills",
+          chill: "shiver",
+          frozen: "chilly-pawed",
+          freeze: "get chilly paws",
+          // the world
+          world: "litter",
+          worlds: "litters",
+          land: "territory",
+          lands: "territories",
+          country: "patch",
+          countries: "patches",
+          region: "room",
+          regions: "rooms",
+          ground: "carpet",
+          grounds: "carpets",
+          underfoot: "under paw",
+          map: "sniff map",
+          maps: "sniff maps",
+          mapmaker: "sniff-mapper",
+          forest: "cat-tree forest",
+          forests: "cat-tree forests",
+          wood: "cat-tree wood",
+          woods: "cat trees",
+          woodland: "cat-tree woodland",
+          tree: "cat tree",
+          trees: "cat trees",
+          pine: "scratching post",
+          pines: "scratching posts",
+          birch: "sisal pole",
+          copse: "clump of cat trees",
+          scrub: "shag pile",
+          grass: "catgrass",
+          meadow: "catnip meadow",
+          field: "cushion field",
+          fields: "cushion fields",
+          flower: "nibbled flower",
+          flowers: "nibbled flowers",
+          herbs: "catnip",
+          herb: "catnip sprig",
+          hill: "cushion",
+          hills: "cushions",
+          mountain: "bookshelf",
+          mountains: "bookshelves",
+          peak: "top shelf",
+          peaks: "top shelves",
+          cliff: "curtain",
+          cliffs: "curtains",
+          crags: "curtain crags",
+          heights: "top shelves",
+          downs: "beanbags",
+          wolds: "duvets",
+          fells: "sofa backs",
+          knolls: "pouffes",
+          barrens: "bare floorboards",
+          badlands: "bad-carpet lands",
+          breaks: "sofa cracks",
+          valley: "sofa dip",
+          moor: "rug",
+          moors: "rugs",
+          heath: "doormat",
+          bog: "wet carpet",
+          bogs: "wet carpets",
+          marsh: "spilt-milk marsh",
+          mire: "spilt-milk mire",
+          fen: "soggy cushion",
+          taiga: "cat-tree taiga",
+          steppe: "carpet steppe",
+          desert: "Great Litter Desert",
+          dune: "litter heap",
+          dunes: "litter heaps",
+          flats: "litter flats",
+          salt: "litter",
+          sand: "litter",
+          dust: "dander",
+          ash: "litter dust",
+          ashen: "litter-dusted",
+          snow: "fluff",
+          snowbound: "fluff-bound",
+          frost: "chilly-nose",
+          rime: "nose-print",
+          ice: "cold tiles",
+          mud: "muddy pawprint",
+          rock: "pebble",
+          rocks: "pebbles",
+          stone: "pebble",
+          stones: "pebbles",
+          boulder: "beanbag",
+          boulders: "beanbags",
+          gravel: "spilt kibble",
+          river: "milk river",
+          rivers: "milk rivers",
+          stream: "dripping tap",
+          streams: "dripping taps",
+          brook: "dripping tap",
+          creek: "leaky pipe",
+          lake: "milk bowl",
+          lakes: "milk bowls",
+          pool: "puddle (of milk?)",
+          pools: "puddles (of milk?)",
+          pond: "goldfish pond",
+          sea: "Big Bath",
+          seas: "Big Baths",
+          ocean: "Big Bath",
+          shore: "bath edge",
+          coast: "bath rim",
+          tide: "bathwater",
+          tidal: "bath-tidal",
+          shallows: "shallow bathwater",
+          wave: "splash",
+          waves: "splashes",
+          brine: "tuna juice",
+          kelp: "wet string",
+          coral: "fishy coral",
+          pearl: "shiny marble",
+          island: "cushion island",
+          isle: "cushion isle",
+          sky: "ceiling",
+          skies: "ceilings",
+          cloud: "fluff cloud",
+          clouds: "fluff clouds",
+          air: "sniffable air",
+          moon: "moon (cheese?)",
+          moons: "moons (cheese?)",
+          sun: "Big Sunbeam",
+          star: "laser dot",
+          stars: "laser dots",
+          storm: "hissy fit",
+          storms: "hissy fits",
+          stormy: "hissy",
+          rain: "hairball shower",
+          rains: "hairball showers",
+          hail: "hail of kibble",
+          fog: "dander fog",
+          mist: "dander mist",
+          misty: "dandery",
+          wind: "draught",
+          winds: "draughts",
+          gale: "hair-dryer blast",
+          gales: "hair-dryer blasts",
+          thunder: "vacuum roar",
+          weather: "mood",
+          year: "year (in cat years)",
+          years: "cat years",
+          winter: "radiator season",
+          summer: "sunbeam season",
+          drought: "empty-bowl drought",
+          famine: "empty-bowl crisis",
+          plenty: "plenty of treats",
+          day: "caturday",
+          days: "caturdays",
+          night: "prowl-time",
+          nights: "prowl-times",
+          dusk: "zoomie hour",
+          dawn: "breakfast-yowl hour",
+          morning: "breakfast time",
+          noon: "nap o\u2019clock",
+          hour: "nap",
+          hours: "naps",
+          time: "nap time",
+          // places
+          town: "colony",
+          towns: "colonies",
+          city: "great colony",
+          cities: "great colonies",
+          village: "colony",
+          villages: "colonies",
+          hamlet: "little colony",
+          hamlets: "little colonies",
+          stead: "cat flap",
+          house: "cat house",
+          houses: "cat houses",
+          home: "favourite spot",
+          room: "nook",
+          rooms: "nooks",
+          hall: "great hallway",
+          halls: "great hallways",
+          street: "alley",
+          streets: "alleys",
+          road: "catwalk",
+          roads: "catwalks",
+          path: "cat path",
+          track: "cat track",
+          tracks: "paw prints",
+          bridge: "plank to walk",
+          bridges: "planks to walk",
+          gate: "cat flap",
+          gates: "cat flaps",
+          door: "cat flap",
+          doors: "cat flaps",
+          doorway: "cat flap",
+          wall: "scratched wall",
+          walls: "scratched walls",
+          tower: "scratching-post tower",
+          towers: "scratching-post towers",
+          castle: "castle of cushions",
+          castles: "castles of cushions",
+          fort: "cushion fort",
+          ruin: "cardboard ruin",
+          ruins: "cardboard ruins",
+          ruined: "cardboard-crumpled",
+          cave: "cupboard",
+          caves: "cupboards",
+          cavern: "great cupboard",
+          caverns: "great cupboards",
+          grotto: "cosy cupboard",
+          dungeon: "under-the-sofa",
+          dungeons: "under-the-sofas",
+          deeps: "depths under the sofa",
+          stair: "cat flap",
+          stairs: "cat flaps",
+          stairway: "cat flap",
+          crypt: "basement",
+          crypts: "basements",
+          tomb: "litter tray",
+          tombs: "litter trays",
+          catacomb: "laundry chute",
+          barrow: "laundry basket",
+          vault: "tuna tin",
+          vaults: "tuna tins",
+          temple: "temple of the sunbeam",
+          shrine: "sunbeam shrine",
+          shrines: "sunbeam shrines",
+          altar: "windowsill altar",
+          cistern: "water bowl",
+          cisterns: "water bowls",
+          spring: "kibble bowl",
+          springs: "kibble bowls",
+          mine: "litter mine",
+          shaft: "chute",
+          seam: "sofa crack",
+          lode: "kibble lode",
+          warren: "Dust Bunny Warren",
+          warrens: "Dust Bunny Warrens",
+          burrows: "dust bunny burrows",
+          den: "den of dust bunnies",
+          lair: "lair under the bed",
+          lairs: "lairs under the bed",
+          wreck: "capsized laundry basket",
+          wrecks: "capsized laundry baskets",
+          depot: "stash",
+          depots: "stashes",
+          cache: "hidden treat stash",
+          caches: "hidden treat stashes",
+          hoard: "hoard of bottle tops",
+          grave: "dug-up flowerbed",
+          graves: "dug-up flowerbeds",
+          inn: "Cat Caf\xE9",
+          inns: "Cat Caf\xE9s",
+          shop: "Pet Shop",
+          shops: "Pet Shops",
+          market: "fish market",
+          elder: "Top Cat",
+          elders: "Top Cats",
+          healer: "groomer",
+          trainer: "cat whisperer",
+          priest: "sunbeam priest",
+          smith: "claw-sharpener",
+          smiths: "claw-sharpeners",
+          weavers: "yarn-knotters",
+          traders: "treat-traders",
+          trade: "treat-trade",
+          lord: "Top Cat",
+          king: "Top Cat",
+          queen: "Queen of the Cushions",
+          duke: "Fat Cat",
+          captain: "Alpha Tom",
+          warden: "Lap-warden",
+          keeper: "minder",
+          keepers: "minders",
+          master: "Hooman",
+          brother: "littermate",
+          sister: "littermate",
+          prophet: "Prophet of the Cucumber",
+          cultist: "Cucumber cultist",
+          cult: "Cult of the Cucumber",
+          acolyte: "Cucumber acolyte",
+          raider: "dog from next door",
+          raiders: "dogs from next door",
+          reaver: "hissing tom",
+          brigand: "alley tom",
+          cutthroat: "scratch-throat",
+          besieger: "barking dog",
+          warband: "pack of dogs",
+          tyrant: "Vacuum Tyrant",
+          magpie: "magpie (the enemy)",
+          fox: "fox (no)",
+          // gods and the lost peoples
+          god: "Cat God",
+          gods: "Cat Gods",
+          goddess: "Cat Goddess",
+          mother: "Mother Cat",
+          holy: "sacred-tuna",
+          hallowed: "sun-warmed",
+          cursed: "bath-cursed",
+          curse: "Bath Curse",
+          curses: "Bath Curses",
+          vow: "solemn purr",
+          pact: "pact (sealed with a head-bump)",
+          sickness: "vet visit",
+          plague: "fleas",
+          fever: "hairball fever",
+          cure: "secret pudding",
+          relic: "Laser Pointer",
+          relics: "Laser Pointers",
+          artifact: "legendary cat treasure",
+          artifacts: "legendary cat treasures",
+          treasure: "treat hoard",
+          civ: "breed",
+          // creatures: the dog next door, the vacuum, the bath, the cucumber
+          creature: "critter",
+          creatures: "critters",
+          beast: "beastly vacuum",
+          beasts: "beastly vacuums",
+          monster: "vacuum",
+          hound: "Woofer",
+          hounds: "Woofers",
+          dog: "dog next door",
+          dogs: "dogs next door",
+          wolf: "dog next door",
+          wolves: "dogs next door",
+          brute: "Vacuum Cleaner",
+          brutes: "Vacuum Cleaners",
+          wight: "Spray Bottle",
+          wights: "Spray Bottles",
+          ghost: "spray bottle",
+          serpent: "Cucumber",
+          serpents: "Cucumbers",
+          snake: "cucumber",
+          venom: "cucumber juice",
+          gilded: "gift-wrapped",
+          docile: "dust-bunny",
+          bear: "big dog",
+          ox: "big dog",
+          heron: "pigeon",
+          owl: "owl (respect)",
+          ibex: "mountain goat (rude)",
+          crow: "pigeon",
+          griffin: "pigeon",
+          mole: "mouse",
+          goat: "mountain goat",
+          camel: "camel (lumpy)",
+          horse: "mouse on a stick",
+          mule: "obliging dog",
+          fish: "fish (!!!)",
+          bird: "birdie",
+          birds: "birdies",
+          mouse: "mousie",
+          rat: "mousie",
+          // things carried
+          item: "toy",
+          items: "toys",
+          gear: "toys",
+          goods: "goods (in a box)",
+          pack: "toy box",
+          packs: "toy boxes",
+          packed: "boxed",
+          cloak: "cosy cape",
+          cloaks: "cosy capes",
+          boots: "booties",
+          boot: "bootie",
+          spyglass: "birdscope",
+          staff: "feather wand",
+          staves: "feather wands",
+          rope: "string",
+          ropes: "strings",
+          compass: "sniff-compass",
+          dagger: "Pin Claw",
+          daggers: "Pin Claws",
+          sword: "Long Claw",
+          swords: "Long Claws",
+          spear: "Fishing-rod Toy",
+          spears: "Fishing-rod Toys",
+          axe: "Swat",
+          shield: "dinner plate",
+          shields: "dinner plates",
+          helmet: "cone of shame",
+          helm: "cone of shame",
+          salve: "lick",
+          salves: "licks",
+          tonic: "catnip tonic",
+          tonics: "catnip tonics",
+          draught: "milk",
+          draughts: "milks",
+          potion: "saucer of milk",
+          flask: "saucer",
+          flasks: "saucers",
+          bandages: "cones of shame",
+          bandage: "cone of shame",
+          key: "tin opener",
+          keys: "tin openers",
+          parcel: "delivery box",
+          parcels: "delivery boxes",
+          token: "bottle top",
+          tokens: "bottle tops",
+          carpet: "cat bed",
+          bridle: "harness",
+          coracle: "cardboard boat",
+          boat: "cardboard boat",
+          boats: "cardboard boats",
+          gills: "whiskers of the fish",
+          updraft: "Zoomies",
+          bone: "fish bone",
+          bones: "fish bones",
+          salvage: "shiny bits",
+          furs: "shed fur",
+          fur: "fluff",
+          timber: "scratching logs",
+          tools: "tin openers",
+          cloth: "curtain scraps",
+          remedies: "cat grass remedies",
+          firewine: "spicy milk",
+          vigor: "zoomies",
+          mats: "bits",
+          materials: "bits and bobs",
+          // the household things
+          bed: "cat bed",
+          beds: "cat beds",
+          cot: "cat basket",
+          cradle: "cradle (now a cat bed)",
+          table: "table (to knock things off)",
+          tables: "tables (to knock things off)",
+          bench: "warm bench",
+          chair: "scratched chair",
+          chairs: "scratched chairs",
+          stool: "perching stool",
+          chest: "chest (to sit on)",
+          chests: "chests (to sit on)",
+          shelf: "shelf (to knock things off)",
+          shelves: "shelves (to knock things off)",
+          cupboard: "cupboard (to hide in)",
+          bookcase: "climbing bookcase",
+          stove: "warm stove",
+          barrel: "barrel (sniffable)",
+          barrels: "barrels (sniffable)",
+          crate: "box (IF I FITS)",
+          crates: "boxes (IF I FITS)",
+          sack: "paper bag",
+          sacks: "paper bags",
+          rug: "kneadable rug",
+          curtain: "climbable curtain",
+          curtains: "climbable curtains",
+          tapestry: "shredded tapestry",
+          loom: "loom of yarn",
+          anvil: "cold anvil",
+          forge: "warm forge",
+          workbench: "workbench (to sit on)",
+          counter: "counter (forbidden)",
+          lectern: "lectern (to sit on)",
+          coffin: "litter tray",
+          nightstand: "nightstand (to knock things off)",
+          sideboard: "sideboard (to knock things off)",
+          pew: "pew (warm)",
+          pews: "pews (warm)",
+          washstand: "washstand (eww, water)",
+          candlestand: "candlestand (wobbly)",
+          cobweb: "cobweb (batted)",
+          cobwebs: "cobwebs (batted)",
+          boards: "scratched boards",
+          cup: "cup (knocked over)",
+          cups: "cups (knocked over)",
+          plate: "plate (licked)",
+          plates: "plates (licked)",
+          bowl: "food bowl",
+          bowls: "food bowls",
+          pot: "pot (to sit in)",
+          pots: "pots (to sit in)",
+          kettle: "kettle (warm)",
+          spoon: "spoon (batted)",
+          bottle: "bottle (rolled)",
+          bottles: "bottles (rolled)",
+          cheese: "cheese (yes please)",
+          apple: "apple (rolled about)",
+          basket: "basket (I fits)",
+          baskets: "baskets (I fits)",
+          broom: "broom (sworn enemy)",
+          bucket: "bucket (water: no)",
+          shovel: "litter shovel",
+          horseshoe: "jingly horseshoe",
+          chain: "jingly chain",
+          spindle: "spindle of yarn",
+          quill: "feather toy",
+          book: "book (to sit on)",
+          books: "books (to sit on)",
+          scroll: "scroll (to bat)",
+          scrolls: "scrolls (to bat)",
+          painting: "painting of a cat",
+          paintings: "paintings of cats",
+          vase: "vase (soon to be knocked over)",
+          vases: "vases (soon to be knocked over)",
+          doll: "mousie",
+          flute: "squeaky flute",
+          lute: "twangy lute",
+          drum: "scary drum",
+          statuette: "cat statuette",
+          statue: "cat statue",
+          locket: "locket (with a cat in it)",
+          ring: "jingly ring",
+          rings: "jingly rings",
+          comb: "grooming comb",
+          urn: "urn (knockable)",
+          skull: "skull of a mouse",
+          skulls: "skulls of mice",
+          shell: "seashell",
+          shells: "seashells",
+          candlestick: "candlestick (wobbly)",
+          ledger: "ledger of treats",
+          censer: "smelly censer",
+          firewood: "scratching logs",
+          thing: "shiny thing",
+          things: "shiny things",
+          grain: "kibble",
+          ore: "kibble ore",
+          oil: "tuna oil",
+          // the screens
+          journal: "diary of grievances",
+          codex: "catalogue",
+          menu: "meownu",
+          settings: "purrferences",
+          quality: "fluffiness",
+          graphics: "whisker-vision",
+          save: "stash",
+          saved: "stashed",
+          seed: "catnip seed",
+          goal: "obsession",
+          goals: "obsessions",
+          quest: "cat-quest",
+          trouble: "cat-astrophe",
+          troubles: "cat-astrophes",
+          story: "tail",
+          game: "game of string",
+          mode: "mood",
+          facing: "nose to",
+          version: "litter number",
+          friend: "lap",
+          news: "gossip",
+          rumour: "gossip",
+          rumours: "gossip",
+          talk: "meow",
+          talks: "meows",
+          say: "meow",
+          says: "meows",
+          said: "meowed",
+          speak: "meow",
+          speaks: "meows",
+          tell: "mew",
+          tells: "mews",
+          told: "mewed",
+          ask: "mrrp at",
+          asks: "mrrps",
+          buy: "trade treats for",
+          sell: "swap for treats",
+          sells: "swaps for treats",
+          price: "treat price",
+          hello: "mrrrow",
+          yes: "mrrp",
+          goodbye: "tail flick",
+          thief: "thief (it was the dog)",
+          theft: "catnapping",
+          stolen: "catnapped",
+          steal: "catnap",
+          caught: "caught red-pawed",
+          captive: "stuck up a tree",
+          prisoner: "kitten up a tree",
+          child: "kitten",
+          children: "kittens",
+          baby: "kitten",
+          men: "toms",
+          man: "tom",
+          woman: "queen cat",
+          women: "queen cats",
+          stranger: "unfamiliar cat",
+          strangers: "unfamiliar cats",
+          friends: "laps",
+          enemy: "dog",
+          enemies: "dogs",
+          foe: "nemesis",
+          foes: "nemeses",
+          danger: "hiss-worthy danger",
+          trap: "mousetrap",
+          traps: "mousetraps",
+          darts: "flying cotton buds",
+          gift: "dead mouse (a gift)",
+          gifts: "dead mice (gifts)",
+          luck: "cat luck",
+          spell: "mew-spell",
+          spells: "mew-spells",
+          magic: "mewgic",
+          firebolt: "Laser Bolt",
+          hex: "evil eye",
+          rage: "zoomie rage",
+          flurry: "flurry of paws",
+          lullaby: "purr-lullaby",
+          vanish: "hide under the bed",
+          regrow: "regrow fur",
+          firepot: "hairball bomb",
+          riposte: "counter-swat",
+          flare: "flash of the laser",
+          thorns: "claws out",
+          aimed: "pounce-aimed",
+          shot: "pounce",
+          // the makers' marks and the land's odd turns
+          keen: "sharp-clawed",
+          rusted: "litter-crusted",
+          leaky: "dribbly",
+          oilskin: "tuna-oiled",
+          threadbare: "clawed-up",
+          featherweight: "feather-light",
+          leaden: "chonky",
+          "miser's": "stingy hooman's",
+          miser: "stingy hooman",
+          sturdy: "chonk-proof",
+          blistering: "hissing-hot",
+          fogged: "nose-smudged",
+          broad: "chonky-wide",
+          surveyor: "Window-watcher",
+          wellfinder: "Bowlfinder",
+          swiftness: "Zoomies",
+          warding: "Hissing",
+          glowing: "glow-in-the-dark",
+          teeming: "mouse-teeming",
+          silent: "hush-pawed",
+          parched: "bowl-empty",
+          rich: "treat-rich",
+          drowned: "bath-drowned",
+          burned: "singed-whisker",
+          burnt: "singed",
+          hollow: "box-hollow",
+          mild: "mild-mannered",
+          lean: "thin-bowl",
+          generous: "treat-generous",
+          jealous: "jealous (of the dog)",
+          amber: "marmalade",
+          weeping: "drooly",
+          plain: "carpet-plain",
+          pans: "litter trays",
+          teeth: "claws",
+          brake: "thicket of catgrass",
+          vast: "chonky-vast",
+          foraging: "Mousing",
+          swordwork: "Clawwork",
+          highland: "Highland Fold",
+          monastics: "meditating mousers",
+          clans: "prides",
+          clan: "pride",
+          riders: "riders of roombas",
+          rider: "roomba rider",
+          granary: "kibble-store",
+          charcoal: "warm ash",
+          charter: "treaty of the fence",
+          peace: "truce of the fence",
+          feverwort: "fevermint",
+          windwright: "hair-dryer-wright",
+          saint: "Saint Whiskers",
+          lidless: "unblinking",
+          brackish: "fishy",
+          war: "war with the dogs",
+          horn: "squeaky horn",
+          crown: "paper crown",
+          bell: "jingle bell",
+          throne: "cushion throne",
+          wheel: "hamster wheel (stolen)",
+          moss: "catmoss",
+          fungus: "fuzzy mould",
+          altar: "windowsill altar",
+          frame: "box frame",
+          carrier: "carrier (the dreaded one)",
+          trapper: "mouse-trapper",
+          tinker: "string-tinkerer",
+          channel: "drain",
+          carvers: "scratchers",
+          builders: "box-builders",
+          traders: "treat-traders",
+          flooded: "splashy",
+          anvil: "cold anvil",
+          anvils: "cold anvils",
+          sack: "paper bag",
+          cart: "laundry cart",
+          jar: "treat jar",
+          hammer: "squeaky hammer",
+          tongs: "grabby tongs",
+          scythe: "grass-trimmer (scary)",
+          ladle: "gravy ladle",
+          pan: "fishy frying pan",
+          net: "string net",
+          nets: "string nets",
+          dull: "unshiny",
+          siege: "dog siege",
+          boundary: "fence-line",
+          wash: "litter wash",
+          watered: "kibbled",
+          ushet: "Ushetpaws",
+          karn: "Karnmittens",
+          nym: "Nyan",
+          // odd words that are everywhere
+          lost: "misplaced",
+          foul: "yucky",
+          sweet: "yummy",
+          bitter: "yucky",
+          dark: "nap-dark",
+          darkness: "nap-darkness",
+          hidden: "hidden under a cushion",
+          secret: "secret (shh)",
+          great: "great big",
+          ancient: "old as nine lives"
+        }
+      }
+    ]
+  };
+
   // src/content/index.js
   var CONTENT = Object.assign(
     {},
@@ -6401,13 +7698,14 @@
     looks_default,
     music_default,
     things_default,
-    rooms_default
+    rooms_default,
+    feline_default
   );
   {
-    const T4 = CONTENT.things, U3 = CONTENT.roomsByUse;
-    for (const k of U3.kinds) if (!T4.kinds.some((e) => e.id === k.id)) T4.kinds.push(k);
-    Object.assign(T4.sizes, U3.sizes);
-    for (const id in U3.rooms) if (!T4.rooms[id]) T4.rooms[id] = U3.rooms[id];
+    const T5 = CONTENT.things, U3 = CONTENT.roomsByUse;
+    for (const k of U3.kinds) if (!T5.kinds.some((e) => e.id === k.id)) T5.kinds.push(k);
+    Object.assign(T5.sizes, U3.sizes);
+    for (const id in U3.rooms) if (!T5.rooms[id]) T5.rooms[id] = U3.rooms[id];
   }
 
   // src/rules/core.js
@@ -7961,22 +9259,22 @@
   };
   var buyPrice = (s, it) => Math.max(1, Math.round(itemValue(it) * stat(s, "town.buy", 1) * stat(s, "town.buy." + wareKind(it), 1)));
   function makeTownRec(s, r, x, y, race) {
-    const T4 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
+    const T5 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
     race = race || pick(C.races.filter((e) => !e.exotic && !e.roster));
     const t2 = {
       x,
       y,
-      name: pick(T4.a) + pick(T4.b),
+      name: pick(T5.a) + pick(T5.b),
       race: race.id,
       elder: pick(race.names),
       merchant: pick(race.names),
-      fuel: T4.fuel,
+      fuel: T5.fuel,
       stock: [],
       speech: []
     };
     while (t2.merchant === t2.elder) t2.merchant = pick(race.names);
-    for (const b of T4.staples) t2.stock.push(makeItem(s, b, null, null, true));
-    for (let i = 0; i < T4.stock; i++) {
+    for (const b of T5.staples) t2.stock.push(makeItem(s, b, null, null, true));
+    for (let i = 0; i < T5.stock; i++) {
       const it = genItem(s, { noConsumables: i < 3 });
       it.known = true;
       t2.stock.push(it);
@@ -7984,7 +9282,7 @@
     return t2;
   }
   function makeQuest(s, r, townP, vaultP, a0, goalP) {
-    const Q2 = C.quest, T4 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
+    const Q2 = C.quest, T5 = C.town, pick = (a) => a[Math.floor(r() * a.length)];
     const race = pick(C.races.filter((e) => !e.exotic && !e.roster)), q = s.quest = {
       key: pick(Q2.keys),
       vault: pick(Q2.vaults),
@@ -9784,20 +11082,20 @@
   var statsOf = (list) => new Set(list.flatMap((e) => e.mods.map((m) => m.stat)));
   var sum = (list) => list.reduce((a, e) => a + e.worth, 0);
   function rollGod(seed) {
-    const r = stream(seed, "pantheon"), pick = (a) => a[Math.floor(r() * a.length)], T4 = P(), rare = r() < T4.rareChance ? pick(T4.rares) : null, gifts = [pick(T4.gifts)];
+    const r = stream(seed, "pantheon"), pick = (a) => a[Math.floor(r() * a.length)], T5 = P(), rare = r() < T5.rareChance ? pick(T5.rares) : null, gifts = [pick(T5.gifts)];
     if (rare && rare.id !== "generous") {
-      const other = T4.gifts.filter((g) => g.domain !== gifts[0].domain);
+      const other = T5.gifts.filter((g) => g.domain !== gifts[0].domain);
       gifts.push(pick(other));
     }
     let vow = null;
-    if (rare && rare.id === "jealous" || !rare && r() < T4.vowChance) vow = pick(T4.vows);
+    if (rare && rare.id === "jealous" || !rare && r() < T5.vowChance) vow = pick(T5.vows);
     let costs = [];
     if (!rare || rare.id === "twin") {
-      const taken = statsOf(gifts), ok = T4.costs.filter((c) => ![...statsOf([c])].some((st) => taken.has(st))), n = gifts.length, combos = n === 1 ? ok.map((c) => [c]) : ok.flatMap((a, i) => ok.slice(i + 1).map((b) => [a, b])), score = (cs) => Math.abs(sum(gifts) + (vow ? vow.worth : 0) + sum(cs) - T4.target), fit = combos.filter((cs) => score(cs) <= T4.spread);
-      costs = fit.length ? pick(fit) : score([]) <= T4.spread ? [] : combos.sort((a, b) => score(a) - score(b))[0] || [];
+      const taken = statsOf(gifts), ok = T5.costs.filter((c) => ![...statsOf([c])].some((st) => taken.has(st))), n = gifts.length, combos = n === 1 ? ok.map((c) => [c]) : ok.flatMap((a, i) => ok.slice(i + 1).map((b) => [a, b])), score = (cs) => Math.abs(sum(gifts) + (vow ? vow.worth : 0) + sum(cs) - T5.target), fit = combos.filter((cs) => score(cs) <= T5.spread);
+      costs = fit.length ? pick(fit) : score([]) <= T5.spread ? [] : combos.sort((a, b) => score(a) - score(b))[0] || [];
     }
-    const dom = byId(T4.domains, gifts[0].domain), one = (d) => pick(T4.names.a) + pick(T4.names.b) + ", " + pick(d.titles);
-    const name = rare && rare.id === "twin" ? pick(T4.names.a) + pick(T4.names.b) + " and " + pick(T4.names.a) + pick(T4.names.b) + ", the Twins" : one(dom);
+    const dom = byId(T5.domains, gifts[0].domain), one = (d) => pick(T5.names.a) + pick(T5.names.b) + ", " + pick(d.titles);
+    const name = rare && rare.id === "twin" ? pick(T5.names.a) + pick(T5.names.b) + " and " + pick(T5.names.a) + pick(T5.names.b) + ", the Twins" : one(dom);
     return {
       name,
       domain: dom.id,
@@ -9810,11 +11108,11 @@
   function rolledGod(s) {
     const g = s.godRoll;
     if (!g || s.off.godslots) return null;
-    const T4 = P(), gifts = g.gifts.map((id) => byId(T4.gifts, id)), costs = g.costs.map((id) => byId(T4.costs, id)), vow = g.vow ? byId(T4.vows, g.vow) : null, rare = g.rare ? byId(T4.rares, g.rare) : null, broken = !!s.pactBroken;
+    const T5 = P(), gifts = g.gifts.map((id) => byId(T5.gifts, id)), costs = g.costs.map((id) => byId(T5.costs, id)), vow = g.vow ? byId(T5.vows, g.vow) : null, rare = g.rare ? byId(T5.rares, g.rare) : null, broken = !!s.pactBroken;
     return {
       id: s.god,
       name: g.name,
-      color: byId(T4.domains, g.domain).color,
+      color: byId(T5.domains, g.domain).color,
       rolled: true,
       vow,
       rare,
@@ -12542,14 +13840,14 @@
   };
   TALK.push({
     info(s) {
-      const st = atTrader(s), T4 = st && traderOf(st);
-      if (!T4) return null;
+      const st = atTrader(s), T5 = st && traderOf(st);
+      if (!T5) return null;
       return {
-        title: T4.name.charAt(0).toUpperCase() + T4.name.slice(1),
-        text: [T4.talk],
+        title: T5.name.charAt(0).toUpperCase() + T5.name.slice(1),
+        text: [T5.talk],
         options: [
-          ...T4.bed ? [{ id: "bed", label: "A bed for the night", price: T4.bed, note: "eight hours; wake whole" }] : [],
-          ...T4.goods.map((g) => ({ id: "buy", arg: g.base, label: byId(C.bases, g.base).name, price: g.price }))
+          ...T5.bed ? [{ id: "bed", label: "A bed for the night", price: T5.bed, note: "eight hours; wake whole" }] : [],
+          ...T5.goods.map((g) => ({ id: "buy", arg: g.base, label: byId(C.bases, g.base).name, price: g.price }))
         ]
       };
     },
@@ -14807,9 +16105,9 @@
   var STAY = /stair|exit|door|gate|well|entry|vault|relic|portal|hatch|boat|dock|lift/i;
   function levelThings(s, rec, map, r) {
     const key2 = rec.kind === "deep" ? "deep:" + rec.theme : rec.kind === "sky" || rec.kind === "sea" ? rec.kind + ":" + rec.place : rec.kind;
-    const spec = X8().places[key2] || X8().places.deep, T4 = map.terrain, floor = (x, y) => x >= 0 && y >= 0 && x < W && y < H && T4[idx(x, y)] === FLOOR, tiles = [];
+    const spec = X8().places[key2] || X8().places.deep, T5 = map.terrain, floor = (x, y) => x >= 0 && y >= 0 && x < W && y < H && T5[idx(x, y)] === FLOOR, tiles = [];
     for (let k = 0; k < W * H; k++) {
-      if (T4[k] !== FLOOR) continue;
+      if (T5[k] !== FLOOR) continue;
       const st = map.sites[k];
       if (st && STAY.test(st.kind)) continue;
       tiles.push(k);
@@ -14824,7 +16122,7 @@
           [0, 1],
           [-1, 0]
         ])
-          if (!floor(x + dx, y + dy) && T4[idx(x + dx, y + dy)] !== VOID) return [dx, dy];
+          if (!floor(x + dx, y + dy) && T5[idx(x + dx, y + dy)] !== VOID) return [dx, dy];
         return null;
       }
     };
@@ -15234,12 +16532,12 @@
     if (!rec || rec.kind !== "town") return [];
     const map = mapOf(s, townId2);
     if (!map || !map.terrain) return [];
-    const T4 = map.terrain;
-    if (BUILT.has(T4)) return BUILT.get(T4);
+    const T5 = map.terrain;
+    if (BUILT.has(T5)) return BUILT.get(T5);
     const walled = !!rec.walled, ring2 = (x, y) => walled && (x === 0 || y === 0 || x === W - 1 || y === H - 1), seen3 = new Uint8Array(W * H), out = [], c = 18;
     for (let i = 0; i < W * H; i++) {
       const x0 = i % W, y0 = Math.floor(i / W);
-      if (seen3[i] || T4[i] !== WALL || ring2(x0, y0)) continue;
+      if (seen3[i] || T5[i] !== WALL || ring2(x0, y0)) continue;
       const b = { x0, y0, x1: x0, y1: y0 }, stack = [i];
       seen3[i] = 1;
       while (stack.length) {
@@ -15255,7 +16553,7 @@
           [0, -1]
         ]) {
           const nx = x + dx, ny = y + dy, n = ny * W + nx;
-          if (nx < 0 || ny < 0 || nx >= W || ny >= H || seen3[n] || T4[n] !== WALL || ring2(nx, ny)) continue;
+          if (nx < 0 || ny < 0 || nx >= W || ny >= H || seen3[n] || T5[n] !== WALL || ring2(nx, ny)) continue;
           seen3[n] = 1;
           stack.push(n);
         }
@@ -15281,7 +16579,7 @@
         let best = Infinity;
         for (const [side, x, y, dx, dy] of sides) {
           const ox2 = x + dx, oy2 = y + dy;
-          if (ox2 < 1 || oy2 < 1 || ox2 > W - 2 || oy2 > H - 2 || T4[idx(ox2, oy2)] === WALL || map.sites[idx(ox2, oy2)]) continue;
+          if (ox2 < 1 || oy2 < 1 || ox2 > W - 2 || oy2 > H - 2 || T5[idx(ox2, oy2)] === WALL || map.sites[idx(ox2, oy2)]) continue;
           const score = Math.min(Math.abs(ox2 - c), Math.abs(oy2 - c)) + Math.hypot(ox2 - c, oy2 - c) / 100;
           if (score < best) best = score, door = { side, x, y, ox: ox2, oy: oy2 };
         }
@@ -15292,7 +16590,7 @@
       b.id = "h:" + townId2 + ":" + b.x0 + "_" + b.y0;
       out.push(b);
     }
-    BUILT.set(T4, out);
+    BUILT.set(T5, out);
     return out;
   }
   var interiorsOn = (s, townId2) => !s.off.interiors && !tents(s, townId2);
@@ -15652,12 +16950,12 @@
     for (const k in m.sites) if (m.sites[k].kind === "hamlet") return { k: +k, x: +k % W, y: Math.floor(+k / W), st: m.sites[k] };
     return null;
   }
-  function roomFor(m, x, y, skip) {
+  function roomFor(m, x, y, skip2) {
     if (x - R_TOWN < 2 || x + R_TOWN > W - 3 || y - R_TOWN < 2 || y + R_TOWN + 1 > H - 3) return false;
     for (let j = -R_TOWN; j <= R_TOWN + 1; j++)
       for (let i = -R_TOWN; i <= R_TOWN; i++) {
         const k = idx(x + i, y + j);
-        if (k !== skip && m.sites[k]) return false;
+        if (k !== skip2 && m.sites[k]) return false;
         if (j <= R_TOWN && (m.terrain[k] === 2 || m.terrain[k] >= 4)) return false;
       }
     return !m.creatures.some((c) => (c.key || c.lair || c.plot) && Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) <= 6);
@@ -15735,8 +17033,192 @@
   });
   SWITCHES.push(["steads", "Hamlets are small towns you walk into"]);
 
+  // src/rules/theme.js
+  var byTheme = (id) => (C.themes || []).find((t2) => t2.id === id) || null;
+  function rolledTheme(s) {
+    for (const t2 of C.themes || []) {
+      if (!t2.rare || s.off && s.off[t2.id + "roll"]) continue;
+      if (stream(s.seed, "theme:" + t2.id)() < t2.rare) return t2.id;
+    }
+    return null;
+  }
+  function themeOf2(s) {
+    if (!s) return null;
+    if (s.theme === "none") return null;
+    if (s.theme && byTheme(s.theme)) return s.theme;
+    return rolledTheme(s);
+  }
+  var themeRolled = (s) => !!s && !s.theme && !!rolledTheme(s);
+  function setTheme(s, id) {
+    s.theme = id && byTheme(id) ? id : "none";
+    return themeOf2(s);
+  }
+  var PREP = /* @__PURE__ */ new Map();
+  var CACHE2 = /* @__PURE__ */ new Map();
+  var lowerKeys = (o) => {
+    const m = /* @__PURE__ */ new Map();
+    for (const k in o || {}) m.set(k.toLowerCase(), o[k]);
+    return m;
+  };
+  var esc = (t2) => t2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  function contentVocab(skip2) {
+    const vocab = /* @__PURE__ */ new Set(), seen3 = /* @__PURE__ */ new Set();
+    const walk = (o, key2) => {
+      if (o == null) return;
+      if (typeof o === "string") {
+        if (skip2.has(key2)) return;
+        for (const w of o.match(/[A-Za-z][a-z']*/g) || []) vocab.add(w.toLowerCase().replace(/'s$/, ""));
+        return;
+      }
+      if (typeof o !== "object" || seen3.has(o)) return;
+      seen3.add(o);
+      for (const k in o) walk(o[k], Array.isArray(o) ? key2 : k);
+    };
+    walk(C, "");
+    return vocab;
+  }
+  function nameParts(keys) {
+    const parts2 = /* @__PURE__ */ new Set(), seen3 = /* @__PURE__ */ new Set();
+    const walk = (o, key2) => {
+      if (o == null || typeof o !== "object" || seen3.has(o)) return;
+      seen3.add(o);
+      if (Array.isArray(o) && keys.has(key2)) {
+        for (const v of o)
+          if (typeof v === "string" && /^[A-Za-z' -]+$/.test(v)) for (const w of v.split(/[ -]/)) w && parts2.add(w.toLowerCase());
+        return;
+      }
+      for (const k in o) walk(o[k], Array.isArray(o) ? key2 : k);
+    };
+    walk(C, "");
+    return parts2;
+  }
+  function prepare(id) {
+    if (PREP.has(id)) return PREP.get(id);
+    const t2 = byTheme(id);
+    if (!t2) return null;
+    const keys = new Set(t2.nameKeys || []);
+    const phrases = Object.keys(t2.phrases || {}).sort((a, b) => b.length - a.length);
+    const p = {
+      t: t2,
+      exact: lowerKeys(t2.exact),
+      words: lowerKeys(t2.words),
+      phrases: lowerKeys(t2.phrases),
+      phraseRe: phrases.length ? new RegExp("(^|[^A-Za-z])(" + phrases.map(esc).join("|") + ")(?![A-Za-z])", "gi") : null,
+      parts: nameParts(keys),
+      vocab: contentVocab(keys),
+      keep: new Set((t2.keep || []).map((w) => w.toLowerCase()))
+    };
+    for (const w of p.words.keys()) p.vocab.add(w);
+    PREP.set(id, p);
+    return p;
+  }
+  var hash = (str) => {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+    return h >>> 0;
+  };
+  function cased(src, rep) {
+    if (src.length > 1 && src === src.toUpperCase() && /[A-Z]/.test(src)) return rep.toUpperCase();
+    if (src[0] !== src[0].toLowerCase()) return rep[0].toUpperCase() + rep.slice(1);
+    return rep;
+  }
+  function plural(w) {
+    const cut = w.search(/ of | \(/), head = cut < 0 ? w : w.slice(0, cut), post = cut < 0 ? "" : w.slice(cut), n = head.match(/\S+$/)[0], pre = head.slice(0, head.length - n.length);
+    const pl = /[^aeiou]y$/.test(n) ? n.slice(0, -1) + "ies" : /(s|x|ch|sh)$/.test(n) ? n + "es" : n + "s";
+    return pre + pl + post;
+  }
+  function lookWord(p, w) {
+    const lw = w.toLowerCase();
+    if (p.keep.has(lw)) return null;
+    if (p.words.has(lw)) return p.words.get(lw);
+    if (/'s$/.test(lw) && p.words.has(lw.slice(0, -2))) return p.words.get(lw.slice(0, -2)) + "'s";
+    if (/s'$/.test(lw) && p.words.has(lw.slice(0, -2))) return plural(p.words.get(lw.slice(0, -2))) + "'";
+    if (/ies$/.test(lw) && p.words.has(lw.slice(0, -3) + "y")) return plural(p.words.get(lw.slice(0, -3) + "y"));
+    if (/es$/.test(lw) && p.words.has(lw.slice(0, -2))) return plural(p.words.get(lw.slice(0, -2)));
+    if (/s$/.test(lw) && p.words.has(lw.slice(0, -1))) return plural(p.words.get(lw.slice(0, -1)));
+    return null;
+  }
+  function fromParts(parts2, w) {
+    const n = w.length;
+    const reach3 = new Array(n + 1).fill(9);
+    reach3[0] = 0;
+    for (let i = 0; i < n; i++) {
+      if (reach3[i] >= 4) continue;
+      for (let j = i + 1; j <= n; j++) if (parts2.has(w.slice(i, j))) reach3[j] = Math.min(reach3[j], reach3[i] + 1);
+    }
+    return reach3[n] <= 4;
+  }
+  function isName(p, w, initial) {
+    if (w.length < 2 || w[0] === w[0].toLowerCase() || w === w.toUpperCase()) return false;
+    const lw = w.toLowerCase().replace(/'s$/, "");
+    if (p.vocab.has(lw) || p.keep.has(lw)) return false;
+    if (fromParts(p.parts, lw)) return true;
+    return !initial;
+  }
+  function catName(p, w) {
+    const poss = /'s$/.test(w) ? "'s" : "", base = poss ? w.slice(0, -2) : w, styles = p.t.nameStyles || ["{n}"], st = styles[hash(base) % styles.length];
+    return st.replace("{n}", base).replace("{l}", base.toLowerCase()) + poss;
+  }
+  function themed(text, id) {
+    if (!id || typeof text !== "string" || !/[A-Za-z]/.test(text)) return text;
+    const p = prepare(id);
+    if (!p) return text;
+    let cache2 = CACHE2.get(id);
+    if (!cache2) CACHE2.set(id, cache2 = /* @__PURE__ */ new Map());
+    const hit = cache2.get(text);
+    if (hit !== void 0) return hit;
+    const out = turn2(p, text);
+    if (cache2.size > 6e3) cache2.clear();
+    cache2.set(text, out);
+    return out;
+  }
+  function turn2(p, text) {
+    const lead = text.match(/^\s*/)[0], trail = text.match(/\s*$/)[0], core = text.trim();
+    const ex = p.exact.get(core.toLowerCase());
+    if (ex !== void 0) return lead + ex + trail;
+    const bits = [];
+    const hold2 = (rep) => "" + (bits.push(rep) - 1) + "";
+    let s = core;
+    if (p.phraseRe) s = s.replace(p.phraseRe, (m, pre, ph) => pre + hold2(cased(ph, p.phrases.get(ph.toLowerCase()))));
+    s = s.replace(/\u0001\d+\u0002|[A-Za-z][A-Za-z']*/g, (w, at) => {
+      if (w[0] === "") return w;
+      const clean = w.replace(/'+$/, (q) => /s'$/.test(w) ? q : ""), tail = w.slice(clean.length);
+      const rep = lookWord(p, clean);
+      if (rep != null) return hold2(cased(clean, rep)) + tail;
+      const before = s.slice(0, at).replace(/\u0001\d+\u0002/g, "x");
+      const initial = !before.trim() || /[.!?:("']\s*$/.test(before);
+      if (isName(p, clean, initial)) return hold2(catName(p, clean)) + tail;
+      return w;
+    });
+    s = s.replace(/\b([Aa])n? (\u0001(\d+)\u0002)/g, (m, a, ph, n) => {
+      const v = /^[aeiouAEIOU]/.test(bits[+n]) && !/^(uni|use|one|eu)/i.test(bits[+n]);
+      return a + (v ? "n " : " ") + ph;
+    });
+    const changed = bits.length > 0;
+    s = s.replace(/\u0001(\d+)\u0002/g, (m, n) => bits[+n]);
+    if (!changed) {
+      const fl = p.t.flourishes || [];
+      if (fl.length && /[A-Za-z]{4}/.test(s)) {
+        const f = fl[hash(core) % fl.length];
+        s = /[.!?]$/.test(s) || s.split(" ").length > 3 ? s + " " + f : f.replace(/[.!?]$/, "") + " " + s;
+      }
+    }
+    return lead + s + trail;
+  }
+  SWITCHES.push(["felineroll", "Rare feline worlds (1 in 50)"]);
+  NOTES.push((s) => {
+    const id = themeOf2(s), t2 = id && byTheme(id);
+    if (!t2) return [];
+    return [{ label: t2.name, text: themeRolled(s) ? t2.rolledNote : t2.chosenNote }];
+  });
+
   // src/rules/index.js
   var api = {
+    setTheme,
+    themeById: byTheme,
+    themeOf: themeOf2,
+    themeRolled,
+    themed,
     secretOf,
     steadAll,
     HOUSE_SCALE: HS,
@@ -16325,11 +17807,11 @@
   }
   function* makeTerrainG(s) {
     setDetail();
-    const land2 = landAround(s), r = mulberry2(s.seed ^ 5370206), T4 = new Float32Array(4096);
-    for (let i = 0; i < 4096; i++) T4[i] = r();
+    const land2 = landAround(s), r = mulberry2(s.seed ^ 5370206), T5 = new Float32Array(4096);
+    for (let i = 0; i < 4096; i++) T5[i] = r();
     yield;
     const noise = (per, salt) => {
-      const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T4[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
+      const px = s.world.cols * per, pz = s.world.rows * per, at = (ix, iz) => T5[(R.wrap(ix, px) * 73856093 ^ R.wrap(iz, pz) * 19349663 ^ salt * 83492791) & 4095];
       return (x, z) => {
         const u = ((x + HALF) / WORLD + land2.cx) * per, v = ((z + HALF) / WORLD + land2.cy) * per, x0 = Math.floor(u), z0 = Math.floor(v), tx = smooth(u - x0), tz = smooth(v - z0);
         return (at(x0, z0) * (1 - tx) + at(x0 + 1, z0) * tx) * (1 - tz) + (at(x0, z0 + 1) * (1 - tx) + at(x0 + 1, z0 + 1) * tx) * tz;
@@ -16508,7 +17990,7 @@
     for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 16777619);
     return fmix(h ^ fmix((seed >>> 0) + 2654435769)) / 4294967296;
   }
-  function turn2(c, deg, sat) {
+  function turn3(c, deg, sat) {
     const [r, g, b] = c, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
     let h = 0, s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
     if (d) h = mx === r ? (g - b) / d % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
@@ -16589,7 +18071,7 @@
     o.names = [cl.name];
     const v = cl.vary || { hue: [0, 0], sat: 0 }, dh = v.hue[0] + roll2(ctx.seed, "look:hue:" + ctx.climate) * (v.hue[1] - v.hue[0]), ds = 1 + (roll2(ctx.seed, "look:sat:" + ctx.climate) * 2 - 1) * v.sat;
     if (dh || v.sat)
-      for (const c of ["zenith", "horizon", "fog", "shade", "lift", "cloud"]) o[c] = turn2(o[c], c === "zenith" ? dh * 0.6 : dh, ds);
+      for (const c of ["zenith", "horizon", "fog", "shade", "lift", "cloud"]) o[c] = turn3(o[c], c === "zenith" ? dh * 0.6 : dh, ds);
     o.turned = Math.round(dh);
     if (ctx.biomeSky !== null && ctx.biomeSky !== void 0) {
       const bs = hex(ctx.biomeSky);
@@ -17206,7 +18688,7 @@
   }
   var MACRO_M = 168;
   function macroAt(x, z, out) {
-    const T4 = textures(), n = T4.M, u = (x / MACRO_M % 1 + 1) % 1, v = (z / MACRO_M % 1 + 1) % 1, fx = u * n - 0.5, fz = v * n - 0.5, x0 = Math.floor(fx), z0 = Math.floor(fz), tx = fx - x0, tz = fz - z0, at = (i, j, c) => T4.mac[((j % n + n) % n * n + (i % n + n) % n) * 4 + c] / 255;
+    const T5 = textures(), n = T5.M, u = (x / MACRO_M % 1 + 1) % 1, v = (z / MACRO_M % 1 + 1) % 1, fx = u * n - 0.5, fz = v * n - 0.5, x0 = Math.floor(fx), z0 = Math.floor(fz), tx = fx - x0, tz = fz - z0, at = (i, j, c) => T5.mac[((j % n + n) % n * n + (i % n + n) % n) * 4 + c] / 255;
     for (let c = 0; c < 4; c++)
       out[c] = (at(x0, z0, c) * (1 - tx) + at(x0 + 1, z0, c) * tx) * (1 - tz) + (at(x0, z0 + 1, c) * (1 - tx) + at(x0 + 1, z0 + 1, c) * tx) * tz;
     return out;
@@ -17249,11 +18731,11 @@
     return out;
   }
   function groundsMaterial() {
-    const mat = new THREE.MeshLambertMaterial({ vertexColors: true }), T4 = textures(), hi = !!Q.shadows && Q.ratio > 2;
+    const mat = new THREE.MeshLambertMaterial({ vertexColors: true }), T5 = textures(), hi = !!Q.shadows && Q.ratio > 2;
     mat.onBeforeCompile = (sh) => {
-      sh.uniforms.gA = { value: T4.a };
-      sh.uniforms.gB = { value: T4.b };
-      sh.uniforms.gM = { value: T4.macro };
+      sh.uniforms.gA = { value: T5.a };
+      sh.uniforms.gB = { value: T5.b };
+      sh.uniforms.gM = { value: T5.macro };
       sh.vertexShader = sh.vertexShader.replace(
         "#include <common>",
         "#include <common>\nattribute vec4 surf;\nattribute vec4 surf2;\nattribute vec4 mac;\nvarying vec4 vSurf;\nvarying vec4 vSurf2;\nvarying vec4 vMac;\nvarying vec2 vGround;\nvarying float vNear;"
@@ -17368,7 +18850,7 @@ ${hi ? "" : "*/"}`
 #endif`;
 
   // src/view/kit.js
-  var PREP = /* @__PURE__ */ new Map();
+  var PREP2 = /* @__PURE__ */ new Map();
   var _m = new THREE.Matrix4();
   var _q = new THREE.Quaternion();
   var _e = new THREE.Euler();
@@ -17392,7 +18874,7 @@ ${hi ? "" : "*/"}`
         opts = opts || {};
         let g;
         if (geo.parameters) {
-          const key2 = geo.type + JSON.stringify(geo.parameters), pre = PREP.get(key2) || PREP.set(key2, geo.index ? geo.toNonIndexed() : geo.clone()).get(key2);
+          const key2 = geo.type + JSON.stringify(geo.parameters), pre = PREP2.get(key2) || PREP2.set(key2, geo.index ? geo.toNonIndexed() : geo.clone()).get(key2);
           g = new THREE.BufferGeometry();
           g.setAttribute("position", pre.attributes.position.clone());
           if (pre.attributes.normal) g.setAttribute("normal", pre.attributes.normal.clone());
@@ -17700,7 +19182,7 @@ transformed.z += sin(windTime * 0.9 + wph * 1.7) * wk * 0.6;`
     r.pick = (list) => list[Math.floor(r() * list.length) % list.length];
     return r;
   }
-  var hash = (str) => {
+  var hash3 = (str) => {
     let h = 2166136261;
     for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
     return h | 0;
@@ -17820,7 +19302,7 @@ vFade = sin(ph * 3.14159);`
     return p;
   }
   var FH = 3.1;
-  var turn3 = (lx2, lz, ry) => [lx2 * Math.cos(ry) + lz * Math.sin(ry), -lx2 * Math.sin(ry) + lz * Math.cos(ry)];
+  var turn4 = (lx2, lz, ry) => [lx2 * Math.cos(ry) + lz * Math.sin(ry), -lx2 * Math.sin(ry) + lz * Math.cos(ry)];
   function switchKit(table, cur) {
     const self = {
       cur,
@@ -17904,7 +19386,7 @@ vFade = sin(ph * 3.14159);`
       ]) {
         const seg = (a, bb, y0, y1) => {
           if (bb - a < 0.01) return;
-          const [ox2, oz] = turn3((a + bb) / 2, 0, ry);
+          const [ox2, oz] = turn4((a + bb) / 2, 0, ry);
           K2.wall.add(P4.box(bb - a, y1 - y0, t2), wcol, { x: cx + fx + ox2, y: (y0 + y1) / 2, z: cz + fz + oz, ry }, wopt);
         };
         const o = side === b.door ? (side === "n" || side === "s" ? doorOff : -doorOff) * (ry ? 1 : 1) : null;
@@ -17956,20 +19438,20 @@ vFade = sin(ph * 3.14159);`
           const o = -len / 2 + (i + 0.5) * len / n;
           if (s === 0 && side === b.door && Math.abs(o - doorOff * FACE_SIGN[side]) < 1.6) continue;
           if (r() < 0.12) continue;
-          const [ox2, oz] = turn3(o, 0.06, ry), y = s * FH + 1.9;
+          const [ox2, oz] = turn4(o, 0.06, ry), y = s * FH + 1.9;
           K2.glow.add(P4.box(0.8, 1.05, 0.12), 16764800, { x: cx + fx + ox2, y, z: cz + fz + oz, ry });
           if (Q.lite) continue;
           if (st.climate === "temperate" || st.climate === "cold") {
             for (const sg of [-1, 1]) {
-              const [sx, sz] = turn3(o + sg * 0.62, 0.1, ry);
+              const [sx, sz] = turn4(o + sg * 0.62, 0.1, ry);
               K2.wood.add(P4.box(0.42, 1.1, 0.06), trim, { x: cx + fx + sx, y, z: cz + fz + sz, ry });
             }
           }
           if (st.flowers && s === 0) {
-            const [bx, bz] = turn3(o, 0.3, ry);
+            const [bx, bz] = turn4(o, 0.3, ry);
             K2.wood.add(P4.box(1, 0.25, 0.35), trim, { x: cx + fx + bx, y: y - 0.65, z: cz + fz + bz, ry });
             for (let f = 0; f < 3; f++) {
-              const [qx, qz] = turn3(o - 0.3 + f * 0.3, 0.32, ry);
+              const [qx, qz] = turn4(o - 0.3 + f * 0.3, 0.32, ry);
               K2.cloth.add(P4.blob(0.16), r.pick(["#d04a4a", "#e8c040", "#d070b0", "#f0f0f0"]), {
                 x: cx + fx + qx,
                 y: y - 0.45,
@@ -17980,7 +19462,7 @@ vFade = sin(ph * 3.14159);`
         }
       if (side === b.door) {
         const along = doorOff * FACE_SIGN[side], at = (lx2, lz) => {
-          const [ox2, oz] = turn3(along + lx2, lz, ry);
+          const [ox2, oz] = turn4(along + lx2, lz, ry);
           return { x: cx + fx + ox2, z: cz + fz + oz };
         };
         if (b.open) {
@@ -18060,7 +19542,7 @@ vFade = sin(ph * 3.14159);`
     const along = d >= w, span = along ? w : d, len = (along ? d : w) + 1, h = (span + 1) * st.pitch * 0.5, ry = along ? 0 : Math.PI / 2, half = (span + 1.2) / 2, slope = Math.hypot(half, h), a = Math.atan2(h, half);
     K2.wall.add(P4.prism(span, h * (span / (span + 1.2)), along ? d : w), wcol, { x: cx, y: wallH, z: cz, ry }, { uv: 3 });
     for (const sg of [-1, 1]) {
-      const [ox2, oz] = turn3(sg * half / 2, 0, ry);
+      const [ox2, oz] = turn4(sg * half / 2, 0, ry);
       K2.roof.add(
         P4.box(slope + 0.2, 0.28, len),
         col,
@@ -18068,7 +19550,7 @@ vFade = sin(ph * 3.14159);`
         { uv: 2, jitter: 0.06 }
       );
       if (st.snow) {
-        const [sx, sz] = turn3(sg * half / 4, 0, ry);
+        const [sx, sz] = turn4(sg * half / 4, 0, ry);
         K2.roof.add(
           P4.box(slope * 0.55, 0.12, len - 0.2),
           "#eef3f6",
@@ -18103,7 +19585,7 @@ vFade = sin(ph * 3.14159);`
   }
   function dress(K2, st, r, b, wallH) {
     const at = b.doorAt || { x: b.cx, z: b.cz + b.d / 2, ry: 0 }, put = (lx2, lz) => {
-      const [ox2, oz] = turn3(lx2, lz, at.ry);
+      const [ox2, oz] = turn4(lx2, lz, at.ry);
       return [at.x + ox2, at.z + oz];
     };
     if (b.kind === "elder") {
@@ -18171,7 +19653,7 @@ vFade = sin(ph * 3.14159);`
     woodpile(K2, st, r, x, z, ry) {
       for (let row = 0; row < 3; row++)
         for (let i = 0; i < 4 - row; i++) {
-          const [ox2, oz] = turn3(-1 + i * 0.55 + row * 0.27, 0, ry);
+          const [ox2, oz] = turn4(-1 + i * 0.55 + row * 0.27, 0, ry);
           K2.wood.add(
             P4.cyl(0.25, 0.25, 2, 6),
             "#6a4a2e",
@@ -18193,11 +19675,11 @@ vFade = sin(ph * 3.14159);`
         K2.cloth.add(P4.blob(0.35), r.pick(["#5a8a3a", "#6a9a4a", "#4a7a3a", "#9a6aaa"]), { x: x - 0.8 + i * 0.55, y: 0.7, z });
     },
     clothline(K2, st, r, x, z, ry) {
-      const ends = [turn3(-2, 0, ry), turn3(2, 0, ry)];
+      const ends = [turn4(-2, 0, ry), turn4(2, 0, ry)];
       for (const [ox2, oz] of ends) K2.wood.add(P4.box(0.12, 2.6, 0.12), st.trim, { x: x + ox2, y: 1.3, z: z + oz });
       K2.wood.add(P4.box(4, 0.04, 0.04), "#d8d0c0", { x, y: 2.5, z, ry });
       for (let i = 0; i < 3; i++) {
-        const [ox2, oz] = turn3(-1.2 + i * 1.2, 0, ry);
+        const [ox2, oz] = turn4(-1.2 + i * 1.2, 0, ry);
         K2.cloth.add(
           P4.box(0.9, 1.1 + r() * 0.4, 0.03),
           r.pick(st.banners.length ? st.banners.concat(["#3a6a9a", "#c08a3a"]) : ["#3a6a9a", "#c08a3a", "#8a3a6a"]),
@@ -18222,12 +19704,12 @@ vFade = sin(ph * 3.14159);`
         [-1.2, 0.7],
         [1.2, 0.7]
       ]) {
-        const [ox2, oz] = turn3(lx2, lz, ry);
+        const [ox2, oz] = turn4(lx2, lz, ry);
         K2.wood.add(P4.box(0.12, 2.4, 0.12), st.trim, { x: x + ox2, y: 1.2, z: z + oz });
       }
       K2.wood.add(P4.box(2.6, 0.9, 1.2), "#8a6a44", { x, y: 0.45, z, ry }, { uv: 1 });
       for (let i = 0; i < 4; i++) {
-        const [ox2, oz] = turn3(-0.975 + i * 0.65, 0, ry);
+        const [ox2, oz] = turn4(-0.975 + i * 0.65, 0, ry);
         K2.cloth.add(P4.box(0.65, 0.05, 1.8), i % 2 ? "#e8e0cc" : r.pick(["#b8483a", "#3a6a9a", "#3a8a5a"]), {
           x: x + ox2,
           y: 2.45,
@@ -18237,17 +19719,17 @@ vFade = sin(ph * 3.14159);`
         });
       }
       for (let i = 0; i < 3; i++) {
-        const [ox2, oz] = turn3(-0.8 + i * 0.8, 0, ry);
+        const [ox2, oz] = turn4(-0.8 + i * 0.8, 0, ry);
         K2.cloth.add(P4.blob(0.25), r.pick(["#d0a030", "#a83a2a", "#6a9a3a"]), { x: x + ox2, y: 1.05, z: z + oz });
       }
     },
     cart(K2, st, r, x, z, ry) {
       K2.wood.add(P4.box(1.6, 0.5, 2.6), "#7a5a38", { x, y: 1, z, ry }, { uv: 1 });
       for (const sg of [-1, 1]) {
-        const [ox2, oz] = turn3(sg * 0.9, 0.3, ry);
+        const [ox2, oz] = turn4(sg * 0.9, 0.3, ry);
         K2.wood.add(P4.cyl(0.6, 0.6, 0.12, 10), "#4a3424", { x: x + ox2, y: 0.6, z: z + oz, rz: Math.PI / 2, ry }, { uv: 1 });
       }
-      const [hx, hz] = turn3(0, -2, ry);
+      const [hx, hz] = turn4(0, -2, ry);
       K2.wood.add(P4.box(0.1, 0.1, 1.8), "#5a4028", { x: x + hx, y: 0.9, z: z + hz, ry, rx: 0.2 });
     }
   };
@@ -18258,10 +19740,10 @@ vFade = sin(ph * 3.14159);`
     K2.lamps.push(x + 0.6, 2.85, z);
   }
   function blocks(map, walled) {
-    const W3 = R.W, H2 = R.H, T4 = map.terrain, seen3 = new Uint8Array(W3 * H2), out = [], ring2 = (x, y) => walled && (x === 0 || y === 0 || x === W3 - 1 || y === H2 - 1);
+    const W3 = R.W, H2 = R.H, T5 = map.terrain, seen3 = new Uint8Array(W3 * H2), out = [], ring2 = (x, y) => walled && (x === 0 || y === 0 || x === W3 - 1 || y === H2 - 1);
     for (let i = 0; i < W3 * H2; i++) {
       const x0 = i % W3, y0 = Math.floor(i / W3);
-      if (seen3[i] || T4[i] !== R.WALL || ring2(x0, y0)) continue;
+      if (seen3[i] || T5[i] !== R.WALL || ring2(x0, y0)) continue;
       const b = { x0, y0, x1: x0, y1: y0 }, stack = [i];
       seen3[i] = 1;
       while (stack.length) {
@@ -18277,7 +19759,7 @@ vFade = sin(ph * 3.14159);`
           [0, -1]
         ]) {
           const nx = x + dx, ny = y + dy, n = ny * W3 + nx;
-          if (nx < 0 || ny < 0 || nx >= W3 || ny >= H2 || seen3[n] || T4[n] !== R.WALL || ring2(nx, ny)) continue;
+          if (nx < 0 || ny < 0 || nx >= W3 || ny >= H2 || seen3[n] || T5[n] !== R.WALL || ring2(nx, ny)) continue;
           seen3[n] = 1;
           stack.push(n);
         }
@@ -18287,7 +19769,7 @@ vFade = sin(ph * 3.14159);`
     return out;
   }
   function townGroup(S3, townId2, map, ts) {
-    const st = styleOf(S3, townId2), r = dice(hash((townId2 || "town") + ":" + S3.seed)), K2 = kits(st), group2 = new THREE.Group(), W3 = R.W, size = W3 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T4 = map.terrain, walled = !!(S3.areas[townId2] && S3.areas[townId2].walled), c = 18;
+    const st = styleOf(S3, townId2), r = dice(hash3((townId2 || "town") + ":" + S3.seed)), K2 = kits(st), group2 = new THREE.Group(), W3 = R.W, size = W3 * ts, at = (t2) => (t2 + 0.5) * ts - size / 2, edge = (t2) => t2 * ts - size / 2, T5 = map.terrain, walled = !!(S3.areas[townId2] && S3.areas[townId2].walled), c = 18;
     K2.ground.add(P4.box(size, 0.1, size), st.ground, { y: 0.03 }, { uv: 2.5, jitter: 0.04 });
     K2.cobble.add(P4.box(13 * ts, 0.1, 13 * ts), st.plinth, { y: 0.06 }, { uv: 3, jitter: 0.03 });
     const kindAt2 = {};
@@ -18328,7 +19810,7 @@ vFade = sin(ph * 3.14159);`
       building(K2, st, r, { cx, cz, w: (b.x1 - b.x0 + 1) * ts - 0.5, d: (b.y1 - b.y0 + 1) * ts - 0.5, kind: kind2, door });
     }
     if (walled) outerWall(K2, st, r, map, ts, at);
-    const open = (x, y) => x >= 0 && y >= 0 && x < W3 && y < W3 && T4[y * W3 + x] !== R.WALL && !map.sites[y * W3 + x];
+    const open = (x, y) => x >= 0 && y >= 0 && x < W3 && y < W3 && T5[y * W3 + x] !== R.WALL && !map.sites[y * W3 + x];
     const step2 = Math.max(2, Math.round(5 / Math.max(0.3, st.lanterns)));
     for (let i = 3; i < W3 - 3; i += step2)
       for (const [x, y] of [
@@ -18354,7 +19836,7 @@ vFade = sin(ph * 3.14159);`
         [-1, 0],
         [0, 1],
         [0, -1]
-      ].find(([dx, dy]) => T4[(y + dy) * W3 + x + dx] === R.WALL);
+      ].find(([dx, dy]) => T5[(y + dy) * W3 + x + dx] === R.WALL);
       if (!by) continue;
       const name = st.props[placed % st.props.length];
       PROPS[name](K2, st, r, at(x), at(y), by[0] ? Math.PI / 2 : 0);
@@ -18385,18 +19867,18 @@ vFade = sin(ph * 3.14159);`
   function outerWall(K2, st, r, map, ts, at) {
     K2.wall.cur = (st.outer === "mud" ? "adobe" : st.walls) + ":0";
     K2.roof.cur = st.roofTex + ":0";
-    const W3 = R.W, T4 = map.terrain;
+    const W3 = R.W, T5 = map.terrain;
     for (let i = 0; i < W3 * W3; i++) {
       const x = i % W3, y = Math.floor(i / W3);
       if (!(x === 0 || y === 0 || x === W3 - 1 || y === W3 - 1)) continue;
-      const px = at(x), pz = at(y), gate = T4[i] !== R.WALL, nearGate = !gate && [
+      const px = at(x), pz = at(y), gate = T5[i] !== R.WALL, nearGate = !gate && [
         [1, 0],
         [-1, 0],
         [0, 1],
         [0, -1]
       ].some(([dx, dy]) => {
         const nx = x + dx, ny = y + dy;
-        return nx >= 0 && ny >= 0 && nx < W3 && ny < W3 && (nx === 0 || ny === 0 || nx === W3 - 1 || ny === W3 - 1) && T4[ny * W3 + nx] !== R.WALL;
+        return nx >= 0 && ny >= 0 && nx < W3 && ny < W3 && (nx === 0 || ny === 0 || nx === W3 - 1 || ny === W3 - 1) && T5[ny * W3 + nx] !== R.WALL;
       });
       if (gate) continue;
       if (st.outer === "palisade") {
@@ -18488,8 +19970,8 @@ vFade = sin(ph * 3.14159);`
     };
     return TEX2;
   }
-  function roadLines(T4) {
-    const land2 = T4.land, EW2 = Math.round(Math.sqrt(land2.road.length)), M3 = (EW2 - R.W) / 2, at = (ex, ey) => ex >= 0 && ey >= 0 && ex < EW2 && ey < EW2 && on3[ey * EW2 + ex], on3 = new Uint8Array(EW2 * EW2);
+  function roadLines(T5) {
+    const land2 = T5.land, EW2 = Math.round(Math.sqrt(land2.road.length)), M3 = (EW2 - R.W) / 2, at = (ex, ey) => ex >= 0 && ey >= 0 && ex < EW2 && ey < EW2 && on3[ey * EW2 + ex], on3 = new Uint8Array(EW2 * EW2);
     const blocks2 = land2.sites.filter((q) => q.st.kind === "town");
     for (let e = 0; e < EW2 * EW2; e++) {
       if (!land2.road[e]) continue;
@@ -18578,11 +20060,11 @@ vFade = sin(ph * 3.14159);`
   }
   var _c2;
   var _g;
-  function roadsGroup(S3, T4, colourAt) {
+  function roadsGroup(S3, T5, colourAt) {
     _c2 = _c2 || new THREE.Color();
     _g = _g || new THREE.Color();
-    const group2 = new THREE.Group(), base = R.civOf(S3).search.roads ? "old" : "track", towns = T4.land.sites.filter((q) => q.st.kind === "town").map((q) => ({ x: (q.x + 0.5) * TS - HALF, z: (q.y + 0.5) * TS - HALF })), lines = roadLines(T4), hi = Q.ratio > 2, step2 = hi ? 1.2 : 2.2, edgeReach = hi ? 900 : 480, buckets = /* @__PURE__ */ new Map(), bk = (x, z) => Math.floor(x / 16) + "," + Math.floor(z / 16), built = {}, inst = { kerb: [], block: [], post: [], parapet: [], rail: [], deck: [] };
-    const wl = T4.water ? T4.water.level : null, wmask = T4.water ? T4.water.mask : () => 0;
+    const group2 = new THREE.Group(), base = R.civOf(S3).search.roads ? "old" : "track", towns = T5.land.sites.filter((q) => q.st.kind === "town").map((q) => ({ x: (q.x + 0.5) * TS - HALF, z: (q.y + 0.5) * TS - HALF })), lines = roadLines(T5), hi = Q.ratio > 2, step2 = hi ? 1.2 : 2.2, edgeReach = hi ? 900 : 480, buckets = /* @__PURE__ */ new Map(), bk = (x, z) => Math.floor(x / 16) + "," + Math.floor(z / 16), built = {}, inst = { kerb: [], block: [], post: [], parapet: [], rail: [], deck: [] };
+    const wl = T5.water ? T5.water.level : null, wmask = T5.water ? T5.water.mask : () => 0;
     const buf = (k) => built[k] || (built[k] = { pos: [], col: [], gcol: [], ru: [], idx: [], n: 0 });
     for (const ln of lines) {
       const pts = resample(ln.pts, step2);
@@ -18591,7 +20073,7 @@ vFade = sin(ph * 3.14159);`
         const b = bk(p.x, p.z);
         (buckets.get(b) || buckets.set(b, []).get(b)).push(p);
       }
-      const wet = pts.map((p) => T4.water && wmask(p.x, p.z) > 0.3 ? 1 : 0), bridge = pts.map((_, i) => {
+      const wet = pts.map((p) => T5.water && wmask(p.x, p.z) > 0.3 ? 1 : 0), bridge = pts.map((_, i) => {
         let best = 0;
         for (let j = Math.max(0, i - 6); j <= Math.min(pts.length - 1, i + 6); j++)
           if (wet[j]) best = Math.max(best, 1 - Math.abs(i - j) / 7);
@@ -18607,7 +20089,7 @@ vFade = sin(ph * 3.14159);`
         dz /= l;
         const nx = -dz, nz = dx, kind2 = kindAt(towns, base, p.x, p.z), K2 = KINDS2[kind2], B = buf(kind2);
         if (!run || run.kind !== kind2) run = { kind: kind2, first: B.n, v: 0, prev: null };
-        const ground = (x, z) => T4.height(x, z) + K2.lift, hb = bridge[i] > 0 ? Math.max(ground(p.x, p.z), deckY(p)) : -Infinity, y = (x, z) => bridge[i] > 0 ? ground(x, z) * (1 - smooth01(bridge[i])) + Math.max(hb, ground(x, z)) * smooth01(bridge[i]) : ground(x, z);
+        const ground = (x, z) => T5.height(x, z) + K2.lift, hb = bridge[i] > 0 ? Math.max(ground(p.x, p.z), deckY(p)) : -Infinity, y = (x, z) => bridge[i] > 0 ? ground(x, z) * (1 - smooth01(bridge[i])) + Math.max(hb, ground(x, z)) * smooth01(bridge[i]) : ground(x, z);
         if (run.prev) run.v += Math.hypot(p.x - run.prev.x, p.z - run.prev.z);
         run.prev = p;
         const half = K2.w / 2, ragL = kind2 === "old" ? (r() - 0.5) * 0.7 : 0, ragR = kind2 === "old" ? (r() - 0.5) * 0.7 : 0, cols = [
@@ -18656,18 +20138,18 @@ vFade = sin(ph * 3.14159);`
             const t2 = j / n - 0.5, bx = p.x + dx * t2 * step2, bz = p.z + dz * t2 * step2;
             for (const sd2 of [-1, 1]) {
               const hx = bx + nx * sd2 * (half + 0.12), hz = bz + nz * sd2 * (half + 0.12);
-              inst.kerb.push([hx, T4.height(hx, hz) + 0.02, hz, yaw, 1, r()]);
+              inst.kerb.push([hx, T5.height(hx, hz) + 0.02, hz, yaw, 1, r()]);
             }
           }
         } else if (K2.edge === "blocks" && i % 2 === 0) {
           for (const sd2 of [-1, 1])
             if (r() < 0.62) {
               const o = sd2 * (half + 0.25 + (sd2 < 0 ? ragL : ragR) * 0.5), hx = lx2(o), hz = lz(o);
-              inst.block.push([hx, T4.height(hx, hz) - 0.1 - r() * 0.25, hz, yaw + (r() - 0.5) * 0.4, 1, r()]);
+              inst.block.push([hx, T5.height(hx, hz) - 0.1 - r() * 0.25, hz, yaw + (r() - 0.5) * 0.4, 1, r()]);
             }
         } else if (K2.edge === "posts" && r() < step2 / 28) {
           const sd2 = r() < 0.5 ? -1 : 1, o = sd2 * (half + K2.verge * 0.6), hx = lx2(o), hz = lz(o);
-          inst.post.push([hx, T4.height(hx, hz) - 0.15, hz, yaw + (r() - 0.5) * 0.3, 1, r()]);
+          inst.post.push([hx, T5.height(hx, hz) - 0.15, hz, yaw + (r() - 0.5) * 0.3, 1, r()]);
         }
       }
     }
@@ -18819,27 +20301,27 @@ if (lum > 0.5) diffuseColor.rgb *= (0.5 + (lum - 0.5) * 0.35) / lum;`
     ashen: [[6971472, 4866616, 1]]
   };
   var BOUNDS = { temperate: "hedge", wet: "drystone", cold: "drystone", hot: "mudwall", steppe: "fence", ashen: "drystone" };
-  function fieldsGroup(S3, T4, towns, townHalf) {
+  function fieldsGroup(S3, T5, towns, townHalf) {
     const group2 = new THREE.Group(), fields = [];
     if (!fieldsOn() || !towns.length) return { group: group2, inField: () => false };
-    const land2 = T4.land, clear = (x, z) => {
-      const e2 = T4.etile(x, z), ter = land2.terrain[e2];
+    const land2 = T5.land, clear = (x, z) => {
+      const e2 = T5.etile(x, z), ter = land2.terrain[e2];
       if (ter !== 0 || land2.siteAt[e2]) return false;
-      if (T4.water && T4.water.mask(x, z) > 0.02) return false;
-      if (T4.roadNear ? T4.roadNear(x, z) < 5 : T4.roadAt(x, z)) return false;
+      if (T5.water && T5.water.mask(x, z) > 0.02) return false;
+      if (T5.roadNear ? T5.roadNear(x, z) < 5 : T5.roadAt(x, z)) return false;
       for (const t2 of towns) if (Math.abs(x - t2.x) < townHalf + 6 && Math.abs(z - t2.z) < townHalf + 6) return false;
       return true;
     };
     const hi = !!Q.shadows && Q.ratio > 2, reach3 = hi ? 900 : 560, cell = hi ? 2 : 4;
     for (const t2 of towns) {
       if (Math.max(Math.abs(t2.x), Math.abs(t2.z)) > reach3) continue;
-      const r = mulberry2(S3.seed ^ Math.imul(Math.round(t2.x) + 9973, 2654435761) ^ Math.imul(Math.round(t2.z) + 7919, 40503) | 0), bio = land2.biomes[land2.biome[T4.etile(t2.x, t2.z)]], cl = climateOf2(bio), crops = CROPS[cl] || CROPS.temperate, bound = BOUNDS[cl] || "hedge", want = 5 + Math.floor(r() * 5);
+      const r = mulberry2(S3.seed ^ Math.imul(Math.round(t2.x) + 9973, 2654435761) ^ Math.imul(Math.round(t2.z) + 7919, 40503) | 0), bio = land2.biomes[land2.biome[T5.etile(t2.x, t2.z)]], cl = climateOf2(bio), crops = CROPS[cl] || CROPS.temperate, bound = BOUNDS[cl] || "hedge", want = 5 + Math.floor(r() * 5);
       for (let tries = 0; tries < 60 && fields.filter((f) => f.town === t2).length < want; tries++) {
         const a = r() * Math.PI * 2, d = townHalf + 14 + r() * 80, cx = t2.x + Math.cos(a) * d, cz = t2.z + Math.sin(a) * d, w = 18 + r() * 16, h = 12 + r() * 12, f = { town: t2, x0: cx - w / 2, x1: cx + w / 2, z0: cz - h / 2, z1: cz + h / 2, bound };
         const pts = [];
         for (const u of [0, 0.5, 1]) for (const v2 of [0, 0.5, 1]) pts.push([f.x0 + (f.x1 - f.x0) * u, f.z0 + (f.z1 - f.z0) * v2]);
         if (!pts.every(([x, z]) => clear(x, z))) continue;
-        const hs = pts.map(([x, z]) => T4.height(x, z));
+        const hs = pts.map(([x, z]) => T5.height(x, z));
         if (Math.max(...hs) - Math.min(...hs) > 3.5) continue;
         if (fields.some((o) => o.x0 < f.x1 + 4 && o.x1 > f.x0 - 4 && o.z0 < f.z1 + 4 && o.z1 > f.z0 - 4)) continue;
         let tot = crops.reduce((s, c2) => s + c2[2], 0) * r();
@@ -18859,7 +20341,7 @@ if (lum > 0.5) diffuseColor.rgb *= (0.5 + (lum - 0.5) * 0.35) / lum;`
       for (let j = 0; j <= nz; j++)
         for (let i = 0; i <= nx; i++) {
           const x = f.x0 + (f.x1 - f.x0) * i / nx, z = f.z0 + (f.z1 - f.z0) * j / nz;
-          pos.push(x, T4.height(x, z) + 0.12, z);
+          pos.push(x, T5.height(x, z) + 0.12, z);
           const row = f.rowsX ? i : j, c2 = row % 2 ? cB : cA, k = 0.92 + f.r() * 0.16;
           col.push(c2.r * k, c2.g * k, c2.b * k);
         }
@@ -18895,7 +20377,7 @@ if (lum > 0.5) diffuseColor.rgb *= (0.5 + (lum - 0.5) * 0.35) / lum;`
         for (let i = 0; i <= n; i++) {
           const t2 = i / n;
           if (side === f.gate && Math.abs(t2 - 0.5) < 2.2 / len) continue;
-          const x = ax + (bx - ax) * t2, z = az + (bz - az) * t2, y = T4.height(x, z), k = f.r();
+          const x = ax + (bx - ax) * t2, z = az + (bz - az) * t2, y = T5.height(x, z), k = f.r();
           if (f.bound === "fence") {
             pieces.fence.push([x, y, z, yaw, 1, k]);
             if (i < n && !(side === f.gate && Math.abs(t2 + 0.5 / n - 0.5) < 2.2 / len))
@@ -19096,12 +20578,12 @@ if (lum > 0.5) diffuseColor.rgb *= (0.5 + (lum - 0.5) * 0.35) / lum;`
         { uv: 1.5 }
       );
     };
-    const H2 = 5.5 * (civ.age === "recent" ? 1.15 : 1), T4 = 0.9, doors = [];
+    const H2 = 5.5 * (civ.age === "recent" ? 1.15 : 1), T5 = 0.9, doors = [];
     const box4 = (w, d, h, door) => {
-      wall(Z2, -w / 2, d / 2, w / 2, d / 2, h, T4, door ? { gap: 1.8 } : null);
-      wall(Z2, w / 2, -d / 2, -w / 2, -d / 2, h, T4);
-      wall(Z2, -w / 2, -d / 2, -w / 2, d / 2, h, T4);
-      wall(Z2, w / 2, d / 2, w / 2, -d / 2, h, T4);
+      wall(Z2, -w / 2, d / 2, w / 2, d / 2, h, T5, door ? { gap: 1.8 } : null);
+      wall(Z2, w / 2, -d / 2, -w / 2, -d / 2, h, T5);
+      wall(Z2, -w / 2, -d / 2, -w / 2, d / 2, h, T5);
+      wall(Z2, w / 2, d / 2, w / 2, -d / 2, h, T5);
       if (door) doors.push([0, d / 2]);
     };
     if (civ.habit === "tower") {
@@ -19324,8 +20806,8 @@ ${rich ? `{
   function setWaterSky(c) {
     SKY.value.copy(c);
   }
-  function* waterMesh(T4, g, sink, hollow, keep, colourAt) {
-    const W3 = T4.water, n = g.n, N1 = n + 1, idx2 = new Int32Array(N1 * N1).fill(-1), m = new Float32Array(N1 * N1), pos = [], wa = [], col = [], tri = [], c = new THREE.Color(), inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
+  function* waterMesh(T5, g, sink, hollow, keep, colourAt) {
+    const W3 = T5.water, n = g.n, N1 = n + 1, idx2 = new Int32Array(N1 * N1).fill(-1), m = new Float32Array(N1 * N1), pos = [], wa = [], col = [], tri = [], c = new THREE.Color(), inner2 = (x, z) => Math.abs(x) < keep && Math.abs(z) < keep;
     for (let iz = 0; iz <= n; iz++) {
       for (let ix = 0; ix <= n; ix++) m[iz * N1 + ix] = W3.mask(-g.half + ix * g.cell, -g.half + iz * g.cell);
       if ((iz & 15) === 15) yield;
@@ -19535,17 +21017,17 @@ ${rich ? `{
     return o.isScene;
   };
   var t = 0;
-  function updateFx(dt, night, still2) {
+  function updateFx(dt, night, still3) {
     t += dt;
     NIGHT.value = night;
-    if (RIPPLE_T && !still2) RIPPLE_T.offset.set(t * 0.02, t * 0.013);
+    if (RIPPLE_T && !still3) RIPPLE_T.offset.set(t * 0.02, t * 0.013);
     for (let i = live.length - 1; i >= 0; i--) {
       const f = live[i];
       if (!inScene(f.g)) {
         live.splice(i, 1);
         continue;
       }
-      const w = still2 ? 0 : 1;
+      const w = still3 ? 0 : 1;
       f.flames.forEach((m, j) => {
         const s = 1 + w * (0.18 * Math.sin(t * 11 + j * 2 + f.seed) + 0.1 * Math.sin(t * 23 + j));
         m.scale.set(1 + w * 0.08 * Math.sin(t * 7 + j), m.userData.h * s, 1 + w * 0.08 * Math.cos(t * 9 + j));
@@ -19836,7 +21318,7 @@ ${rich ? `{
       cold: { n: 0.05, flowers: 0, col: new THREE.Color(6978138) }
     }[cl] || { n: 0.6, flowers: 0.05, col: lush };
   }
-  function makeGrass(group2, T4, lush, towns, townHalf, seed) {
+  function makeGrass(group2, T5, lush, towns, townHalf, seed) {
     if (!grassOn()) return null;
     const max = Q.grassMax, tufts = new THREE.InstancedMesh(
       tuftGeo(),
@@ -19866,7 +21348,7 @@ ${rich ? `{
       m.userData.grass = true;
       group2.add(m);
     }
-    const grows = T4.land.biomes.map((b, i) => growthOf(b, lush[i])), mat = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), c = new THREE.Color(), CELL3 = 1.3, rad = Q.grass;
+    const grows = T5.land.biomes.map((b, i) => growthOf(b, lush[i])), mat = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), c = new THREE.Color(), CELL3 = 1.3, rad = Q.grass;
     let at = null;
     function update(px, pz, force) {
       if (!force && at && Math.abs(at.x - px) + Math.abs(at.z - pz) < 6) return;
@@ -19877,21 +21359,21 @@ ${rich ? `{
         for (let i = i0; i <= i1 && n < max; i++) {
           const cx = (i + 0.5) * CELL3, cz = (j + 0.5) * CELL3, dx = cx - px, dz = cz - pz, d2 = dx * dx + dz * dz;
           if (d2 > rad * rad) continue;
-          const r = mulberry2(seed ^ Math.imul(i + T4.land.cx * 4096, 374761393) ^ Math.imul(j + T4.land.cy * 4096, 668265263) | 0), x = (i + r()) * CELL3, z = (j + r()) * CELL3, e0 = T4.etile(x, z), ter = T4.land.terrain[e0];
-          if (ter === 4 || ter === R.DEEP || ter === 2 || (T4.roadNear ? T4.roadNear(x, z) < 3.4 : T4.roadAt(x, z))) continue;
-          if (T4.water && T4.water.mask(x, z) > 0.05) continue;
-          if (T4.inField && T4.inField(x, z)) continue;
-          if (T4.level(x, z) > 1.6) continue;
+          const r = mulberry2(seed ^ Math.imul(i + T5.land.cx * 4096, 374761393) ^ Math.imul(j + T5.land.cy * 4096, 668265263) | 0), x = (i + r()) * CELL3, z = (j + r()) * CELL3, e0 = T5.etile(x, z), ter = T5.land.terrain[e0];
+          if (ter === 4 || ter === R.DEEP || ter === 2 || (T5.roadNear ? T5.roadNear(x, z) < 3.4 : T5.roadAt(x, z))) continue;
+          if (T5.water && T5.water.mask(x, z) > 0.05) continue;
+          if (T5.inField && T5.inField(x, z)) continue;
+          if (T5.level(x, z) > 1.6) continue;
           let inTown2 = false;
           for (const t2 of towns) if (Math.abs(x - t2.x) < townHalf + 2 && Math.abs(z - t2.z) < townHalf + 2) inTown2 = true;
           if (inTown2) continue;
-          const g = grows[T4.land.biome[e0]], rich = (ter === 3 ? 1.3 : ter === 5 ? 1.2 : 1) * g.n, edge = 1 - Math.max(0, (Math.sqrt(d2) - rad * 0.7) / (rad * 0.3));
+          const g = grows[T5.land.biome[e0]], rich = (ter === 3 ? 1.3 : ter === 5 ? 1.2 : 1) * g.n, edge = 1 - Math.max(0, (Math.sqrt(d2) - rad * 0.7) / (rad * 0.3));
           if (pebbles && np < pmax && d2 < rad * rad * 0.5 && r() < 0.35 + (1 - Math.min(1, rich)) * 0.5) {
             const sx = x + (r() - 0.5) * 1.1, sz = z + (r() - 0.5) * 1.1, ps = 0.05 + r() * r() * 0.22, leaf = ter === 3 && r() < 0.6;
             e.set(r() * 3, r() * 6.28, r() * 3);
             q.setFromEuler(e);
             sc.set(ps * (0.8 + r() * 0.6), ps * (0.45 + r() * 0.3) * (leaf ? 0.15 : 1), ps);
-            v.set(sx, T4.height(sx, sz) - ps * 0.15, sz);
+            v.set(sx, T5.height(sx, sz) - ps * 0.15, sz);
             mat.compose(v, q, sc);
             mat.toArray(pebbles.instanceMatrix.array, np * 16);
             c.setHex(
@@ -19901,7 +21383,7 @@ ${rich ? `{
             np++;
           }
           if (r() > rich * edge) continue;
-          const y = T4.height(x, z) - 0.03, s = 0.7 + r() * 0.6;
+          const y = T5.height(x, z) - 0.03, s = 0.7 + r() * 0.6;
           e.set((r() - 0.5) * 0.3, r() * 6.28, (r() - 0.5) * 0.3);
           q.setFromEuler(e);
           sc.set(s * 1.2, s * (0.7 + r() * 0.6), s * 1.2);
@@ -20247,7 +21729,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (d < -Math.PI) d += Math.PI * 2;
     return d;
   };
-  function animateActors(dt, px, pz, still2) {
+  function animateActors(dt, px, pz, still3) {
     clock2 += dt;
     for (let i = dying.length - 1; i >= 0; i--) {
       const d = dying[i];
@@ -20264,7 +21746,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const keep = /* @__PURE__ */ new Map();
     for (const a of live2) {
       const g = a.g;
-      if (a.roam && !still2) {
+      if (a.roam && !still3) {
         const atGoal = Math.hypot(a.to.x - g.position.x, a.to.z - g.position.z) < 0.1;
         if (atGoal && (a.rest -= dt) <= 0) {
           const ang = Math.random() * Math.PI * 2, r = a.roam * Math.sqrt(Math.random());
@@ -20275,7 +21757,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       }
       const dx = a.to.x - g.position.x, dz = a.to.z - g.position.z, d = Math.hypot(dx, dz);
       let moving = false;
-      if (d > 0.08 && !still2) {
+      if (d > 0.08 && !still3) {
         const step2 = Math.min(d, a.speed * dt);
         g.position.x += dx / d * step2;
         g.position.z += dz / d * step2;
@@ -20296,7 +21778,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       a.phase += dt * (moving ? Math.min(a.speed, a.base * 1.8) * 2.4 : a.fight ? 5 : 1.2);
       const u = a.u, t2 = clock2 + a.seed;
       u.aPhase.value = a.phase;
-      u.aSwing.value = still2 ? 0 : a.swing;
+      u.aSwing.value = still3 ? 0 : a.swing;
       const tx = px - g.position.x, tz = pz - g.position.z, near = Math.hypot(tx, tz) < 18, look2 = near ? Math.max(-1, Math.min(1, angDiff(a.yaw, Math.atan2(tx, tz)))) : Math.sin(t2 * 0.37) * Math.sin(t2 * 0.21) * 0.8;
       u.aHead.value += (look2 - u.aHead.value) * Math.min(1, dt * 4);
       u.aTail.value = Math.sin(t2 * (a.fight || moving ? 9 : 4)) * 0.35;
@@ -20307,7 +21789,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         bob -= a.rise * a.rise * 2.5;
       }
       let fwd = 0, lean = moving ? Math.min(0.15, (a.speed / a.base - 1) * 0.08) : 0;
-      if (a.fight && !still2) {
+      if (a.fight && !still3) {
         const cyc = t2 * 0.55 % 1, l = cyc > 0.8 ? Math.sin((cyc - 0.8) / 0.2 * Math.PI) : 0;
         fwd = l * 1.2;
         lean += l * 0.25;
@@ -20445,10 +21927,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     for (const [re, s] of BY_NAME) if (re.test(n)) return s;
     return "broad";
   }
-  var CACHE2 = {};
+  var CACHE3 = {};
   function treeModel(forest, far) {
     const shape = shapeOf2(forest), key2 = shape + forest.tree.color + (far ? "f" : "n");
-    if (CACHE2[key2]) return CACHE2[key2];
+    if (CACHE3[key2]) return CACHE3[key2];
     const s = SHAPES[shape], k = kit();
     s.make(k, forest.tree.color, far);
     const g = k.build();
@@ -20464,7 +21946,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     g.dispose = () => {
     };
     g.kept = true;
-    return CACHE2[key2] = g;
+    return CACHE3[key2] = g;
   }
   var MATS4 = {};
   function treeMat(forest) {
@@ -20510,17 +21992,17 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   function updateLOD(rec, x, z, radius, force) {
     if (!force && rec.at && Math.abs(rec.at.x - x) + Math.abs(rec.at.z - z) < 25) return;
     rec.at = { x, z };
-    const r2 = radius * radius, L5 = rec.list, T4 = rec.tint, nm = rec.near.instanceMatrix.array, fm = rec.far.instanceMatrix.array, nc = rec.near.instanceColor.array, fc = rec.far.instanceColor.array;
+    const r2 = radius * radius, L5 = rec.list, T5 = rec.tint, nm = rec.near.instanceMatrix.array, fm = rec.far.instanceMatrix.array, nc = rec.near.instanceColor.array, fc = rec.far.instanceColor.array;
     let a = 0, b = 0;
     for (let i = 0; i < rec.n; i++) {
       const dx = L5[i * 16 + 12] - x, dz = L5[i * 16 + 14] - z;
       if (dx * dx + dz * dz < r2) {
         nm.set(L5.subarray(i * 16, i * 16 + 16), a * 16);
-        nc.set(T4.subarray(i * 3, i * 3 + 3), a * 3);
+        nc.set(T5.subarray(i * 3, i * 3 + 3), a * 3);
         a++;
       } else {
         fm.set(L5.subarray(i * 16, i * 16 + 16), b * 16);
-        fc.set(T4.subarray(i * 3, i * 3 + 3), b * 3);
+        fc.set(T5.subarray(i * 3, i * 3 + 3), b * 3);
         b++;
       }
     }
@@ -21506,7 +22988,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       return ((t2 ^ t2 >>> 14) >>> 0) / 4294967296;
     };
   }
-  var hash3 = (str) => {
+  var hash4 = (str) => {
     let h = 2166136261;
     for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
     return h | 0;
@@ -21544,13 +23026,13 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     return out;
   }
   var notesIn = (cell) => cell.filter((u) => u > 0).length;
-  function themeOf2(X11, key2) {
-    const place = placeOf(X11, key2), dance = X11.dances[place.dance] || X11.dances.drift, r = dice3(hash3("theme:" + key2)), pick = (a) => a[Math.floor(r() * a.length)], c1 = Math.floor(r() * dance.cells.length), c2 = (c1 + 1 + Math.floor(r() * (dance.cells.length - 1))) % dance.cells.length, c3 = Math.floor(r() * dance.cells.length), s1 = pick([0, 2, 4]), m1 = contour(r, notesIn(dance.cells[c1]), s1, false), m2 = contour(r, notesIn(dance.cells[c2]), Math.max(0, m1[m1.length - 1]), true), m3 = contour(r, notesIn(dance.cells[c3]), pick([2, 4]), r() < 0.5);
+  function themeOf3(X11, key2) {
+    const place = placeOf(X11, key2), dance = X11.dances[place.dance] || X11.dances.drift, r = dice3(hash4("theme:" + key2)), pick = (a) => a[Math.floor(r() * a.length)], c1 = Math.floor(r() * dance.cells.length), c2 = (c1 + 1 + Math.floor(r() * (dance.cells.length - 1))) % dance.cells.length, c3 = Math.floor(r() * dance.cells.length), s1 = pick([0, 2, 4]), m1 = contour(r, notesIn(dance.cells[c1]), s1, false), m2 = contour(r, notesIn(dance.cells[c2]), Math.max(0, m1[m1.length - 1]), true), m3 = contour(r, notesIn(dance.cells[c3]), pick([2, 4]), r() < 0.5);
     return { key: key2, place, dance, cells: [c1, c2, c3], shapes: [m1, m2, m3], A: pick(PROG_A), B: pick(PROG_B) };
   }
   function makeTune(X11, key2, seed) {
-    const th = themeOf2(X11, key2);
-    return Object.assign(th, { bar: 0, r: dice3(hash3("play:" + key2) ^ (seed | 0)), mode: X11.modes[th.place.mode] || X11.modes.ionian });
+    const th = themeOf3(X11, key2);
+    return Object.assign(th, { bar: 0, r: dice3(hash4("play:" + key2) ^ (seed | 0)), mode: X11.modes[th.place.mode] || X11.modes.ionian });
   }
   var deg2m = (mode, root, d, oct) => {
     const n = mode.length, k = (d % n + n) % n;
@@ -21619,7 +23101,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     return { beats, spb: 60 / dance.tempo, chord: [0, 2, 4].map((o) => deg2m(mode, root, chord + o, -1)), notes };
   }
   function eventPiece(X11, kind2, seed) {
-    const e = X11.events[kind2], mode = X11.modes[e.mode], root = e.root, r = dice3(hash3("event:" + kind2) ^ (seed | 0)), out = [], n = (d, o) => deg2m(mode, root, d, o), v = e.voice;
+    const e = X11.events[kind2], mode = X11.modes[e.mode], root = e.root, r = dice3(hash4("event:" + kind2) ^ (seed | 0)), out = [], n = (d, o) => deg2m(mode, root, d, o), v = e.voice;
     if (kind2 === "discovery") {
       const s = 0.11, steps = r() < 0.5 ? [0, 2, 4, 7] : [0, 4, 2, 7];
       steps.forEach((d, i) => out.push({ t: i * s, d: s, m: n(d), v: 0.1, voice: v }));
@@ -22174,7 +23656,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         along ? { x: cx, y: CEIL - 0.11, z: o } : { x: o, y: CEIL - 0.11, z: cz }
       );
     }
-    const door = L5.entry, doorX = tileC(door.x), doorZ = tileC(door.y), T4 = 0.14;
+    const door = L5.entry, doorX = tileC(door.x), doorZ = tileC(door.y), T5 = 0.14;
     const wallLine = (ax, az, bx, bz, gaps, windows) => {
       const horiz = az === bz, lo = horiz ? Math.min(ax, bx) : Math.min(az, bz), hi = horiz ? Math.max(ax, bx) : Math.max(az, bz), cuts = gaps.slice().sort((a, b) => a[0] - b[0]);
       let p = lo;
@@ -22182,7 +23664,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         if (to - from < 0.02) return;
         const m = (from + to) / 2, len = to - from;
         walls.add(
-          P4.box(horiz ? len : T4, y12 - y02, horiz ? T4 : len),
+          P4.box(horiz ? len : T5, y12 - y02, horiz ? T5 : len),
           lk.wcol,
           horiz ? { x: m, y: (y02 + y12) / 2, z: az } : { x: ax, y: (y02 + y12) / 2, z: m },
           { uv: 2.2, shade: (yy) => 0.86 + 0.14 * yy }
@@ -22193,12 +23675,12 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         piece(c - gw / 2, c + gw / 2, 2.15, CEIL);
         for (const sg of [-1, 1])
           wood.add(
-            P4.box(horiz ? 0.1 : T4 + 0.06, 2.15, horiz ? T4 + 0.06 : 0.1),
+            P4.box(horiz ? 0.1 : T5 + 0.06, 2.15, horiz ? T5 + 0.06 : 0.1),
             "#5a4030",
             horiz ? { x: c + sg * gw / 2, y: 1.075, z: az } : { x: ax, y: 1.075, z: c + sg * gw / 2 }
           );
         wood.add(
-          P4.box(horiz ? gw + 0.2 : T4 + 0.06, 0.12, horiz ? T4 + 0.06 : gw + 0.2),
+          P4.box(horiz ? gw + 0.2 : T5 + 0.06, 0.12, horiz ? T5 + 0.06 : gw + 0.2),
           "#5a4030",
           horiz ? { x: c, y: 2.15, z: az } : { x: ax, y: 2.15, z: c }
         );
@@ -22747,7 +24229,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var FLAT = { height: () => 0 };
   function interiorGroup(map, rec, ts, id) {
-    const group2 = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T4 = map.terrain, at = (t2) => (t2 + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T4[y * R.W + x] === R.WALL;
+    const group2 = new THREE.Group(), town = rec.kind === "town", size = R.W * ts, T5 = map.terrain, at = (t2) => (t2 + 0.5) * ts - size / 2, isWall = (x, y) => x < 0 || y < 0 || x >= R.W || y >= R.H || T5[y * R.W + x] === R.WALL;
     if (town && townsOn()) {
       return cachedModel("town" + V.S.seed + ":" + (id || "town") + ":" + (V.S.realm || ""), () => {
         const g = townGroup(V.S, id || "town", map, ts);
@@ -22829,8 +24311,8 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     }
   }
   function skyGround(map, ts, at, look2, LK) {
-    const g = new THREE.Group(), T4 = map.terrain, tiles = [];
-    for (let i = 0; i < T4.length; i++) if (T4[i] !== R.VOID) tiles.push(i);
+    const g = new THREE.Group(), T5 = map.terrain, tiles = [];
+    for (let i = 0; i < T5.length; i++) if (T5[i] !== R.VOID) tiles.push(i);
     const slab = new THREE.InstancedMesh(
       new THREE.BoxGeometry(ts, 1.2, ts),
       LK ? levelMat({ color: look2.floor, map: surface(LK.floor) }) : std(look2.floor),
@@ -23084,7 +24566,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     const base = yield* makeTerrainG(S3);
     part("land");
     yield;
-    const T4 = base, land2 = T4.land, pal = land2.biomes.map((b) => ({
+    const T5 = base, land2 = T5.land, pal = land2.biomes.map((b) => ({
       spec: specialKind(b),
       cold: /cold|polar|tundra/.test(climateOf2(b)),
       cols: b.colors.map((c2) => new THREE.Color(c2)),
@@ -23094,19 +24576,19 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     for (const sp of springs)
       for (let dz = -2; dz <= 2; dz++)
         for (let dx = -2; dx <= 2; dx++) {
-          const k = T4.etile(sp.x + dx * TS, sp.z + dz * TS);
+          const k = T5.etile(sp.x + dx * TS, sp.z + dz * TS);
           (springsNear[k] = springsNear[k] || []).push(sp);
         }
     for (const k in springsNear) springsNear[k] = [...new Set(springsNear[k])];
     const painted = lookOn("light"), bed = new THREE.Color(), MUD = new THREE.Color(3813926);
     const here2 = { forest: 0, water: 0, special: 0, spec: "earth", cold: false, road: 0 }, chars = groundsOn() && paintOn(), roadsDrawn = roadsOn();
     const colourAt = (x, z) => {
-      const l = T4.level(x, z), mv = [T4.masks[0](x, z), T4.masks[1](x, z), T4.masks[2](x, z)];
+      const l = T5.level(x, z), mv = [T5.masks[0](x, z), T5.masks[1](x, z), T5.masks[2](x, z)];
       let total = 0, most = 0;
       c.setRGB(0, 0, 0);
       lush.setRGB(0, 0, 0);
       for (let b = 0; b < pal.length; b++) {
-        const w = pal.length === 1 ? 1 : T4.share[b](x, z);
+        const w = pal.length === 1 ? 1 : T5.share[b](x, z);
         if (w < 2e-3) continue;
         const cols = pal[b].cols;
         if (l <= 1) cb.copy(cols[0]).lerp(cols[1], Math.max(0, l));
@@ -23114,7 +24596,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         for (let mi = 0; mi < 3; mi++)
           if (mv[mi] > 0)
             cb.lerp(
-              mi === 1 && T4.water ? bed.copy(cols[4]).multiplyScalar(0.3).lerp(MUD, 0.5) : cols[3 + mi],
+              mi === 1 && T5.water ? bed.copy(cols[4]).multiplyScalar(0.3).lerp(MUD, 0.5) : cols[3 + mi],
               mv[mi] * (mi === 0 ? 0.7 : 1)
             );
         c.r += cb.r * w;
@@ -23131,15 +24613,15 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       here2.forest = mv[0];
       here2.water = mv[1];
       here2.special = mv[2];
-      here2.road = T4.roadAt(x, z) && !roadsDrawn ? 1 : 0;
+      here2.road = T5.roadAt(x, z) && !roadsDrawn ? 1 : 0;
       if (here2.road) c.lerp(paved, 0.85);
       if (chars) {
-        const t1 = T4.tint(x, z), t2 = T4.tint(x * 0.31 + 977, z * 0.31 - 311);
+        const t1 = T5.tint(x, z), t2 = T5.tint(x * 0.31 + 977, z * 0.31 - 311);
         c.multiplyScalar(0.84 + 0.3 * t1);
         c.r *= 0.94 + 0.12 * t2;
         c.b *= 1.06 - 0.12 * t2;
-      } else c.multiplyScalar(0.88 + 0.2 * T4.tint(x, z));
-      for (const s of springsNear[T4.etile(x, z)] || NONE2) {
+      } else c.multiplyScalar(0.88 + 0.2 * T5.tint(x, z));
+      for (const s of springsNear[T5.etile(x, z)] || NONE2) {
         const dx = s.x - x, dz = s.z - z;
         if (dx > 34 || dx < -34 || dz > 34 || dz < -34) continue;
         const d = Math.hypot(dx, dz);
@@ -23229,14 +24711,14 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       gm.userData.farGround = hollow;
       group2.add(gm);
     };
-    yield* ground(T4.fine, 0, false);
-    yield* ground(T4.coarse, SINK, true);
-    if (T4.water) {
+    yield* ground(T5.fine, 0, false);
+    yield* ground(T5.coarse, SINK, true);
+    if (T5.water) {
       const tint2 = (x, z, out) => {
         out.setRGB(0, 0, 0);
         let tot = 0;
         for (let b = 0; b < pal.length; b++) {
-          const w = pal.length === 1 ? 1 : T4.share[b](x, z);
+          const w = pal.length === 1 ? 1 : T5.share[b](x, z);
           if (w < 2e-3) continue;
           out.r += pal[b].cols[4].r * w;
           out.g += pal[b].cols[4].g * w;
@@ -23247,10 +24729,10 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       };
       yield;
       for (const [g, sink, hollow] of [
-        [T4.fine, 0, false],
-        [T4.coarse, SINK, true]
+        [T5.fine, 0, false],
+        [T5.coarse, SINK, true]
       ]) {
-        const w = yield* waterMesh(T4, g, sink, hollow, HALF - g.cell * 1.5, tint2);
+        const w = yield* waterMesh(T5, g, sink, hollow, HALF - g.cell * 1.5, tint2);
         if (w) group2.add(w);
         yield;
       }
@@ -23258,9 +24740,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     part("ground");
     if (roadsDrawn) {
       yield;
-      const rd = roadsGroup(S3, T4, (x, z) => colourAt(x, z));
+      const rd = roadsGroup(S3, T5, (x, z) => colourAt(x, z));
       group2.add(rd.group);
-      T4.roadNear = rd.near;
+      T5.roadNear = rd.near;
       part("roads");
     }
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), rocks = pal.map(() => []), trees = pal.map(() => []), treesNear2 = pal.map(() => []), shaped = plantsOn(), tints = pal.map(() => ({ n: [], f: [] }));
@@ -23268,32 +24750,32 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
       id: q2.st.town || "town",
       here: q2.here,
       x: centre(q2.x),
-      y: T4.height(centre(q2.x), centre(q2.y)),
+      y: T5.height(centre(q2.x), centre(q2.y)),
       z: centre(q2.y)
     }));
-    const fd = fieldsGroup(S3, T4, towns, townHalf);
+    const fd = fieldsGroup(S3, T5, towns, townHalf);
     group2.add(fd.group);
-    T4.inField = fd.inField;
+    T5.inField = fd.inField;
     const nearSite = (x, z) => {
       if (fd.inField(x, z)) return true;
       for (const t2 of towns) if (Math.abs(x - t2.x) < townHalf + 4 && Math.abs(z - t2.z) < townHalf + 4) return true;
-      const site = land2.siteAt[T4.etile(x, z)];
+      const site = land2.siteAt[T5.etile(x, z)];
       return site && Math.hypot(centre(site.x) - x, centre(site.y) - z) < (PAD[site.st.kind] || 8) + 3;
     };
     const put = (list, x, z, sx, sy, lift, rx, ry, rz) => {
       e.set(rx, ry, rz);
       q.setFromEuler(e);
       sc.set(sx, sy, sx);
-      v.set(x, T4.height(x, z) + lift, z);
+      v.set(x, T5.height(x, z) + lift, z);
       m.compose(v, q, sc);
       for (let i = 0; i < 16; i++) list.push(m.elements[i]);
     };
     for (let ey = 0; ey < EW; ey++) {
       if ((ey & 3) === 3) yield;
       for (let ex = 0; ex < EW; ex++) {
-        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land2.biome[en], bio = land2.biomes[bi], r = T4.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8, rockShare = far ? Q.rocksF : Q.rocksN;
+        const x = ex - MARGIN, y = ey - MARGIN, en = ey * EW + ex, bi = land2.biome[en], bio = land2.biomes[bi], r = T5.tileRand(x, y, 1), x0 = x * TS - HALF, z0 = y * TS - HALF, far = x < -8 || y < -8 || x >= R.W + 8 || y >= R.H + 8, rockShare = far ? Q.rocksF : Q.rocksN;
         for (let n = Math.floor((bio.rocky !== void 0 ? bio.rocky : bio.id === "salt" ? 0.62 : 0.35) + r()); n > 0; n--) {
-          const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T4.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
+          const px = x0 + r() * TS, pz = z0 + r() * TS, s = 0.3 + r() * r() * (1.5 + T5.level(px, pz) * 1.6), sy = s * (0.6 + r() * 0.6), rx = r() * 3, ry = r() * 6.28, rz = r() * 3;
           if (r() < rockShare && !nearSite(px, pz)) put(rocks[bi], px, pz, s, sy, s * 0.2, rx, ry, rz);
         }
         if (r() < 0.0125) {
@@ -23310,7 +24792,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
             e.set(lean, ry, -lean);
             q.setFromEuler(e);
             sc.set(wd, hgt, wd);
-            v.set(px, T4.height(px, pz) - 0.3, pz);
+            v.set(px, T5.height(px, pz) - 0.3, pz);
             m.compose(v, q, sc);
             const list = near ? treesNear2[bi] : trees[bi];
             for (let i = 0; i < 16; i++) list.push(m.elements[i]);
@@ -23320,7 +24802,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           e.set(0, ry, 0);
           q.setFromEuler(e);
           sc.set(wd, hgt, wd);
-          v.set(px, T4.height(px, pz) + hgt / 2 - 0.3, pz);
+          v.set(px, T5.height(px, pz) + hgt / 2 - 0.3, pz);
           m.compose(v, q, sc);
           for (let i = 0; i < 16; i++) trees[bi].push(m.elements[i]);
         }
@@ -23329,7 +24811,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     {
       const gr = makeGrass(
         group2,
-        T4,
+        T5,
         pal.map((p) => p.lush),
         towns,
         townHalf,
@@ -23366,7 +24848,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
           new THREE.CircleGeometry(4.6, 12).rotateX(-Math.PI / 2),
           new THREE.MeshBasicMaterial({ color: 4165568 })
         );
-        w.position.set(x, T4.height(x, z) + 0.3, z);
+        w.position.set(x, T5.height(x, z) + 0.3, z);
         group2.add(w);
         continue;
       }
@@ -23384,7 +24866,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         biome: land2.biomes[land2.biome[(site.y + MARGIN) * EW + site.x + MARGIN]],
         seed: S3.seed ^ Math.imul(site.k + 1, 2654435761) ^ land2.cx * 977 + land2.cy * 131
       });
-      g.position.set(x, T4.height(x, z), z);
+      g.position.set(x, T5.height(x, z), z);
       if (st.kind !== "beacon") g.rotation.y = site.k % 7 * 0.9;
       group2.add(g);
     }
@@ -24290,7 +25772,9 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
   }
   var randomSeed = () => 1e4 + Math.floor(Math.random() * 9e4);
   var start2 = (seed, set) => {
-    enter(R.newGame(seed, {}, set));
+    const s = R.newGame(seed, {}, set);
+    if (set && set.feline) R.setTheme(s, "feline");
+    enter(s);
     openCreate(false);
   };
   function sync() {
@@ -24516,6 +26000,566 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     }
   }
 
+  // src/view/themeflag.js
+  var TH2 = { id: null };
+
+  // src/view/theme.js
+  var ORIG = /* @__PURE__ */ new WeakMap();
+  var ATTRS = ["placeholder", "title", "aria-label"];
+  var AORIG = /* @__PURE__ */ new WeakMap();
+  var observer = null;
+  var baseTitle = null;
+  var listeners2 = [];
+  var onThemeChange = (fn) => listeners2.push(fn);
+  var T4 = (text) => TH2.id ? R.themed(text, TH2.id) : text;
+  var skip = (n) => {
+    const p = n.nodeType === 3 ? n.parentNode : n;
+    return !p || /^(SCRIPT|STYLE|TEXTAREA)$/.test(p.nodeName) || p.closest && p.closest("[data-notheme]");
+  };
+  function turnText(n) {
+    if (skip(n)) return;
+    const v = n.nodeValue;
+    let rec = ORIG.get(n);
+    if (rec && v === rec.shown) return;
+    if (!rec) ORIG.set(n, rec = {});
+    rec.orig = v;
+    rec.shown = T4(v);
+    if (rec.shown !== v) n.nodeValue = rec.shown;
+  }
+  function turnAttrs(e) {
+    if (!e.getAttribute || skip(e)) return;
+    for (const a of ATTRS) {
+      if (!e.hasAttribute(a)) continue;
+      const v = e.getAttribute(a);
+      let recs = AORIG.get(e);
+      if (!recs) AORIG.set(e, recs = {});
+      const rec = recs[a] || (recs[a] = {});
+      if (v === rec.shown) continue;
+      rec.orig = v;
+      rec.shown = T4(v);
+      if (rec.shown !== v) e.setAttribute(a, rec.shown);
+    }
+  }
+  function turnTree(root) {
+    if (root.nodeType === 3) return turnText(root);
+    if (root.nodeType !== 1 || skip(root)) return;
+    turnAttrs(root);
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) n.nodeType === 3 ? turnText(n) : turnAttrs(n);
+  }
+  function watch() {
+    if (observer || typeof MutationObserver === "undefined") return;
+    observer = new MutationObserver((list) => {
+      if (!TH2.id) return;
+      for (const m of list) {
+        if (m.type === "characterData") turnText(m.target);
+        else if (m.type === "attributes") turnAttrs(m.target);
+        else for (const n of m.addedNodes) turnTree(n);
+      }
+    });
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ATTRS
+    });
+  }
+  function turnAll() {
+    if (baseTitle === null) baseTitle = document.title;
+    document.title = T4(baseTitle);
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      if (n.nodeType === 3) {
+        const rec = ORIG.get(n);
+        if (rec && n.nodeValue === rec.shown) {
+          rec.shown = T4(rec.orig);
+          n.nodeValue = rec.shown;
+        } else turnText(n);
+      } else {
+        const recs = AORIG.get(n);
+        if (recs)
+          for (const a in recs) {
+            const r = recs[a];
+            if (n.getAttribute(a) === r.shown) n.setAttribute(a, r.shown = T4(r.orig));
+          }
+        turnAttrs(n);
+      }
+    }
+  }
+  function syncTheme() {
+    const id = V.S ? R.themeOf(V.S) : null;
+    if (id === TH2.id) return false;
+    const was = TH2.id;
+    TH2.id = id;
+    watch();
+    document.body.classList.toggle("theme-feline", id === "feline");
+    turnAll();
+    for (const fn of listeners2) fn(id, was);
+    return true;
+  }
+
+  // src/view/catsplash.js
+  var COATS = [
+    { fur: "#f0a040", dark: "#b8661c", belly: "#fbe2c0", pattern: "tabby" },
+    // ginger tabby
+    { fur: "#2b2a30", dark: "#121116", belly: "#f4f2ee", pattern: "tuxedo" },
+    { fur: "#f2ead8", dark: "#3b2a20", belly: "#ffffff", pattern: "calico", patch2: "#e08a3a" },
+    { fur: "#8f8f98", dark: "#5c5c66", belly: "#d8d8de", pattern: "tabby" },
+    // grey tabby
+    { fur: "#f3e6cc", dark: "#5a3b2a", belly: "#fff8ea", pattern: "points" },
+    // Siamese
+    { fur: "#1c1b20", dark: "#000000", belly: "#2c2b30", pattern: "plain" },
+    // black
+    { fur: "#e8c890", dark: "#b08850", belly: "#fff2d8", pattern: "plain" },
+    // cream
+    { fur: "#a07050", dark: "#5a3a24", belly: "#e8cfb0", pattern: "tabby" },
+    // brown tabby
+    { fur: "#c9b0e8", dark: "#8a68c0", belly: "#f2e8ff", pattern: "tabby" }
+    // a lilac one, for fun
+  ];
+  var EYES = ["#7ad04a", "#f0c030", "#4ab0e8", "#e8803a"];
+  var CAPES = ["#e8344a", "#3a6ae8", "#f0c020", "#9a3ae8", "#20b878", "#ff70b0"];
+  var EMOJI = ["\u{1F431}", "\u{1F63A}", "\u{1F638}", "\u{1F63B}", "\u{1F639}", "\u{1F408}", "\u{1F408}\u200D\u2B1B", "\u{1F43E}", "\u{1F9F6}", "\u{1F41F}", "\u{1F42D}", "\u{1F380}", "\u{1F451}", "\u{1F514}", "\u{1F95B}", "\u{1F420}", "\u{1FAB6}", "\u{1F4E6}"];
+  function cat(c, o, t2) {
+    const coat = o.coat, r = o.size;
+    c.save();
+    c.translate(o.x, o.y);
+    c.rotate(o.rot);
+    if (o.body) {
+      c.fillStyle = o.cape;
+      c.beginPath();
+      c.moveTo(-r * 0.4, r * 0.2);
+      const flap = Math.sin(t2 * 14 + o.seed) * r * 0.25;
+      c.quadraticCurveTo(-r * 1.6, r * 0.9 + flap, -r * 2.6, r * 0.4 + flap * 1.6);
+      c.lineTo(-r * 2.2, r * 1.4 + flap);
+      c.quadraticCurveTo(-r * 1.2, r * 1.6, -r * 0.1, r * 0.9);
+      c.fill();
+      c.fillStyle = coat.fur;
+      c.beginPath();
+      c.ellipse(-r * 0.9, r * 0.85, r * 1, r * 0.5, -0.1, 0, Math.PI * 2);
+      c.fill();
+      for (const [lx2, ly2] of [
+        [-1.7, 1],
+        [-1.5, 1.25],
+        [0, 1.1],
+        [0.15, 0.85]
+      ]) {
+        c.beginPath();
+        c.ellipse(lx2 * r, ly2 * r, r * 0.3, r * 0.14, 0.3, 0, Math.PI * 2);
+        c.fill();
+      }
+      c.strokeStyle = coat.fur;
+      c.lineWidth = r * 0.22;
+      c.lineCap = "round";
+      c.beginPath();
+      c.moveTo(-r * 1.8, r * 0.7);
+      c.quadraticCurveTo(-r * 2.6, r * (0.1 + Math.sin(t2 * 6 + o.seed) * 0.5), -r * 2.4, -r * 0.6);
+      c.stroke();
+    }
+    c.fillStyle = coat.pattern === "points" ? coat.dark : coat.fur;
+    for (const s of [-1, 1]) {
+      c.beginPath();
+      c.moveTo(s * r * 0.85, -r * 0.35);
+      c.lineTo(s * r * 0.7, -r * 1.25);
+      c.lineTo(s * r * 0.15, -r * 0.8);
+      c.fill();
+    }
+    c.fillStyle = "#f4a0b0";
+    for (const s of [-1, 1]) {
+      c.beginPath();
+      c.moveTo(s * r * 0.72, -r * 0.45);
+      c.lineTo(s * r * 0.66, -r * 1.02);
+      c.lineTo(s * r * 0.32, -r * 0.75);
+      c.fill();
+    }
+    c.fillStyle = coat.fur;
+    c.beginPath();
+    c.ellipse(0, 0, r, r * 0.86, 0, 0, Math.PI * 2);
+    c.fill();
+    if (coat.pattern === "tabby") {
+      c.strokeStyle = coat.dark;
+      c.lineWidth = r * 0.09;
+      for (const dx of [-0.25, 0, 0.25]) {
+        c.beginPath();
+        c.moveTo(dx * r, -r * 0.82);
+        c.lineTo(dx * r * 0.6, -r * 0.45);
+        c.stroke();
+      }
+      for (const s of [-1, 1])
+        for (const dy of [-0.05, 0.18]) {
+          c.beginPath();
+          c.moveTo(s * r * 0.98, dy * r);
+          c.lineTo(s * r * 0.7, dy * r + r * 0.04);
+          c.stroke();
+        }
+    } else if (coat.pattern === "tuxedo" || coat.pattern === "calico") {
+      c.fillStyle = coat.pattern === "tuxedo" ? coat.belly : coat.dark;
+      c.beginPath();
+      if (coat.pattern === "tuxedo") {
+        c.moveTo(0, -r * 0.3);
+        c.lineTo(-r * 0.55, r * 0.85);
+        c.lineTo(r * 0.55, r * 0.85);
+      } else c.ellipse(-r * 0.45, -r * 0.35, r * 0.42, r * 0.35, 0.3, 0, Math.PI * 2);
+      c.fill();
+      if (coat.patch2) {
+        c.fillStyle = coat.patch2;
+        c.beginPath();
+        c.ellipse(r * 0.5, -r * 0.3, r * 0.35, r * 0.3, -0.4, 0, Math.PI * 2);
+        c.fill();
+      }
+    } else if (coat.pattern === "points") {
+      c.fillStyle = coat.dark;
+      c.beginPath();
+      c.ellipse(0, r * 0.3, r * 0.45, r * 0.42, 0, 0, Math.PI * 2);
+      c.fill();
+    }
+    const blink = Math.sin(t2 * 1.7 + o.seed * 3) > 0.96;
+    for (const s of [-1, 1]) {
+      c.fillStyle = o.eye;
+      c.beginPath();
+      c.ellipse(s * r * 0.38, -r * 0.08, r * 0.2, blink ? r * 0.03 : r * 0.24, 0, 0, Math.PI * 2);
+      c.fill();
+      if (!blink) {
+        c.fillStyle = "#111";
+        c.beginPath();
+        c.ellipse(s * r * 0.38, -r * 0.08, r * 0.06, r * 0.2, 0, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = "#fff";
+        c.beginPath();
+        c.arc(s * r * 0.33, -r * 0.18, r * 0.05, 0, Math.PI * 2);
+        c.fill();
+      }
+    }
+    if (o.shades) {
+      c.fillStyle = "#111";
+      for (const s of [-1, 1]) {
+        c.beginPath();
+        c.ellipse(s * r * 0.4, -r * 0.1, r * 0.3, r * 0.2, 0, 0, Math.PI * 2);
+        c.fill();
+      }
+      c.fillRect(-r * 0.15, -r * 0.16, r * 0.3, r * 0.06);
+    }
+    c.fillStyle = "#f07890";
+    c.beginPath();
+    c.moveTo(-r * 0.1, r * 0.2);
+    c.lineTo(r * 0.1, r * 0.2);
+    c.lineTo(0, r * 0.32);
+    c.fill();
+    c.strokeStyle = coat.pattern === "plain" && coat.fur < "#4" ? "#ddd" : "#2a2020";
+    c.lineWidth = Math.max(1, r * 0.04);
+    c.beginPath();
+    c.moveTo(0, r * 0.32);
+    c.quadraticCurveTo(-r * 0.12, r * 0.48, -r * 0.24, r * 0.38);
+    c.moveTo(0, r * 0.32);
+    c.quadraticCurveTo(r * 0.12, r * 0.48, r * 0.24, r * 0.38);
+    c.stroke();
+    c.strokeStyle = "rgba(255,255,255,0.9)";
+    for (const s of [-1, 1])
+      for (const k of [-1, 0, 1]) {
+        c.beginPath();
+        c.moveTo(s * r * 0.3, r * 0.3);
+        c.lineTo(s * r * 1.35, r * (0.22 + k * 0.16));
+        c.stroke();
+      }
+    if (o.hat === "crown") {
+      c.fillStyle = "#f8d030";
+      c.beginPath();
+      c.moveTo(-r * 0.45, -r * 0.78);
+      for (let i = 0; i <= 4; i++) c.lineTo(-r * 0.45 + i * r * 0.225, -r * (i % 2 ? 0.98 : 1.3));
+      c.lineTo(r * 0.45, -r * 0.78);
+      c.fill();
+    } else if (o.hat === "bow") {
+      c.fillStyle = "#ff4f9a";
+      c.beginPath();
+      c.ellipse(r * 0.55, -r * 0.72, r * 0.22, r * 0.14, 0.6, 0, Math.PI * 2);
+      c.ellipse(r * 0.85, -r * 0.5, r * 0.22, r * 0.14, 0.6, 0, Math.PI * 2);
+      c.fill();
+    } else if (o.hat === "bell") {
+      c.fillStyle = "#e8344a";
+      c.fillRect(-r * 0.6, r * 0.72, r * 1.2, r * 0.14);
+      c.fillStyle = "#f8d030";
+      c.beginPath();
+      c.arc(0, r * 0.95, r * 0.16, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.restore();
+  }
+  function yarn(c, o, t2) {
+    const r = o.size * 0.7;
+    c.save();
+    c.translate(o.x, o.y);
+    c.rotate(o.rot);
+    c.fillStyle = o.color;
+    c.beginPath();
+    c.arc(0, 0, r, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = "rgba(255,255,255,0.45)";
+    c.lineWidth = Math.max(1, r * 0.08);
+    for (let i = -2; i <= 2; i++) {
+      c.beginPath();
+      c.ellipse(0, 0, r * 0.95, r * (0.25 + Math.abs(i) * 0.15), i * 0.6, 0, Math.PI * 2);
+      c.stroke();
+    }
+    c.strokeStyle = o.color;
+    c.lineWidth = Math.max(1, r * 0.1);
+    c.beginPath();
+    c.moveTo(r, 0);
+    for (let i = 1; i < 8; i++) c.lineTo(r + i * r * 0.5, Math.sin(t2 * 8 + i) * r * 0.3);
+    c.stroke();
+    c.restore();
+  }
+  function fish(c, o) {
+    const r = o.size * 0.6;
+    c.save();
+    c.translate(o.x, o.y);
+    c.rotate(o.rot);
+    c.fillStyle = o.color;
+    c.beginPath();
+    c.ellipse(0, 0, r, r * 0.5, 0, 0, Math.PI * 2);
+    c.moveTo(r * 0.8, 0);
+    c.lineTo(r * 1.5, -r * 0.5);
+    c.lineTo(r * 1.5, r * 0.5);
+    c.fill();
+    c.fillStyle = "#111";
+    c.beginPath();
+    c.arc(-r * 0.55, -r * 0.1, r * 0.09, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+  }
+  function mouse(c, o, t2) {
+    const r = o.size * 0.5;
+    c.save();
+    c.translate(o.x, o.y);
+    c.rotate(o.rot);
+    c.fillStyle = "#9a9aa4";
+    c.beginPath();
+    c.ellipse(0, 0, r, r * 0.6, 0, 0, Math.PI * 2);
+    c.fill();
+    c.beginPath();
+    c.arc(-r * 0.5, -r * 0.55, r * 0.3, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = "#f4a0b0";
+    c.beginPath();
+    c.arc(-r * 0.5, -r * 0.55, r * 0.17, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = "#f4a0b0";
+    c.lineWidth = Math.max(1, r * 0.1);
+    c.beginPath();
+    c.moveTo(r, 0);
+    c.quadraticCurveTo(r * 1.8, Math.sin(t2 * 9) * r, r * 2.3, -r * 0.4);
+    c.stroke();
+    c.restore();
+  }
+  function feather(c, o, t2) {
+    const r = o.size;
+    c.save();
+    c.translate(o.x, o.y);
+    c.rotate(o.rot + Math.sin(t2 * 3 + o.seed) * 0.5);
+    c.fillStyle = o.color;
+    c.beginPath();
+    c.ellipse(0, 0, r * 0.18, r * 0.75, 0, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = "rgba(0,0,0,0.3)";
+    c.beginPath();
+    c.moveTo(0, -r * 0.75);
+    c.lineTo(0, r);
+    c.stroke();
+    c.restore();
+  }
+  function paw(c, x, y, r, rot, color) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(rot);
+    c.fillStyle = color;
+    c.beginPath();
+    c.ellipse(0, r * 0.35, r * 0.5, r * 0.4, 0, 0, Math.PI * 2);
+    c.fill();
+    for (const [dx, dy] of [
+      [-0.55, -0.25],
+      [-0.2, -0.6],
+      [0.2, -0.6],
+      [0.55, -0.25]
+    ]) {
+      c.beginPath();
+      c.ellipse(dx * r, dy * r, r * 0.18, r * 0.22, 0, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.restore();
+  }
+  function laser(c, o, t2) {
+    const g = c.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.size * 0.6);
+    g.addColorStop(0, "#fff");
+    g.addColorStop(0.25, "#ff2030");
+    g.addColorStop(1, "rgba(255,0,0,0)");
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(o.x, o.y, o.size * (0.5 + Math.sin(t2 * 20) * 0.08), 0, Math.PI * 2);
+    c.fill();
+  }
+  var still2 = () => typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function catSplash(o) {
+    o = o || {};
+    const old = document.getElementById("catsplash");
+    if (old) old.remove();
+    const wrap2 = document.createElement("div");
+    wrap2.id = "catsplash";
+    wrap2.setAttribute("data-notheme", "1");
+    wrap2.setAttribute("role", "dialog");
+    wrap2.setAttribute("aria-label", o.title || "Super Feline Mode");
+    const cv2 = document.createElement("canvas");
+    wrap2.appendChild(cv2);
+    const card = document.createElement("div");
+    card.className = "cs-card";
+    const h = document.createElement("h1");
+    let li = 0;
+    for (const word of (o.title || "SUPER FELINE MODE").split(" ")) {
+      const wd = document.createElement("span");
+      wd.className = "cs-word";
+      for (const ch of word) {
+        const sp = document.createElement("span");
+        sp.textContent = ch;
+        sp.style.animationDelay = li++ * 0.06 + "s";
+        wd.appendChild(sp);
+      }
+      h.appendChild(wd);
+      h.appendChild(document.createTextNode(" "));
+    }
+    const p = document.createElement("p");
+    p.textContent = o.sub || "Everything is cats now.";
+    const tap = document.createElement("p");
+    tap.className = "cs-tap";
+    tap.textContent = "Tap to pounce";
+    card.append(h, p, tap);
+    wrap2.appendChild(card);
+    document.body.appendChild(wrap2);
+    const c = cv2.getContext("2d");
+    let W3 = 0, H2 = 0, dpr = Math.min(2, window.devicePixelRatio || 1);
+    const size = () => {
+      W3 = window.innerWidth;
+      H2 = window.innerHeight;
+      cv2.width = W3 * dpr;
+      cv2.height = H2 * dpr;
+      cv2.style.width = W3 + "px";
+      cv2.style.height = H2 + "px";
+    };
+    size();
+    window.addEventListener("resize", size);
+    const rnd2 = Math.random, pick = (l) => l[Math.floor(rnd2() * l.length)];
+    const kinds = ["cat", "cat", "cat", "hero", "hero", "yarn", "fish", "mouse", "feather", "laser", "emoji", "emoji"];
+    const spawn2 = (fromEdge) => {
+      const k = pick(kinds), s = Math.min(W3, H2) * (0.04 + rnd2() * 0.07) * (k === "hero" ? 1.1 : 1), ang = rnd2() * Math.PI * 2, sp = Math.min(W3, H2) * (0.25 + rnd2() * 0.5);
+      let x = rnd2() * W3, y = rnd2() * H2;
+      if (fromEdge) {
+        const e = Math.floor(rnd2() * 4);
+        x = e === 0 ? -s * 3 : e === 1 ? W3 + s * 3 : rnd2() * W3;
+        y = e === 2 ? -s * 3 : e === 3 ? H2 + s * 3 : rnd2() * H2;
+      }
+      const tx = W3 * (0.2 + rnd2() * 0.6), ty = H2 * (0.2 + rnd2() * 0.6), d = Math.hypot(tx - x, ty - y) || 1;
+      return {
+        k,
+        x,
+        y,
+        vx: fromEdge ? (tx - x) / d * sp : Math.cos(ang) * sp,
+        vy: fromEdge ? (ty - y) / d * sp : Math.sin(ang) * sp,
+        rot: rnd2() * 6,
+        spin: (rnd2() - 0.5) * (k === "hero" ? 0.6 : 5),
+        size: s,
+        seed: rnd2() * 10,
+        coat: pick(COATS),
+        eye: pick(EYES),
+        cape: pick(CAPES),
+        color: pick(["#ff5a8a", "#5ab0ff", "#ffd23a", "#8af06a", "#c07aff", "#ff8a3a", "#f0f0f0"]),
+        hat: pick(["crown", "bow", "bell", null, null]),
+        shades: rnd2() < 0.15,
+        body: k === "hero",
+        glyph: pick(EMOJI),
+        life: 0
+      };
+    };
+    const things = [];
+    const N3 = Math.round(Math.min(70, 30 + W3 * H2 / 25e3));
+    for (let i = 0; i < N3; i++) things.push(spawn2(i % 3 !== 0));
+    const paws = [];
+    let t2 = 0, last2 = performance.now(), done = false, raf = 0;
+    const ms = o.ms || 7e3, stillMode = still2();
+    function frame2(now) {
+      if (done) return;
+      const dt = Math.min(0.05, (now - last2) / 1e3);
+      last2 = now;
+      t2 += dt;
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const cx = W3 / 2, cy = H2 / 2, R0 = Math.hypot(W3, H2);
+      c.fillStyle = "#ff9ec7";
+      c.fillRect(0, 0, W3, H2);
+      for (let i = 0; i < 18; i++) {
+        c.fillStyle = i % 2 ? "#ffd1e6" : "#ffb2d4";
+        c.beginPath();
+        c.moveTo(cx, cy);
+        const a = t2 * 0.25 + i / 18 * Math.PI * 2;
+        c.arc(cx, cy, R0, a, a + Math.PI / 18);
+        c.fill();
+      }
+      if (rnd2() < dt * 18) paws.push({ x: rnd2() * W3, y: -20, r: 8 + rnd2() * 14, rot: (rnd2() - 0.5) * 0.8, v: 60 + rnd2() * 120 });
+      for (let i = paws.length - 1; i >= 0; i--) {
+        const q = paws[i];
+        q.y += q.v * dt;
+        paw(c, q.x, q.y, q.r, q.rot, "rgba(150,40,90,0.35)");
+        if (q.y > H2 + 30) paws.splice(i, 1);
+      }
+      for (const o2 of things) {
+        o2.life += dt;
+        o2.x += o2.vx * dt;
+        o2.y += o2.vy * dt;
+        o2.rot += o2.spin * dt;
+        if (o2.k === "hero") o2.rot = Math.atan2(o2.vy, o2.vx) * 0.3 + Math.sin(t2 * 2 + o2.seed) * 0.1;
+        const m = o2.size * 4;
+        if (o2.x < -m || o2.x > W3 + m || o2.y < -m || o2.y > H2 + m) Object.assign(o2, spawn2(true));
+        if (o2.k === "cat" || o2.k === "hero") cat(c, o2, t2);
+        else if (o2.k === "yarn") yarn(c, o2, t2);
+        else if (o2.k === "fish") fish(c, o2);
+        else if (o2.k === "mouse") mouse(c, o2, t2);
+        else if (o2.k === "feather") feather(c, o2, t2);
+        else if (o2.k === "laser") {
+          o2.vx += Math.sin(t2 * 7 + o2.seed) * 900 * dt;
+          o2.vy += Math.cos(t2 * 5 + o2.seed) * 900 * dt;
+          laser(c, o2, t2);
+        } else {
+          c.save();
+          c.translate(o2.x, o2.y);
+          c.rotate(o2.rot);
+          c.font = Math.round(o2.size * 1.4) + "px serif";
+          c.textAlign = "center";
+          c.textBaseline = "middle";
+          c.fillText(o2.glyph, 0, 0);
+          c.restore();
+        }
+      }
+      if (stillMode) return;
+      if (t2 * 1e3 > ms) close();
+      else raf = requestAnimationFrame(frame2);
+    }
+    function close() {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", size);
+      wrap2.classList.add("cs-out");
+      setTimeout(() => wrap2.remove(), 450);
+      if (o.onDone) o.onDone();
+    }
+    wrap2.addEventListener("click", close);
+    wrap2.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      close();
+    });
+    if (stillMode) {
+      t2 = 1;
+      frame2(performance.now());
+    } else raf = requestAnimationFrame(frame2);
+    return close;
+  }
+
   // src/view/ui.js
   function meter(id, v, max, txt) {
     $(id + "-bar").style.width = clamp2(v / max * 100, 0, 100) + "%";
@@ -24589,7 +26633,21 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         );
       }
     }
+    syncTheme();
   }
+  onThemeChange((id, was) => {
+    guard("redrawing for the theme", () => {
+      buildStatic();
+      buildDynamic();
+    });
+    if (id === "feline" && !was) {
+      const t2 = R.themeById(id), rolled = R.themeRolled(V.S);
+      catSplash({
+        title: "SUPER FELINE MODE",
+        sub: rolled ? t2.announceRolled + ". " + t2.rolledNote : t2.announce + ". " + t2.chosenNote
+      });
+    }
+  });
   function openModal(title, body) {
     $("modal-title").textContent = title;
     const b = $("modal-body");
@@ -24940,7 +26998,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
     if (!["elder", "inn", "shop"].includes(section)) return openService();
     const t2 = R.curTown(V.S);
     if (section === "elder" && (!V.S.quest.told || t2 !== V.S.town)) act(() => R.talkElder(V.S));
-    const p = V.S.player, T4 = R.C.town, race = R.byId(R.C.races, t2.race).name.toLowerCase(), re = (fn) => () => {
+    const p = V.S.player, T5 = R.C.town, race = R.byId(R.C.races, t2.race).name.toLowerCase(), re = (fn) => () => {
       act(fn);
       if (!V.S.over) openTown(section);
     };
@@ -25428,8 +27486,11 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         choose2("trouble", "The great trouble", troubles, cur("trouble"))
       ])
     ]);
+    const felineIn = el("input", { type: "checkbox", id: "nw-feline" });
+    felineIn.checked = !!lastSet.feline;
     openModal("A new world", [
       el("div", { cls: "row" }, [el("label", { for: "nw-seed", text: "Seed" }), seedIn]),
+      el("div", { cls: "row" }, [el("label", { for: "nw-feline", text: "Super Feline Mode (everything is cats)" }), felineIn]),
       details,
       el("div", { cls: "row" }, [
         btn(
@@ -25442,6 +27503,7 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
               else if (k === "size" || k === "trouble") set[k] = f.value;
               else set[k] = parseFloat(f.value);
             }
+            set.feline = felineIn.checked;
             lastSet = set;
             start2(parseInt(seedIn.value, 10) || 1, set);
           },
@@ -25677,6 +27739,20 @@ vGlow = bone > 7.5 ? 1.0 : 0.0;`
         return el("ul", { cls: "items" }, [
           el("li", { cls: "item" }, [el("label", { for: "perf-meter", text: "Show the performance meter" }), cb]),
           el("li", { cls: "item" }, [el("label", { for: "battery", text: "Save battery: 30 frames a second" }), bat])
+        ]);
+      })(),
+      // Super Feline Mode for this world (commission 9): words, faces, foes and sounds; the rules are untouched
+      (() => {
+        const cb = el("input", { type: "checkbox", id: "feline" });
+        cb.checked = R.themeOf(V.S) === "feline";
+        cb.addEventListener("change", () => {
+          R.setTheme(V.S, cb.checked ? "feline" : null);
+          save();
+          render();
+          openMenu();
+        });
+        return el("ul", { cls: "items" }, [
+          el("li", { cls: "item" }, [el("label", { for: "feline", text: "Super Feline Mode, for this world" }), cb])
         ]);
       })(),
       // sound: music and effects volumes, and a mute (sound.js)

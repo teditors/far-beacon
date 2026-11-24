@@ -127,7 +127,9 @@ function enter(state) {
 }
 const randomSeed = () => 10000 + Math.floor(Math.random() * 90000),
   start = (seed, set) => {
-    enter(R.newGame(seed, {}, set));
+    const s = R.newGame(seed, {}, set);
+    if (set && set.feline) R.setTheme(s, 'feline'); // commission 9: chosen on the new world screen
+    enter(s);
     openCreate(false);
   };
 // After anything that might move the player into another area, rebuild the scene for where they are now.

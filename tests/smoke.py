@@ -20,6 +20,9 @@ async def main():
             if SHOTS: await pg.screenshot(path=os.path.join(ROOT, 'build/shots', name + '.png'))
         await pg.goto('file://' + os.path.join(ROOT, 'dist/index.html')); await pg.wait_for_timeout(1500)
         await pg.evaluate("()=>window.__g.autoQuality(false)")  # software drawing is slow: no stepping down
+        # a world rolled feline (1 in 50) has cat words on every button: this walk is of the plain game (C9 has its own below)
+        await pg.evaluate("()=>{const g=window.__g;Rules.setTheme(g.S,null);g.refresh();const c=document.getElementById('catsplash');if(c)c.remove()}")
+        await pg.wait_for_timeout(200)
         await shot('1-create')
         await pg.locator('#modal-body button', has_text='Roll again').click()
         await pg.locator('#modal-body button', has_text='Begin').click(); await pg.wait_for_timeout(300); steps.append('create')
@@ -250,6 +253,7 @@ async def main():
         # the new world screen, with its settings opened
         await pg.click('#btn-menu'); await pg.wait_for_timeout(150)
         await pg.locator('#modal-body button', has_text='New world').first.click(); await pg.wait_for_timeout(150)
+        await pg.fill('#nw-seed', '77')  # a seed not rolled feline
         await pg.click('#nw-more summary'); await pg.select_option('#nw-size', '3x3'); await pg.select_option('#nw-towns', '0')
         await shot('10-new-world')
         await pg.locator('#modal-body button', has_text='Make this world').click(); await pg.wait_for_timeout(600)
@@ -258,6 +262,31 @@ async def main():
         assert w == [3, 3, 0, False], 'the new world did not follow its settings: %r' % w
         steps.append('new world with settings')  # (a door's other world may hold a town of its own: not counted)
         await pg.reload(); await pg.wait_for_timeout(1200); steps.append('reload')
+        # Super Feline Mode (C9): chosen on the new world screen, a splash, cat words everywhere; off again in Settings
+        await pg.click('#btn-menu'); await pg.wait_for_timeout(150)
+        await pg.locator('#modal-body button', has_text='New world').first.click(); await pg.wait_for_timeout(150)
+        await pg.fill('#nw-seed', '77'); await pg.check('#nw-feline')
+        await pg.locator('#modal-body button', has_text='Make this world').click(); await pg.wait_for_timeout(1500)
+        assert await pg.evaluate("()=>!!document.getElementById('catsplash')"), 'no splash for Super Feline Mode'
+        await shot('15-feline-splash')
+        await pg.click('#catsplash'); await pg.wait_for_timeout(600)
+        assert not await pg.evaluate("()=>!!document.getElementById('catsplash')"), 'the splash did not go on a tap'
+        await pg.locator('#modal-body button', has_text='Pounce!').click(); await pg.wait_for_timeout(400)
+        hud = await pg.evaluate("()=>document.getElementById('hud').innerText+' '+document.getElementById('btn-menu').textContent+' '+document.title")
+        for w_ in ['Kibble', 'Purr', 'Meownu', 'Red Dot']:
+            assert w_ in hud, 'Super Feline Mode: %r not on the screen: %r' % (w_, hud[:400])
+        for w_ in ['Water', 'Warmth', 'Menu ']:
+            assert w_ not in hud, 'Super Feline Mode: %r still on the screen: %r' % (w_, hud[:400])
+        await pg.keyboard.down('w'); await pg.wait_for_timeout(1200); await pg.keyboard.up('w')
+        await shot('16-feline-walk')
+        await pg.click('#btn-menu'); await pg.wait_for_timeout(200)
+        await shot('17-feline-menu')
+        await pg.uncheck('#feline'); await pg.wait_for_timeout(300); await pg.click('#modal-close'); await pg.wait_for_timeout(200)
+        hud = await pg.evaluate("()=>document.getElementById('hud').innerText+' '+document.getElementById('btn-menu').textContent+' '+document.title")
+        for w_ in ['Water', 'Warmth', 'Menu', 'Far Beacon']:
+            assert w_ in hud, 'Super Feline Mode off: %r did not come back: %r' % (w_, hud[:400])
+        assert 'Kibble' not in hud and 'Meownu' not in hud, 'Super Feline Mode off: cat words left: %r' % hud[:400]
+        steps.append('super feline mode on and off')
         await b.close()
         print('smoke steps:', ', '.join(steps))
         if errs:
