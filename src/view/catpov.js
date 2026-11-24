@@ -1,8 +1,7 @@
 /* The cat's-eye view (commission 9, Super Feline Mode): you are a cat, and you can tell.
-   - Whiskers at the bottom corners of the view, swaying as you walk; two ears peek in at the top, and flatten back
-     when a fight begins (and stay flat while it lasts).
+   - Two ears peek in at the top (wide screens), and flatten back when a fight begins.
    - A paw swipes across the view, claws out, every time you strike, cast or smite, and a happy little bat when you win.
-   - Now and then a slow blink (the cat way of saying "I love you", to nobody); a nap closes the eyes, with z's.
+   - A nap shows z's. (Whiskers and blinking eyelids were tried and taken out at Andrew's word: they did not work.)
    - Paw prints follow you over the ground: a trail of the last couple of hundred steps, fading as they age, gone
      when you cross into a new place.
    - The cat's inner monologue: now and then, when something happens (a nap, a swat, a kill, a storm, an empty bowl,
@@ -25,24 +24,14 @@ function overlay() {
   root.id = 'catpov';
   root.setAttribute('data-notheme', '1');
   root.setAttribute('aria-hidden', 'true');
-  const wh = (side) =>
-    '<svg class="whisk ' +
-    side +
-    '" viewBox="0 0 200 120" preserveAspectRatio="none">' +
-    [0, 1, 2, 3]
-      .map((i) => '<path d="M0 ' + (120 - i * 8) + ' Q 90 ' + (90 - i * 22) + ' 200 ' + (60 - i * 26) + '" />')
-      .join('') +
-    '</svg>';
   const ear = (side) =>
     '<svg class="ear ' +
     side +
     '" viewBox="0 0 100 80"><path class="fur" d="M5 80 L50 0 L95 80 Z"/><path class="pink" d="M28 80 L50 28 L72 80 Z"/></svg>';
   root.innerHTML =
-    wh('left') +
-    wh('right') +
     ear('left') +
     ear('right') +
-    '<div class="think"></div><div class="lid top"></div><div class="lid bot"></div><div class="zzz">z z z</div>' +
+    '<div class="think"></div><div class="zzz">z z z</div>' +
     '<svg class="paw" viewBox="0 0 200 260"><path class="arm" d="M70 260 C 60 180 50 120 60 80 C 70 40 140 40 150 80 C 160 120 150 180 140 260 Z"/>' +
     '<g class="claws"><path d="M70 52 l-6 -26 l14 22 Z"/><path d="M95 40 l-2 -28 l10 26 Z"/><path d="M120 40 l4 -28 l4 28 Z"/><path d="M143 52 l10 -24 l-2 26 Z"/></g>' +
     '<ellipse class="bean" cx="105" cy="105" rx="26" ry="20"/><ellipse class="bean" cx="72" cy="70" rx="10" ry="13"/>' +
@@ -147,8 +136,7 @@ let prints = null,
   lastX = null,
   lastZ = null,
   lastArea = null,
-  side = 1,
-  blinkIn = 6;
+  side = 1;
 const M = new THREE.Matrix4(),
   Q = new THREE.Quaternion(),
   E = new THREE.Euler(),
@@ -203,11 +191,6 @@ function catFrame(dt, still) {
   }
   overlay();
   watch(dt);
-  // a slow blink, now and then, when nothing much is happening
-  if (!still && (blinkIn -= dt) <= 0) {
-    blinkIn = 7 + Math.random() * 12;
-    if (!(V.S && V.S.combat)) flash('blink', 1300);
-  }
   const m = printMesh();
   m.visible = true;
   const area = V.S && V.S.area;

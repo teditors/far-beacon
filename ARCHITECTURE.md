@@ -201,7 +201,7 @@ chance. The rules only say which theme a world wears and turn text into it; the 
 - **A cat's own voice**: `lines` (content/felinevoice.js) rewrite whole lines before any word is turned (a pattern and
   its rewrite; the groups are turned by themselves); `quips` are the inner monologue, picked by `view/catpov.js` on
   events and shown in a bubble. `cased` words change only with their capital.
-- **Being a cat** (`view/catpov.js`, `catFrame` every frame from run.js): the overlay (whiskers, ears, the paw, blinks,
+- **Being a cat** (`view/catpov.js`, `catFrame` every frame from run.js): the overlay (ears, the paw, the nap's z's,
   the bubble; page elements over the scene, never taking a tap), the paw-print trail (one instanced mesh that moves with
   the frame through actors.js's `SHIFTS`), and the zoomies (view speed only). Cats asleep on furniture are added where
   things.js builds a room (`catOn`, the curled cat in catkit.js).

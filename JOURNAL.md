@@ -18,10 +18,11 @@ No save migration: the choice is one optional field (`s.theme`), and a rolled wo
 | C9.2 | Cat faces on everyone, the foes a cat fears (the dog next door, the vacuum cleaner, the spray bottle, the cucumber, dust bunnies), a scratching-post beacon, a cat-bed camp with a warm laptop, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun | the same | pearl |
 | C9.3 | A cat soundtrack (the score meows, mrrows, trills and purrs; foes woof, whirr and psst; you hiss and purr) and the player for Andrew's own cat songs, outside the one-file game | the same; device setting `catSongs` | solid |
 | (polish) | A paw print for you on the maps, a party for a win, the end screens' words | | small |
-| C9.4 | Being a cat: whiskers, ears, a swiping paw, slow blinks and naps in the view; paw prints behind you; 3 a.m. zoomies; 36 lines rewritten in a cat's own voice; an inner monologue in thought bubbles; cats asleep on the beds and tables | the same | pearl |
+| C9.4 | Being a cat: ears, a swiping paw and naps in the view (whiskers and blinks later cut, C9.8); paw prints behind you; 3 a.m. zoomies; 36 lines rewritten in a cat's own voice; an inner monologue in thought bubbles; cats asleep on the beds and tables | the same | pearl |
 | C9.5 | The world talks like a cat: the elder's tale, townsfolk, epitaphs, the god's terms, the inn, the shop and every trouble's ending in a cat's own voice (82 lines in all); a cat asleep in your camp bed, strays by the wayfarers' fires; big cats sitting on two roofs in five; a cat walking the streets with most townsfolk | the same | solid |
 | C9.6 | Every trouble's giver and every wayfarer asks in a cat's voice (102 lines in all), checked by the theme test | the same | solid |
 | C9.7 | Menu's How to play rewritten as How to be a cat | the same | small, but read by everyone |
+| C9.8 | Whiskers and blinking taken out of the cat's-eye view, at Andrew's word | | a needed cut |
 
 **The bot, with the mode on and off** (`THEME=feline node tests/playtest.js 150`, three seed sets of 150): off 30, 14
 and 20 wins (20%, 9%, 13%); on 30, 14 and 20. Not merely within noise: the same worlds, won and lost the same way,
@@ -53,7 +54,14 @@ voices. Andrew's songs never go in it.
 
 **CHANGELOG row for the merge into `main`** (ready to paste, with the version that merge gets):
 
-| v0.20 | Commission 9: Super Feline Mode, a total conversion to cats with the rules untouched. Chosen on the new world screen or in Settings, or rolled by itself in about one world in fifty, it dresses every word (breeds for races, Meowladins and Clawgues, kibble for water, naps, catnip, treats, the Red Dot and the Laser Pointer, hissy fits and furricanes, the Vacuum Tyrant, the Cult of the Cucumber), every face (cat heads on everyone), every foe (the dog next door, vacuum cleaners, spray bottles, cucumbers, dust bunnies), the land (a scratching-post beacon, cat-bed camps, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun) and the sound (a score of meows, trills and purrs), with a splash of flying cats. You are a cat: whiskers and a swiping paw in the view, paw prints behind you, 3 a.m. zoomies, a thought bubble of cat opinions, the commonest lines rewritten in a cat's own voice, and a cat asleep on every bed. An optional full soundtrack of Andrew's own cat songs is published beside the game and fetched only when turned on. Turning it off restores everything. See `JOURNAL.md` |
+| v0.20 | Commission 9: Super Feline Mode, a total conversion to cats with the rules untouched. Chosen on the new world screen or in Settings, or rolled by itself in about one world in fifty, it dresses every word (breeds for races, Meowladins and Clawgues, kibble for water, naps, catnip, treats, the Red Dot and the Laser Pointer, hissy fits and furricanes, the Vacuum Tyrant, the Cult of the Cucumber), every face (cat heads on everyone), every foe (the dog next door, vacuum cleaners, spray bottles, cucumbers, dust bunnies), the land (a scratching-post beacon, cat-bed camps, cardboard ruins, cat-eared roofs, cat trees, a whiskered sun) and the sound (a score of meows, trills and purrs), with a splash of flying cats. You are a cat: a swiping paw in the view, paw prints behind you, 3 a.m. zoomies, a thought bubble of cat opinions, the commonest lines rewritten in a cat's own voice, and a cat asleep on every bed. An optional full soundtrack of Andrew's own cat songs is published beside the game and fetched only when turned on. Turning it off restores everything. See `JOURNAL.md` |
+
+## C9.8: no whiskers, no blinking
+
+Andrew tried the cat's-eye view and asked for the whiskers and the blinking to go: they did not work. Taken out: the
+whiskers at the bottom corners of the view, the slow blink, and the eyelids that closed for a nap (a nap still shows its
+z's). The paw that swipes, the ears in a fight (wide screens), the thought bubbles, the paw prints and the zoomies stay.
+The browser test now looks for the paw instead of the whiskers.
 
 ## C9.7: How to be a cat
 
